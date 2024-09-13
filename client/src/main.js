@@ -171,41 +171,49 @@ const MainApp = function (initConfig) {
     }
 
     const join = async () => {
+      // Start by joining the RTM (Real-Time Messaging) channel
+      await joinRTM();
 
-        //todo need to check with role, if the role audience dont play the video and dont add to video stream
-        await joinRTM();
-        await client.setClientRole((config.user.role === 'audience') ? 'audience' : 'host');
+      // Set the client's role based on the user's role
+      await client.setClientRole(
+        config.user.role === "audience" ? "audience" : "host"
+      );
 
-        if (config.onNeedJoinToVideoStage(config.user)) {
-            //e.g. host
-            client.on('user-published', handleUserPublished);
-            client.on('user-joined', handleUserJoined);
-            client.on('user-left', handleUserLeft);
-            client.enableAudioVolumeIndicator();
-            client.on('volume-indicator', handleVolumeIndicator);
+      // Register common event listeners for all users
+      client.on("user-published", handleUserPublished);
+      client.on("user-unpublished", handleUserUnpublished); // Add this line to handle avatar toggling
+      client.on("user-joined", handleUserJoined);
+      client.on("user-left", handleUserLeft);
+      client.enableAudioVolumeIndicator();
+      client.on("volume-indicator", handleVolumeIndicator);
 
-            const { appId, uid, channelName } = config;
-            const token = await fetchToken(config);
-            client.on('token-privilege-will-expire', handleRenewToken);
-            await client.join(appId, channelName, token, uid);
+      // Join the Agora channel
+      const { appId, uid, channelName } = config;
+      const token = await fetchToken(config);
+      client.on("token-privilege-will-expire", handleRenewToken);
+      await client.join(appId, channelName, token, uid);
 
-            joinToVideoStage(config.user);
+      // If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
+      if (config.onNeedJoinToVideoStage(config.user)) {
+        await joinToVideoStage(config.user);
+      }
+      // Audience members do not publish tracks or join the video stage
+    };
 
-        } else {
-            //e.g. audience
-            client.on('user-published', handleUserPublished);
-            client.on('user-joined', handleUserJoined);
-            client.on('user-left', handleUserLeft);
-            client.enableAudioVolumeIndicator();
-            client.on('volume-indicator', handleVolumeIndicator);
+    const handleUserUnpublished = async (user, mediaType) => {
+      if (mediaType === "video") {
+        const videoWrapper = document.querySelector(
+          `#video-wrapper-${user.uid}`
+        );
+        if (videoWrapper) {
+          const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
+          const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
 
-            const { appId, uid, channelName } = config;
-            const token = await fetchToken(config);
-            client.on('token-privilege-will-expire', handleRenewToken);
-            await client.join(appId, channelName, token, uid);
-
+          videoPlayer.style.display = "none"; // Hide the video player
+          avatarDiv.style.display = "block"; // Show the avatar
         }
-    }
+      }
+    };
 
     const joinToVideoStage = async (user) => {
         try {
@@ -660,39 +668,42 @@ const MainApp = function (initConfig) {
     }
 
     const subscribe = async (user, mediaType) => {
-        await client.subscribe(user, mediaType);
+      await client.subscribe(user, mediaType);
 
-        if (mediaType === 'video') {
-            let player = document.querySelector(`#video-wrapper-${user.uid}`);
-            if (player != null) {
-                player.remove()
-            }
+      if (mediaType === "video") {
+        let player = document.querySelector(`#video-wrapper-${user.uid}`);
+        if (!player) {
+          // Create the player if it doesn't exist
+          const userAttr = await clientRTM.getUserAttributes(user.uid);
 
-            const userAttr = await clientRTM.getUserAttributes(user.uid);
+          // Replace placeholders in the template
+          let playerHTML = config.participantPlayerContainer
+            .replace(/{{uid}}/g, user.uid)
+            .replace(/{{name}}/g, userAttr.name)
+            .replace(/{{avatar}}/g, userAttr.avatar);
 
-            // Log the user attributes to verify they are correct, including avatar
-            console.log("User Attributes:", userAttr);
-            console.log("Avatar URL:", userAttr.avatar); // Log the avatar value
+          document
+            .querySelector(config.callContainerSelector)
+            .insertAdjacentHTML("beforeend", playerHTML);
 
-            // Replace uid, name, and avatar in the template
-            player = config.participantPlayerContainer
-              .replaceAll("{{uid}}", user.uid)
-              .replaceAll("{{name}}", userAttr.name)
-              .replaceAll("{{avatar}}", userAttr.avatar); // Ensure avatar is replaced
-
-            document
-              .querySelector(config.callContainerSelector)
-              .insertAdjacentHTML("beforeend", player);
-
-            // Play the video track for the user
-            user.videoTrack.play(`stream-${user.uid}`);
-
+          player = document.querySelector(`#video-wrapper-${user.uid}`);
         }
 
-        if (mediaType === 'audio') {
-            user.audioTrack.play();
-        }
-    }
+        // Hide avatar and show video player
+        const videoPlayer = player.querySelector(`#stream-${user.uid}`);
+        const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
+
+        videoPlayer.style.display = "block"; // Show the video player
+        avatarDiv.style.display = "none"; // Hide the avatar
+
+        // Play the video track for the user
+        user.videoTrack.play(`stream-${user.uid}`);
+      }
+
+      if (mediaType === "audio") {
+        user.audioTrack.play();
+      }
+    };
 
     const log = (arg) => {
         if (config.debugEnabled) {
