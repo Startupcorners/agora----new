@@ -221,6 +221,7 @@ const MainApp = function (initConfig) {
             if (player != null) {
                 player.remove()
             }
+            console.log("Avatar URL:", user.avatar);
             let localPlayerContainer = config.participantPlayerContainer
               .replaceAll("{{uid}}", user.id)
               .replaceAll("{{name}}", user.name)
