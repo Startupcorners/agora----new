@@ -221,8 +221,15 @@ const MainApp = function (initConfig) {
             if (player != null) {
                 player.remove()
             }
-            let localPlayerContainer = config.participantPlayerContainer.replaceAll('{{uid}}', user.id).replaceAll('{{name}}', user.name);
-            document.querySelector(config.callContainerSelector).insertAdjacentHTML('beforeend', localPlayerContainer);
+            let localPlayerContainer = config.participantPlayerContainer
+              .replaceAll("{{uid}}", user.id)
+              .replaceAll("{{name}}", user.name)
+              .replaceAll("{{avatar}}", user.avatar); // Ensure avatar is replaced as well
+
+            document
+              .querySelector(config.callContainerSelector)
+              .insertAdjacentHTML("beforeend", localPlayerContainer);
+
     
             //need detect remote or not
             if (user.id === config.uid) {
