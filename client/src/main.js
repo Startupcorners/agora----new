@@ -604,11 +604,23 @@ const MainApp = function (initConfig) {
     /**
      * Callback Handlers
      */
-    const handleUserPublished = async (user, mediaType) => {
-        log('handleUserPublished Here');
-        config.remoteTracks[user.uid] = user;
-        subscribe(user, mediaType);
-    }
+   const handleUserPublished = async (user, mediaType) => {
+     config.remoteTracks[user.uid] = user;
+     await subscribe(user, mediaType);
+   };
+
+   const handleUserUnpublished = async (user, mediaType) => {
+     if (mediaType === "video") {
+       const player = document.querySelector(`#video-wrapper-${user.uid}`);
+       if (player) {
+         const videoPlayer = player.querySelector(`#stream-${user.uid}`);
+         const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
+
+         videoPlayer.style.display = "none"; // Hide the video player
+         avatarDiv.style.display = "block"; // Show the avatar
+       }
+     }
+   };
 
     const handleUserJoined = async (user, mediaType) => {
         log('handleUserJoined Here');
@@ -616,10 +628,17 @@ const MainApp = function (initConfig) {
         // subscribe(user, mediaType);
     }
 
-    const handleUserLeft = async (user, reason) => {
-        delete config.remoteTracks[user.uid];
-        config.onParticipantLeft(user);
-    }
+   const handleUserLeft = async (user, reason) => {
+     delete config.remoteTracks[user.uid];
+
+     // Remove the participant div
+     const player = document.querySelector(`#video-wrapper-${user.uid}`);
+     if (player) {
+       player.remove();
+     }
+
+     config.onParticipantLeft(user);
+   };
 
     const handleVolumeIndicator = (result) => {
         result.forEach((volume, index) => {
@@ -642,25 +661,56 @@ const MainApp = function (initConfig) {
         config.onScreenShareEnabled(config.localScreenShareEnabled);
     }
 
-    const handleOnUpdateParticipants = () => {
-        debounce(() => {
-            channelRTM.getMembers()
-                .then(async (uids) => {
-                    const participants = await Promise.all(uids.map(async uid => {
-                        const userAttr = await clientRTM.getUserAttributes(uid);
-                        return {
-                            id: uid,
-                            ...userAttr
-                        }
-                    }));
+const handleOnUpdateParticipants = async () => {
+  debounce(async () => {
+    try {
+      const uids = await channelRTM.getMembers();
+      const participants = await Promise.all(
+        uids.map(async (uid) => {
+          const userAttr = await clientRTM.getUserAttributes(uid);
+          return {
+            id: uid,
+            ...userAttr,
+          };
+        })
+      );
 
-                    config.onParticipantsChanged(participants);
-                }).catch(error => {
-                    log(error);
-                });
+      // Update the participant list and create divs
+      participants.forEach((user) => {
+        createOrUpdateParticipantDiv(user);
+      });
 
-        }, 1000);
+      config.onParticipantsChanged(participants);
+    } catch (error) {
+      log(error);
     }
+  }, 1000);
+};
+const createOrUpdateParticipantDiv = (user) => {
+  let player = document.querySelector(`#video-wrapper-${user.id}`);
+  if (!player) {
+    // Replace placeholders in the template
+    let playerHTML = config.participantPlayerContainer
+      .replace(/{{uid}}/g, user.id)
+      .replace(/{{name}}/g, user.name)
+      .replace(/{{avatar}}/g, user.avatar);
+
+    document
+      .querySelector(config.callContainerSelector)
+      .insertAdjacentHTML("beforeend", playerHTML);
+  }
+
+  // Ensure the avatar is displayed and video is hidden
+  const videoPlayer = document.querySelector(`#stream-${user.id}`);
+  const avatarDiv = document.querySelector(`#avatar-${user.id}`);
+
+  if (videoPlayer) {
+    videoPlayer.style.display = "none"; // Hide the video player
+  }
+  if (avatarDiv) {
+    avatarDiv.style.display = "block"; // Show the avatar
+  }
+};
 
     const handleRenewToken = async () => {
         config.token = await fetchToken();
