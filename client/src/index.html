@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agora Video Chat - Demo App</title>
+    <!-- <link rel="stylesheet" href="./dist/output.css"> -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+</head>
+
+<body class="h-screen m-0 flex flex-col">
+    <div class="dark:bg-gray-900 flex flex-col w-full">
+        <main class="flex flex-1 p-8 overflow-y-auto">
+            <div class="flex-initial w-4/5 p-6">
+                <div class="relative flex flex-wrap gap-2 items-center justify-center" id="video-stage">
+                    
+                    <!-- <div class="aspect-video bg-blue-400 rounded-md relative w-full sm:w-1/2 md:w-1/3 lg:w-1/4" id="video-remote">
+                        <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                            <img class="volume-icon size-4" id="volume-{{uid}}" src="./assets/volume-on.svg" />
+                            <p class="text-sm">Participant 1</p>
+                        </div>
+                    </div>
+
+                    <div class="aspect-video bg-red-400 rounded-md relative w-full sm:w-1/2 md:w-1/3 lg:w-1/4" id="video-remote">
+                        <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                            <img class="volume-icon size-4" id="volume-{{uid}}" src="./assets/volume-on.svg" />
+                            <p class="text-sm">Participant 2</p>
+                        </div>
+                    </div>
+
+                    <div class="aspect-video bg-green-400 rounded-md relative w-full sm:w-1/2 md:w-1/3 lg:w-1/4" id="video-remote">
+                        <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                            <img class="volume-icon size-4" id="volume-{{uid}}" src="./assets/volume-on.svg" />
+                            <p class="text-sm">Participant 3</p>
+                        </div>
+                    </div>
+
+                    <div class="aspect-video bg-yellow-400 rounded-md relative w-full sm:w-1/2 md:w-1/3 lg:w-1/4" id="video-remote">
+                        <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                            <img class="volume-icon size-4" id="volume-{{uid}}" src="./assets/volume-on.svg" />
+                            <p class="text-sm">Participant 4</p>
+                        </div>
+                    </div>
+
+                    <div class="aspect-video bg-yellow-400 rounded-md relative w-full sm:w-1/2 md:w-1/3 lg:w-1/4" id="video-remote">
+                        <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                            <img class="volume-icon size-4" id="volume-{{uid}}" src="./assets/volume-on.svg" />
+                            <p class="text-sm">Participant 4</p>
+                        </div>
+                    </div>
+
+                    <div class="aspect-video bg-yellow-400 rounded-md relative w-full sm:w-1/2 md:w-1/3 lg:w-1/4" id="video-remote">
+                        <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                            <img class="volume-icon size-4" id="volume-{{uid}}" src="./assets/volume-on.svg" />
+                            <p class="text-sm">Participant 4</p>
+                        </div>
+                    </div>
+
+                    <div class="aspect-video bg-yellow-400 rounded-md relative w-full sm:w-1/2 md:w-1/3 lg:w-1/4" id="video-remote">
+                        <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                            <img class="volume-icon size-4" id="volume-{{uid}}" src="./assets/volume-on.svg" />
+                            <p class="text-sm">Participant 4</p>
+                        </div>
+                    </div>
+
+                    <div class="aspect-video bg-yellow-400 rounded-md relative w-full sm:w-1/2 md:w-1/3 lg:w-1/4" id="video-remote">
+                        <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                            <img class="volume-icon size-4" id="volume-{{uid}}" src="./assets/volume-on.svg" />
+                            <p class="text-sm">Participant 4</p>
+                        </div>
+                    </div> -->
+
+                    <!-- <div class="h-32 aspect-video bg-red-400 rounded-md absolute top-0 right-0" id="video-local">
+                        local
+                    </div> -->
+
+                    <!-- <button
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full absolute bottom-0 right-0">
+                        Full
+                    </button> -->
+
+                </div>
+
+            </div>
+            <div class="w-96 bg-gray-100 py-6 px-2 rounded-md sticky overflow-hidden">
+
+                <div class="flex justify-around ">
+                    <div class="px-4 py-2 bg-blue-500 text-white rounded" id="tab-chats">Chats</div>
+                    <div class="px-4 py-2 rounded hover:bg-blue-500 hover:text-white" id="tab-participants">Participants
+                    </div>
+                    <div class="px-4 py-2 rounded hover:bg-blue-500 hover:text-white" id="tab-speakers">Speakers</div>
+                </div>
+
+                <div class="flex-1 p-2 overflow-auto" id="tab-chats-container">
+                    <!-- Chats -->
+                    <div class="mb-4">
+                        <ul class="space-y-4 h-screen flex flex-col w-full absolute overflow-auto" id="chat-container">
+                            <!-- <li class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <img class="h-10 w-10 rounded-full"
+                                        src="https://ui-avatars.com/api/?background=random&color=fff&name=Jarjit"
+                                        alt="Jarjit">
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">
+                                        Hello, how are you?
+                                    </p>
+                                </div>
+                            </li>
+
+                            <li class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <img class="h-10 w-10 rounded-full"
+                                        src="https://ui-avatars.com/api/?background=random&color=fff&name=Upin"
+                                        alt="Upin">
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">
+                                        I great!
+                                        How about you?
+                                    </p>
+                                </div>
+                            </li> -->
+
+                            <!-- Repeat this block for more chat messages -->
+                        </ul>
+                    </div>
+
+                    <!-- Message composer -->
+                    <div class="flex items-center border rounded-md absolute bottom-0 left-0 right-0 p-2">
+                        <input class="flex-grow p-2 rounded-l-md" type="text" placeholder="Type a message..."
+                            id="input-text-chat">
+                        <button class="p-2 bg-blue-500 text-white rounded-r-md" id="btn-send-chat">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor" class="h-6 w-6">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Participants -->
+                <div class="flex-1 overflow-y-auto m-4 hidden" id="tab-participants-container">
+                    <div class="grid grid-cols-1 p-1 space-y-2">
+                        <button type="button" class="bg-blue-100 rounded-md p-2" id="btn-turnoff-cam">Mute Camera
+                            All</button>
+                        <button type="button" class="bg-blue-100 rounded-md p-2" id="btn-turnoff-mic">Mute Microphhone
+                            All</button>
+                        <button type="button" class="bg-blue-100 rounded-md p-2" id="btn-remove-participant">Remove
+                            Participant All</button>
+                    </div>
+
+                    <ul class="space-y-4" id="participant-container">
+                        <!-- <li>
+                            <div class="flex items-center bg-gray-200 rounded-md p-2">
+                                <div class="w-10 h-10 rounded-full bg-blue-500"></div>
+                                <div class="ml-4">
+                                    <div>Username</div>
+                                    <div class="text-sm text-gray-500">Company</div>
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="flex items-center bg-gray-200 rounded-md p-2">
+                                <div class="w-10 h-10 rounded-full bg-blue-500"></div>
+                                <div class="ml-4">
+                                    <div>Username</div>
+                                    <div class="text-sm text-gray-500">Company</div>
+                                </div>
+                            </div>
+                        </li> -->
+                    </ul>
+                </div>
+
+                <!-- Speakers -->
+                <div class="flex-1 overflow-y-auto p-4 bg-blue-100 hidden" id="tab-speakers-container">
+                    <!-- Speaker list -->
+                </div>
+            </div>
+        </main>
+
+        <footer class="flex px-8 w-full justify-around bottom-0 sticky bg-white shadow-lg z-10">
+            <div class="fixed shadow-lg">
+                <div class="px-4 py-3 sm:px-6 flex justify-around space-x-4">
+                    <button id="btn-setting"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full">
+                        Setting
+                    </button>
+                    <button id="btn-bg-blur"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full">
+                        Blur Background
+                    </button>
+                    <button id="btn-bg-image"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full">
+                        Set Background
+                    </button>
+                    <button id="btn-bg-disable"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full">
+                        Disable Background
+                    </button>
+                    <button id="btn-mic"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full">
+                        Microphone
+                    </button>
+                    <button id="btn-cam"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full">
+                        Camera
+                    </button>
+                    <button id="btn-leave"
+                        class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-full">
+                        Leave
+                    </button>
+                    <button id="btn-raise-hand"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full">
+                        Raise Hand
+                    </button>
+                    <button id="btn-record"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full">
+                        Record
+                    </button>
+                    <button id="btn-screen-share"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full">
+                        Screen Share
+                    </button>
+                </div>
+            </div>
+
+
+        </footer>
+    </div>
+
+
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/agora-rtm-sdk@1.3.1/index.js"></script>
+    <script
+        src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
+    <script type="text/javascript" src="dist/main.js"></script>
+    <script type="text/javascript">
+
+        window.addEventListener("load", async (event) => {
+
+            console.log("loaded");
+
+            //get uid and channelName from url query params
+            const urlParams = new URLSearchParams(window.location.search);
+
+            if (!urlParams.get('channelName')) {
+                alert('please provide channelName first');
+            }
+
+            if (!urlParams.get('uid')) {
+                alert('please provide uid first');
+            }
+
+            if (!urlParams.get('name')) {
+                alert('please provide name first');
+            }
+
+            if (!urlParams.get('role')) {
+                alert('please provide role first');
+            }
+
+            const templateParticipant = `<div class="bg-grey-400 rounded-lg overflow-hidden aspect-video relative w-full sm:w-1/2 md:w-1/3 lg:w-1/4 grow" id="video-wrapper-{{uid}}">
+                <div class="video-player player bg-grey-400 rounded-md aspect-video" id="stream-{{uid}}"></div>
+                <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                    <img class="volume-icon size-4" id="volume-{{uid}}" src="./assets/volume-on.svg" />
+                    <p class="text-sm">{{name}}</p>
+                </div>
+            </div>`
+
+            //init the MainApp this is from main.js
+            const app = MainApp({
+                debugEnabled: true,
+                appId: '88eb7ea8de544d68a718601966c086ce',
+                callContainerSelector: '#video-stage',
+                localVideoContainer: templateParticipant,
+                //localVideoContainer: `<div class="h-32 aspect-video rounded-md absolute top-0 right-0" id="video-local">
+                //    <div class="video-player player aspect-video rounded-md" id="stream-{{uid}}"></div>
+                //    </div>`,
+                //participantPlayerContainer: `<div class="relative video-containers container" id="video-wrapper-{{uid}}">
+                //        <div class="video-player player aspect-video bg-green-400 rounded-md" id="stream-{{uid}}"></div>
+                //        <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                //            <img class="volume-icon size-4" id="volume-{{uid}}" src="./assets/volume-on.svg" />
+                //            <p>{{name}}</p>
+                //        </div>
+                //    </div>`,
+                participantPlayerContainer: templateParticipant,
+                //                 participantPlayerContainer: `<div class="video-containers container relative" id="video-wrapper-{{uid}}">
+                //         <p class="user-uid text-small absolute z-1 bottom-0 left-0" uid="{{uid}}"><img class="volume-icon size-16" id="volume-{{uid}}" src="./assets/volume-on.svg" /> {{uid}}</p>
+                //         <div class="video-player player aspect-video rounded-md" id="stream-{{uid}}"></div>
+                //   </div>`,
+                serverUrl: 'https://startupcorners-server-token.vercel.app',
+                channelName: urlParams.get('channelName'),
+                uid: urlParams.get('uid'),
+                user: {
+                    id: urlParams.get('uid'),
+                    name: urlParams.get('name'),
+                    avatar: `https://ui-avatars.com/api/?background=random&color=fff&name=${urlParams.get('name')}`,
+                    role: urlParams.get('role')
+                },
+                onParticipantsChanged: (participants) => {
+                    console.log('current participants: ');
+                    console.log(participants);
+                    //todo send to bubble here
+                    //speakers means host, speaker, audience on stage role
+                    const speakers = participants.filter(item => item.role !== 'audience');
+
+                    if (speakers.length == 1) {
+                        //document.querySelector('#video-stage').className = 'relative aspect-video grid grid-cols-1 gap-4 items-center overflow-hidden'
+                    } else if (speakers.length < 5) {
+                        //document.querySelector('#video-stage').className = 'relative aspect-video grid grid-cols-2 gap-4 items-center overflow-hidden'
+                    } else if (speakers.length < 10) {
+                        //document.querySelector('#video-stage').className = 'relative aspect-video grid grid-cols-3 gap-4 items-center overflow-hidden'
+                    }
+
+
+                    participants.sort((a, b) => {
+                        return a.name - b.name;
+                    });
+                    const parts = participants.map(user => {
+                        let item = document.createElement('li')
+                        item.innerHTML = `<div class="flex items-center bg-gray-200 rounded-md p-2">
+                                <img class="h-10 w-10 rounded-full"
+                                        src="${user.avatar}"
+                                        alt="${user.name}">
+                                <div class="ml-4">
+                                    <div>${user.name} <b>${user.role}</b></div>
+                                    <div class="text-sm text-gray-500">Company ${user.name}</div>
+                                </div>
+                            </div>`
+                        return item
+                    });
+
+                    document.querySelector('#participant-container').replaceChildren(...parts)
+
+                },
+                onVolumeIndicatorChanged: (volume) => {
+                    if (volume.level > 0) {
+                        document.querySelector(`#volume-${volume.uid}`).src = 'assets/volume-on.svg';
+                    } else {
+                        document.querySelector(`#volume-${volume.uid}`).src = 'assets/volume-off.svg';
+                    }
+                },
+                onParticipantLeft: (user) => {
+                    if (document.querySelector(`#video-wrapper-${user.uid}`)) {
+                        document.querySelector(`#video-wrapper-${user.uid}`).remove();
+                    }
+                },
+                onMessageReceived: (messageObj) => {
+                    console.log('onMessageReceived sender==');
+                    console.log(messageObj.sender);
+                    console.log('onMessageReceived sender==');
+
+                    if (messageObj.type && messageObj.type === 'chat' && messageObj.sender.id !== app.config.uid) {
+                        const chatContainer = document.querySelector('#chat-container')
+                        let item = document.createElement('li')
+                        item.className = 'flex items-center'
+
+                        item.innerHTML = `<div class="flex-shrink-0">
+                                        <img class="h-10 w-10 rounded-full"
+                                            src="${messageObj.sender.avatar}"
+                                            alt="${messageObj.sender.name}">
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm text-gray-500">
+                                            ${messageObj.content}
+                                        </p>
+                                    </div>`
+
+                        chatContainer.appendChild(item)
+                    }
+
+                },
+                onMicMuted: (isMuted) => {
+                    console.log(`onMicMuted: ${isMuted}`);
+
+                    if (isMuted) {
+                        document.querySelector('#btn-mic').className = 'bg-red-300 hover:bg-red-400 text-red-800 font-bold py-2 px-4 rounded-full'
+                    } else {
+                        document.querySelector('#btn-mic').className = 'bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full'
+                    }
+                },
+                onCamMuted: (isMuted) => {
+                    console.log(`onCamMuted: ${isMuted}`);
+
+                    if (isMuted) {
+                        document.querySelector('#btn-cam').className = 'bg-red-300 hover:bg-red-400 text-red-800 font-bold py-2 px-4 rounded-full'
+                    } else {
+                        document.querySelector('#btn-cam').className = 'bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full'
+                    }
+
+                },
+                onScreenShareEnabled: (enabled) => {
+                    console.log(`onScreenShareEnabled: ${enabled}`);
+
+                    if (enabled) {
+                        document.querySelector('#btn-screen-share').className = 'bg-red-300 hover:bg-red-400 text-red-800 font-bold py-2 px-4 rounded-full'
+                    } else {
+                        document.querySelector('#btn-screen-share').className = 'bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded-full'
+                    }
+                },
+                onUserLeave: () => {
+                    //when user leave or remove participant will trigger this
+                    window.location.href = "http://google.com";
+                },
+                onCameraChanged: (info) => {
+                    console.log("camera changed!", info.state, info.device);
+                },
+                onMicrophoneChanged: (info) => {
+                    console.log("microphone changed!", info.state, info.device);
+                },
+                onSpeakerChanged: (info) => {
+                    console.log("speaker changed!", info.state, info.device);
+                },
+                onRoleChanged: async (targetUid, role) => {
+                    console.log(`role changed for uid: ${targetUid}, role: ${role}`)
+                },
+                onNeedJoinToVideoStage: (user) => {
+                    console.log(`onNeedJoinToVideoStage: ${user}`);
+                    if (user.role === 'audience') {
+                        return false;
+                    }
+                    return true;
+                },
+                onNeedMuteCameraAndMic: (user) => {
+                    if(user.role === 'speaker') {
+                        return true;
+                    }
+                    return false;
+                },
+                onError: (error) => {
+                    console.log(error);
+                    alert(error.message)
+                }
+            });
+            const config = app.config;
+
+            console.log(app)
+            window['App'] = app; //for testing purpose
+
+            await app.join()
+
+            /**
+             * Event Handlers
+             */
+            document.querySelector('#btn-mic').addEventListener('click', async () => {
+                await app.toggleMic(!config.localAudioTrackMuted);
+            })
+
+            document.querySelector('#btn-cam').addEventListener('click', async () => {
+                await app.toggleCamera(!config.localVideoTrackMuted);
+            })
+
+            document.querySelector('#btn-leave').addEventListener('click', async () => {
+                await app.leave();
+            })
+            document.querySelector('#btn-screen-share').addEventListener('click', async () => {
+                await app.toggleScreenShare(!config.localScreenShareEnabled);
+
+            })
+            document.querySelector('#btn-send-chat').addEventListener('click', () => {
+                send(app.config.user.name, app.config.user.avatar);
+            })
+            document.querySelector('#input-text-chat').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    send(app.config.user.name, app.config.user.avatar);
+                }
+            })
+
+
+            document.querySelector('#tab-chats').addEventListener('click', () => {
+                // selected: px-4 py-2 bg-blue-500 text-white rounded
+                //not-selected: px-4 py-2 rounded hover:bg-blue-500 hover:text-white
+
+                document.querySelector('#tab-chats').className = 'px-4 py-2 bg-blue-500 text-white rounded'
+                document.querySelector('#tab-participants').className = 'px-4 py-2 rounded hover:bg-blue-500 hover:text-white'
+                document.querySelector('#tab-speakers').className = 'px-4 py-2 rounded hover:bg-blue-500 hover:text-white'
+
+                document.querySelector('#tab-chats-container').className = 'flex-1 p-2 overflow-auto h-full max-h-90'
+                document.querySelector('#tab-participants-container').className = 'flex-1 overflow-y-auto p-4 hidden'
+                document.querySelector('#tab-speakers-container').className = 'flex-1 overflow-y-auto p-4 hidden'
+
+            })
+
+            document.querySelector('#tab-participants').addEventListener('click', () => {
+                document.querySelector('#tab-chats').className = 'px-4 py-2 rounded hover:bg-blue-500 hover:text-white'
+                document.querySelector('#tab-participants').className = 'px-4 py-2 bg-blue-500 text-white rounded'
+                document.querySelector('#tab-speakers').className = 'px-4 py-2 rounded hover:bg-blue-500 hover:text-white'
+
+                document.querySelector('#tab-chats-container').className = 'flex-1 p-2 overflow-auto h-full max-h-90 hidden'
+                document.querySelector('#tab-participants-container').className = 'flex-1 overflow-y-auto p-4'
+                document.querySelector('#tab-speakers-container').className = 'flex-1 overflow-y-auto p-4 hidden'
+            })
+
+            document.querySelector('#tab-speakers').addEventListener('click', () => {
+                document.querySelector('#tab-chats').className = 'px-4 py-2 rounded hover:bg-blue-500 hover:text-white'
+                document.querySelector('#tab-participants').className = 'px-4 py-2 rounded hover:bg-blue-500 hover:text-white'
+                document.querySelector('#tab-speakers').className = 'px-4 py-2 bg-blue-500 text-white rounded'
+
+                document.querySelector('#tab-chats-container').className = 'flex-1 p-2 overflow-auto h-full max-h-90 hidden'
+                document.querySelector('#tab-participants-container').className = 'flex-1 overflow-y-auto p-4 hidden'
+                document.querySelector('#tab-speakers-container').className = 'flex-1 overflow-y-auto p-4'
+            })
+
+            document.querySelector('#btn-turnoff-cam').addEventListener('click', () => {
+                const uids = [111, 222, 333, 444]; //just example using this uids
+                app.turnOffCamera(...uids);
+            })
+
+            document.querySelector('#btn-turnoff-mic').addEventListener('click', () => {
+                const uids = [111, 222, 333, 444]; //just example using this uids
+                app.turnOffMic(...uids);
+            })
+
+            document.querySelector('#btn-remove-participant').addEventListener('click', () => {
+                const uids = [111, 222, 333, 444]; //just example using this uids
+                app.removeParticipant(...uids);
+            })
+
+            document.querySelector('#btn-bg-blur').addEventListener('click', () => {
+                app.enableVirtualBackgroundBlur()
+                    .then(res => {
+                        //success
+                    })
+                    .catch(err => console.log(err))
+            })
+            document.querySelector('#btn-bg-image').addEventListener('click', () => {
+                app.enableVirtualBackgroundImage('https://th.bing.com/th/id/OIP.hLgvTP47zplqYkJW3bfwfwHaEq?rs=1&pid=ImgDetMain')
+                    .then(res => {
+                        //success
+                    })
+                    .catch(err => console.log(err))
+            })
+            document.querySelector('#btn-bg-disable').addEventListener('click', () => {
+                app.disableVirtualBackground()
+                    .then(res => {
+                        //success
+                    })
+                    .catch(err => console.log(err))
+            })
+
+
+            async function send(name, avatar) {
+                const input = document.querySelector('#input-text-chat')
+                const chatContainer = document.querySelector('#chat-container')
+                let item = document.createElement('li')
+                item.className = 'flex items-center'
+
+                item.innerHTML = `<div class="flex-shrink-0">
+                                    <img class="h-10 w-10 rounded-full"
+                                        src="${avatar}"
+                                        alt="${name}">
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm text-gray-500">
+                                        ${input.value}
+                                    </p>
+                                </div>`
+
+                chatContainer.appendChild(item)
+
+                await app.sendChat({
+                    content: input.value
+                })
+
+                input.value = ''
+            }
+        })
+
+    </script>
+</body>
+
+</html>

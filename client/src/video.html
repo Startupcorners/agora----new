@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Stage Demo</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+</head> 
+
+<body>
+    <!-- <main>
+        <div class="flex flex-wrap w-full h-screen justify-center">
+            <div class="bg-blue-400 w-full sm:w-1/2 lg:w-1/3 relative rounded-md">
+                <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                    <img class="volume-icon size-4" id="volume-{{uid}}"
+                        src="https://pngimg.com/uploads/sound/sound_PNG20.png" />
+                    <p class="text-xs">Participant</p>
+                </div>
+            </div>
+            <div class="bg-red-400 w-full sm:w-1/2 lg:w-1/3 relative rounded-md">
+                <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                    <img class="volume-icon size-4" id="volume-{{uid}}"
+                        src="https://pngimg.com/uploads/sound/sound_PNG20.png" />
+                    <p class="text-xs">Participant</p>
+                </div>
+            </div>
+            <div class="bg-green-400 w-full sm:w-1/2 lg:w-1/3 relative rounded-md">
+                <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                    <img class="volume-icon size-4" id="volume-{{uid}}"
+                        src="https://pngimg.com/uploads/sound/sound_PNG20.png" />
+                    <p class="text-xs">Participant</p>
+                </div>
+            </div>
+            <div class="bg-yellow-400  w-full sm:w-1/2 lg:w-1/3 relative rounded-md">
+                <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                    <img class="volume-icon size-4" id="volume-{{uid}}"
+                        src="https://pngimg.com/uploads/sound/sound_PNG20.png" />
+                    <p class="text-xs">Participant</p>
+                </div>
+            </div>
+            <div class="bg-blue-400  w-full sm:w-1/2 lg:w-1/3 relative rounded-md">
+                <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                    <img class="volume-icon size-4" id="volume-{{uid}}"
+                        src="https://pngimg.com/uploads/sound/sound_PNG20.png" />
+                    <p class="text-xs">Participant</p>
+                </div>
+            </div>
+            <div class="bg-red-400  w-full sm:w-1/2 lg:w-1/3 relative rounded-md">
+                <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                    <img class="volume-icon size-4" id="volume-{{uid}}"
+                        src="https://pngimg.com/uploads/sound/sound_PNG20.png" />
+                    <p class="text-xs">Participant</p>
+                </div>
+            </div>
+            <div class="bg-green-400  w-full sm:w-1/2 lg:w-1/3 relative rounded-md">
+                <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                    <img class="volume-icon size-4" id="volume-{{uid}}"
+                        src="https://pngimg.com/uploads/sound/sound_PNG20.png" />
+                    <p class="text-xs">Participant</p>
+                </div>
+            </div>
+            <div class="bg-yellow-400  w-full sm:w-1/2 lg:w-1/3 relative rounded-md">
+                <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                    <img class="volume-icon size-4" id="volume-{{uid}}"
+                        src="https://pngimg.com/uploads/sound/sound_PNG20.png" />
+                    <p class="text-xs">Participant</p>
+                </div>
+            </div>
+            <div class="bg-blue-400  w-full sm:w-1/2 lg:w-1/3 relative rounded-md">
+                <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                    <img class="volume-icon size-4" id="volume-{{uid}}"
+                        src="https://pngimg.com/uploads/sound/sound_PNG20.png" />
+                    <p class="text-xs">Participant</p>
+                </div>
+            </div>
+        </div>
+    </main> -->
+
+    <main>
+        <div id="video-page-container" class="h-screen">
+            <!-- video page container -->
+        </div>
+        
+
+        <!-- The previous button -->
+        <a id="btn-prev" class="absolute left-0 top-1/2 p-4 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white hover:text-amber-500 cursor-pointer"
+            onclick="movePage(-1)">❮</a>
+
+        <!-- The next button -->
+        <a id="btn-next" class="absolute right-0 top-1/2 p-4 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white hover:text-amber-500 cursor-pointer"
+            onclick="movePage(1)">❯</a>
+
+    </main>
+
+
+    <script>
+        const templateParticipant = `<div class="bg-{{color}}-400 relative rounded-md aspect-video" id="video-wrapper-{{uid}}">
+            <div class="absolute bottom-0 left-0 p-2 bg-gray-100 rounded-md flex flex-row items-center">
+                <img class="volume-icon size-4" id="volume-{{uid}}"
+                    src="https://pngimg.com/uploads/sound/sound_PNG20.png" />
+                <p class="text-xs">Participant {{uid}}</p>
+            </div>
+        </div>`
+        const templateVideoStage = `<div class="page hidden grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3" id="video-stage-{{page}}">
+            <!-- video from participants -->
+        </div>`
+
+        //const templateVideoStage = `<div class="page hidden grid grid-cols-3 gap-4" id="video-stage-{{page}}">
+        //    <!-- video from participants -->
+        //</div>`
+
+        const videoPageContainer = document.querySelector('#video-page-container')
+        let currentPage = 1
+        
+        const addVideoStageAsSlide = (count) => {
+            currentPage = 1;
+            videoPageContainer.innerHTML = ''
+            
+            const videoStage = templateVideoStage
+
+            let pageSize = Math.ceil(count / 9)
+            let participantsTotal = count
+
+            for (let i = 1; i <= pageSize; i++) {
+                videoPageContainer.insertAdjacentHTML('beforeend', videoStage.replace('{{page}}', i));
+
+                    const stage = document.querySelector(`#video-stage-${i}`)
+
+                    if (participantsTotal > 9) {
+                        participantsTotal -= 9
+                        joinToVideoStage(9, stage)
+                    } else {
+                        joinToVideoStage(participantsTotal, stage)
+                    }
+            }
+
+            showPage(1)
+        }
+
+        const joinToVideoStage = (count, videoStage) => {
+            videoStage.innerHTML = ''
+
+            if (count == 1) {
+                //videoStage.className = 'page hidden grid grid-cols-1 gap-4'
+                videoStage.className = 'page hidden grid grid-cols-1 gap-4'
+                //videoStage.className = 'page hidden flex flex-wrap w-full'
+            } else if (count < 5) {
+                //videoStage.className = 'page hidden grid grid-cols-2 gap-4'
+                videoStage.className = 'page hidden grid grid-cols-1 gap-4 sm:grid-cols-2'
+                //videoStage.className = 'page hidden flex flex-wrap w-full'
+            } else if (count < 10) {
+                //videoStage.className = 'page hidden grid grid-cols-3 gap-4'
+                videoStage.className = 'page hidden grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3'
+                //videoStage.className = 'page hidden flex flex-wrap w-full'
+            }
+
+
+            for (let i = 1; i <= count; i++) {
+                const color = (i % 2 === 0) ? 'blue' : 'red'
+                const videoParticipant = templateParticipant
+                videoStage.insertAdjacentHTML('beforeend', videoParticipant.replace('{{color}}', color).replaceAll('{{uid}}', `${i}`))
+            }
+        }
+        
+        const movePage = (step) => {
+            showPage(currentPage += step)
+        }
+
+        const showPage = (pageNumber) => {
+            const pages = document.getElementsByClassName('page')
+            
+            if (pageNumber > pages.length) { currentPage = 1 }
+            if (pageNumber < 1) { currentPage = currentPage.length }
+
+            for (let i = 0; i < pages.length; i++) {
+                pages[i].classList.add('hidden');
+            }
+
+            pages[currentPage-1].classList.remove('hidden');
+
+            const btnPrev = document.querySelector('#btn-prev')
+            const btnNext = document.querySelector('#btn-next')
+
+            btnPrev.classList.add('hidden')
+            btnNext.classList.add('hidden')
+            
+            if (currentPage === 1) {
+                btnPrev.classList.add('hidden')
+            } else {
+                btnPrev.classList.remove('hidden')
+            }
+
+            console.log(currentPage)
+            console.log(pages.length)
+
+            if (currentPage === pages.length) {
+                btnNext.classList.add('hidden')
+            } else {
+                btnNext.classList.remove('hidden')
+            }
+        }
+
+        const getViewport = () => {
+            const breakpoints = {
+                sm: 640,
+                md: 768,
+                lg: 1024,
+                xl: 1280,
+                '2xl': 1536,
+            };
+
+            // https://stackoverflow.com/a/8876069
+            const width = Math.max(
+              document.documentElement.clientWidth,
+              window.innerWidth || 0
+            )
+
+
+            if (width >= breakpoints['2xl']) {
+                return '2xl'
+            } else if (width >= breakpoints.xl) {
+                return 'xl'
+            } else if (width >= breakpoints.lg) {
+                return 'lg'
+            } else if (width >= breakpoints.md) {
+                return 'md'
+            } else if (width >= breakpoints.sm) {
+                return 'sm'
+            } else {
+                return 'xs'
+            }
+          }
+
+        window.addEventListener('resize', () => {
+        
+            console.log(`current viewport: ${getViewport()}`)
+        })
+
+        //joinToVideoStage(9)
+
+        addVideoStageAsSlide(10)
+        //showPage(1)
+        
+        
+
+
+    </script>
+</body>
+
+</html>
