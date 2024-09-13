@@ -669,9 +669,24 @@ const MainApp = function (initConfig) {
             }
 
             const userAttr = await clientRTM.getUserAttributes(user.uid);
-            player = config.participantPlayerContainer.replaceAll('{{uid}}', user.uid).replaceAll('{{name}}', userAttr.name);
-            document.querySelector(config.callContainerSelector).insertAdjacentHTML('beforeend', player);
-            user.videoTrack.play(`stream-${user.uid}`)
+
+            // Log the user attributes to verify they are correct, including avatar
+            console.log("User Attributes:", userAttr);
+            console.log("Avatar URL:", userAttr.avatar); // Log the avatar value
+
+            // Replace uid, name, and avatar in the template
+            player = config.participantPlayerContainer
+              .replaceAll("{{uid}}", user.uid)
+              .replaceAll("{{name}}", userAttr.name)
+              .replaceAll("{{avatar}}", userAttr.avatar); // Ensure avatar is replaced
+
+            document
+              .querySelector(config.callContainerSelector)
+              .insertAdjacentHTML("beforeend", player);
+
+            // Play the video track for the user
+            user.videoTrack.play(`stream-${user.uid}`);
+
         }
 
         if (mediaType === 'audio') {
