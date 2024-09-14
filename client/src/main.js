@@ -11,7 +11,7 @@ const MainApp = function (initConfig) {
       name: "guest",
       avatar:
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
-      role: "", //host, speaker, audience
+      role: "", // host, speaker, audience
       company: "",
       profileLink: "",
     },
@@ -20,8 +20,8 @@ const MainApp = function (initConfig) {
     channelName: null,
     localAudioTrack: null,
     localVideoTrack: null,
-    recordingResourceId: null, // Add this for recording resource management
-    recordingSid: null, // Add this for the recording session ID
+    recordingResourceId: null, // Added for recording resource management
+    recordingSid: null, // Added for the recording session ID
     localScreenShareTrack: null,
     localScreenShareEnabled: false,
     localAudioTrackMuted: false,
@@ -29,23 +29,46 @@ const MainApp = function (initConfig) {
     isVirtualBackGroundEnabled: false,
     remoteTracks: {},
 
-    // ... Other config and callbacks like onParticipantsChanged, onParticipantLeft, etc.
+    // Callbacks
+    onParticipantsChanged: (participantIds) =>
+      log("onParticipantsChanged", participantIds),
+    onParticipantLeft: (user) => log("onParticipantLeft", user),
+    onVolumeIndicatorChanged: (volume) =>
+      log("onVolumeIndicatorChanged", volume),
+    onMessageReceived: (messageObj) => log("onMessageReceived", messageObj),
+    onMicMuted: (isMuted) => log("onMicMuted", isMuted),
+    onCamMuted: (isMuted) => log("onCamMuted", isMuted),
+    onScreenShareEnabled: (enabled) => log("onScreenShareEnabled", enabled),
+    onUserLeave: () => log("onUserLeave"),
+    onCameraChanged: (info) => log("camera changed", info.state, info.device),
+    onMicrophoneChanged: (info) =>
+      log("microphone changed", info.state, info.device),
+    onSpeakerChanged: (info) => log("speaker changed", info.state, info.device),
+    onRoleChanged: (uid, role) => log(`current uid: ${uid}  role: ${role}`),
+    onNeedJoinToVideoStage: (user) => {
+      log(`onNeedJoinToVideoStage: ${user}`);
+      return true;
+    },
+    onNeedMuteCameraAndMic: (user) => {
+      log(`onNeedMuteCameraAndMic: ${user}`);
+      return false;
+    },
+    onError: (error) => log(`onError: ${error}`),
   };
 
   config = { ...config, ...initConfig };
 
-  // Check for required config settings
-  if (!config.appId) throw new Error("please set the appId first");
+  if (!config.appId) throw new Error("Please set the appId first");
   if (!config.callContainerSelector)
-    throw new Error("please set the callContainerSelector first");
-  if (!config.serverUrl) throw new Error("please set the serverUrl first");
+    throw new Error("Please set the callContainerSelector first");
+  if (!config.serverUrl) throw new Error("Please set the serverUrl first");
   if (!config.participantPlayerContainer)
-    throw new Error("please set the participantPlayerContainer first");
-  if (!config.channelName) throw new Error("please set the channelName first");
-  if (!config.uid) throw new Error("please set the uid first");
+    throw new Error("Please set the participantPlayerContainer first");
+  if (!config.channelName) throw new Error("Please set the channelName first");
+  if (!config.uid) throw new Error("Please set the uid first");
 
   const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
-  AgoraRTC.setLogLevel(config.debugEnabled ? 0 : 4); //0 debug, 4 none
+  AgoraRTC.setLogLevel(config.debugEnabled ? 0 : 4); // 0: debug, 4: none
 
   const clientRTM = AgoraRTM.createInstance(config.appId, {
     enableLogUpload: false,
@@ -63,29 +86,99 @@ const MainApp = function (initConfig) {
   let processor = null;
 
   /**
-   * Fetch token function
+   * Functions
    */
   const fetchToken = async () => {
+    if (config.serverUrl) {
+      try {
+        const res = await fetch(
+          `${config.serverUrl}/access_token?channelName=${config.channelName}&uid=${config.uid}`,
+          {
+            headers: {
+              "X-Requested-With": "XMLHttpRequest",
+              "Access-Control-Allow-Origin": "*",
+            },
+          }
+        );
+        const data = await res.json();
+        config.token = data.token;
+        return data.token;
+      } catch (err) {
+        log(err);
+      }
+    } else {
+      return config.token;
+    }
+  };
+
+  const join = async () => {
+    await joinRTM();
+    await client.setClientRole(
+      config.user.role === "audience" ? "audience" : "host"
+    );
+    client.on("user-published", handleUserPublished);
+    client.on("user-unpublished", handleUserUnpublished);
+    client.on("user-joined", handleUserJoined);
+    client.on("user-left", handleUserLeft);
+    client.enableAudioVolumeIndicator();
+    client.on("volume-indicator", handleVolumeIndicator);
+
+    const token = await fetchToken();
+    await client.join(config.appId, config.channelName, token, config.uid);
+
+    if (config.onNeedJoinToVideoStage(config.user)) {
+      await joinToVideoStage(config.user);
+    }
+  };
+
+  const handleUserUnpublished = async (user, mediaType) => {
+    if (mediaType === "video") {
+      const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+      if (videoWrapper) {
+        const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
+        const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
+
+        videoPlayer.style.display = "none"; // Hide the video player
+        avatarDiv.style.display = "block"; // Show the avatar
+      }
+    }
+  };
+
+  const joinToVideoStage = async (user) => {
     try {
-      const res = await fetch(
-        `${config.serverUrl}/access_token?channelName=${config.channelName}&uid=${config.uid}`,
-        {
-          headers: {
-            "X-Requested-With": "XMLHttpRequest",
-            "Access-Control-Allow-Origin": "*",
-          },
-        }
-      );
-      const json = await res.json();
-      config.token = json.token;
-      return json.token;
-    } catch (err) {
-      log(err);
+      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+
+      if (config.onNeedMuteCameraAndMic(user)) {
+        toggleCamera(true);
+        toggleMic(true);
+      }
+
+      let player = document.querySelector(`#video-wrapper-${user.id}`);
+      if (player != null) {
+        player.remove();
+      }
+
+      let localPlayerContainer = config.participantPlayerContainer
+        .replaceAll("{{uid}}", user.id)
+        .replaceAll("{{name}}", user.name)
+        .replaceAll("{{avatar}}", user.avatar);
+
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", localPlayerContainer);
+
+      if (user.id === config.uid) {
+        config.localVideoTrack.play(`stream-${user.id}`);
+        await client.publish([config.localAudioTrack, config.localVideoTrack]);
+      }
+    } catch (error) {
+      config.onError(error);
     }
   };
 
   /**
-   * Recording functions
+   * Recording Functions
    */
 
   // Acquire Resource for Recording
@@ -114,26 +207,24 @@ const MainApp = function (initConfig) {
   // Start Recording
   const startRecording = async () => {
     if (!config.recordingResourceId) {
-      await acquireResource(); // Acquire resource if not already acquired
+      await acquireResource();
     }
-    const token = await fetchToken();
     try {
-      const res = await fetch(`${config.serverUrl}/api/start`, {
+      const res = await fetch(`${config.serverUrl}/api/startRecording`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          appId: config.appId,
-          channelName: config.channelName,
           resourceId: config.recordingResourceId,
+          mode: "mix",
+          channelName: config.channelName,
           uid: config.uid,
-          token: token,
         }),
       });
       const data = await res.json();
       config.recordingSid = data.sid;
-      log("Recording started:", data.sid);
+      log("Recording started successfully.");
     } catch (error) {
       log("Error starting recording:", error);
     }
@@ -141,96 +232,75 @@ const MainApp = function (initConfig) {
 
   // Stop Recording
   const stopRecording = async () => {
-    if (!config.recordingResourceId || !config.recordingSid) {
-      log("No recording to stop.");
-      return;
-    }
     try {
-      const res = await fetch(`${config.serverUrl}/api/stop`, {
+      const res = await fetch(`${config.serverUrl}/api/stopRecording`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          appId: config.appId,
-          channelName: config.channelName,
           resourceId: config.recordingResourceId,
           sid: config.recordingSid,
+          channelName: config.channelName,
           uid: config.uid,
         }),
       });
-      const data = await res.json();
-      log("Recording stopped:", data);
+      log("Recording stopped successfully.");
     } catch (error) {
       log("Error stopping recording:", error);
     }
   };
 
   /**
-   * MainApp existing functions (join, leave, etc.)
+   * Add the joinRTM function
    */
-  const join = async () => {
-    await joinRTM();
-    await client.setClientRole(
-      config.user.role === "audience" ? "audience" : "host"
-    );
-    client.on("user-published", handleUserPublished);
-    client.on("user-unpublished", handleUserUnpublished);
-    client.on("user-joined", handleUserJoined);
-    client.on("user-left", handleUserLeft);
-    client.enableAudioVolumeIndicator();
-    client.on("volume-indicator", handleVolumeIndicator);
+  const joinRTM = async () => {
+    await clientRTM.login({ uid: config.uid });
+    await clientRTM.addOrUpdateLocalUserAttributes(config.user);
+    await channelRTM.join();
+    handleOnUpdateParticipants();
 
-    const token = await fetchToken();
-    await client.join(config.appId, config.channelName, token, config.uid);
+    clientRTM.on("MessageFromPeer", async (message, peerId) => {
+      log("messageFromPeer", message);
+      const data = JSON.parse(message.text);
+      if (data.event === "mic_off") {
+        await toggleMic(true);
+      } else if (data.event === "cam_off") {
+        await toggleCamera(true);
+      } else if (data.event === "remove_participant") {
+        await leave();
+      }
+    });
 
-    if (config.onNeedJoinToVideoStage(config.user)) {
-      await joinToVideoStage(config.user);
-    }
+    channelRTM.on("MemberJoined", async () => handleOnUpdateParticipants());
+    channelRTM.on("MemberLeft", () => handleOnUpdateParticipants());
+    channelRTM.on("ChannelMessage", async (message) => {
+      log("on:ChannelMessage", message);
+      const messageObj = JSON.parse(message.text);
+      if (
+        messageObj.type === "broadcast" &&
+        messageObj.event === "change_user_role"
+      ) {
+        if (config.uid === messageObj.targetUid) {
+          config.user.role = messageObj.role;
+          await client.leave();
+          await leaveFromVideoStage(config.user);
+          await join();
+        }
+        handleOnUpdateParticipants();
+        config.onRoleChanged(messageObj.targetUid, messageObj.role);
+      }
+      config.onMessageReceived(messageObj);
+    });
   };
 
-  const leave = async () => {
-    document.querySelector(config.callContainerSelector).innerHTML = "";
-    await Promise.all([client.leave(), clientRTM.logout()]);
-    config.onUserLeave();
-  };
-
-  const toggleMic = async (isMuted) => {
-    if (isMuted) {
-      await config.localAudioTrack.setMuted(true);
-      config.localAudioTrackMuted = true;
-    } else {
-      await config.localAudioTrack.setMuted(false);
-      config.localAudioTrackMuted = false;
-    }
-    config.onMicMuted(config.localAudioTrackMuted);
-  };
-
-  const toggleCamera = async (isMuted) => {
-    if (isMuted) {
-      await config.localVideoTrack.setMuted(true);
-      config.localVideoTrackMuted = true;
-    } else {
-      await config.localVideoTrack.setMuted(false);
-      config.localVideoTrackMuted = false;
-    }
-    config.onCamMuted(config.localVideoTrackMuted);
-  };
-
-  /**
-   * Expose recording functions along with existing functions
-   */
   return {
-    config: config,
-    clientRTM: clientRTM,
-    client: client,
-    join: join,
-    leave: leave,
-    startRecording: startRecording,
-    stopRecording: stopRecording,
-    toggleMic: toggleMic,
-    toggleCamera: toggleCamera,
-    // Other MainApp functions...
+    config,
+    clientRTM,
+    client,
+    join,
+    startRecording,
+    stopRecording,
   };
 };
 
