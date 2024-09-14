@@ -163,14 +163,16 @@ const MainApp = function (initConfig) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          channelName: config.channelName,
           resourceId: resourceId,
+          channelName: config.channelName,
           uid: config.uid,
         }),
       });
+
       const startData = await response.json();
       return startData;
     };
+
 
     const stopRecording = async (resourceId, sid) => {
       const response = await fetch(config.serverUrl + "/stop", {

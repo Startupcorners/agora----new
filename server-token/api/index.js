@@ -89,6 +89,7 @@ app.post("/acquire", (req, res) => {
 
 // Handle the start recording request
 app.post("/start", (req, res) => {
+  console.log("Received request body:", req.body);
   const { channelName, resourceId, uid } = req.body;
 
   if (!channelName || !resourceId || !uid) {
