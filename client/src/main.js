@@ -610,16 +610,46 @@ const MainApp = function (initConfig) {
         subscribe(user, mediaType);
     }
 
-    const handleUserJoined = async (user, mediaType) => {
-        log('handleUserJoined Here');
-        config.remoteTracks[user.uid] = user;
-        // subscribe(user, mediaType);
-    }
+   const handleUserJoined = async (user) => {
+     log("handleUserJoined Here");
+     config.remoteTracks[user.uid] = user;
 
-    const handleUserLeft = async (user, reason) => {
-        delete config.remoteTracks[user.uid];
-        config.onParticipantLeft(user);
-    }
+     // Check if the participant UI already exists
+     let player = document.querySelector(`#video-wrapper-${user.uid}`);
+     if (!player) {
+       // Get user attributes from RTM
+       const userAttr = await clientRTM.getUserAttributes(user.uid);
+
+       // Replace placeholders in the template
+       let playerHTML = config.participantPlayerContainer
+         .replace(/{{uid}}/g, user.uid)
+         .replace(/{{name}}/g, userAttr.name)
+         .replace(/{{avatar}}/g, userAttr.avatar);
+
+       // Insert the participant UI into the DOM
+       document
+         .querySelector(config.callContainerSelector)
+         .insertAdjacentHTML("beforeend", playerHTML);
+
+       // Hide the video player and show the avatar since the user hasn't published video
+       const videoPlayer = document.querySelector(`#stream-${user.uid}`);
+       const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+       if (videoPlayer && avatarDiv) {
+         videoPlayer.style.display = "none"; // Hide the video player
+         avatarDiv.style.display = "block"; // Show the avatar
+       }
+     }
+   };
+
+
+   const handleUserLeft = async (user, reason) => {
+     delete config.remoteTracks[user.uid];
+     if (document.querySelector(`#video-wrapper-${user.uid}`)) {
+       document.querySelector(`#video-wrapper-${user.uid}`).remove();
+     }
+     config.onParticipantLeft(user);
+   };
+
 
     const handleVolumeIndicator = (result) => {
         result.forEach((volume, index) => {
