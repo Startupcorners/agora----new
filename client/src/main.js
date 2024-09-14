@@ -142,45 +142,39 @@ const MainApp = function (initConfig) {
     AgoraRTC.registerExtensions([extensionVirtualBackground]);
     let processor = null;
 
-    const acquireResource = async () => {
-      const response = await fetch(config.serverUrl + "/acquire", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          channelName: config.channelName,
-        }),
-      });
+   const acquireResource = async () => {
+     const response = await fetch(config.serverUrl + "/acquire", {
+       method: "POST",
+       headers: {
+         "Content-Type": "application/json",
+       },
+       body: JSON.stringify({
+         channelName: config.channelName,
+       }),
+     });
 
-      const resourceData = await response.json();
-      console.log("Acquired resource:", resourceData); // Add this to log acquired resource
-      return resourceData.resourceId;
-    };
+     const data = await response.json();
+     return data.resourceId;
+   };
+   
+const startRecording = async () => {
+  const resourceId = await acquireResource(); // Acquire the resource first
 
-
-  const startRecording = async (resourceId) => {
-    console.log("Starting recording with:", {
-      resourceId: resourceId,
+  const response = await fetch(config.serverUrl + "/start", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      resourceId: resourceId, // Use the acquired resourceId
       channelName: config.channelName,
       uid: config.uid,
-    });
+    }),
+  });
 
-    const response = await fetch(config.serverUrl + "/start", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resourceId: resourceId,
-        channelName: config.channelName,
-        uid: config.uid,
-      }),
-    });
-
-    const startData = await response.json();
-    return startData;
-  };
+  const startData = await response.json();
+  return startData;
+};
 
 
 
