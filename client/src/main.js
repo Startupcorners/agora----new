@@ -201,18 +201,6 @@ const MainApp = function (initConfig) {
     }
   };
 
-  // You can then trigger the startRecording function when a button is clicked
-  document
-    .getElementById("startRecordingButton")
-    .addEventListener("click", async () => {
-      try {
-        await startRecording();
-        console.log("Recording successfully started.");
-      } catch (error) {
-        console.error("Failed to start recording:", error);
-      }
-    });
-
   const stopRecording = async (resourceId, sid) => {
     const response = await fetch(config.serverUrl + "/stop", {
       method: "POST",
