@@ -144,62 +144,62 @@ const MainApp = function (initConfig) {
   AgoraRTC.registerExtensions([extensionVirtualBackground]);
   let processor = null;
 
-  // Function to acquire the resourceId
-  const acquireResource = async () => {
-    try {
-      const response = await fetch(config.serverUrl + "/acquire", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+const acquireResource = async () => {
+  try {
+    const response = await fetch(config.serverUrl + "/acquire", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        cname: config.channelName, // Provide the channel name
+        uid: config.uid, // Provide the UID for the recording service
+        clientRequest: {},
+      }),
+    });
+    const data = await response.json();
+    console.log("Resource acquired:", data.resourceId); // Log the resourceId
+    return data.resourceId;
+  } catch (error) {
+    console.error("Error acquiring resource:", error);
+    throw error; // Pass the error up the chain
+  }
+};
+
+const startRecording = async () => {
+  const resourceId = await acquireResource(); // Acquire the resource first
+
+  const response = await fetch(config.serverUrl + `/start`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Basic <Authorization>", // Replace <Authorization> with your base64 encoded string
+    },
+    body: JSON.stringify({
+      resourceId: resourceId,
+      cname: config.channelName, // Channel name
+      uid: config.uid, // Recording service UID
+      clientRequest: {
+        token: config.token, // Token for authentication
+        recordingConfig: {
+          channelType: 0, // Channel type, 0 is live broadcast
         },
-        body: JSON.stringify({
-          channelName: config.channelName, // Provide the channel name
-        }),
-      });
-
-      const data = await response.json();
-      console.log("Resource acquired:", data.resourceId); // Log the resourceId
-      return data.resourceId;
-    } catch (error) {
-      console.error("Error acquiring resource:", error);
-      throw error; // Pass the error up the chain
-    }
-  };
-
-  // Function to start the recording
-  const startRecording = async () => {
-    try {
-      // Check if resourceId is already acquired
-      let resourceId = config.resourceId;
-
-      // If not acquired, get the resourceId first
-      if (!resourceId) {
-        resourceId = await acquireResource();
-        config.resourceId = resourceId; // Save the acquired resourceId for future use
-      }
-
-      // Proceed with starting the recording using the resourceId
-      const response = await fetch(config.serverUrl + "/start", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+        storageConfig: {
+          vendor: 0, // For Amazon S3
+          region: 0, // Region where your S3 bucket is located
+          bucket: "<YourBucketName>", // S3 Bucket Name
+          accessKey: "<YourAccessKey>", // S3 Access Key
+          secretKey: "<YourSecretKey>", // S3 Secret Key
         },
-        body: JSON.stringify({
-          resourceId: resourceId, // Pass the resourceId to the API
-          channelName: config.channelName,
-          uid: config.uid,
-        }),
-      });
+      },
+    }),
+  });
 
-      const startData = await response.json();
-      console.log("Recording started:", startData); // Log the response from start
-      config.sid = startData.sid; // Store the session ID (sid) for stopping recording later
-      return startData;
-    } catch (error) {
-      console.error("Error starting recording:", error);
-      throw error;
-    }
-  };
+  const startData = await response.json();
+  console.log("Recording started:", startData); // Log the response from start
+  config.sid = startData.sid; // Store the session ID (sid) for stopping recording later
+  return startData;
+};
 
   const stopRecording = async (resourceId, sid) => {
     const response = await fetch(config.serverUrl + "/stop", {
