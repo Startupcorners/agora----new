@@ -192,30 +192,26 @@ const MainApp = function (initConfig) {
     /**
      * Functions
      */
-    const fetchToken = async () => {
-        if (config.serverUrl !== "") {
-            try {
-                const res = await fetch(
-                    config.serverUrl + `/access_token?channelName=${config.channelName}&uid=${config.uid}`,
-                    {
-                        headers: {
-                            "X-Requested-With": "XMLHttpRequest",
-                            'Access-Control-Allow-Origin': '*'
-                        },
-                    }
-                );
-                const data = await res.text();
-                const json = await JSON.parse(data);
-                config.token = json.token;
+const fetchToken = async () => {
+  if (config.serverUrl !== "") {
+    try {
+      const res = await fetch(
+        config.serverUrl +
+          `/access_token?channelName=${config.channelName}&uid=${config.uid}`
+      );
+      const data = await res.text();
+      const json = await JSON.parse(data);
+      config.token = json.token;
 
-                return json.token;
-            } catch (err) {
-                log(err);
-            }
-        } else {
-            return config.token;
-        }
+      return json.token;
+    } catch (err) {
+      log(err);
     }
+  } else {
+    return config.token;
+  }
+};
+
 
     const join = async () => {
       // Start by joining the RTM (Real-Time Messaging) channel

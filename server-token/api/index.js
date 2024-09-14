@@ -14,9 +14,10 @@ const app = express();
 const corsOptions = {
   origin: "https://sccopy-38403.bubbleapps.io", // Replace with your Bubble app's domain
   methods: "GET,POST,OPTIONS",
-  allowedHeaders: "Content-Type,Authorization",
+  allowedHeaders: "Content-Type,Authorization", // Do NOT include 'Access-Control-Allow-Origin' here
   optionsSuccessStatus: 200,
 };
+
 
 app.use(cors(corsOptions));
 app.use(express.json()); // To parse JSON request bodies
