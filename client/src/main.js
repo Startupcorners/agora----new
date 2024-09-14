@@ -278,6 +278,75 @@ const MainApp = function (initConfig) {
         }
     }
 
+    const acquireResource = async () => {
+      try {
+        const res = await fetch(`${config.serverUrl}/api/acquire`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            appId: config.appId,
+            appCertificate: config.appCertificate,
+            channelName: config.channelName,
+            uid: config.uid,
+          }),
+        });
+        const data = await res.json();
+        config.recordingResourceId = data.resourceId;
+        return data.resourceId;
+      } catch (error) {
+        log("Error acquiring resource:", error);
+      }
+    };
+
+    // Start Recording
+    const startRecording = async () => {
+      if (!config.recordingResourceId) {
+        await acquireResource();
+      }
+      try {
+        const res = await fetch(`${config.serverUrl}/api/startRecording`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            resourceId: config.recordingResourceId,
+            mode: "mix",
+            channelName: config.channelName,
+            uid: config.uid,
+          }),
+        });
+        const data = await res.json();
+        config.recordingSid = data.sid;
+        log("Recording started successfully.");
+      } catch (error) {
+        log("Error starting recording:", error);
+      }
+    };
+
+    // Stop Recording
+    const stopRecording = async () => {
+      try {
+        const res = await fetch(`${config.serverUrl}/api/stopRecording`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            resourceId: config.recordingResourceId,
+            sid: config.recordingSid,
+            channelName: config.channelName,
+            uid: config.uid,
+          }),
+        });
+        log("Recording stopped successfully.");
+      } catch (error) {
+        log("Error stopping recording:", error);
+      }
+    };
+
     const joinRTM = async () => {
         clientRTM.login({ uid: config.uid })
             .then(() => {
