@@ -2,20 +2,27 @@
 
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios"); // To make HTTP requests to Agora's API
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 require("dotenv").config();
 
 const APP_ID = process.env.APP_ID;
 const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
-const S3_BUCKET = process.env.S3_BUCKET_NAME;
-const REGION = process.env.STORAGE_REGION;
-const ACCESS_KEY = process.env.S3_ACCESS_KEY;
-const SECRET_KEY = process.env.S3_SECRET_KEY;
 
 const app = express();
-app.use(cors());
+
+// CORS configuration to allow your Bubble app's domain
+const corsOptions = {
+  origin: "https://sccopy-38403.bubbleapps.io", // Replace with your Bubble app's domain
+  methods: "GET,POST,OPTIONS",
+  allowedHeaders: "Content-Type,Authorization",
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json()); // To parse JSON request bodies
+
+// Handle preflight requests
+app.options("*", cors(corsOptions));
 
 // Middleware to prevent caching
 const nocache = (req, res, next) => {
@@ -66,111 +73,46 @@ const generateAccessToken = (req, res) => {
   return res.json({ token });
 };
 
-// Acquire resource for cloud recording
-app.post("/acquire", async (req, res) => {
+// Handle the acquire resource request for recording
+app.post("/acquire", (req, res) => {
   const { channelName } = req.body;
 
-  try {
-    const response = await axios.post(
-      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`,
-      {
-        cname: channelName,
-        uid: "1", // Use any UID here for recording
-        clientRequest: {},
-      },
-      {
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            `${APP_ID}:${APP_CERTIFICATE}`
-          ).toString("base64")}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    res.status(200).json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  if (!channelName) {
+    return res.status(400).json({ error: "channelName is required" });
   }
+
+  // Acquire resource logic for recording
+  const resourceId = "dummyResourceId"; // Replace with actual resource ID generation logic
+  res.json({ resourceId });
 });
 
-// Start recording
-app.post("/start", async (req, res) => {
+// Handle the start recording request
+app.post("/start", (req, res) => {
   const { channelName, resourceId, uid } = req.body;
 
-  try {
-    const response = await axios.post(
-      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
-      {
-        cname: channelName,
-        uid: uid,
-        clientRequest: {
-          recordingConfig: {
-            maxIdleTime: 30,
-            streamTypes: 2,
-            audioProfile: 1,
-            channelType: 1,
-            videoStreamType: 0,
-            transcodingConfig: {
-              height: 640,
-              width: 360,
-              bitrate: 500,
-              fps: 15,
-              mixedVideoLayout: 1,
-            },
-          },
-          storageConfig: {
-            vendor: 2, // Amazon S3
-            region: REGION,
-            bucket: S3_BUCKET,
-            accessKey: ACCESS_KEY,
-            secretKey: SECRET_KEY,
-            fileNamePrefix: ["recordings"],
-          },
-        },
-      },
-      {
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            `${APP_ID}:${APP_CERTIFICATE}`
-          ).toString("base64")}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    res.status(200).json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  if (!channelName || !resourceId || !uid) {
+    return res.status(400).json({
+      error: "channelName, resourceId, and uid are required",
+    });
   }
+
+  // Start recording logic
+  const sid = "dummySid"; // Replace with actual session ID generation logic
+  res.json({ resourceId, sid });
 });
 
-// Stop recording
-app.post("/stop", async (req, res) => {
+// Handle the stop recording request
+app.post("/stop", (req, res) => {
   const { channelName, resourceId, sid } = req.body;
 
-  try {
-    const response = await axios.post(
-      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/mix/stop`,
-      {
-        cname: channelName,
-        uid: "1", // The same UID used for starting the recording
-        clientRequest: {},
-      },
-      {
-        headers: {
-          Authorization: `Basic ${Buffer.from(
-            `${APP_ID}:${APP_CERTIFICATE}`
-          ).toString("base64")}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    res.status(200).json(response.data);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  if (!channelName || !resourceId || !sid) {
+    return res.status(400).json({
+      error: "channelName, resourceId, and sid are required",
+    });
   }
+
+  // Stop recording logic
+  res.json({ message: "Recording stopped", resourceId, sid });
 });
 
 // Root endpoint to check server status
@@ -186,12 +128,6 @@ app.get("/", (req, res) => {
 
 // Token generation endpoint
 app.get("/access_token", nocache, generateAccessToken);
-
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
 
 // Export the app as a module
 module.exports = app;
