@@ -152,26 +152,36 @@ const MainApp = function (initConfig) {
           channelName: config.channelName,
         }),
       });
+
       const resourceData = await response.json();
+      console.log("Acquired resource:", resourceData); // Add this to log acquired resource
       return resourceData.resourceId;
     };
 
-    const startRecording = async (resourceId) => {
-      const response = await fetch(config.serverUrl + "/start", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          resourceId: resourceId,
-          channelName: config.channelName,
-          uid: config.uid,
-        }),
-      });
 
-      const startData = await response.json();
-      return startData;
-    };
+  const startRecording = async (resourceId) => {
+    console.log("Starting recording with:", {
+      resourceId: resourceId,
+      channelName: config.channelName,
+      uid: config.uid,
+    });
+
+    const response = await fetch(config.serverUrl + "/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        resourceId: resourceId,
+        channelName: config.channelName,
+        uid: config.uid,
+      }),
+    });
+
+    const startData = await response.json();
+    return startData;
+  };
+
 
 
     const stopRecording = async (resourceId, sid) => {
