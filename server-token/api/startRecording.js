@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
           },
           storageConfig: {
             vendor: 2, // Example: 2 for Amazon S3
-            region: 0,
+            region: parseInt(process.env.STORAGE_REGION, 10),
             bucket: process.env.S3_BUCKET_NAME,
             accessKey: process.env.S3_ACCESS_KEY,
             secretKey: process.env.S3_SECRET_KEY,
