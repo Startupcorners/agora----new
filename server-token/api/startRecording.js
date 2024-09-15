@@ -6,17 +6,16 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { resourceId, channelName, uid, token } = req.body;
+  const { resourceId, channelName, token } = req.body;
 
-  if (!resourceId || !channelName || !uid || !token) {
+  if (!resourceId || !channelName || !token) {
     console.error("Missing required parameters:", {
       resourceId,
       channelName,
-      uid,
       token,
     });
     return res.status(400).json({
-      error: "resourceId, channelName, uid, and token are required",
+      error: "resourceId, channelName, and token are required",
     });
   }
 
@@ -39,9 +38,10 @@ module.exports = async (req, res) => {
     "base64"
   );
 
+  // Set uid explicitly to "0"
   const payload = {
     cname: channelName,
-    uid: uid,
+    uid: "0", // Ensure uid is always "0" for the recording service
     clientRequest: {
       token: token,
       recordingConfig: {
@@ -72,7 +72,10 @@ module.exports = async (req, res) => {
   };
 
   // Log the full payload to ensure correctness
-  console.log("Start recording payload:", JSON.stringify(payload, null, 2));
+  console.log(
+    "Start recording payload (with uid set to '0'):",
+    JSON.stringify(payload, null, 2)
+  );
 
   try {
     const response = await axios.post(
