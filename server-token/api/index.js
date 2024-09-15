@@ -163,11 +163,12 @@ app.post("/start", async (req, res) => {
           channelType: 0,
           videoStreamType: 0,
           transcodingConfig: {
-            width: 1920,
-            height: 1080,
-            fps: 30,
-            bitrate: 2000,
-            mixedVideoLayout: 1,
+            width: 1280, // Width of the video
+            height: 720, // Height of the video
+            bitrate: 1000, // Bitrate in kbps
+            fps: 30, // Frames per second
+            mixedVideoLayout: 1, // Video layout type
+            backgroundColor: "#FFFFFF", // Optional background color
           },
         },
         recordingFileConfig: {
@@ -175,7 +176,7 @@ app.post("/start", async (req, res) => {
         },
         storageConfig: {
           vendor: 2, // 2 for Amazon S3
-          region: process.env.S3_REGION || 0, // S3 region, 0 as a fallback
+          region: 0, // S3 region, 0 as a fallback
           bucket: process.env.S3_BUCKET_NAME, // S3 bucket name
           accessKey: process.env.S3_ACCESS_KEY, // AWS access key
           secretKey: process.env.S3_SECRET_KEY, // AWS secret key
