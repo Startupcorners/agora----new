@@ -41,7 +41,7 @@ module.exports = async (req, res) => {
 
   const payload = {
     cname: channelName,
-    uid: uid,
+    uid: "0",
     clientRequest: {
       token: token,
       recordingConfig: {
