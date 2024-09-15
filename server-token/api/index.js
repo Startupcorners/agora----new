@@ -213,7 +213,7 @@ app.post("/start", async (req, res) => {
 
 
 
-// Handle the stop recording request
+// Handle the stop recording requestt
 app.post("/stop", (req, res) => {
   const { channelName, resourceId, sid } = req.body;
 
