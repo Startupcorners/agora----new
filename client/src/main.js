@@ -146,6 +146,12 @@ const MainApp = function (initConfig) {
 
 const acquireResource = async () => {
   try {
+    // Log the payload before making the API call
+    console.log("Payload for acquire resource:", {
+      channelName: config.channelName,
+      uid: config.uid,
+    });
+
     const response = await fetch(config.serverUrl + "/acquire", {
       method: "POST",
       headers: {
@@ -171,6 +177,7 @@ const acquireResource = async () => {
     throw error;
   }
 };
+
 
 const startRecording = async () => {
   try {

@@ -15,12 +15,16 @@ app.use(express.json()); // To parse JSON request bodies
 app.post("/acquire", async (req, res) => {
   const { channelName, uid } = req.body;
 
+  // Log the received request body for debugging
+  console.log("Received request body:", req.body);
+
   // Validate the request body
   if (!channelName || !uid) {
+    console.error("Missing channelName or uid");
     return res.status(400).json({ error: "channelName and uid are required" });
   }
 
-  // Log the request data for debugging
+  // Log the actual values being sent to Agora
   console.log("Acquiring resource for channel:", channelName, "with uid:", uid);
 
   // Agora Cloud Recording acquire URL
