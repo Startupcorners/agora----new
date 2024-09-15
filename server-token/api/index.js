@@ -1,15 +1,33 @@
+// server-token/api/index.js
+
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
+const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 require("dotenv").config();
+console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
+console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
+
 
 const APP_ID = process.env.APP_ID;
-const CUSTOMER_ID = process.env.CUSTOMER_ID;
-const CUSTOMER_SECRET = process.env.CUSTOMER_SECRET;
+const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
 
 const app = express();
-app.use(cors());
+
+// CORS configuration to allow your Bubble app's domain
+const corsOptions = {
+  origin: "https://sccopy-38403.bubbleapps.io", // Replace with your Bubble app's domain
+  methods: "GET,POST,OPTIONS",
+  allowedHeaders: "Content-Type,Authorization", // Do NOT include 'Access-Control-Allow-Origin' here
+  optionsSuccessStatus: 200,
+};
+
+
+app.use(cors(corsOptions));
 app.use(express.json()); // To parse JSON request bodies
+
+// Handle preflight requests
+app.options("*", cors(corsOptions));
 
 // Middleware to prevent caching
 const nocache = (req, res, next) => {
@@ -19,36 +37,90 @@ const nocache = (req, res, next) => {
   next();
 };
 
-// Acquire resource from Agora Cloud Recording API
+// Generate Agora RTC token
+const generateAccessToken = (req, res) => {
+  res.header("Access-Control-Allow-Origin", "*");
+
+  const channelName = req.query.channelName;
+  if (!channelName) {
+    return res.status(400).json({ error: "channelName is required" });
+  }
+
+  let uid = req.query.uid;
+  if (!uid || uid === "") {
+    uid = 0;
+  }
+
+  let role = RtcRole.SUBSCRIBER;
+  if (req.query.role === "publisher") {
+    role = RtcRole.PUBLISHER;
+  }
+
+  let expireTime = req.query.expireTime;
+  if (!expireTime || expireTime === "") {
+    expireTime = 3600; // seconds
+  } else {
+    expireTime = parseInt(expireTime, 10);
+  }
+
+  const currentTime = Math.floor(Date.now() / 1000);
+  const privilegeExpireTime = currentTime + expireTime;
+
+  const token = RtcTokenBuilder.buildTokenWithUid(
+    APP_ID,
+    APP_CERTIFICATE,
+    channelName,
+    uid,
+    role,
+    privilegeExpireTime
+  );
+
+  return res.json({ token });
+};
 app.post("/acquire", async (req, res) => {
   const { channelName, uid } = req.body;
+
+  // Log payload to verify what's being received
+  console.log(
+    "Received acquire request with channelName and uid:",
+    channelName,
+    uid
+  );
 
   if (!channelName || !uid) {
     return res.status(400).json({ error: "channelName and uid are required" });
   }
 
-  // Agora Cloud Recording acquire URL
-  const url = `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`;
-
   try {
-    const response = await axios.post(
-      url,
+    const authorizationToken = Buffer.from(
+      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
+    ).toString("base64");
+
+    // Log the payload before making the request to Agora
+    console.log("Payload being sent to Agora for acquire:", {
+      cname: channelName,
+      uid: uid,
+    });
+
+    const acquireResponse = await axios.post(
+      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`,
       {
         cname: channelName,
-        clientRequest: {}
+        uid: "0", // UID for the recording service, typically "0" for cloud recording
+        clientRequest: {}, // Required by Agora API, even if empty
       },
       {
         headers: {
-          Authorization: `Basic ${Buffer.from(
-            `${CUSTOMER_ID}:${CUSTOMER_SECRET}`
-          ).toString("base64")}`,
-          "Content-Type": "application/json"
-        }
+          Authorization: `Basic ${authorizationToken}`,
+          "Content-Type": "application/json",
+        },
       }
     );
 
-    const resourceId = response.data.resourceId;
-    console.log("Resource acquired with resourceId:", resourceId);
+    // Log Agora's response
+    console.log("Agora acquire response:", acquireResponse.data);
+
+    const resourceId = acquireResponse.data.resourceId;
     res.json({ resourceId });
   } catch (error) {
     console.error(
@@ -58,6 +130,7 @@ app.post("/acquire", async (req, res) => {
     res.status(500).json({ error: "Failed to acquire resource" });
   }
 });
+
 
 // Handle the start recording request
 app.post("/start", async (req, res) => {
@@ -69,13 +142,16 @@ app.post("/start", async (req, res) => {
     });
   }
 
+  // Add logging to check if S3 environment variables are available
+  console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
+  console.log("S3_ACCESS_KEY:", process.env.S3_ACCESS_KEY || "Not Defined");
+  console.log("S3_SECRET_KEY:", process.env.S3_SECRET_KEY || "Not Defined");
+
   try {
-    // Add the actual authorization header using Customer ID and Secret
     const authorizationToken = Buffer.from(
-      `${CUSTOMER_ID}:${CUSTOMER_SECRET}`
+      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
-    // Prepare the payload for starting recording
     const payload = {
       cname: channelName,
       uid: uid,
@@ -87,30 +163,28 @@ app.post("/start", async (req, res) => {
           channelType: 0,
           videoStreamType: 0,
           transcodingConfig: {
-            width: 1280, // Width of the video
-            height: 720, // Height of the video
-            bitrate: 1000, // Bitrate in kbps
-            fps: 30, // Frames per second
-            mixedVideoLayout: 1, // Video layout type
-            backgroundColor: "#FFFFFF", // Optional background color
-          }
+            width: 1920,
+            height: 1080,
+            fps: 30,
+            bitrate: 2000,
+            mixedVideoLayout: 1,
+          },
         },
         recordingFileConfig: {
           avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: 2, // AWS S3
-          region: 0, // Region (0 is for US East)
-          bucket: process.env.S3_BUCKET_NAME, // Your S3 bucket name
-          accessKey: process.env.S3_ACCESS_KEY, // Your AWS access key
-          secretKey: process.env.S3_SECRET_KEY, // Your AWS secret key
+          vendor: 2, // 2 for Amazon S3
+          region: process.env.S3_REGION || 0, // S3 region, 0 as a fallback
+          bucket: process.env.S3_BUCKET_NAME, // S3 bucket name
+          accessKey: process.env.S3_ACCESS_KEY, // AWS access key
+          secretKey: process.env.S3_SECRET_KEY, // AWS secret key
         },
       },
     };
 
     console.log("Payload being sent to Agora for start recording:", payload);
 
-    // Make the Agora cloud recording start API request
     const startRecordingResponse = await axios.post(
       `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
       payload,
@@ -122,11 +196,11 @@ app.post("/start", async (req, res) => {
       }
     );
 
-    // Extract the sid from Agora's response
+    console.log("Agora start recording response:", startRecordingResponse.data);
+
     const { sid } = startRecordingResponse.data;
     console.log("Recording started with sid:", sid);
 
-    // Send back the resourceId and sid
     res.json({ resourceId, sid });
   } catch (error) {
     console.error(
@@ -137,7 +211,9 @@ app.post("/start", async (req, res) => {
   }
 });
 
-// Handle the stop recording request
+
+
+// Handle the stop recording requestt
 app.post("/stop", (req, res) => {
   const { channelName, resourceId, sid } = req.body;
 
@@ -163,25 +239,7 @@ app.get("/", (req, res) => {
 });
 
 // Token generation endpoint
-app.get("/access_token", nocache, (req, res) => {
-  const channelName = req.query.channelName;
-  const uid = req.query.uid || 0;
-  const role = req.query.role === "publisher" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
-  const expireTime = parseInt(req.query.expireTime || "3600", 10);
-  const currentTime = Math.floor(Date.now() / 1000);
-  const privilegeExpireTime = currentTime + expireTime;
-
-  const token = RtcTokenBuilder.buildTokenWithUid(
-    APP_ID,
-    APP_CERTIFICATE,
-    channelName,
-    uid,
-    role,
-    privilegeExpireTime
-  );
-
-  res.json({ token });
-});
+app.get("/access_token", nocache, generateAccessToken);
 
 // Export the app as a module
 module.exports = app;
