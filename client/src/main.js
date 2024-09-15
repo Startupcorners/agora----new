@@ -191,7 +191,7 @@ const startRecording = async () => {
       body: JSON.stringify({
         resourceId: resourceId,
         channelName: config.channelName,
-        uid: config.uid,
+        uid: "0",
         token: config.token, // Include the correct token
       }),
     });
