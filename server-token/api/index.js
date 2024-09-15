@@ -77,12 +77,18 @@ const generateAccessToken = (req, res) => {
 
   return res.json({ token });
 };
-// Acquire resource from Agora Cloud Recording API
 app.post("/acquire", async (req, res) => {
-  const { channelName } = req.body;
+  const { channelName, uid } = req.body;
 
-  if (!channelName) {
-    return res.status(400).json({ error: "channelName is required" });
+  // Log payload to verify what's being received
+  console.log(
+    "Received acquire request with channelName and uid:",
+    channelName,
+    uid
+  );
+
+  if (!channelName || !uid) {
+    return res.status(400).json({ error: "channelName and uid are required" });
   }
 
   try {
@@ -90,10 +96,17 @@ app.post("/acquire", async (req, res) => {
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
+    // Log the payload before making the request to Agora
+    console.log("Payload being sent to Agora for acquire:", {
+      cname: channelName,
+      uid: uid,
+    });
+
     const acquireResponse = await axios.post(
       `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`,
       {
         cname: channelName,
+        uid: uid, // UID for the recording service
         clientRequest: {},
       },
       {
@@ -104,11 +117,16 @@ app.post("/acquire", async (req, res) => {
       }
     );
 
+    // Log Agora's response
+    console.log("Agora acquire response:", acquireResponse.data);
+
     const resourceId = acquireResponse.data.resourceId;
-    console.log("Resource acquired with resourceId:", resourceId);
     res.json({ resourceId });
   } catch (error) {
-    console.error("Error acquiring resource:", error.response ? error.response.data : error.message);
+    console.error(
+      "Error acquiring resource:",
+      error.response ? error.response.data : error.message
+    );
     res.status(500).json({ error: "Failed to acquire resource" });
   }
 });
