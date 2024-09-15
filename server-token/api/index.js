@@ -6,12 +6,21 @@ const axios = require("axios");
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 require("dotenv").config();
 
-// Log essential environment variables for debugging
+// Log essential environment variables for debugging (avoid logging sensitive info in production)
 console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
-console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
+console.log(
+  "Customer Secret:",
+  process.env.CUSTOMER_SECRET ? "****" : "Not Found"
+);
 console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
-console.log("S3_ACCESS_KEY:", process.env.S3_ACCESS_KEY || "Not Defined");
-console.log("S3_SECRET_KEY:", process.env.S3_SECRET_KEY || "Not Defined");
+console.log(
+  "S3_ACCESS_KEY:",
+  process.env.S3_ACCESS_KEY ? "****" : "Not Defined"
+);
+console.log(
+  "S3_SECRET_KEY:",
+  process.env.S3_SECRET_KEY ? "****" : "Not Defined"
+);
 
 const APP_ID = process.env.APP_ID;
 const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
@@ -161,8 +170,14 @@ app.post("/start", async (req, res) => {
 
   // Log S3 environment variables
   console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
-  console.log("S3_ACCESS_KEY:", process.env.S3_ACCESS_KEY || "Not Defined");
-  console.log("S3_SECRET_KEY:", process.env.S3_SECRET_KEY || "Not Defined");
+  console.log(
+    "S3_ACCESS_KEY:",
+    process.env.S3_ACCESS_KEY ? "****" : "Not Defined"
+  );
+  console.log(
+    "S3_SECRET_KEY:",
+    process.env.S3_SECRET_KEY ? "****" : "Not Defined"
+  );
 
   try {
     const authorizationToken = Buffer.from(
@@ -217,8 +232,8 @@ app.post("/start", async (req, res) => {
           vendor: 2, // 2 for Amazon S3
           region: region, // Correct integer based on your S3 bucket region
           bucket: process.env.S3_BUCKET_NAME, // S3 bucket name
-          accessKey: process.env.S3_ACCESS_KEY, // AWS access key
-          secretKey: process.env.S3_SECRET_KEY, // AWS secret key
+          accessKey: process.env.S3_ACCESS_KEY, // AWS access key (****)
+          secretKey: process.env.S3_SECRET_KEY, // AWS secret key (****)
         },
       },
     };
