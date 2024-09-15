@@ -5,9 +5,13 @@ const cors = require("cors");
 const axios = require("axios");
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 require("dotenv").config();
+
+// Log environment variables
 console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
 console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
-
+console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
+console.log("S3_ACCESS_KEY:", process.env.S3_ACCESS_KEY || "Not Defined");
+console.log("S3_SECRET_KEY:", process.env.S3_SECRET_KEY || "Not Defined");
 
 const APP_ID = process.env.APP_ID;
 const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
@@ -21,7 +25,6 @@ const corsOptions = {
   allowedHeaders: "Content-Type,Authorization", // Do NOT include 'Access-Control-Allow-Origin' here
   optionsSuccessStatus: 200,
 };
-
 
 app.use(cors(corsOptions));
 app.use(express.json()); // To parse JSON request bodies
@@ -77,6 +80,8 @@ const generateAccessToken = (req, res) => {
 
   return res.json({ token });
 };
+
+// Handle the acquire request
 app.post("/acquire", async (req, res) => {
   const { channelName, uid } = req.body;
 
@@ -99,7 +104,7 @@ app.post("/acquire", async (req, res) => {
     // Log the payload before making the request to Agora
     console.log("Payload being sent to Agora for acquire:", {
       cname: channelName,
-      uid: uid,
+      uid: "0", // Use "0" for cloud recording
     });
 
     const acquireResponse = await axios.post(
@@ -131,7 +136,6 @@ app.post("/acquire", async (req, res) => {
   }
 });
 
-
 // Handle the start recording request
 app.post("/start", async (req, res) => {
   const { channelName, resourceId, uid, token } = req.body;
@@ -155,7 +159,7 @@ app.post("/start", async (req, res) => {
     // Define the payload to Agora for starting recording
     const payload = {
       cname: channelName,
-      uid: uid,
+      uid: "0", // Use "0" consistently for cloud recording
       clientRequest: {
         token: token,
         recordingConfig: {
@@ -164,23 +168,23 @@ app.post("/start", async (req, res) => {
           channelType: 0,
           videoStreamType: 0,
           transcodingConfig: {
-            width: 1280,
-            height: 720,
-            bitrate: 1000,
-            fps: 30,
-            mixedVideoLayout: 1,
-            backgroundColor: "#FFFFFF",
+            width: 1280, // Width of the video
+            height: 720, // Height of the video
+            bitrate: 1000, // Bitrate in kbps
+            fps: 30, // Frames per second
+            mixedVideoLayout: 1, // Video layout type
+            backgroundColor: "#FFFFFF", // Optional background color
           },
         },
         recordingFileConfig: {
           avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: 2, // 2 is for AWS S3
-          region: 0, // Adjust region code based on your bucket location
-          bucket: process.env.S3_BUCKET_NAME, // Ensure this is defined correctly
-          accessKey: process.env.S3_ACCESS_KEY, // AWS Access Key
-          secretKey: process.env.S3_SECRET_KEY, // AWS Secret Key
+          vendor: 2, // 2 for Amazon S3
+          region: 0, // Ensure this matches your S3 bucket region
+          bucket: process.env.S3_BUCKET_NAME, // S3 bucket name
+          accessKey: process.env.S3_ACCESS_KEY, // AWS access key
+          secretKey: process.env.S3_SECRET_KEY, // AWS secret key
         },
       },
     };
@@ -209,6 +213,7 @@ app.post("/start", async (req, res) => {
     const { sid } = startRecordingResponse.data;
     console.log("Recording started with sid:", sid);
 
+    // Send back the resourceId and sid
     res.json({ resourceId, sid });
   } catch (error) {
     // Log error details
@@ -220,7 +225,7 @@ app.post("/start", async (req, res) => {
   }
 });
 
-// Handle the stop recording requestt
+// Handle the stop recording request
 app.post("/stop", (req, res) => {
   const { channelName, resourceId, sid } = req.body;
 
@@ -230,7 +235,7 @@ app.post("/stop", (req, res) => {
     });
   }
 
-  // Stop recording logic
+  // Stop recording logic (you need to implement this based on Agora's API)
   res.json({ message: "Recording stopped", resourceId, sid });
 });
 
