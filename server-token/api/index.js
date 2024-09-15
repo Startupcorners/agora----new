@@ -73,18 +73,40 @@ const generateAccessToken = (req, res) => {
 
   return res.json({ token });
 };
-
-// Handle the acquire resource request for recording
-app.post("/acquire", (req, res) => {
+// Acquire resource from Agora Cloud Recording API
+app.post("/acquire", async (req, res) => {
   const { channelName } = req.body;
 
   if (!channelName) {
     return res.status(400).json({ error: "channelName is required" });
   }
 
-  // Acquire resource logic for recording
-  const resourceId = "dummyResourceId"; // Replace with actual resource ID generation logic
-  res.json({ resourceId });
+  try {
+    const authorizationToken = Buffer.from(
+      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
+    ).toString("base64");
+
+    const acquireResponse = await axios.post(
+      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`,
+      {
+        cname: channelName,
+        clientRequest: {},
+      },
+      {
+        headers: {
+          Authorization: `Basic ${authorizationToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    const resourceId = acquireResponse.data.resourceId;
+    console.log("Resource acquired with resourceId:", resourceId);
+    res.json({ resourceId });
+  } catch (error) {
+    console.error("Error acquiring resource:", error.response ? error.response.data : error.message);
+    res.status(500).json({ error: "Failed to acquire resource" });
+  }
 });
 
 // Handle the start recording request

@@ -152,11 +152,16 @@ const acquireResource = async () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        cname: config.channelName, // Provide the channel name
-        uid: config.uid, // Provide the UID for the recording service
-        clientRequest: {},
+        channelName: config.channelName, // Provide the channel name
       }),
     });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error acquiring resource:", errorData);
+      throw new Error(`Failed to acquire resource: ${errorData.error}`);
+    }
+
     const data = await response.json();
     console.log("Resource acquired:", data.resourceId); // Log the resourceId
     return data.resourceId;
@@ -165,6 +170,7 @@ const acquireResource = async () => {
     throw error; // Pass the error up the chain
   }
 };
+
 
 const startRecording = async () => {
   const resourceId = await acquireResource(); // Acquire the resource first
