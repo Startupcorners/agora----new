@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const axios = require("axios");
 const fetch = require("node-fetch"); // Required to make HTTP requests from the backend
 require("dotenv").config();
 
