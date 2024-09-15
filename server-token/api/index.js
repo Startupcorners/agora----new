@@ -142,7 +142,7 @@ app.post("/start", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: uid, // Make sure UID is "0"
+      uid: "0",
       clientRequest: {
         token: token,
         recordingConfig: {
@@ -150,26 +150,17 @@ app.post("/start", async (req, res) => {
           streamTypes: 2,
           channelType: 0,
           videoStreamType: 0,
-          transcodingConfig: {
-            width: 1280,
-            height: 720,
-            bitrate: 1000,
-            fps: 30,
-            mixedVideoLayout: 1,
-          },
-        },
-        recordingFileConfig: {
-          avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: vendor,
-          region: region,
+          vendor: 2,
+          region: 0, // Ensure correct region code
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
         },
       },
     };
+
 
     console.log(
       "Payload sent to Agora for start recording:",
