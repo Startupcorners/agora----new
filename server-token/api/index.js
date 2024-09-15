@@ -43,7 +43,7 @@ app.get("/access_token", nocache, (req, res) => {
     return res.status(400).json({ error: "channelName is required" });
   }
 
-  let uid = "0"; // Ensure uid is a string "0" for recording
+  let uid = req.query.uid || "0"; // Ensure uid is a string "0" for recording
   let role = RtcRole.PUBLISHER; // Always use PUBLISHER role for recording
   let expireTime = parseInt(req.query.expireTime, 10) || 3600;
 
@@ -113,18 +113,21 @@ app.post("/acquire", async (req, res) => {
 
 // Start recording
 app.post("/start", async (req, res) => {
-  const { channelName, resourceId, uid, token } = req.body;
+  const { channelName, resourceId, token } = req.body;
 
-  if (!channelName || !resourceId || !uid || !token) {
+  // Set uid to "0" for Agora recording
+  let uid = "0"; 
+
+  if (!channelName || !resourceId || !token) {
     return res.status(400).json({
-      error: "channelName, resourceId, uid, and token are required",
+      error: "channelName, resourceId, and token are required",
     });
   }
 
   console.log("Start recording request for:", {
     channelName,
     resourceId,
-    uid,
+    uid, // UID is now "0"
     token,
   });
 
@@ -139,7 +142,7 @@ app.post("/start", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: uid.toString(), // Ensure UID is a string
+      uid: uid, // Make sure UID is "0"
       clientRequest: {
         token: token,
         recordingConfig: {
@@ -159,8 +162,8 @@ app.post("/start", async (req, res) => {
           avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: vendor, // Ensure vendor is a number
-          region: region, // Ensure region is a number
+          vendor: vendor,
+          region: region,
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
@@ -195,6 +198,7 @@ app.post("/start", async (req, res) => {
     res.status(500).json({ error: "Failed to start recording" });
   }
 });
+
 
 // Stop recording endpoint
 app.post("/stop", (req, res) => {
