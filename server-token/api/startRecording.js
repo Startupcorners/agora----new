@@ -38,10 +38,9 @@ module.exports = async (req, res) => {
     "base64"
   );
 
-  // Set uid explicitly to "0"
   const payload = {
     cname: channelName,
-    uid: "0", // Ensure uid is always "0" for the recording service
+    uid: "0", // Always ensure uid is "0" for the recording service
     clientRequest: {
       token: token,
       recordingConfig: {
