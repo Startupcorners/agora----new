@@ -106,8 +106,8 @@ app.post("/acquire", async (req, res) => {
       `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`,
       {
         cname: channelName,
-        uid: uid, // UID for the recording service
-        clientRequest: {},
+        uid: "0", // UID for the recording service, typically "0" for cloud recording
+        clientRequest: {}, // Required by Agora API, even if empty
       },
       {
         headers: {
@@ -130,6 +130,7 @@ app.post("/acquire", async (req, res) => {
     res.status(500).json({ error: "Failed to acquire resource" });
   }
 });
+
 
 // Handle the start recording request
 app.post("/start", async (req, res) => {
