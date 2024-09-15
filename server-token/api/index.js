@@ -5,28 +5,29 @@ const cors = require("cors");
 const axios = require("axios");
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 require("dotenv").config();
-
-// Log important environment variables
-console.log("APP_ID:", process.env.APP_ID || "Not Defined");
-console.log("APP_CERTIFICATE:", process.env.APP_CERTIFICATE || "Not Defined");
-console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Defined");
-console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Defined");
-console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
-console.log("S3_ACCESS_KEY:", process.env.S3_ACCESS_KEY || "Not Defined");
-console.log("S3_SECRET_KEY:", process.env.S3_SECRET_KEY || "Not Defined");
-console.log("S3_REGION:", process.env.S3_REGION || "Not Defined");
+console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
+console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
 
 const APP_ID = process.env.APP_ID;
 const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// CORS configuration to allow your Bubble app's domain
+const corsOptions = {
+  origin: "https://sccopy-38403.bubbleapps.io", // Replace with your Bubble app's domain
+  methods: "GET,POST,OPTIONS",
+  allowedHeaders: "Content-Type,Authorization",
+  optionsSuccessStatus: 200,
+};
+
+app.use(cors(corsOptions));
+app.use(express.json()); // To parse JSON request bodies
 
 // Handle preflight requests
-app.options("*", cors());
+app.options("*", cors(corsOptions));
 
+// Middleware to prevent caching
 const nocache = (req, res, next) => {
   res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
   res.header("Expires", "-1");
@@ -34,42 +35,18 @@ const nocache = (req, res, next) => {
   next();
 };
 
-// Token generation
-app.get("/access_token", nocache, (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
-
-  const channelName = req.query.channelName;
-  if (!channelName) {
-    return res.status(400).json({ error: "channelName is required" });
-  }
-
-  let uid = req.query.uid || 0;
-  let role =
-    req.query.role === "publisher" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
-  let expireTime = parseInt(req.query.expireTime, 10) || 3600;
-
-  const currentTime = Math.floor(Date.now() / 1000);
-  const privilegeExpireTime = currentTime + expireTime;
-
-  const token = RtcTokenBuilder.buildTokenWithUid(
-    APP_ID,
-    APP_CERTIFICATE,
-    channelName,
-    uid,
-    role,
-    privilegeExpireTime
-  );
-
-  return res.json({ token });
-});
-
-// Acquire resource
+// Acquire resource endpoint
 app.post("/acquire", async (req, res) => {
   const { channelName, uid } = req.body;
 
-  console.log("Acquire request for channel:", channelName, "UID:", uid);
+  console.log(
+    "Received acquire request with channelName and uid:",
+    channelName,
+    uid
+  );
 
   if (!channelName || !uid) {
+    console.error("Missing channelName or uid");
     return res.status(400).json({ error: "channelName and uid are required" });
   }
 
@@ -78,17 +55,18 @@ app.post("/acquire", async (req, res) => {
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
-    const payload = {
+    console.log("Payload being sent to Agora for acquire:", {
       cname: channelName,
-      uid: "0",
-      clientRequest: {},
-    };
+      uid: uid.toString(),
+    });
 
-    console.log("Payload sent to Agora for acquire:", payload);
-
-    const response = await axios.post(
+    const acquireResponse = await axios.post(
       `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`,
-      payload,
+      {
+        cname: channelName,
+        uid: "0", // UID for the recording service, typically "0" for cloud recording
+        clientRequest: {},
+      },
       {
         headers: {
           Authorization: `Basic ${authorizationToken}`,
@@ -97,8 +75,9 @@ app.post("/acquire", async (req, res) => {
       }
     );
 
-    console.log("Acquire response:", response.data);
-    const resourceId = response.data.resourceId;
+    console.log("Agora acquire response:", acquireResponse.data);
+
+    const resourceId = acquireResponse.data.resourceId;
     res.json({ resourceId });
   } catch (error) {
     console.error(
@@ -109,16 +88,11 @@ app.post("/acquire", async (req, res) => {
   }
 });
 
-// Start recording
+// Start recording endpoint with additional logs
 app.post("/start", async (req, res) => {
   const { channelName, resourceId, uid, token } = req.body;
 
-  if (!channelName || !resourceId || !uid || !token) {
-    return res.status(400).json({
-      error: "channelName, resourceId, uid, and token are required",
-    });
-  }
-
+  // Log the request to start recording
   console.log("Start recording request for:", {
     channelName,
     resourceId,
@@ -126,18 +100,30 @@ app.post("/start", async (req, res) => {
     token,
   });
 
+  if (!channelName || !resourceId || !uid || !token) {
+    console.error("Missing required parameters");
+    return res.status(400).json({
+      error: "channelName, resourceId, uid, and token are required",
+    });
+  }
+
   // Convert environment variables to numbers
-  const vendor = parseInt(process.env.S3_VENDOR, 10) || 2;
-  const region = parseInt(process.env.S3_REGION, 10) || 0;
+  const vendor = parseInt(process.env.S3_VENDOR, 10) || 2; // Vendor for S3 (2 is default)
+  const region = parseInt(process.env.S3_REGION, 10) || 0; // AWS region, 0 = us-east-1
+
+  console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
+  console.log("S3_ACCESS_KEY:", process.env.S3_ACCESS_KEY || "Not Defined");
+  console.log("S3_SECRET_KEY:", process.env.S3_SECRET_KEY || "Not Defined");
 
   try {
     const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
+    // Define the payload to Agora for starting recording
     const payload = {
       cname: channelName,
-      uid: uid.toString(), // Ensure UID is a string
+      uid: uid.toString(), // Ensure UID is sent as a string
       clientRequest: {
         token: token,
         recordingConfig: {
@@ -157,8 +143,8 @@ app.post("/start", async (req, res) => {
           avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: vendor, // Ensure vendor is a number
-          region: region, // Ensure region is a number
+          vendor: vendor, // Make sure vendor is a number
+          region: region, // Make sure region is a number
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
@@ -171,7 +157,7 @@ app.post("/start", async (req, res) => {
       JSON.stringify(payload, null, 2)
     );
 
-    const response = await axios.post(
+    const startRecordingResponse = await axios.post(
       `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
       payload,
       {
@@ -182,13 +168,26 @@ app.post("/start", async (req, res) => {
       }
     );
 
-    console.log("Start recording response:", response.data);
-    const { sid } = response.data;
+    console.log("Agora start recording response:", startRecordingResponse.data);
+
+    const { sid } = startRecordingResponse.data;
+    console.log("Recording started with sid:", sid);
+
     res.json({ resourceId, sid });
   } catch (error) {
     console.error(
       "Error starting recording:",
-      error.response ? error.response.data : error.message
+      error.response
+        ? JSON.stringify(error.response.data, null, 2)
+        : error.message
+    );
+
+    // Log the full error details, including the payload and response
+    console.error(
+      "Full error response:",
+      error.response
+        ? JSON.stringify(error.response, null, 2)
+        : "No response data"
     );
     res.status(500).json({ error: "Failed to start recording" });
   }
@@ -218,4 +217,8 @@ app.get("/", (req, res) => {
   });
 });
 
+// Token generation endpoint
+app.get("/access_token", nocache, generateAccessToken);
+
+// Export the app as a module
 module.exports = app;
