@@ -16,7 +16,7 @@ app.post("/acquire", async (req, res) => {
   const { channelName, uid } = req.body;
 
   // Log the received request body for debugging
-  console.log("Received request body:", req.body);
+  console.log("Received request body:", JSON.stringify(req.body, null, 2));
 
   // Validate the request body
   if (!channelName || !uid) {
@@ -26,6 +26,11 @@ app.post("/acquire", async (req, res) => {
 
   // Log the actual values being sent to Agora
   console.log("Acquiring resource for channel:", channelName, "with uid:", uid);
+
+  // Log the environment variables to make sure they are correctly loaded
+  console.log("APP_ID:", APP_ID || "Not Defined");
+  console.log("CUSTOMER_ID:", CUSTOMER_ID || "Not Defined");
+  console.log("CUSTOMER_SECRET:", CUSTOMER_SECRET ? "Defined" : "Not Defined");
 
   // Agora Cloud Recording acquire URL
   const url = `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`;
@@ -58,7 +63,9 @@ app.post("/acquire", async (req, res) => {
     // Log the error for debugging
     console.error(
       "Error acquiring resource:",
-      error.response ? error.response.data : error.message
+      error.response
+        ? JSON.stringify(error.response.data, null, 2)
+        : error.message
     );
 
     // Handle specific Agora API error response
