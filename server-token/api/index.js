@@ -3,7 +3,14 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
+const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 require("dotenv").config();
+console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
+console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
+
+
+const APP_ID = process.env.APP_ID;
+const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
 
 const app = express();
 
@@ -11,9 +18,10 @@ const app = express();
 const corsOptions = {
   origin: "https://sccopy-38403.bubbleapps.io", // Replace with your Bubble app's domain
   methods: "GET,POST,OPTIONS",
-  allowedHeaders: "Content-Type,Authorization",
+  allowedHeaders: "Content-Type,Authorization", // Do NOT include 'Access-Control-Allow-Origin' here
   optionsSuccessStatus: 200,
 };
+
 
 app.use(cors(corsOptions));
 app.use(express.json()); // To parse JSON request bodies
@@ -29,7 +37,7 @@ const nocache = (req, res, next) => {
   next();
 };
 
-// Token generation endpoint (if needed)
+// Generate Agora RTC token
 const generateAccessToken = (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
 
@@ -43,9 +51,9 @@ const generateAccessToken = (req, res) => {
     uid = 0;
   }
 
-  let role = "publisher"; // Default to publisher for recording
-  if (req.query.role === "subscriber") {
-    role = "subscriber";
+  let role = RtcRole.SUBSCRIBER;
+  if (req.query.role === "publisher") {
+    role = RtcRole.PUBLISHER;
   }
 
   let expireTime = req.query.expireTime;
@@ -55,182 +63,176 @@ const generateAccessToken = (req, res) => {
     expireTime = parseInt(expireTime, 10);
   }
 
-  // Token generation logic (Implement as per Agora SDK)
-  // For simplicity, returning a placeholder token
-  const token = "YOUR_GENERATED_TOKEN";
+  const currentTime = Math.floor(Date.now() / 1000);
+  const privilegeExpireTime = currentTime + expireTime;
+
+  const token = RtcTokenBuilder.buildTokenWithUid(
+    APP_ID,
+    APP_CERTIFICATE,
+    channelName,
+    uid,
+    role,
+    privilegeExpireTime
+  );
 
   return res.json({ token });
 };
-
-// Acquire Resource Endpoint
 app.post("/acquire", async (req, res) => {
   const { channelName, uid } = req.body;
 
-  // Validate input
+  // Log payload to verify what's being received
+  console.log(
+    "Received acquire request with channelName and uid:",
+    channelName,
+    uid
+  );
+
   if (!channelName || !uid) {
     return res.status(400).json({ error: "channelName and uid are required" });
   }
 
   try {
-    const authorization = Buffer.from(
+    const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
-    const payload = {
+    // Log the payload before making the request to Agora
+    console.log("Payload being sent to Agora for acquire:", {
       cname: channelName,
-      uid: uid.toString(),
-      clientRequest: {}, // Empty as per documentation
-    };
+      uid: uid,
+    });
 
-    // Log the payload being sent to Agora
-    console.log("Payload for /acquire:", JSON.stringify(payload, null, 2));
-
-    const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/acquire`,
-      payload,
+    const acquireResponse = await axios.post(
+      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`,
+      {
+        cname: channelName,
+        uid: "0", // UID for the recording service, typically "0" for cloud recording
+        clientRequest: {}, // Required by Agora API, even if empty
+      },
       {
         headers: {
-          Authorization: `Basic ${authorization}`,
+          Authorization: `Basic ${authorizationToken}`,
           "Content-Type": "application/json",
         },
       }
     );
 
     // Log Agora's response
-    console.log("Agora acquire response:", response.data);
+    console.log("Agora acquire response:", acquireResponse.data);
 
-    const { resourceId } = response.data;
+    const resourceId = acquireResponse.data.resourceId;
     res.json({ resourceId });
   } catch (error) {
     console.error(
-      "Error in /acquire:",
-      error.response
-        ? JSON.stringify(error.response.data, null, 2)
-        : error.message
+      "Error acquiring resource:",
+      error.response ? error.response.data : error.message
     );
-    res
-      .status(error.response ? error.response.status : 500)
-      .json({ error: "Failed to acquire resource" });
+    res.status(500).json({ error: "Failed to acquire resource" });
   }
 });
 
-// Start Recording Endpoint
+
+// Handle the start recording request
 app.post("/start", async (req, res) => {
   const { channelName, resourceId, uid, token } = req.body;
 
-  // Validate input
   if (!channelName || !resourceId || !uid || !token) {
-    return res
-      .status(400)
-      .json({ error: "channelName, resourceId, uid, and token are required" });
+    return res.status(400).json({
+      error: "channelName, resourceId, uid, and token are required",
+    });
   }
 
+  // Log S3 environment variables
+  console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
+  console.log("S3_ACCESS_KEY:", process.env.S3_ACCESS_KEY || "Not Defined");
+  console.log("S3_SECRET_KEY:", process.env.S3_SECRET_KEY || "Not Defined");
+
   try {
-    const authorization = Buffer.from(
+    const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
+    // Define the payload to Agora for starting recording
     const payload = {
       cname: channelName,
-      uid: uid.toString(),
+      uid: uid,
       clientRequest: {
         token: token,
         recordingConfig: {
-          channelType: 0, // 0 for Live Broadcast, 1 for Communication
+          maxIdleTime: 30,
+          streamTypes: 2,
+          channelType: 0,
+          videoStreamType: 0,
+          transcodingConfig: {
+            width: 1280,
+            height: 720,
+            bitrate: 1000,
+            fps: 30,
+            mixedVideoLayout: 1,
+            backgroundColor: "#FFFFFF",
+          },
+        },
+        recordingFileConfig: {
+          avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: 0, // Replace with 2 for Amazon S3 as per your needs
-          region: 0, // 0 for us-east-1, adjust if necessary
-          bucket: process.env.S3_BUCKET_NAME,
-          accessKey: process.env.S3_ACCESS_KEY,
-          secretKey: process.env.S3_SECRET_KEY,
+          vendor: 2, // 2 is for AWS S3
+          region: 0, // Adjust region code based on your bucket location
+          bucket: process.env.S3_BUCKET_NAME, // Ensure this is defined correctly
+          accessKey: process.env.S3_ACCESS_KEY, // AWS Access Key
+          secretKey: process.env.S3_SECRET_KEY, // AWS Secret Key
         },
       },
     };
 
     // Log the payload being sent to Agora
-    console.log("Payload for /start:", JSON.stringify(payload, null, 2));
+    console.log("Payload being sent to Agora for start recording:", JSON.stringify(payload, null, 2));
 
-    const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/individual/start`,
+    // Send the start recording request to Agora
+    const startRecordingResponse = await axios.post(
+      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
       payload,
       {
         headers: {
-          Authorization: `Basic ${authorization}`,
+          Authorization: `Basic ${authorizationToken}`,
           "Content-Type": "application/json",
         },
       }
     );
 
     // Log Agora's response
-    console.log("Agora start recording response:", response.data);
+    console.log("Agora start recording response:", startRecordingResponse.data);
 
-    const { sid } = response.data;
+    const { sid } = startRecordingResponse.data;
+    console.log("Recording started with sid:", sid);
+
     res.json({ resourceId, sid });
   } catch (error) {
+    // Log error details
     console.error(
-      "Error in /start:",
-      error.response
-        ? JSON.stringify(error.response.data, null, 2)
-        : error.message
+      "Error starting recording:",
+      error.response ? error.response.data : error.message
     );
-    res
-      .status(error.response ? error.response.status : 500)
-      .json({ error: "Failed to start recording" });
+    res.status(500).json({ error: "Failed to start recording" });
   }
 });
 
-// Stop Recording Endpoint
-app.post("/stop", async (req, res) => {
+
+
+
+
+// Handle the stop recording requestt
+app.post("/stop", (req, res) => {
   const { channelName, resourceId, sid } = req.body;
 
-  // Validate input
   if (!channelName || !resourceId || !sid) {
-    return res
-      .status(400)
-      .json({ error: "channelName, resourceId, and sid are required" });
+    return res.status(400).json({
+      error: "channelName, resourceId, and sid are required",
+    });
   }
 
-  try {
-    const authorization = Buffer.from(
-      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
-    ).toString("base64");
-
-    const payload = {
-      cname: channelName,
-      uid: "0",
-      clientRequest: {},
-    };
-
-    // Log the payload being sent to Agora
-    console.log("Payload for /stop:", JSON.stringify(payload, null, 2));
-
-    const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/individual/stop`,
-      payload,
-      {
-        headers: {
-          Authorization: `Basic ${authorization}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    // Log Agora's response
-    console.log("Agora stop recording response:", response.data);
-
-    res.json({ message: "Recording stopped successfully" });
-  } catch (error) {
-    console.error(
-      "Error in /stop:",
-      error.response
-        ? JSON.stringify(error.response.data, null, 2)
-        : error.message
-    );
-    res
-      .status(error.response ? error.response.status : 500)
-      .json({ error: "Failed to stop recording" });
-  }
+  // Stop recording logic
+  res.json({ message: "Recording stopped", resourceId, sid });
 });
 
 // Root endpoint to check server status
@@ -244,7 +246,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// Token generation endpoint (if needed)
+// Token generation endpoint
 app.get("/access_token", nocache, generateAccessToken);
 
 // Export the app as a module

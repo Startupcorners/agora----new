@@ -8,9 +8,7 @@ module.exports = async (req, res) => {
   const { resourceId, channelName, uid, token } = req.body;
 
   if (!resourceId || !channelName || !uid || !token) {
-    return res
-      .status(400)
-      .json({ error: "resourceId, channelName, uid, and token are required" });
+    return res.status(400).json({ error: "resourceId, channelName, uid, and token are required" });
   }
 
   const APP_ID = process.env.APP_ID;
@@ -22,9 +20,7 @@ module.exports = async (req, res) => {
     return res.status(500).json({ error: "Server configuration error" });
   }
 
-  const auth = Buffer.from(`${CUSTOMER_ID}:${CUSTOMER_SECRET}`).toString(
-    "base64"
-  );
+  const auth = Buffer.from(`${CUSTOMER_ID}:${CUSTOMER_SECRET}`).toString("base64");
 
   const payload = {
     cname: channelName,
@@ -74,15 +70,10 @@ module.exports = async (req, res) => {
     console.log("Start recording response:", response.data);
     res.status(200).json(response.data);
   } catch (error) {
-    console.error(
-      "Start Recording Error:",
-      error.response
-        ? JSON.stringify(error.response.data, null, 2)
-        : error.message
-    );
-    res.status(error.response ? error.response.status : 500).json({
+    console.error("Start Recording Error:", error.response ? JSON.stringify(error.response.data, null, 2) : error.message);
+    res.status(error.response ? error.response.status : 500).json({ 
       error: error.response ? error.response.data : error.message,
-      details: error.response ? error.response.data : undefined,
+      details: error.response ? error.response.data : undefined
     });
   }
 };
