@@ -5,6 +5,9 @@ const cors = require("cors");
 const axios = require("axios");
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 require("dotenv").config();
+console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
+console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
+
 
 const APP_ID = process.env.APP_ID;
 const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
