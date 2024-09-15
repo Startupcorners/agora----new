@@ -134,11 +134,11 @@ app.post("/acquire", async (req, res) => {
 
 // Handle the start recording request
 app.post("/start", async (req, res) => {
-  const { channelName, resourceId, uid } = req.body;
+  const { channelName, resourceId, uid, token } = req.body;
 
-  if (!channelName || !resourceId || !uid) {
+  if (!channelName || !resourceId || !uid || !token) {
     return res.status(400).json({
-      error: "channelName, resourceId, and uid are required",
+      error: "channelName, resourceId, uid, and token are required",
     });
   }
 
@@ -148,23 +148,67 @@ app.post("/start", async (req, res) => {
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
-    // Make the Agora cloud recording start API request
+    // Log the payload before making the request to Agora
+    console.log("Payload being sent to Agora for start recording:", {
+      cname: channelName,
+      uid: uid,
+      clientRequest: {
+        token: token, // Token must be included
+        recordingConfig: {
+          maxIdleTime: 30, // Set maximum idle time before stopping recording
+          streamTypes: 2, // Record both audio and video
+          channelType: 0, // Channel type: 0 for live broadcast, 1 for communication
+          videoStreamType: 0, // 0 for high-quality video, 1 for low-quality
+          transcodingConfig: {
+            width: 1920,
+            height: 1080,
+            fps: 30,
+            bitrate: 2000,
+            mixedVideoLayout: 1, // Mixed video layout
+          },
+        },
+        recordingFileConfig: {
+          avFileType: ["hls", "mp4"], // Output both HLS and MP4
+        },
+        storageConfig: {
+          vendor: 2, // 2 for Amazon S3
+          region: 0, // S3 region, e.g., 0 for US
+          bucket: process.env.S3_BUCKET_NAME, // S3 bucket name
+          accessKey: process.env.S3_ACCESS_KEY, // AWS access key
+          secretKey: process.env.S3_SECRET_KEY, // AWS secret key
+        },
+      },
+    });
+
     const startRecordingResponse = await axios.post(
       `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
       {
         cname: channelName,
         uid: uid,
         clientRequest: {
-          token: req.body.token, // Include the correct token
+          token: token,
           recordingConfig: {
+            maxIdleTime: 30,
+            streamTypes: 2,
             channelType: 0,
+            videoStreamType: 0,
+            transcodingConfig: {
+              width: 1920,
+              height: 1080,
+              fps: 30,
+              bitrate: 2000,
+              mixedVideoLayout: 1,
+            },
+          },
+          recordingFileConfig: {
+            avFileType: ["hls", "mp4"],
           },
           storageConfig: {
-            vendor: 0, // AWS S3
-            region: process.env.S3_REGION, // AWS region
-            bucket: process.env.S3_BUCKET_NAME, // S3 bucket name
-            accessKey: process.env.S3_ACCESS_KEY, // AWS access key
-            secretKey: process.env.S3_SECRET_KEY, // AWS secret key
+            vendor: 2,
+            region: 0,
+            bucket: process.env.S3_BUCKET_NAME,
+            accessKey: process.env.S3_ACCESS_KEY,
+            secretKey: process.env.S3_SECRET_KEY,
           },
         },
       },
@@ -176,11 +220,12 @@ app.post("/start", async (req, res) => {
       }
     );
 
-    // Extract the sid from Agora's response
+    // Log Agora's response
+    console.log("Agora start recording response:", startRecordingResponse.data);
+
     const { sid } = startRecordingResponse.data;
     console.log("Recording started with sid:", sid);
 
-    // Send back the resourceId and sid
     res.json({ resourceId, sid });
   } catch (error) {
     console.error(
