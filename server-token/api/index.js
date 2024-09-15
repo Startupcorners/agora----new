@@ -142,7 +142,7 @@ app.post("/start", async (req, res) => {
     });
   }
 
-  // Add logging to check if S3 environment variables are available
+  // Log the S3 environment variables for debugging
   console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
   console.log("S3_ACCESS_KEY:", process.env.S3_ACCESS_KEY || "Not Defined");
   console.log("S3_SECRET_KEY:", process.env.S3_SECRET_KEY || "Not Defined");
@@ -152,6 +152,7 @@ app.post("/start", async (req, res) => {
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
+    // Expanded payload with correct values for Agora API
     const payload = {
       cname: channelName,
       uid: uid,
@@ -163,28 +164,31 @@ app.post("/start", async (req, res) => {
           channelType: 0,
           videoStreamType: 0,
           transcodingConfig: {
-            width: 1280, // Width of the video
-            height: 720, // Height of the video
+            width: 1280, // Video width
+            height: 720, // Video height
             bitrate: 1000, // Bitrate in kbps
             fps: 30, // Frames per second
-            mixedVideoLayout: 1, // Video layout type
-            backgroundColor: "#FFFFFF", // Optional background color
+            mixedVideoLayout: 1, // Layout for mixed video
+            backgroundColor: "#FFFFFF", // Background color (optional)
           },
         },
         recordingFileConfig: {
-          avFileType: ["hls", "mp4"],
+          avFileType: ["hls", "mp4"], // Specify HLS and MP4 file formats
         },
         storageConfig: {
-          vendor: 2, // 2 for Amazon S3
-          region: 0, // S3 region, 0 as a fallback
-          bucket: process.env.S3_BUCKET_NAME, // S3 bucket name
-          accessKey: process.env.S3_ACCESS_KEY, // AWS access key
-          secretKey: process.env.S3_SECRET_KEY, // AWS secret key
+          vendor: 2, // AWS S3
+          region: 0, // Region 0 for US East
+          bucket: process.env.S3_BUCKET_NAME, // S3 Bucket Name
+          accessKey: process.env.S3_ACCESS_KEY, // AWS Access Key
+          secretKey: process.env.S3_SECRET_KEY, // AWS Secret Key
         },
       },
     };
 
-    console.log("Payload being sent to Agora for start recording:", payload);
+    console.log(
+      "Payload being sent to Agora for start recording:",
+      JSON.stringify(payload, null, 2)
+    );
 
     const startRecordingResponse = await axios.post(
       `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
@@ -211,6 +215,7 @@ app.post("/start", async (req, res) => {
     res.status(500).json({ error: "Failed to start recording" });
   }
 });
+
 
 
 
