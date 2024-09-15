@@ -3,6 +3,9 @@ const cors = require("cors");
 const axios = require("axios");
 const fetch = require("node-fetch"); // Required to make HTTP requests from the backend
 require("dotenv").config();
+console.log('Customer ID:', process.env.CUSTOMER_ID);
+console.log('Customer Secret:', process.env.CUSTOMER_SECRET);  // Only use this for debugging and remove it later for security reasons
+
 
 const APP_ID = process.env.APP_ID;
 const CUSTOMER_ID = process.env.CUSTOMER_ID;
