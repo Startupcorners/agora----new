@@ -11,26 +11,17 @@ const app = express();
 app.use(cors());
 app.use(express.json()); // To parse JSON request bodies
 
-// Middleware to prevent caching
-const nocache = (req, res, next) => {
-  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-  res.header("Expires", "-1");
-  res.header("Pragma", "no-cache");
-  next();
-};
-
 // Acquire resource from Agora Cloud Recording API
 app.post("/acquire", async (req, res) => {
-  const { channelName } = req.body;
+  const { channelName, uid } = req.body;
 
-  if (!channelName) {
-    return res.status(400).json({ error: "channelName is required" });
+  if (!channelName || !uid) {
+    return res.status(400).json({ error: "channelName and uid are required" });
   }
 
   // Agora Cloud Recording acquire URL
   const url = `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`;
 
-  // Make the request to acquire resource
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -42,7 +33,7 @@ app.post("/acquire", async (req, res) => {
       },
       body: JSON.stringify({
         cname: channelName,
-        uid: "your-uid", // UID for the recording service, can be any unique ID
+        uid: uid, // UID for the recording service
         clientRequest: {},
       }),
     });
@@ -64,15 +55,5 @@ app.post("/acquire", async (req, res) => {
   }
 });
 
-// Root endpoint to check server status
-app.get("/", (req, res) => {
-  const now = new Date();
-  const formattedDate = now.toISOString().replace(/T/, " ").replace(/\..+/, "");
-
-  return res.json({
-    status: "up",
-    time: formattedDate,
-  });
-});
-
+// Export the app as a module
 module.exports = app;

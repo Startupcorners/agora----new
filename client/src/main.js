@@ -153,6 +153,7 @@ const acquireResource = async () => {
       },
       body: JSON.stringify({
         channelName: config.channelName, // Provide the channel name
+        uid: config.uid, // Provide the UID
       }),
     });
 
@@ -167,45 +168,43 @@ const acquireResource = async () => {
     return data.resourceId;
   } catch (error) {
     console.error("Error acquiring resource:", error);
-    throw error; // Pass the error up the chain
+    throw error;
   }
 };
 
-
 const startRecording = async () => {
-  const resourceId = await acquireResource(); // Acquire the resource first
+  try {
+    const resourceId = await acquireResource(); // Acquire the resource first
 
-  const response = await fetch(config.serverUrl + `/start`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: "Basic <Authorization>", // Replace <Authorization> with your base64 encoded string
-    },
-    body: JSON.stringify({
-      resourceId: resourceId,
-      cname: config.channelName, // Channel name
-      uid: config.uid, // Recording service UID
-      clientRequest: {
-        token: config.token, // Token for authentication
-        recordingConfig: {
-          channelType: 0, // Channel type, 0 is live broadcast
-        },
-        storageConfig: {
-          vendor: 0, // For Amazon S3
-          region: 0, // Region where your S3 bucket is located
-          bucket: "<YourBucketName>", // S3 Bucket Name
-          accessKey: "<YourAccessKey>", // S3 Access Key
-          secretKey: "<YourSecretKey>", // S3 Secret Key
-        },
+    const response = await fetch(config.serverUrl + "/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        resourceId: resourceId,
+        channelName: config.channelName,
+        uid: config.uid,
+        token: config.token, // Include the correct token
+      }),
+    });
 
-  const startData = await response.json();
-  console.log("Recording started:", startData); // Log the response from start
-  config.sid = startData.sid; // Store the session ID (sid) for stopping recording later
-  return startData;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error starting recording:", errorData);
+      throw new Error(`Failed to start recording: ${errorData.error}`);
+    }
+
+    const startData = await response.json();
+    console.log("Recording started:", startData); // Log the response from start
+    config.sid = startData.sid; // Store the session ID (sid) for stopping recording later
+    return startData;
+  } catch (error) {
+    console.error("Error starting recording:", error);
+    throw error;
+  }
 };
+
 
   const stopRecording = async (resourceId, sid) => {
     const response = await fetch(config.serverUrl + "/stop", {

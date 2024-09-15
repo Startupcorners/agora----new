@@ -1,4 +1,3 @@
-// server-token/api/startRecording.js
 const axios = require("axios");
 
 module.exports = async (req, res) => {
@@ -8,12 +7,17 @@ module.exports = async (req, res) => {
 
   const { resourceId, channelName, uid, token } = req.body;
 
-  // Agora Credentials from Environment Variables
-  const APP_ID = process.env.AGORA_APP_ID;
-  const CUSTOMER_ID = process.env.AGORA_CUSTOMER_ID;
-  const CUSTOMER_CERTIFICATE = process.env.AGORA_CUSTOMER_CERTIFICATE;
+  if (!resourceId || !channelName || !uid) {
+    return res
+      .status(400)
+      .json({ error: "resourceId, channelName, and uid are required" });
+  }
 
-  const auth = Buffer.from(`${CUSTOMER_ID}:${CUSTOMER_CERTIFICATE}`).toString(
+  const APP_ID = process.env.APP_ID;
+  const CUSTOMER_ID = process.env.CUSTOMER_ID;
+  const CUSTOMER_SECRET = process.env.CUSTOMER_SECRET;
+
+  const auth = Buffer.from(`${CUSTOMER_ID}:${CUSTOMER_SECRET}`).toString(
     "base64"
   );
 
@@ -42,8 +46,8 @@ module.exports = async (req, res) => {
             avFileType: ["hls", "mp4"],
           },
           storageConfig: {
-            vendor: 2, // Example: 2 for Amazon S3
-            region: parseInt(process.env.STORAGE_REGION, 10),
+            vendor: 2, // AWS S3
+            region: parseInt(process.env.S3_REGION, 10),
             bucket: process.env.S3_BUCKET_NAME,
             accessKey: process.env.S3_ACCESS_KEY,
             secretKey: process.env.S3_SECRET_KEY,
