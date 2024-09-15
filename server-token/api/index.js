@@ -8,7 +8,6 @@ require("dotenv").config();
 console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
 console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
 
-
 const APP_ID = process.env.APP_ID;
 const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
 
@@ -18,10 +17,9 @@ const app = express();
 const corsOptions = {
   origin: "https://sccopy-38403.bubbleapps.io", // Replace with your Bubble app's domain
   methods: "GET,POST,OPTIONS",
-  allowedHeaders: "Content-Type,Authorization", // Do NOT include 'Access-Control-Allow-Origin' here
+  allowedHeaders: "Content-Type,Authorization",
   optionsSuccessStatus: 200,
 };
-
 
 app.use(cors(corsOptions));
 app.use(express.json()); // To parse JSON request bodies
@@ -77,10 +75,11 @@ const generateAccessToken = (req, res) => {
 
   return res.json({ token });
 };
+
+// Acquire resource endpoint
 app.post("/acquire", async (req, res) => {
   const { channelName, uid } = req.body;
 
-  // Log payload to verify what's being received
   console.log(
     "Received acquire request with channelName and uid:",
     channelName,
@@ -96,10 +95,9 @@ app.post("/acquire", async (req, res) => {
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
-    // Log the payload before making the request to Agora
     console.log("Payload being sent to Agora for acquire:", {
       cname: channelName,
-      uid: uid,
+      uid: uid.toString(),
     });
 
     const acquireResponse = await axios.post(
@@ -117,7 +115,6 @@ app.post("/acquire", async (req, res) => {
       }
     );
 
-    // Log Agora's response
     console.log("Agora acquire response:", acquireResponse.data);
 
     const resourceId = acquireResponse.data.resourceId;
@@ -131,8 +128,7 @@ app.post("/acquire", async (req, res) => {
   }
 });
 
-
-// Handle the start recording request
+// Start recording endpoint
 app.post("/start", async (req, res) => {
   const { channelName, resourceId, uid, token } = req.body;
 
@@ -142,7 +138,10 @@ app.post("/start", async (req, res) => {
     });
   }
 
-  // Log S3 environment variables
+  // Convert environment variables to numbers
+  const vendor = parseInt(process.env.S3_VENDOR, 10) || 2; // Vendor for S3 (2 is default)
+  const region = parseInt(process.env.S3_REGION, 10) || 0; // AWS region, 0 = us-east-1
+
   console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
   console.log("S3_ACCESS_KEY:", process.env.S3_ACCESS_KEY || "Not Defined");
   console.log("S3_SECRET_KEY:", process.env.S3_SECRET_KEY || "Not Defined");
@@ -152,10 +151,9 @@ app.post("/start", async (req, res) => {
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
-    // Define the payload to Agora for starting recording
     const payload = {
       cname: channelName,
-      uid: uid,
+      uid: uid.toString(), // Ensure UID is sent as a string
       clientRequest: {
         token: token,
         recordingConfig: {
@@ -176,19 +174,20 @@ app.post("/start", async (req, res) => {
           avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: 2, // 2 is for AWS S3
-          region: 0, // Adjust region code based on your bucket location
-          bucket: process.env.S3_BUCKET_NAME, // Ensure this is defined correctly
-          accessKey: process.env.S3_ACCESS_KEY, // AWS Access Key
-          secretKey: process.env.S3_SECRET_KEY, // AWS Secret Key
+          vendor: vendor, // Make sure vendor is a number
+          region: region, // Make sure region is a number
+          bucket: process.env.S3_BUCKET_NAME,
+          accessKey: process.env.S3_ACCESS_KEY,
+          secretKey: process.env.S3_SECRET_KEY,
         },
       },
     };
 
-    // Log the payload being sent to Agora
-    console.log("Payload being sent to Agora for start recording:", JSON.stringify(payload, null, 2));
+    console.log(
+      "Payload being sent to Agora for start recording:",
+      JSON.stringify(payload, null, 2)
+    );
 
-    // Send the start recording request to Agora
     const startRecordingResponse = await axios.post(
       `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
       payload,
@@ -200,7 +199,6 @@ app.post("/start", async (req, res) => {
       }
     );
 
-    // Log Agora's response
     console.log("Agora start recording response:", startRecordingResponse.data);
 
     const { sid } = startRecordingResponse.data;
@@ -208,7 +206,6 @@ app.post("/start", async (req, res) => {
 
     res.json({ resourceId, sid });
   } catch (error) {
-    // Log error details
     console.error(
       "Error starting recording:",
       error.response ? error.response.data : error.message
@@ -217,11 +214,7 @@ app.post("/start", async (req, res) => {
   }
 });
 
-
-
-
-
-// Handle the stop recording requestt
+// Stop recording endpoint
 app.post("/stop", (req, res) => {
   const { channelName, resourceId, sid } = req.body;
 
@@ -231,7 +224,6 @@ app.post("/stop", (req, res) => {
     });
   }
 
-  // Stop recording logic
   res.json({ message: "Recording stopped", resourceId, sid });
 });
 
