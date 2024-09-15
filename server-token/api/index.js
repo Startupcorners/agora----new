@@ -43,7 +43,7 @@ app.get("/access_token", nocache, (req, res) => {
     return res.status(400).json({ error: "channelName is required" });
   }
 
-  let uid = req.query.uid || "0"; // Ensure uid is a string "0" for recording
+  let uid = "0"; // Ensure uid is a string "0" for recording
   let role = RtcRole.PUBLISHER; // Always use PUBLISHER role for recording
   let expireTime = parseInt(req.query.expireTime, 10) || 3600;
 
