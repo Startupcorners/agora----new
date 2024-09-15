@@ -88,8 +88,7 @@ app.post("/acquire", (req, res) => {
 });
 
 // Handle the start recording request
-app.post("/start", (req, res) => {
-  console.log("Received request body:", req.body);
+app.post("/start", async (req, res) => {
   const { channelName, resourceId, uid } = req.body;
 
   if (!channelName || !resourceId || !uid) {
@@ -98,10 +97,55 @@ app.post("/start", (req, res) => {
     });
   }
 
-  // Start recording logic
-  const sid = "dummySid"; // Replace with actual session ID generation logic
-  res.json({ resourceId, sid });
+  try {
+    // Add the actual authorization header using Customer ID and Secret
+    const authorizationToken = Buffer.from(
+      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
+    ).toString("base64");
+
+    // Make the Agora cloud recording start API request
+    const startRecordingResponse = await axios.post(
+      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
+      {
+        cname: channelName,
+        uid: uid,
+        clientRequest: {
+          token: req.body.token, // Include the correct token
+          recordingConfig: {
+            channelType: 0,
+          },
+          storageConfig: {
+            vendor: 0, // AWS S3
+            region: process.env.S3_REGION, // AWS region
+            bucket: process.env.S3_BUCKET_NAME, // S3 bucket name
+            accessKey: process.env.S3_ACCESS_KEY, // AWS access key
+            secretKey: process.env.S3_SECRET_KEY, // AWS secret key
+          },
+        },
+      },
+      {
+        headers: {
+          Authorization: `Basic ${authorizationToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // Extract the sid from Agora's response
+    const { sid } = startRecordingResponse.data;
+    console.log("Recording started with sid:", sid);
+
+    // Send back the resourceId and sid
+    res.json({ resourceId, sid });
+  } catch (error) {
+    console.error(
+      "Error starting recording:",
+      error.response ? error.response.data : error.message
+    );
+    res.status(500).json({ error: "Failed to start recording" });
+  }
 });
+
 
 // Handle the stop recording request
 app.post("/stop", (req, res) => {
