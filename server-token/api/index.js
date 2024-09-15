@@ -6,7 +6,7 @@ const axios = require("axios");
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 require("dotenv").config();
 
-// Log environment variables
+// Log essential environment variables
 console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
 console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
 console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
@@ -22,7 +22,7 @@ const app = express();
 const corsOptions = {
   origin: "https://sccopy-38403.bubbleapps.io", // Replace with your Bubble app's domain
   methods: "GET,POST,OPTIONS",
-  allowedHeaders: "Content-Type,Authorization", // Do NOT include 'Access-Control-Allow-Origin' here
+  allowedHeaders: "Content-Type,Authorization",
   optionsSuccessStatus: 200,
 };
 
@@ -40,7 +40,7 @@ const nocache = (req, res, next) => {
   next();
 };
 
-// Generate Agora RTC token
+// Token generation endpoint
 const generateAccessToken = (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
 
@@ -54,9 +54,10 @@ const generateAccessToken = (req, res) => {
     uid = 0;
   }
 
-  let role = RtcRole.SUBSCRIBER;
-  if (req.query.role === "publisher") {
-    role = RtcRole.PUBLISHER;
+  // Set role to PUBLISHER for cloud recording
+  let role = RtcRole.PUBLISHER;
+  if (req.query.role === "subscriber") {
+    role = RtcRole.SUBSCRIBER;
   }
 
   let expireTime = req.query.expireTime;
@@ -78,6 +79,9 @@ const generateAccessToken = (req, res) => {
     privilegeExpireTime
   );
 
+  // Log generated token
+  console.log("Generated Token:", token);
+
   return res.json({ token });
 };
 
@@ -92,7 +96,7 @@ app.post("/acquire", async (req, res) => {
     uid
   );
 
-  if (!channelName || !uid) {
+  if (!channelName || uid === undefined || uid === null) {
     return res.status(400).json({ error: "channelName and uid are required" });
   }
 
@@ -130,7 +134,9 @@ app.post("/acquire", async (req, res) => {
   } catch (error) {
     console.error(
       "Error acquiring resource:",
-      error.response ? error.response.data : error.message
+      error.response
+        ? JSON.stringify(error.response.data, null, 2)
+        : error.message
     );
     res.status(500).json({ error: "Failed to acquire resource" });
   }
@@ -156,7 +162,27 @@ app.post("/start", async (req, res) => {
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
-    // Define the payload to Agora for starting recording
+    // Define the region mapping based on your S3 bucket's actual region
+    const regionMapping = {
+      "us-east-1": 0,
+      "us-west-2": 1,
+      "ap-southeast-1": 2,
+      "eu-west-1": 3,
+      "ap-northeast-1": 4,
+      // Add more mappings if needed
+    };
+
+    const awsRegion = "us-east-1"; // Confirm your S3 bucket region here
+    const region = regionMapping[awsRegion];
+
+    if (region === undefined) {
+      console.error(`Unsupported AWS region: ${awsRegion}`);
+      return res
+        .status(400)
+        .json({ error: `Unsupported AWS region: ${awsRegion}` });
+    }
+
+    // Define the minimal payload to Agora for starting recording
     const payload = {
       cname: channelName,
       uid: "0", // Use "0" consistently for cloud recording
@@ -165,23 +191,16 @@ app.post("/start", async (req, res) => {
         recordingConfig: {
           maxIdleTime: 30,
           streamTypes: 2,
-          channelType: 0,
+          channelType: 0, // Ensure this matches your actual channel type (0: Live Broadcast, 1: Communication)
           videoStreamType: 0,
-          transcodingConfig: {
-            width: 1280, // Width of the video
-            height: 720, // Height of the video
-            bitrate: 1000, // Bitrate in kbps
-            fps: 30, // Frames per second
-            mixedVideoLayout: 1, // Video layout type
-            backgroundColor: "#FFFFFF", // Optional background color
-          },
+          // Removed transcodingConfig for minimal testing
         },
         recordingFileConfig: {
           avFileType: ["hls", "mp4"],
         },
         storageConfig: {
           vendor: 2, // 2 for Amazon S3
-          region: 0, // Ensure this matches your S3 bucket region
+          region: region, // Correct integer based on your S3 bucket region
           bucket: process.env.S3_BUCKET_NAME, // S3 bucket name
           accessKey: process.env.S3_ACCESS_KEY, // AWS access key
           secretKey: process.env.S3_SECRET_KEY, // AWS secret key
@@ -217,16 +236,21 @@ app.post("/start", async (req, res) => {
     res.json({ resourceId, sid });
   } catch (error) {
     // Log error details
-    console.error(
-      "Error starting recording:",
-      error.response ? error.response.data : error.message
-    );
-    res.status(500).json({ error: "Failed to start recording" });
+    if (error.response) {
+      console.error(
+        "Error starting recording:",
+        JSON.stringify(error.response.data, null, 2)
+      );
+      res.status(error.response.status).json({ error: error.response.data });
+    } else {
+      console.error("Error starting recording:", error.message);
+      res.status(500).json({ error: "Failed to start recording" });
+    }
   }
 });
 
 // Handle the stop recording request
-app.post("/stop", (req, res) => {
+app.post("/stop", async (req, res) => {
   const { channelName, resourceId, sid } = req.body;
 
   if (!channelName || !resourceId || !sid) {
@@ -235,8 +259,73 @@ app.post("/stop", (req, res) => {
     });
   }
 
-  // Stop recording logic (you need to implement this based on Agora's API)
-  res.json({ message: "Recording stopped", resourceId, sid });
+  try {
+    const authorizationToken = Buffer.from(
+      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
+    ).toString("base64");
+
+    // Define the region mapping based on your S3 bucket's actual region
+    const regionMapping = {
+      "us-east-1": 0,
+      "us-west-2": 1,
+      "ap-southeast-1": 2,
+      "eu-west-1": 3,
+      "ap-northeast-1": 4,
+      // Add more mappings if needed
+    };
+
+    const awsRegion = "us-east-1"; // Confirm your S3 bucket region here
+    const region = regionMapping[awsRegion];
+
+    if (region === undefined) {
+      console.error(`Unsupported AWS region: ${awsRegion}`);
+      return res
+        .status(400)
+        .json({ error: `Unsupported AWS region: ${awsRegion}` });
+    }
+
+    // Define the payload to Agora for stopping recording
+    const payload = {
+      cname: channelName,
+      uid: "0", // Use "0" consistently for cloud recording
+      clientRequest: {},
+    };
+
+    // Log the payload being sent to Agora
+    console.log(
+      "Payload being sent to Agora for stop recording:",
+      JSON.stringify(payload, null, 2)
+    );
+
+    // Send the stop recording request to Agora
+    const stopRecordingResponse = await axios.post(
+      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/mix/stop`,
+      payload,
+      {
+        headers: {
+          Authorization: `Basic ${authorizationToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // Log Agora's response
+    console.log("Agora stop recording response:", stopRecordingResponse.data);
+
+    res.json({ message: "Recording stopped", resourceId, sid });
+  } catch (error) {
+    // Log error details
+    if (error.response) {
+      console.error(
+        "Error stopping recording:",
+        JSON.stringify(error.response.data, null, 2)
+      );
+      res.status(error.response.status).json({ error: error.response.data });
+    } else {
+      console.error("Error stopping recording:", error.message);
+      res.status(500).json({ error: "Failed to stop recording" });
+    }
+  }
 });
 
 // Root endpoint to check server status
