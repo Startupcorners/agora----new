@@ -6,7 +6,7 @@ const axios = require("axios");
 const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 require("dotenv").config();
 
-// Log essential environment variables
+// Log essential environment variables for debugging
 console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
 console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
 console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
@@ -15,6 +15,13 @@ console.log("S3_SECRET_KEY:", process.env.S3_SECRET_KEY || "Not Defined");
 
 const APP_ID = process.env.APP_ID;
 const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
+
+if (!APP_ID || !APP_CERTIFICATE) {
+  console.error(
+    "APP_ID and APP_CERTIFICATE must be set in environment variables."
+  );
+  process.exit(1);
+}
 
 const app = express();
 
@@ -79,7 +86,7 @@ const generateAccessToken = (req, res) => {
     privilegeExpireTime
   );
 
-  // Log generated token
+  // Log generated token (Be cautious with logging tokens in production)
   console.log("Generated Token:", token);
 
   return res.json({ token });
@@ -182,7 +189,7 @@ app.post("/start", async (req, res) => {
         .json({ error: `Unsupported AWS region: ${awsRegion}` });
     }
 
-    // Define the minimal payload to Agora for starting recording
+    // Define the payload to Agora for starting recording
     const payload = {
       cname: channelName,
       uid: "0", // Use "0" consistently for cloud recording
@@ -191,9 +198,17 @@ app.post("/start", async (req, res) => {
         recordingConfig: {
           maxIdleTime: 30,
           streamTypes: 2,
-          channelType: 0, // Ensure this matches your actual channel type (0: Live Broadcast, 1: Communication)
+          channelType: 0, // Set to 1 if your channel type is Communication
           videoStreamType: 0,
-          // Removed transcodingConfig for minimal testing
+          transcodingConfig: {
+            // Re-add transcodingConfig for detailed configuration
+            width: 1280,
+            height: 720,
+            bitrate: 1000,
+            fps: 30,
+            mixedVideoLayout: 1,
+            // Removed backgroundColor for simplicity
+          },
         },
         recordingFileConfig: {
           avFileType: ["hls", "mp4"],
