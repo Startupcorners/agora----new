@@ -241,5 +241,5 @@ app.get("/", (req, res) => {
 // Token generation endpoint
 app.get("/access_token", nocache, generateAccessToken);
 
-// Export the app as a module
+// Export the app as a modules
 module.exports = app;
