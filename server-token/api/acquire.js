@@ -1,12 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const fetch = require("node-fetch"); // Required to make HTTP requests from the backend
 require("dotenv").config();
-console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
-console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
-  // Only use this for debugging and remove it later for security reasons
-
 
 const APP_ID = process.env.APP_ID;
 const CUSTOMER_ID = process.env.CUSTOMER_ID;
@@ -20,43 +15,57 @@ app.use(express.json()); // To parse JSON request bodies
 app.post("/acquire", async (req, res) => {
   const { channelName, uid } = req.body;
 
+  // Validate the request body
   if (!channelName || !uid) {
     return res.status(400).json({ error: "channelName and uid are required" });
   }
+
+  // Log the request data for debugging
+  console.log("Acquiring resource for channel:", channelName, "with uid:", uid);
 
   // Agora Cloud Recording acquire URL
   const url = `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`;
 
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${Buffer.from(
-          `${CUSTOMER_ID}:${CUSTOMER_SECRET}`
-        ).toString("base64")}`,
-        "Content-Type": "application/json",
+    // Send the POST request to Agora to acquire the resource
+    const response = await axios.post(
+      url,
+      {
+        cname: channelName, // Channel name
+        uid: uid, // Recording service UID
+        clientRequest: {}, // No additional parameters required here
       },
-      body: JSON.stringify({
-        cname: channelName,
-        uid: uid, // UID for the recording service
-        clientRequest: {},
-      }),
-    });
+      {
+        headers: {
+          Authorization: `Basic ${Buffer.from(
+            `${CUSTOMER_ID}:${CUSTOMER_SECRET}`
+          ).toString("base64")}`, // Base64-encoded authorization header
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
-    const data = await response.json();
+    // Log the response from Agora
+    console.log("Acquired resource with resourceId:", response.data.resourceId);
 
-    if (response.ok) {
-      // Successfully acquired the resource
-      console.log("Acquired resource:", data);
-      return res.json({ resourceId: data.resourceId });
-    } else {
-      // Handle errors returned by Agora
-      console.error("Error acquiring resource from Agora:", data);
-      return res.status(response.status).json(data);
-    }
+    // Send the acquired resourceId to the client
+    res.json({ resourceId: response.data.resourceId });
   } catch (error) {
-    console.error("Error making request to Agora:", error);
-    return res.status(500).json({ error: "Internal server error" });
+    // Log the error for debugging
+    console.error(
+      "Error acquiring resource:",
+      error.response ? error.response.data : error.message
+    );
+
+    // Handle specific Agora API error response
+    if (error.response && error.response.data) {
+      return res.status(error.response.status).json({
+        error: error.response.data,
+      });
+    }
+
+    // Fallback for other errors
+    res.status(500).json({ error: "Failed to acquire resource" });
   }
 });
 
