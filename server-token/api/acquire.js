@@ -5,7 +5,7 @@ const fetch = require("node-fetch"); // Required to make HTTP requests from the 
 require("dotenv").config();
 console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Found");
 console.log("Customer Secret:", process.env.CUSTOMER_SECRET || "Not Found");
-  // Only use this for debugging and remove it later for security reasons
+  // Only use this for debugging and remove it later for security reasonss
 
 
 const APP_ID = process.env.APP_ID;
