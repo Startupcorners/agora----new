@@ -35,15 +35,15 @@ app.post("/acquire", async (req, res) => {
       url,
       {
         cname: channelName,
-        clientRequest: {},
+        clientRequest: {}
       },
       {
         headers: {
           Authorization: `Basic ${Buffer.from(
             `${CUSTOMER_ID}:${CUSTOMER_SECRET}`
           ).toString("base64")}`,
-          "Content-Type": "application/json",
-        },
+          "Content-Type": "application/json"
+        }
       }
     );
 
@@ -87,12 +87,13 @@ app.post("/start", async (req, res) => {
           channelType: 0,
           videoStreamType: 0,
           transcodingConfig: {
-            width: 1280,
-            height: 720,
-            bitrate: 1000,
-            fps: 30,
-            mixedVideoLayout: 1,
-          },
+            width: 1280, // Width of the video
+            height: 720, // Height of the video
+            bitrate: 1000, // Bitrate in kbps
+            fps: 30, // Frames per second
+            mixedVideoLayout: 1, // Video layout type
+            backgroundColor: "#FFFFFF", // Optional background color
+          }
         },
         recordingFileConfig: {
           avFileType: ["hls", "mp4"],
@@ -165,8 +166,7 @@ app.get("/", (req, res) => {
 app.get("/access_token", nocache, (req, res) => {
   const channelName = req.query.channelName;
   const uid = req.query.uid || 0;
-  const role =
-    req.query.role === "publisher" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+  const role = req.query.role === "publisher" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
   const expireTime = parseInt(req.query.expireTime || "3600", 10);
   const currentTime = Math.floor(Date.now() / 1000);
   const privilegeExpireTime = currentTime + expireTime;
