@@ -196,15 +196,17 @@ const startRecording = async () => {
       }),
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Error starting recording:", errorData);
-      throw new Error(`Failed to start recording: ${errorData.error}`);
-    }
-
     const startData = await response.json();
 
-    // Log to check if SID is received
+    // Log the full response for detailed analysis
+    console.log("Response from start recording:", startData);
+
+    if (!response.ok) {
+      console.error("Error starting recording:", startData);
+      throw new Error(`Failed to start recording: ${startData.error}`);
+    }
+
+    // Check if SID is received
     if (startData.sid) {
       console.log("SID received successfully:", startData.sid);
     } else {
