@@ -181,8 +181,8 @@ app.post("/start", async (req, res) => {
           vendor: 2, // Ensure vendor is a number
           region: 0, // Ensure region is a number
           bucket: "agora-recordings-bucket",
-          accessKey: "AKIAQQ5JJ2NZYIDGDS5M",
-          secretKey: "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",
+          accessKey: process.env.S3_ACCESS_KEY,
+          secretKey: process.env.S3_SECRET_KEY,
         },
       },
     };
