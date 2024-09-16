@@ -1,7 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const { RtcTokenBuilder2, RtcRole } = require("agora-access-token");
+const RtcTokenBuilder2 = require('./RtcTokenBuilder2');  // Path to RtcTokenBuilder2.js in the same folder
+
 require("dotenv").config();
 
 // Log important environment variables
