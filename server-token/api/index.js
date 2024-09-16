@@ -129,8 +129,8 @@ app.post("/acquire", async (req, res) => {
   }
 });
 
-// Start recording
-// Start recording
+// Start recordingconst axios = require("axios");
+
 app.post("/start", async (req, res) => {
   const { channelName, resourceId, uid, token } = req.body;
 
@@ -164,7 +164,7 @@ app.post("/start", async (req, res) => {
         recordingConfig: {
           maxIdleTime: 30,
           streamTypes: 2,
-          channelType: 1,
+          channelType: 1, // Adjust based on your channel type
           videoStreamType: 0,
           transcodingConfig: {
             width: 1280,
@@ -178,8 +178,8 @@ app.post("/start", async (req, res) => {
           avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: 2, // Ensure vendor is a numbers
-          region: 0, // Ensure region is a number
+          vendor: vendor, // Ensure vendor is a number
+          region: region, // Ensure region is a number
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
@@ -190,7 +190,7 @@ app.post("/start", async (req, res) => {
     console.log("Payload sent to Agora for start recording:", JSON.stringify(payload, null, 2));
 
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
       payload,
       {
         headers: {
@@ -203,16 +203,16 @@ app.post("/start", async (req, res) => {
     console.log("Start recording response:", response.data);
 
     if (response.data.sid) {
-      console.log("SID received:", response.data.sid);  // Log the SID when received
+      console.log("SID received:", response.data.sid); // Log the SID when received
     } else {
-      console.error("No SID in response:", response.data);  // Log if no SID is received
+      console.error("No SID in response:", response.data); // Log if no SID is received
     }
 
     res.json({ resourceId, sid: response.data.sid });
   } catch (error) {
     console.error(
       "Error starting recording:",
-      error.response ? error.response.data : error.message
+      error.response ? JSON.stringify(error.response.data, null, 2) : error.message
     );
     res.status(500).json({
       error: "Failed to start recording",
@@ -220,6 +220,7 @@ app.post("/start", async (req, res) => {
     });
   }
 });
+
 
 
 // Stop recording endpoint
