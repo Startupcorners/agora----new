@@ -1,7 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const RtcTokenBuilder2 = require('./RtcTokenBuilder2');  // Path to RtcTokenBuilder2.js in the same folder
+const { RtcTokenBuilder2, Role } = require('./RtcTokenBuilder2'); // Import Role from RtcTokenBuilder2.js
+  // Path to RtcTokenBuilder2.js in the same folder
 
 require("dotenv").config();
 
