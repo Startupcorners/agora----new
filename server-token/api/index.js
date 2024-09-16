@@ -62,7 +62,7 @@ app.get("/access_token", nocache, (req, res) => {
   const privilegeExpireTime = currentTime + expireTime;
 
   try {
-    const token = RtcTokenBuilder2.buildTokenWithUid(
+    const token = RtcTokenBuilder.buildTokenWithUid(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
