@@ -113,21 +113,18 @@ app.post("/acquire", async (req, res) => {
 
 // Start recording
 app.post("/start", async (req, res) => {
-  const { channelName, resourceId, token } = req.body;
+  const { channelName, resourceId, uid, token } = req.body;
 
-  // Set uid to "0" for Agora recording
-  let uid = "0"; 
-
-  if (!channelName || !resourceId || !token) {
+  if (!channelName || !resourceId || !uid || !token) {
     return res.status(400).json({
-      error: "channelName, resourceId, and token are required",
+      error: "channelName, resourceId, uid, and token are required",
     });
   }
 
   console.log("Start recording request for:", {
     channelName,
     resourceId,
-    uid, // UID is now "0"
+    uid,
     token,
   });
 
@@ -142,7 +139,7 @@ app.post("/start", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: uid, // Make sure UID is "0"
+      uid: uid.toString(), // Ensure UID is a string
       clientRequest: {
         token: token,
         recordingConfig: {
@@ -162,8 +159,8 @@ app.post("/start", async (req, res) => {
           avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: vendor,
-          region: region,
+          vendor: vendor, // Ensure vendor is a number
+          region: region, // Ensure region is a number
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
@@ -198,7 +195,6 @@ app.post("/start", async (req, res) => {
     res.status(500).json({ error: "Failed to start recording" });
   }
 });
-
 
 // Stop recording endpoint
 app.post("/stop", (req, res) => {
