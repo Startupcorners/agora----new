@@ -174,7 +174,7 @@ app.post("/start", async (req, res) => {
         recordingConfig: {
           maxIdleTime: 30,
           streamTypes: 2,
-          channelType: 1, // Adjust based on your channel type
+          channelType: 1, // Adjust based on your channel types
           videoStreamType: 0,
           transcodingConfig: {
             width: 1280,
