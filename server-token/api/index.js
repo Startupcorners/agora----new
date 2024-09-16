@@ -264,22 +264,56 @@ module.exports = app;
 
 app.get("/generate_recording_token", (req, res) => {
   const channelName = req.query.channelName;
-  const uid = req.query.uid || "0"; // Default to UID 0 for recording
 
   if (!channelName) {
     return res.status(400).json({ error: "channelName is required" });
   }
 
-  const role = Role.PUBLISHER; // Use PUBLISHER role for recording
-
-  const token = RtcTokenBuilder.buildTokenWithUid(
-    process.env.APP_ID,
-    process.env.APP_CERTIFICATE,
-    channelName,
-    "0",
-    role,
-    Math.floor(Date.now() / 1000) + 3600 // Token valid for 1 hour
+  // Log the APP_ID and APP_CERTIFICATE (partially masked for security)
+  console.log(
+    `APP_ID: ${
+      process.env.APP_ID
+        ? process.env.APP_ID.substring(0, 5) + "..."
+        : "Not Set"
+    }`
+  );
+  console.log(
+    `APP_CERTIFICATE: ${
+      process.env.APP_CERTIFICATE
+        ? process.env.APP_CERTIFICATE.substring(0, 5) + "..."
+        : "Not Set"
+    }`
   );
 
-  res.json({ token });
+  if (!process.env.APP_ID || !process.env.APP_CERTIFICATE) {
+    console.error("APP_ID or APP_CERTIFICATE is not set");
+    return res.status(500).json({ error: "Server configuration error" });
+  }
+
+  const role = Role.PUBLISHER; // Use PUBLISHER role for recording
+
+  console.log(
+    `Generating token for channel: ${channelName}, UID: 0, Role: ${role}`
+  );
+
+  try {
+    const token = RtcTokenBuilder.buildTokenWithUid(
+      process.env.APP_ID,
+      process.env.APP_CERTIFICATE,
+      channelName,
+      "0",
+      role,
+      Math.floor(Date.now() / 1000) + 3600 // Token valid for 1 hour
+    );
+
+    // Log a portion of the generated token for verification
+    console.log(
+      `Generated token (first 10 characters): ${token.substring(0, 10)}...`
+    );
+
+    res.json({ token });
+  } catch (error) {
+    console.error("Error generating token:", error);
+    res.status(500).json({ error: "Failed to generate token" });
+  }
 });
