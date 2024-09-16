@@ -43,40 +43,41 @@ const nocache = (req, res, next) => {
 };
 
 // Token generations
-
+// Token generation endpoint with RtcTokenBuilder2
 app.get("/access_token", nocache, (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
 
   const channelName = req.query.channelName;
+  const uid = req.query.uid || "0"; // Default to "0" for recording or joining
+
   if (!channelName) {
     return res.status(400).json({ error: "channelName is required" });
   }
 
-  let uid = req.query.uid || "0"; // Ensure uid is a string "0" for recording
-  let role = Role.PUBLISHER; // Always use PUBLISHER role for recording
+  let role = Role.PUBLISHER; // Always use PUBLISHER role for joining a call
   let expireTime = parseInt(req.query.expireTime, 10) || 3600;
-
+  
   const currentTime = Math.floor(Date.now() / 1000);
   const privilegeExpireTime = currentTime + expireTime;
 
   try {
-    // Generate the 007 token with UID as string "0" for recording
     const token = RtcTokenBuilder2.buildTokenWithUid(
-      APP_ID,
-      APP_CERTIFICATE,
+      process.env.APP_ID,
+      process.env.APP_CERTIFICATE,
       channelName,
       uid,
       role,
       privilegeExpireTime
     );
 
-    console.log("Generated Token:", token); // Log the generated token for debugging
+    console.log("Generated Token:", token);
     return res.json({ token });
   } catch (error) {
-    console.error("Token generation failed:", error); // Log the actual error
-    return res
-      .status(500)
-      .json({ error: "Token generation failed", details: error.message });
+    console.error("Token generation failed:", error);
+    return res.status(500).json({
+      error: "Token generation failed",
+      details: error.message,
+    });
   }
 });
 
