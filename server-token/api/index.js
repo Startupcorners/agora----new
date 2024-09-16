@@ -135,6 +135,12 @@ app.post("/start", async (req, res) => {
   const { channelName, resourceId, uid, token } = req.body;
 
   if (!channelName || !resourceId || !uid || !token) {
+    console.error("Missing required parameters:", {
+      channelName,
+      resourceId,
+      uid,
+      token,
+    });
     return res.status(400).json({
       error: "channelName, resourceId, uid, and token are required",
     });
@@ -178,8 +184,8 @@ app.post("/start", async (req, res) => {
           avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: vendor, // Ensure vendor is a number
-          region: region, // Ensure region is a number
+          vendor: vendor,
+          region: region,
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
@@ -187,7 +193,10 @@ app.post("/start", async (req, res) => {
       },
     };
 
-    console.log("Payload sent to Agora for start recording:", JSON.stringify(payload, null, 2));
+    console.log(
+      "Payload sent to Agora for start recording:",
+      JSON.stringify(payload, null, 2)
+    );
 
     const response = await axios.post(
       `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
@@ -212,7 +221,9 @@ app.post("/start", async (req, res) => {
   } catch (error) {
     console.error(
       "Error starting recording:",
-      error.response ? JSON.stringify(error.response.data, null, 2) : error.message
+      error.response
+        ? JSON.stringify(error.response.data, null, 2)
+        : error.message
     );
     res.status(500).json({
       error: "Failed to start recording",
@@ -220,9 +231,6 @@ app.post("/start", async (req, res) => {
     });
   }
 });
-
-
-
 // Stop recording endpoint
 app.post("/stop", (req, res) => {
   const { channelName, resourceId, sid } = req.body;
