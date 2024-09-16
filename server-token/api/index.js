@@ -174,7 +174,7 @@ app.post("/start", async (req, res) => {
         recordingConfig: {
           maxIdleTime: 30,
           streamTypes: 2,
-          channelType: 0,
+          channelType: 1,
           videoStreamType: 0,
           transcodingConfig: {
             height: 640,
@@ -228,7 +228,7 @@ app.post("/start", async (req, res) => {
     console.error("Error message:", error.message);
     console.error("Error stack:", error.stack);
 
-    
+
     res.status(500).json({
       error: "Failed to start recording",
       details: error.response ? error.response.data : error.message,
