@@ -184,9 +184,6 @@ app.post("/start", async (req, res) => {
             mixedVideoLayout: 1,
           },
         },
-        recordingFileConfig: {
-          avFileType: ["hls", "mp4"],
-        },
         storageConfig: {
           vendor: vendor,
           region: region,
