@@ -168,14 +168,24 @@ app.post("/start", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: "0", // Ensure UID is a string
+      uid: "0",
       clientRequest: {
         token: token,
         recordingConfig: {
           maxIdleTime: 30,
           streamTypes: 2,
-          channelType: 0, // 0 for communication, 1 for live broadcast
-          subscribeUidGroup: 0, // 0 means to record all users
+          channelType: 0,
+          videoStreamType: 0,
+          transcodingConfig: {
+            height: 640,
+            width: 360,
+            bitrate: 500,
+            fps: 15,
+            mixedVideoLayout: 1,
+          },
+        },
+        recordingFileConfig: {
+          avFileType: ["hls", "mp4"],
         },
         storageConfig: {
           vendor: 2,
@@ -193,7 +203,7 @@ app.post("/start", async (req, res) => {
     );
 
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/individual/start`,
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
       payload,
       {
         headers: {
