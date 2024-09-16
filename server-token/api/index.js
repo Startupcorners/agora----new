@@ -3,8 +3,7 @@ const cors = require("cors");
 const axios = require("axios");
 const { RtcTokenBuilder, Role } = require("./RtcTokenBuilder2"); // Import Role from RtcTokenBuilder2.js
   // Path to RtcTokenBuilder2.js in the same folder
-const { RtmTokenBuilder } = require("./RtmTokenBuilder2"); // Import Role from RtcTokenBuilder2.js
-  // Path to RtcTokenBuilder2.js in the same folder
+const { RtmTokenBuilder } = require("./RtmTokenBuilder2"); 
 
 require("dotenv").config();
 
@@ -27,9 +26,10 @@ const app = express();
 // Update CORS settings to allow requests from your Bubble app
 app.use(
   cors({
-    origin: "https://sccopy-38403.bubbleapps.io", // Your Bubble app domain
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Allowed methods
-    credentials: true, // If you need to send cookies or other credentials
+    origin: "https://sccopy-38403.bubbleapps.io",
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 
@@ -82,9 +82,11 @@ app.get("/access_token", nocache, (req, res) => {
     return res.status(500).json({
       error: "Token generation failed",
       details: error.message,
+      stack: error.stack,
     });
   }
 });
+
 
 // Acquire resource
 app.post("/acquire", async (req, res) => {
@@ -322,59 +324,38 @@ app.get("/generate_recording_token", (req, res) => {
 });
 
 
-const { RtmTokenBuilder, RtmRole } = require("agora-access-token");
 
-app.get("/rtm_token", (req, res) => {
-  const uid = req.query.uid;
+
+app.get("/rtm_token", nocache, (req, res) => {
+  const { uid } = req.query;
 
   if (!uid) {
     return res.status(400).json({ error: "uid is required" });
   }
-
-  // Log the APP_ID and APP_CERTIFICATE (partially masked for security)
-  console.log(
-    `APP_ID: ${
-      process.env.APP_ID
-        ? process.env.APP_ID.substring(0, 5) + "..."
-        : "Not Set"
-    }`
-  );
-  console.log(
-    `APP_CERTIFICATE: ${
-      process.env.APP_CERTIFICATE
-        ? process.env.APP_CERTIFICATE.substring(0, 5) + "..."
-        : "Not Set"
-    }`
-  );
 
   if (!process.env.APP_ID || !process.env.APP_CERTIFICATE) {
     console.error("APP_ID or APP_CERTIFICATE is not set");
     return res.status(500).json({ error: "Server configuration error" });
   }
 
-  console.log(`Generating RTM token for UID: ${uid}`);
-
   try {
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-    const expirationTimeInSeconds = 3600;
-    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+    console.log(`Generating RTM token for UID: ${uid}`);
 
     const token = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       uid,
-      RtmRole.Rtm_User,
-      privilegeExpiredTs
+      Math.floor(Date.now() / 1000) + 3600
     );
 
-    // Log a portion of the generated token for verification
-    console.log(
-      `Generated RTM token (first 10 characters): ${token.substring(0, 10)}...`
-    );
-
-    res.json({ token });
+    console.log("Generated RTM Token:", token);
+    return res.json({ token });
   } catch (error) {
-    console.error("Error generating RTM token:", error);
-    res.status(500).json({ error: "Failed to generate RTM token" });
+    console.error("RTM Token generation failed:", error);
+    return res.status(500).json({
+      error: "RTM Token generation failed",
+      details: error.message,
+      stack: error.stack,
+    });
   }
 });

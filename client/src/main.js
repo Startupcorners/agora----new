@@ -293,16 +293,22 @@ const startRecording = async () => {
     }
   };
 
-  
+
 const fetchToken = async () => {
   if (config.serverUrl !== "") {
     try {
       const role = config.user.role === "audience" ? "audience" : "publisher";
       const res = await fetch(
-        `${config.serverUrl}/access_token?channelName=${config.channelName}&uid=${config.uid}&role=${role}`
+        `${config.serverUrl}/access_token?channelName=${config.channelName}&uid=${config.uid}&role=${role}`,
+        { credentials: "include" } // Add this line
       );
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        const errorData = await res.json();
+        throw new Error(
+          `HTTP error! status: ${res.status}, message: ${JSON.stringify(
+            errorData
+          )}`
+        );
       }
       const data = await res.json();
       config.token = data.token;
