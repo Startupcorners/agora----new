@@ -3,7 +3,6 @@ const cors = require("cors");
 const axios = require("axios");
 const { RtcTokenBuilder, Role } = require("./RtcTokenBuilder2"); // Import Role from RtcTokenBuilder2.js
   // Path to RtcTokenBuilder2.js in the same folder
-const { RtmTokenBuilder } = require("./RtmTokenBuilder2"); 
 
 require("dotenv").config();
 
@@ -26,10 +25,9 @@ const app = express();
 // Update CORS settings to allow requests from your Bubble app
 app.use(
   cors({
-    origin: "https://sccopy-38403.bubbleapps.io",
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
+    origin: "https://sccopy-38403.bubbleapps.io", // Your Bubble app domain
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Allowed methods
+    credentials: true, // If you need to send cookies or other credentials
   })
 );
 
@@ -82,11 +80,9 @@ app.get("/access_token", nocache, (req, res) => {
     return res.status(500).json({
       error: "Token generation failed",
       details: error.message,
-      stack: error.stack,
     });
   }
 });
-
 
 // Acquire resource
 app.post("/acquire", async (req, res) => {
@@ -320,47 +316,5 @@ app.get("/generate_recording_token", (req, res) => {
   } catch (error) {
     console.error("Error generating token:", error);
     res.status(500).json({ error: "Failed to generate token" });
-  }
-});
-
-
-app.get("/rtm_token", nocache, (req, res) => {
-  const { uid } = req.query;
-
-  if (!uid) {
-    return res.status(400).json({ error: "uid is required" });
-  }
-
-  if (!process.env.APP_ID || !process.env.APP_CERTIFICATE) {
-    console.error("APP_ID or APP_CERTIFICATE is not set");
-    return res.status(500).json({ error: "Server configuration error" });
-  }
-
-  try {
-    console.log(`Generating RTM token for UID: ${uid}`);
-    const expirationTimeInSeconds = 3600;
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
-
-    const token = RtmTokenBuilder.buildToken(
-      process.env.APP_ID,
-      process.env.APP_CERTIFICATE,
-      uid,
-      privilegeExpiredTs
-    );
-
-    console.log("Generated RTM Token:", token);
-    console.log(
-      "Token expiration:",
-      new Date(privilegeExpiredTs * 1000).toISOString()
-    );
-    return res.json({ token, expiresAt: privilegeExpiredTs });
-  } catch (error) {
-    console.error("RTM Token generation failed:", error);
-    return res.status(500).json({
-      error: "RTM Token generation failed",
-      details: error.message,
-      stack: error.stack,
-    });
   }
 });

@@ -144,107 +144,112 @@ const MainApp = function (initConfig) {
   AgoraRTC.registerExtensions([extensionVirtualBackground]);
   let processor = null;
 
-  const acquireResource = async () => {
-    try {
-      // Log the payload before making the API call
-      console.log("Payload for acquire resource:", {
-        channelName: config.channelName,
-        uid: "0",
-      });
+const acquireResource = async () => {
+  try {
+    // Log the payload before making the API call
+    console.log("Payload for acquire resource:", {
+      channelName: config.channelName,
+      uid: "0",
+    });
 
-      const response = await fetch(config.serverUrl + "/acquire", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          channelName: config.channelName, // Provide the channel name
-          uid: "0", // Provide the UID
-        }),
-      });
+    const response = await fetch(config.serverUrl + "/acquire", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channelName: config.channelName, // Provide the channel name
+        uid: "0", // Provide the UID
+      }),
+    });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Error acquiring resource:", errorData);
-        throw new Error(`Failed to acquire resource: ${errorData.error}`);
-      }
-
-      const data = await response.json();
-      console.log("Resource acquired:", data.resourceId); // Log the resourceId
-      return data.resourceId;
-    } catch (error) {
-      console.error("Error acquiring resource:", error);
-      throw error;
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("Error acquiring resource:", errorData);
+      throw new Error(`Failed to acquire resource: ${errorData.error}`);
     }
-  };
 
-  const startRecording = async () => {
-    try {
-      const resourceId = await acquireResource(); // Acquire the resource first
-      console.log("Resource acquired:", resourceId);
+    const data = await response.json();
+    console.log("Resource acquired:", data.resourceId); // Log the resourceId
+    return data.resourceId;
+  } catch (error) {
+    console.error("Error acquiring resource:", error);
+    throw error;
+  }
+};
 
-      // Add a 2-second delay
-      await new Promise((resolve) => setTimeout(resolve, 3000));
-      console.log("Waited 2 seconds after acquiring resource");
 
-      // Fetch a new token for recording with PUBLISHER role
-      const recordingTokenResponse = await fetch(
-        `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=0`,
-        {
-          method: "GET",
-        }
-      );
+const startRecording = async () => {
+  try {
+    const resourceId = await acquireResource(); // Acquire the resource first
+    console.log("Resource acquired:", resourceId);
 
-      const tokenData = await recordingTokenResponse.json();
-      const recordingToken = tokenData.token;
+    // Add a 2-second delay
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    console.log("Waited 2 seconds after acquiring resource");
+    
 
-      // Log the recording token for debugging purposes
-      console.log("Recording token received:", recordingToken);
-
-      const response = await fetch(config.serverUrl + "/start", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          resourceId: resourceId, // Pass the correct resourceId
-          channelName: config.channelName, // Channel name must match the one used for the call
-          uid: "0", // UID should be "0" for recording
-          token: recordingToken, // Use the new token generated for recording
-        }),
-      });
-
-      const startData = await response.json();
-
-      // Log the full response for detailed analysis
-      console.log("Response from start recording:", startData);
-
-      if (!response.ok) {
-        console.error("Error starting recording:", startData);
-        throw new Error(`Failed to start recording: ${startData.error}`);
+    // Fetch a new token for recording with PUBLISHER role
+    const recordingTokenResponse = await fetch(
+      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=0`,
+      {
+        method: "GET",
       }
+    );
 
-      // Check if SID is received
-      if (startData.sid) {
-        console.log("SID received successfully:", startData.sid);
-      } else {
-        console.error("SID not received in the response:", startData);
-      }
+    const tokenData = await recordingTokenResponse.json();
+    const recordingToken = tokenData.token;
 
-      config.sid = startData.sid; // Store the SID if received
-      console.log(
-        "Recording started successfully. Resource ID:",
-        resourceId,
-        "SID:",
-        config.sid
-      );
+    // Log the recording token for debugging purposes
+    console.log("Recording token received:", recordingToken);
 
-      return startData;
-    } catch (error) {
-      console.error("Error starting recording:", error);
-      throw error;
+    const response = await fetch(config.serverUrl + "/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        resourceId: resourceId, // Pass the correct resourceId
+        channelName: config.channelName, // Channel name must match the one used for the call
+        uid: "0", // UID should be "0" for recording
+        token: recordingToken, // Use the new token generated for recording
+      }),
+    });
+
+    const startData = await response.json();
+
+    // Log the full response for detailed analysis
+    console.log("Response from start recording:", startData);
+
+    if (!response.ok) {
+      console.error("Error starting recording:", startData);
+      throw new Error(`Failed to start recording: ${startData.error}`);
     }
-  };
+
+    // Check if SID is received
+    if (startData.sid) {
+      console.log("SID received successfully:", startData.sid);
+    } else {
+      console.error("SID not received in the response:", startData);
+    }
+
+    config.sid = startData.sid; // Store the SID if received
+    console.log(
+      "Recording started successfully. Resource ID:",
+      resourceId,
+      "SID:",
+      config.sid
+    );
+
+    return startData;
+  } catch (error) {
+    console.error("Error starting recording:", error);
+    throw error;
+  }
+};
+
+
+
 
   const stopRecording = async (resourceId, sid) => {
     const response = await fetch(config.serverUrl + "/stop", {
@@ -265,56 +270,27 @@ const MainApp = function (initConfig) {
   /**
    * Functions
    */
-
-  const fetchRtmToken = async () => {
-    if (config.serverUrl !== "") {
-      try {
-        const res = await fetch(
-          `${config.serverUrl}/rtm_token?uid=${config.uid}`
-        );
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
-        }
-        const data = await res.json();
-        return data.token;
-      } catch (err) {
-        console.error("Error fetching RTM token:", err);
-        throw err;
+const fetchToken = async () => {
+  if (config.serverUrl !== "") {
+    try {
+      const role = config.user.role === "audience" ? "audience" : "publisher";
+      const res = await fetch(
+        `${config.serverUrl}/access_token?channelName=${config.channelName}&uid=${config.uid}&role=${role}`
+      );
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
       }
-    } else {
-      // If no server URL is provided, you might want to handle this case
-      // Maybe generate a local token or throw an error
-      throw new Error("No server URL provided for RTM token generation");
+      const data = await res.json();
+      config.token = data.token;
+      return data.token;
+    } catch (err) {
+      console.error("Error fetching token:", err);
+      throw err;
     }
-  };
-
-  const fetchToken = async () => {
-    if (config.serverUrl !== "") {
-      try {
-        const role = config.user.role === "audience" ? "audience" : "publisher";
-        const res = await fetch(
-          `${config.serverUrl}/access_token?channelName=${config.channelName}&uid=${config.uid}&role=${role}`,
-          { credentials: "include" } // Add this line
-        );
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(
-            `HTTP error! status: ${res.status}, message: ${JSON.stringify(
-              errorData
-            )}`
-          );
-        }
-        const data = await res.json();
-        config.token = data.token;
-        return data.token;
-      } catch (err) {
-        console.error("Error fetching token:", err);
-        throw err;
-      }
-    } else {
-      return config.token;
-    }
-  };
+  } else {
+    return config.token;
+  }
+};
 
   const join = async () => {
     await joinRTM();
@@ -413,137 +389,81 @@ const MainApp = function (initConfig) {
   };
 
   const joinRTM = async () => {
-    try {
-      // Ensure UID is a string
-      const rtmUid = config.uid.toString();
+    clientRTM
+      .login({ uid: config.uid })
+      .then(() => {
+        clientRTM.addOrUpdateLocalUserAttributes(config.user).then(() => {
+          //success update user attr
+          log("addOrUpdateLocalUserAttributes: success");
+        });
 
-      console.log("Attempting to fetch RTM token for UID:", rtmUid);
-
-      // Fetch RTM token
-      const rtmTokenResponse = await fetch(
-        `${config.serverUrl}/rtm_token?uid=${rtmUid}`
-      );
-      if (!rtmTokenResponse.ok) {
-        throw new Error(
-          `Failed to fetch RTM token: ${rtmTokenResponse.status}`
-        );
-      }
-      const rtmTokenData = await rtmTokenResponse.json();
-      const rtmToken = rtmTokenData.token;
-
-      console.log(
-        "RTM Token received (first 10 chars):",
-        rtmToken.substring(0, 10)
-      );
-
-      // Check if token is expired
-      if (isTokenExpired(rtmTokenData.expiresAt)) {
-        throw new Error("RTM Token expired before use");
-      }
-
-      // Attempt to login
-      console.log("Attempting RTM login with UID:", rtmUid);
-      await clientRTM.login({ uid: rtmUid, token: rtmToken });
-      console.log("RTM client logged in successfully");
-
-      // Update local user attributes
-      await clientRTM.addOrUpdateLocalUserAttributes(config.user);
-      console.log("Local user attributes updated successfully");
-
-      // Join RTM channel
-      await channelRTM.join();
-      console.log("Joined RTM channel successfully");
-
-      // Update participants after joining
-      handleOnUpdateParticipants();
-
-      // Set up event listeners
-      setupRTMEventListeners();
-    } catch (error) {
-      console.error("RTM join process failed:", error);
-      if (error.code === 5) {
-        console.error(
-          "Invalid token. Check token generation and APP_ID/APP_CERTIFICATE."
-        );
-      }
-      throw error;
-    }
-  };
-
-  const setupRTMEventListeners = () => {
-    clientRTM.on("MessageFromPeer", async (message, peerId) => {
-      console.log("Received message from peer:", peerId);
-      try {
-        const data = JSON.parse(message.text);
-
-        switch (data.event) {
-          case "mic_off":
-            await toggleMic(true);
-            break;
-          case "cam_off":
-            await toggleCamera(true);
-            break;
-          case "remove_participant":
-            await leave();
-            break;
-          default:
-            console.log("Unknown peer message event:", data.event);
-        }
-      } catch (error) {
-        console.error("Error processing peer message:", error);
-      }
-    });
-
-    channelRTM.on("MemberJoined", async (memberId) => {
-      console.log("Member joined:", memberId);
-      handleOnUpdateParticipants();
-    });
-
-    channelRTM.on("MemberLeft", (memberId) => {
-      console.log("Member left:", memberId);
-      handleOnUpdateParticipants();
-    });
-
-    channelRTM.on("ChannelMessage", async (message, memberId) => {
-      console.log("Received channel message from:", memberId);
-      try {
-        const messageObj = JSON.parse(message.text);
-
-        if (
-          messageObj.type === "broadcast" &&
-          messageObj.event === "change_user_role"
-        ) {
-          if (config.uid === messageObj.targetUid) {
-            config.user.role = messageObj.role;
-            console.log("User role changed:", config.user);
-
-            await clientRTM.addOrUpdateLocalUserAttributes(config.user);
-            console.log("Updated user attributes after role change");
-
-            await client.leave();
-            await leaveFromVideoStage(config.user);
-            await join();
-          }
+        channelRTM.join().then(() => {
           handleOnUpdateParticipants();
-          config.onRoleChanged(messageObj.targetUid, messageObj.role);
-        } else {
+        });
+
+        clientRTM.on("MessageFromPeer", async (message, peerId) => {
+          log("messageFromPeer");
+          const data = JSON.parse(message.text);
+          log(data);
+
+          if (data.event === "mic_off") {
+            await toggleMic(true);
+          } else if (data.event === "cam_off") {
+            await toggleCamera(true);
+          } else if (data.event === "remove_participant") {
+            await leave();
+          }
+        });
+
+        channelRTM.on("MemberJoined", async (memberId) => {
+          handleOnUpdateParticipants();
+        });
+
+        channelRTM.on("MemberLeft", (memberId) => {
+          handleOnUpdateParticipants();
+        });
+
+        channelRTM.on("ChannelMessage", async (message, memberId, props) => {
+          log("on:ChannelMessage ->");
+
+          const messageObj = JSON.parse(message.text);
+          log(messageObj);
+
+          if (
+            messageObj.type === "broadcast" &&
+            messageObj.event === "change_user_role"
+          ) {
+            if (config.uid === messageObj.targetUid) {
+              //if local user
+              config.user.role = messageObj.role;
+              log("latest attr => ");
+              log(config.user);
+
+              clientRTM.addOrUpdateLocalUserAttributes(config.user).then(() => {
+                //success update user attr
+                log("addOrUpdateLocalUserAttributes: success");
+              });
+
+              await client.leave();
+              await leaveFromVideoStage(config.user);
+              await join();
+            }
+            handleOnUpdateParticipants();
+            config.onRoleChanged(messageObj.targetUid, messageObj.role);
+            return;
+          }
+
           config.onMessageReceived(messageObj);
-        }
-      } catch (error) {
-        console.error("Error processing channel message:", error);
-      }
-    });
+        });
+      })
+      .catch((error) => {
+        log("RTM client channel join failed: ", error);
+      })
+      .catch((err) => {
+        log("RTM client login failure: ", err);
+      });
   };
 
-  const isTokenExpired = (expiresAt) => {
-    const currentTime = Math.floor(Date.now() / 1000);
-    return currentTime >= expiresAt;
-  };
-
-  // Make sure these functions are defined elsewhere in your code:
-  // toggleMic, toggleCamera, leave, leaveFromVideoStage, join, handleOnUpdateParticipants
-
-  
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
 
@@ -899,16 +819,16 @@ const MainApp = function (initConfig) {
     }, 1000);
   };
 
-  const handleRenewToken = async () => {
-    try {
-      const newToken = await fetchToken();
-      await client.renewToken(newToken);
-      console.log("Token renewed successfully");
-    } catch (error) {
-      console.error("Failed to renew token:", error);
-      // Handle the error (e.g., notify the user, attempt to rejoin)
-    }
-  };
+ const handleRenewToken = async () => {
+   try {
+     const newToken = await fetchToken();
+     await client.renewToken(newToken);
+     console.log("Token renewed successfully");
+   } catch (error) {
+     console.error("Failed to renew token:", error);
+     // Handle the error (e.g., notify the user, attempt to rejoin)
+   }
+ };
 
   const subscribe = async (user, mediaType) => {
     await client.subscribe(user, mediaType);
