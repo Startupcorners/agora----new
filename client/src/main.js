@@ -189,10 +189,10 @@ const startRecording = async () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        resourceId: resourceId,
-        channelName: config.channelName,
-        uid: "0",
-        token: config.token, // Include the correct token
+        resourceId: resourceId, // Pass the correct resourceId
+        channelName: config.channelName, // Channel name must match the one used for the call
+        uid: "0", // UID should be "0" for recording
+        token: config.token, // Pass the correct token
       }),
     });
 
@@ -203,14 +203,29 @@ const startRecording = async () => {
     }
 
     const startData = await response.json();
-    console.log("Recording started:", startData); // Log the response from start
-    config.sid = startData.sid; // Store the session ID (sid) for stopping recording later
+
+    // Log to check if SID is received
+    if (startData.sid) {
+      console.log("SID received successfully:", startData.sid);
+    } else {
+      console.error("SID not received in the response:", startData);
+    }
+
+    config.sid = startData.sid; // Store the SID if received
+    console.log(
+      "Recording started successfully. Resource ID:",
+      resourceId,
+      "SID:",
+      config.sid
+    );
+
     return startData;
   } catch (error) {
     console.error("Error starting recording:", error);
     throw error;
   }
 };
+
 
 
   const stopRecording = async (resourceId, sid) => {
