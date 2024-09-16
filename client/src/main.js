@@ -183,6 +183,20 @@ const startRecording = async () => {
   try {
     const resourceId = await acquireResource(); // Acquire the resource first
 
+    // Fetch a new token for recording with PUBLISHER role
+    const recordingTokenResponse = await fetch(
+      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=0`,
+      {
+        method: "GET",
+      }
+    );
+
+    const tokenData = await recordingTokenResponse.json();
+    const recordingToken = tokenData.token;
+
+    // Log the recording token for debugging purposes
+    console.log("Recording token received:", recordingToken);
+
     const response = await fetch(config.serverUrl + "/start", {
       method: "POST",
       headers: {
@@ -192,7 +206,7 @@ const startRecording = async () => {
         resourceId: resourceId, // Pass the correct resourceId
         channelName: config.channelName, // Channel name must match the one used for the call
         uid: "0", // UID should be "0" for recording
-        token: config.token, // Pass the correct token
+        token: recordingToken, // Use the new token generated for recording
       }),
     });
 
@@ -213,7 +227,7 @@ const startRecording = async () => {
       console.error("SID not received in the response:", startData);
     }
 
-    config.sid = startData.sid; // Store the SID if receivedf
+    config.sid = startData.sid; // Store the SID if received
     console.log(
       "Recording started successfully. Resource ID:",
       resourceId,
@@ -227,6 +241,7 @@ const startRecording = async () => {
     throw error;
   }
 };
+
 
 
 

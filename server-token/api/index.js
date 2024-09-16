@@ -256,3 +256,26 @@ app.get("/", (req, res) => {
 });
 
 module.exports = app;
+
+
+app.get("/generate_recording_token", (req, res) => {
+  const channelName = req.query.channelName;
+  const uid = req.query.uid || "0"; // Default to UID 0 for recording
+
+  if (!channelName) {
+    return res.status(400).json({ error: "channelName is required" });
+  }
+
+  const role = Role.PUBLISHER; // Use PUBLISHER role for recording
+
+  const token = RtcTokenBuilder.buildTokenWithUid(
+    process.env.APP_ID,
+    process.env.APP_CERTIFICATE,
+    channelName,
+    uid,
+    role,
+    Math.floor(Date.now() / 1000) + 3600 // Token valid for 1 hour
+  );
+
+  res.json({ token });
+});
