@@ -182,6 +182,12 @@ const acquireResource = async () => {
 const startRecording = async () => {
   try {
     const resourceId = await acquireResource(); // Acquire the resource first
+    console.log("Resource acquired:", resourceId);
+
+    // Add a 2-second delay
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    console.log("Waited 2 seconds after acquiring resource");
+    
 
     // Fetch a new token for recording with PUBLISHER role
     const recordingTokenResponse = await fetch(
