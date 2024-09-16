@@ -46,6 +46,7 @@ app.get("/access_token", nocache, (req, res) => {
 
   const channelName = req.query.channelName;
   if (!channelName) {
+    console.error("channelName is required but missing");
     return res.status(400).json({ error: "channelName is required" });
   }
 
@@ -56,19 +57,27 @@ app.get("/access_token", nocache, (req, res) => {
   const currentTime = Math.floor(Date.now() / 1000);
   const privilegeExpireTime = currentTime + expireTime;
 
-  // Generate 007 token using RtcTokenBuilder2
-  const token = RtcTokenBuilder2.buildTokenWithUid(
-    APP_ID,
-    APP_CERTIFICATE,
-    channelName,
-    uid,
-    role,
-    privilegeExpireTime
-  );
+  try {
+    // Generate token with UID as string "0" for recording
+    const token = RtcTokenBuilder2.buildTokenWithUid(
+      APP_ID,
+      APP_CERTIFICATE,
+      channelName,
+      uid,
+      role,
+      privilegeExpireTime
+    );
 
-  console.log("Generated Token:", token); // Log the generated token for debugging
-  return res.json({ token });
+    console.log("Generated Token:", token); // Log the generated token for debugging
+    return res.json({ token });
+  } catch (error) {
+    console.error("Token generation failed:", error); // Log the actual error
+    return res
+      .status(500)
+      .json({ error: "Token generation failed", details: error.message });
+  }
 });
+
 
 // Acquire resource
 app.post("/acquire", async (req, res) => {
