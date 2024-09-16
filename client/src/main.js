@@ -753,19 +753,20 @@ const startRecording = async () => {
     // Check if the participant UI already exists
     let player = document.querySelector(`#video-wrapper-${user.uid}`);
     if (!player) {
-      // Get user attributes from RTM
-      const userAttr = await clientRTM.getUserAttributes(user.uid);
+  // Convert user.uid to a string before fetching attributes
+  const userAttr = await clientRTM.getUserAttributes(user.uid.toString());
 
-      // Replace placeholders in the template
-      let playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, userAttr.name)
-        .replace(/{{avatar}}/g, userAttr.avatar);
+  // Replace placeholders in the template
+  let playerHTML = config.participantPlayerContainer
+    .replace(/{{uid}}/g, user.uid)
+    .replace(/{{name}}/g, userAttr.name)
+    .replace(/{{avatar}}/g, userAttr.avatar);
 
-      // Insert the participant UI into the DOM
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
+  // Insert the participant UI into the DOM
+  document
+    .querySelector(config.callContainerSelector)
+    .insertAdjacentHTML("beforeend", playerHTML);
+}
 
       // Hide the video player and show the avatar since the user hasn't published video
       const videoPlayer = document.querySelector(`#stream-${user.uid}`);
