@@ -587,7 +587,6 @@ const MainApp = function (initConfig) {
 
   return {
     config: config,
-    clientRTM: clientRTM,
     client: client,
     debounce: debounce,
     join: join,
