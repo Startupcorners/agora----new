@@ -46,54 +46,32 @@ const nocache = (req, res, next) => {
 // Token generations
 // Token generation endpoint with RtcTokenBuilder
 app.get("/access_token", nocache, (req, res) => {
-  res.header("Access-Control-Allow-Origin", "*");
+  const { channelName, uid, role } = req.query;
 
-  const channelName = req.query.channelName;
   if (!channelName) {
     return res.status(400).json({ error: "channelName is required" });
   }
 
-  let uid = req.query.uid;
-  if (!uid || uid === "") {
-    uid = "0";
+  if (!process.env.APP_ID || !process.env.APP_CERTIFICATE) {
+    console.error("APP_ID or APP_CERTIFICATE is not set");
+    return res.status(500).json({ error: "Server configuration error" });
   }
-
-  let role;
-  if (req.query.role === "publisher") {
-    role = RtcRole.PUBLISHER;
-  } else if (req.query.role === "audience") {
-    role = RtcRole.SUBSCRIBER;
-  } else {
-    // Default to PUBLISHER if role is not specified or invalid
-    role = RtcRole.PUBLISHER;
-  }
-
-  let expireTime = parseInt(req.query.expireTime, 10);
-  if (!expireTime || isNaN(expireTime)) {
-    expireTime = 3600; // Default to 1 hour if not specified or invalid
-  }
-
-  const currentTime = Math.floor(Date.now() / 1000);
-  const privilegeExpireTime = currentTime + expireTime;
 
   try {
+    console.log(
+      `Generating token for channel: ${channelName}, UID: ${uid}, Role: ${role}`
+    );
+
     const token = RtcTokenBuilder.buildTokenWithUid(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
       uid,
-      role,
-      privilegeExpireTime
+      role === "publisher" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER,
+      Math.floor(Date.now() / 1000) + 3600
     );
 
     console.log("Generated Token:", token);
-    console.log("Token details:", {
-      channelName,
-      uid,
-      role: role === RtcRole.PUBLISHER ? "publisher" : "audience",
-      expireTime: new Date((currentTime + expireTime) * 1000).toISOString(),
-    });
-
     return res.json({ token });
   } catch (error) {
     console.error("Token generation failed:", error);

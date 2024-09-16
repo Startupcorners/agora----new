@@ -277,13 +277,15 @@ const fetchToken = async () => {
       const res = await fetch(
         `${config.serverUrl}/access_token?channelName=${config.channelName}&uid=${config.uid}&role=${role}`
       );
-      const data = await res.text();
-      const json = await JSON.parse(data);
-      config.token = json.token;
-      return json.token;
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data = await res.json();
+      config.token = data.token;
+      return data.token;
     } catch (err) {
-      log(err);
-      throw err; // Rethrow the error so it can be handled by the caller
+      console.error("Error fetching token:", err);
+      throw err;
     }
   } else {
     return config.token;
