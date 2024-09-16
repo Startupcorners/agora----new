@@ -92,11 +92,9 @@ const MainApp = function (initConfig) {
   config = { ...config, ...initConfig };
 
   if (!config.appId) throw new Error("please set the appId first");
-  if (!config.callContainerSelector)
-    throw new Error("please set the callContainerSelector first");
+  if (!config.callContainerSelector) throw new Error("please set the callContainerSelector first");
   if (!config.serverUrl) throw new Error("please set the serverUrl first");
-  if (!config.participantPlayerContainer)
-    throw new Error("please set the participantPlayerContainer first");
+  if (!config.participantPlayerContainer) throw new Error("please set the participantPlayerContainer first");
   if (!config.channelName) throw new Error("please set the channelName first");
   if (!config.uid) throw new Error("please set the uid first");
 
@@ -105,16 +103,13 @@ const MainApp = function (initConfig) {
 
   const clientRTM = AgoraRTM.createInstance(config.appId, {
     enableLogUpload: false,
-    logFilter: config.debugEnabled
-      ? AgoraRTM.LOG_FILTER_INFO
-      : AgoraRTM.LOG_FILTER_OFF,
+    logFilter: config.debugEnabled ? AgoraRTM.LOG_FILTER_INFO : AgoraRTM.LOG_FILTER_OFF,
   });
 
   const channelRTM = clientRTM.createChannel(config.channelName);
   const extensionVirtualBackground = new VirtualBackgroundExtension();
 
-  if (!extensionVirtualBackground.checkCompatibility())
-    log("Does not support Virtual Background!");
+  if (!extensionVirtualBackground.checkCompatibility()) log("Does not support Virtual Background!");
   AgoraRTC.registerExtensions([extensionVirtualBackground]);
 
   let processor = null;
@@ -126,8 +121,7 @@ const MainApp = function (initConfig) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ channelName: config.channelName, uid: "0" }),
       });
-      if (!response.ok)
-        throw new Error(`Failed to acquire resource: ${await response.text()}`);
+      if (!response.ok) throw new Error(`Failed to acquire resource: ${await response.text()}`);
       const data = await response.json();
       console.log("Resource acquired:", data.resourceId);
       return data.resourceId;
@@ -143,15 +137,9 @@ const MainApp = function (initConfig) {
       const response = await fetch(config.serverUrl + "/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          resourceId,
-          channelName: config.channelName,
-          uid: "0",
-          token: config.token,
-        }),
+        body: JSON.stringify({ resourceId, channelName: config.channelName, uid: "0", token: config.token }),
       });
-      if (!response.ok)
-        throw new Error(`Failed to start recording: ${await response.text()}`);
+      if (!response.ok) throw new Error(`Failed to start recording: ${await response.text()}`);
       const startData = await response.json();
       console.log("Recording started:", startData);
       config.sid = startData.sid;
@@ -166,11 +154,7 @@ const MainApp = function (initConfig) {
     const response = await fetch(config.serverUrl + "/stop", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        channelName: config.channelName,
-        resourceId,
-        sid,
-      }),
+      body: JSON.stringify({ channelName: config.channelName, resourceId, sid }),
     });
     const stopData = await response.json();
     return stopData;
@@ -200,9 +184,7 @@ const MainApp = function (initConfig) {
   const join = async () => {
     try {
       await joinRTM();
-      await client.setClientRole(
-        config.user.role === "audience" ? "audience" : "host"
-      );
+      await client.setClientRole(config.user.role === "audience" ? "audience" : "host");
 
       client.on("user-published", handleUserPublished);
       client.on("user-unpublished", handleUserUnpublished);
@@ -215,8 +197,7 @@ const MainApp = function (initConfig) {
       client.on("token-privilege-will-expire", handleRenewToken);
       await client.join(config.appId, config.channelName, token, config.uid);
 
-      if (config.onNeedJoinToVideoStage(config.user))
-        await joinToVideoStage(config.user);
+      if (config.onNeedJoinToVideoStage(config.user)) await joinToVideoStage(config.user);
     } catch (err) {
       console.error("Error joining channel:", err);
     }
@@ -259,9 +240,7 @@ const MainApp = function (initConfig) {
         .replace(/{{name}}/g, userAttr.name)
         .replace(/{{avatar}}/g, userAttr.avatar);
 
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
+      document.querySelector(config.callContainerSelector).insertAdjacentHTML("beforeend", playerHTML);
       user.videoTrack.play(`stream-${user.uid}`);
     }
     if (mediaType === "audio") user.audioTrack.play();
