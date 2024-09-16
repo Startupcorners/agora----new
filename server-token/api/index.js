@@ -41,12 +41,12 @@ const nocache = (req, res, next) => {
 };
 
 // Token generations
+
 app.get("/access_token", nocache, (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
 
   const channelName = req.query.channelName;
   if (!channelName) {
-    console.error("channelName is required but missing");
     return res.status(400).json({ error: "channelName is required" });
   }
 
@@ -58,7 +58,7 @@ app.get("/access_token", nocache, (req, res) => {
   const privilegeExpireTime = currentTime + expireTime;
 
   try {
-    // Generate token with UID as string "0" for recording
+    // Generate the 007 token with UID as string "0" for recording
     const token = RtcTokenBuilder2.buildTokenWithUid(
       APP_ID,
       APP_CERTIFICATE,
