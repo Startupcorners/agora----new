@@ -130,27 +130,36 @@ app.post("/acquire", async (req, res) => {
 });
 
 // Start recordingconst axios = require("axios");
+
 app.post("/start", async (req, res) => {
   const { channelName, resourceId, uid, token } = req.body;
 
-  if (!channelName || !resourceId || !token) {
+  if (!channelName || !resourceId || !uid || !token) {
     console.error("Missing required parameters:", {
       channelName,
       resourceId,
+      uid,
       token,
     });
     return res.status(400).json({
-      error: "channelName, resourceId, and token are required",
+      error: "channelName, resourceId, uid, and token are required",
     });
   }
 
   console.log("App ID:", process.env.APP_ID);
   console.log("Resource ID:", resourceId);
+
+
   console.log("Start recording request for:", {
     channelName,
     resourceId,
+    uid,
     token,
   });
+
+  // Convert environment variables to numbers
+  const vendor = parseInt(process.env.S3_VENDOR, 10) || 2;
+  const region = parseInt(process.env.S3_REGION, 10) || 0;
 
   try {
     const authorizationToken = Buffer.from(
@@ -159,16 +168,28 @@ app.post("/start", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: "0", // Always use "0" for cloud recording
+      uid: "0",
       clientRequest: {
-        token,
+        token: token,
         recordingConfig: {
           maxIdleTime: 30,
           streamTypes: 2,
+          channelType: 0,
+          videoStreamType: 0,
+          transcodingConfig: {
+            height: 640,
+            width: 360,
+            bitrate: 500,
+            fps: 15,
+            mixedVideoLayout: 1,
+          },
+        },
+        recordingFileConfig: {
+          avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: 2, // AWS S3
-          region: parseInt(process.env.S3_REGION, 10) || 0,
+          vendor: 2,
+          region: 0,
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
@@ -199,17 +220,15 @@ app.post("/start", async (req, res) => {
       res.json({ resourceId, sid: response.data.sid });
     } else {
       console.error("No SID in response:", response.data);
-      res
-        .status(500)
-        .json({ error: "Failed to start recording: No SID received" });
+      res.status(500).json({ error: "Failed to start recording: No SID received" });
     }
   } catch (error) {
-    console.error(
-      "Error starting recording:",
-      error.response
-        ? JSON.stringify(error.response.data, null, 2)
-        : error.message
-    );
+    console.error("Full error object:", JSON.stringify(error, null, 2));
+    console.error("Error response data:", error.response ? JSON.stringify(error.response.data, null, 2) : "No response data");
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+
+    
     res.status(500).json({
       error: "Failed to start recording",
       details: error.response ? error.response.data : error.message,
