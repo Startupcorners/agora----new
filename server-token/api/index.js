@@ -130,6 +130,7 @@ app.post("/acquire", async (req, res) => {
 });
 
 // Start recording
+// Start recording
 app.post("/start", async (req, res) => {
   const { channelName, resourceId, uid, token } = req.body;
 
@@ -186,10 +187,7 @@ app.post("/start", async (req, res) => {
       },
     };
 
-    console.log(
-      "Payload sent to Agora for start recording:",
-      JSON.stringify(payload, null, 2)
-    );
+    console.log("Payload sent to Agora for start recording:", JSON.stringify(payload, null, 2));
 
     const response = await axios.post(
       `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
@@ -203,16 +201,26 @@ app.post("/start", async (req, res) => {
     );
 
     console.log("Start recording response:", response.data);
-    const { sid } = response.data;
-    res.json({ resourceId, sid });
+
+    if (response.data.sid) {
+      console.log("SID received:", response.data.sid);  // Log the SID when received
+    } else {
+      console.error("No SID in response:", response.data);  // Log if no SID is received
+    }
+
+    res.json({ resourceId, sid: response.data.sid });
   } catch (error) {
     console.error(
       "Error starting recording:",
       error.response ? error.response.data : error.message
     );
-    res.status(500).json({ error: "Failed to start recording" });
+    res.status(500).json({
+      error: "Failed to start recording",
+      details: error.response ? error.response.data : error.message,
+    });
   }
 });
+
 
 // Stop recording endpoint
 app.post("/stop", (req, res) => {
