@@ -3,7 +3,7 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
+const { RtcTokenBuilder2, Role } = require("agora-access-token"); // Using RtcTokenBuilder2 for 007 token
 require("dotenv").config();
 
 // Log important environment variables
@@ -34,7 +34,7 @@ const nocache = (req, res, next) => {
   next();
 };
 
-// Token generation
+// Token generation using RtcTokenBuilder2 (007 token)
 app.get("/access_token", nocache, (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
 
@@ -43,27 +43,31 @@ app.get("/access_token", nocache, (req, res) => {
     return res.status(400).json({ error: "channelName is required" });
   }
 
-  let uid = req.query.uid || "0"; // Ensure uid is a string "0" for recording
-  let role = RtcRole.PUBLISHER; // Always use PUBLISHER role for recording
-  let expireTime = parseInt(req.query.expireTime, 10) || 3600;
+  // For recording, always use UID "0"
+  const uid = 0;
+  const role = Role.PUBLISHER; // Use PUBLISHER role for recording
+  const tokenExpirationInSeconds = parseInt(req.query.expireTime, 10) || 3600;
+  const privilegeExpirationInSeconds = tokenExpirationInSeconds; // Use the same expiration for privileges
 
-  const currentTime = Math.floor(Date.now() / 1000);
-  const privilegeExpireTime = currentTime + expireTime;
+  try {
+    // Generate 007 token with UID
+    const token = RtcTokenBuilder2.buildTokenWithUid(
+      APP_ID,
+      APP_CERTIFICATE,
+      channelName,
+      uid,
+      role,
+      tokenExpirationInSeconds,
+      privilegeExpirationInSeconds
+    );
 
-  // Generate token with UID as string "0" for recording
-  const token = RtcTokenBuilder.buildTokenWithUid(
-    APP_ID,
-    APP_CERTIFICATE,
-    channelName,
-    uid,
-    role,
-    privilegeExpireTime
-  );
-
-  console.log("Generated Token:", token); // Log the generated token for debugging
-  return res.json({ token });
+    console.log("Generated 007 Token:", token); // Log the new token for debugging
+    return res.json({ token });
+  } catch (error) {
+    console.error("Error generating token:", error.message);
+    return res.status(500).json({ error: "Failed to generate token" });
+  }
 });
-
 
 // Acquire resource
 app.post("/acquire", async (req, res) => {
@@ -82,7 +86,7 @@ app.post("/acquire", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: "0",
+      uid: "0", // For recording, always use UID "0"
       clientRequest: {},
     };
 
@@ -116,7 +120,7 @@ app.post("/start", async (req, res) => {
   const { channelName, resourceId, token } = req.body;
 
   // Set uid to "0" for Agora recording
-  let uid = "0"; 
+  let uid = "0";
 
   if (!channelName || !resourceId || !token) {
     return res.status(400).json({
@@ -127,7 +131,7 @@ app.post("/start", async (req, res) => {
   console.log("Start recording request for:", {
     channelName,
     resourceId,
-    uid, // UID is now "0"
+    uid,
     token,
   });
 
@@ -142,7 +146,7 @@ app.post("/start", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: "0",
+      uid: uid, // Always "0" for Agora recording
       clientRequest: {
         token: token,
         recordingConfig: {
@@ -150,17 +154,26 @@ app.post("/start", async (req, res) => {
           streamTypes: 2,
           channelType: 0,
           videoStreamType: 0,
+          transcodingConfig: {
+            width: 1280,
+            height: 720,
+            bitrate: 1000,
+            fps: 30,
+            mixedVideoLayout: 1,
+          },
+        },
+        recordingFileConfig: {
+          avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: 2,
-          region: 0, // Ensure correct region code
+          vendor: vendor,
+          region: region,
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
         },
       },
     };
-
 
     console.log(
       "Payload sent to Agora for start recording:",
@@ -189,7 +202,6 @@ app.post("/start", async (req, res) => {
     res.status(500).json({ error: "Failed to start recording" });
   }
 });
-
 
 // Stop recording endpoint
 app.post("/stop", (req, res) => {
