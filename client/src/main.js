@@ -763,36 +763,38 @@ const joinRTM = async () => {
   };
 
   const handleUserJoined = async (user) => {
-    log("handleUserJoined Here");
-    config.remoteTracks[user.uid] = user;
+  log("handleUserJoined Here");
+  config.remoteTracks[user.uid] = user;
 
-    // Check if the participant UI already exists
-    let player = document.querySelector(`#video-wrapper-${user.uid}`);
-    if (!player) {
-  // Convert user.uid to a string before fetching attributes
-  const userAttr = await clientRTM.getUserAttributes(user.uid.toString());
+  const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
 
-  // Replace placeholders in the template
-  let playerHTML = config.participantPlayerContainer
-    .replace(/{{uid}}/g, user.uid)
-    .replace(/{{name}}/g, userAttr.name)
-    .replace(/{{avatar}}/g, userAttr.avatar);
+  try {
+    // Fetch user attributes from RTM using the stringified UID
+    const userAttr = await clientRTM.getUserAttributes(rtmUid);
 
-  // Insert the participant UI into the DOM
-  document
-    .querySelector(config.callContainerSelector)
-    .insertAdjacentHTML("beforeend", playerHTML);
-}
+    // Use the integer UID for the wrapper and player
+    let playerHTML = config.participantPlayerContainer
+      .replace(/{{uid}}/g, user.uid)  // Integer UID for the video wrapper
+      .replace(/{{name}}/g, userAttr.name)
+      .replace(/{{avatar}}/g, userAttr.avatar);
 
-      // Hide the video player and show the avatar since the user hasn't published video
-      const videoPlayer = document.querySelector(`#stream-${user.uid}`);
-      const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-      if (videoPlayer && avatarDiv) {
-        videoPlayer.style.display = "none"; // Hide the video player
-        avatarDiv.style.display = "block"; // Show the avatar
-      }
+    document
+      .querySelector(config.callContainerSelector)
+      .insertAdjacentHTML("beforeend", playerHTML);
+
+    const player = document.querySelector(`#video-wrapper-${user.uid}`); // Integer UID
+
+    // Hide the video player and show the avatar since the user hasn't published video
+    const videoPlayer = document.querySelector(`#stream-${user.uid}`); // Integer UID
+    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);    // Integer UID
+    if (videoPlayer && avatarDiv) {
+      videoPlayer.style.display = "none";  // Hide the video player
+      avatarDiv.style.display = "block";   // Show the avatar
     }
-  };
+  } catch (error) {
+    log("Failed to fetch user attributes:", error);
+  }
+};
 
   const handleUserLeft = async (user, reason) => {
     delete config.remoteTracks[user.uid];
@@ -933,5 +935,5 @@ const joinRTM = async () => {
     stopRecording: stopRecording,
   };
 
-
+}
 window['MainApp'] = MainApp;
