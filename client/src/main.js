@@ -270,38 +270,29 @@ const startRecording = async () => {
   /**
    * Functions
    */
-const fetchToken = async () => {
-  if (config.serverUrl !== "") {
-    try {
-      const res = await fetch(
-        `${config.serverUrl}/access_token?channelName=${config.channelName}&uid=${config.uid}`
-      );
+  const fetchToken = async () => {
+    if (config.serverUrl !== "") {
+      try {
+        const res = await fetch(
+          config.serverUrl +
+            `/access_token?channelName=${config.channelName}&uid=${config.uid}`
+        );
+        const data = await res.text();
+        const json = await JSON.parse(data);
+        config.token = json.token;
 
-      // Check if the response is OK (status 200)
-      if (!res.ok) {
-        throw new Error(`Token fetch failed with status: ${res.status}`);
+        return json.token;
+      } catch (err) {
+        log(err);
       }
-
-      const data = await res.json(); // Parse response as JSON directly
-      if (!data.token) {
-        throw new Error("Token not found in the response.");
-      }
-
-      config.token = data.token; // Store the token in the config
-      return data.token; // Return the token for use
-    } catch (err) {
-      console.error("Error fetching token:", err.message);
-      return null; // Return null in case of error
+    } else {
+      return config.token;
     }
-  } else {
-    return config.token; // Fallback to existing token in config if no serverUrl is provided
-  }
-};
-
+  };
 
   const join = async () => {
     // Start by joining the RTM (Real-Time Messaging) channel
-    //await joinRTM();
+    await joinRTM();
 
     // Set the client's role based on the user's role
     await client.setClientRole(
@@ -402,45 +393,80 @@ const fetchToken = async () => {
   };
 
   const joinRTM = async () => {
-    try {
-      console.log("UID for RTM login:", config.uid);
-      console.log("Token for RTM login (if applicable):", config.token);
+    clientRTM
+      .login({ uid: config.uid })
+      .then(() => {
+        clientRTM.addOrUpdateLocalUserAttributes(config.user).then(() => {
+          //success update user attr
+          log("addOrUpdateLocalUserAttributes: success");
+        });
 
-      await clientRTM.login({ uid: config.uid, token: config.token });
+        channelRTM.join().then(() => {
+          handleOnUpdateParticipants();
+        });
 
-      await clientRTM.addOrUpdateLocalUserAttributes(config.user);
-      log("addOrUpdateLocalUserAttributes: success");
+        clientRTM.on("MessageFromPeer", async (message, peerId) => {
+          log("messageFromPeer");
+          const data = JSON.parse(message.text);
+          log(data);
 
-      await channelRTM.join();
-      handleOnUpdateParticipants();
+          if (data.event === "mic_off") {
+            await toggleMic(true);
+          } else if (data.event === "cam_off") {
+            await toggleCamera(true);
+          } else if (data.event === "remove_participant") {
+            await leave();
+          }
+        });
 
-      clientRTM.on("MessageFromPeer", async (message, peerId) => {
-        log("messageFromPeer");
-        const data = JSON.parse(message.text);
-        log(data);
-        // Handle peer messages
+        channelRTM.on("MemberJoined", async (memberId) => {
+          handleOnUpdateParticipants();
+        });
+
+        channelRTM.on("MemberLeft", (memberId) => {
+          handleOnUpdateParticipants();
+        });
+
+        channelRTM.on("ChannelMessage", async (message, memberId, props) => {
+          log("on:ChannelMessage ->");
+
+          const messageObj = JSON.parse(message.text);
+          log(messageObj);
+
+          if (
+            messageObj.type === "broadcast" &&
+            messageObj.event === "change_user_role"
+          ) {
+            if (config.uid === messageObj.targetUid) {
+              //if local user
+              config.user.role = messageObj.role;
+              log("latest attr => ");
+              log(config.user);
+
+              clientRTM.addOrUpdateLocalUserAttributes(config.user).then(() => {
+                //success update user attr
+                log("addOrUpdateLocalUserAttributes: success");
+              });
+
+              await client.leave();
+              await leaveFromVideoStage(config.user);
+              await join();
+            }
+            handleOnUpdateParticipants();
+            config.onRoleChanged(messageObj.targetUid, messageObj.role);
+            return;
+          }
+
+          config.onMessageReceived(messageObj);
+        });
+      })
+      .catch((error) => {
+        log("RTM client channel join failed: ", error);
+      })
+      .catch((err) => {
+        log("RTM client login failure: ", err);
       });
-
-      channelRTM.on("MemberJoined", async (memberId) => {
-        handleOnUpdateParticipants();
-      });
-
-      channelRTM.on("MemberLeft", (memberId) => {
-        handleOnUpdateParticipants();
-      });
-
-      channelRTM.on("ChannelMessage", async (message, memberId, props) => {
-        log("on:ChannelMessage ->", message);
-
-        const messageObj = JSON.parse(message.text);
-        log(messageObj);
-        // Handle channel messages
-      });
-    } catch (error) {
-      log("RTM client login or join failure:", error);
-    }
   };
-
 
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
