@@ -203,7 +203,7 @@ app.post("/start", async (req, res) => {
     );
 
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/composite/start`,
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/individual/start`,
       payload,
       {
         headers: {
