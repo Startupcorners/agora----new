@@ -35,7 +35,6 @@ const nocache = (req, res, next) => {
 };
 
 // Token generation using RtcTokenBuilder2 (007 token)
-// Token generation using RtcTokenBuilder2 (007 token)
 app.get("/access_token", nocache, (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
 
@@ -44,18 +43,13 @@ app.get("/access_token", nocache, (req, res) => {
     return res.status(400).json({ error: "channelName is required" });
   }
 
-  const uid = req.query.uid || 0; // Set uid to 0 if not provided
+  // For recording, always use UID "0"
+  const uid = 0; 
   const role = Role.PUBLISHER;  // Use PUBLISHER role for recording
   const tokenExpirationInSeconds = parseInt(req.query.expireTime, 10) || 3600;
-  const privilegeExpirationInSeconds = tokenExpirationInSeconds;
+  const privilegeExpirationInSeconds = tokenExpirationInSeconds; // Use the same expiration for privileges
 
   try {
-    // Check if environment variables are loaded
-    if (!APP_ID || !APP_CERTIFICATE) {
-      console.error("APP_ID or APP_CERTIFICATE is not defined.");
-      return res.status(500).json({ error: "Server configuration error" });
-    }
-
     // Generate 007 token with UID
     const token = RtcTokenBuilder2.buildTokenWithUid(
       APP_ID,
@@ -67,14 +61,13 @@ app.get("/access_token", nocache, (req, res) => {
       privilegeExpirationInSeconds
     );
 
-    console.log("Generated 007 Token:", token); // Log the token for debugging
+    console.log("Generated 007 Token:", token); // Log the new token for debugging
     return res.json({ token });
   } catch (error) {
     console.error("Error generating token:", error.message);
     return res.status(500).json({ error: "Failed to generate token" });
   }
 });
-
 
 // Acquire resource
 app.post("/acquire", async (req, res) => {
