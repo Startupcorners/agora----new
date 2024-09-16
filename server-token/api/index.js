@@ -7,7 +7,7 @@ const { RtcTokenBuilder, Role } = require("./RtcTokenBuilder2"); // Import Role 
 require("dotenv").config();
 
 // Log important environment variables
-console.log("RtcTokenBuilder2:", RtcTokenBuilder2);
+console.log("RtcTokenBuilder:", RtcTokenBuilder);
 console.log("APP_ID:", process.env.APP_ID || "Not Defined");
 console.log("APP_CERTIFICATE:", process.env.APP_CERTIFICATE || "Not Defined");
 console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Defined");
@@ -44,7 +44,7 @@ const nocache = (req, res, next) => {
 };
 
 // Token generations
-// Token generation endpoint with RtcTokenBuilder2
+// Token generation endpoint with RtcTokenBuilder
 app.get("/access_token", nocache, (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
 
