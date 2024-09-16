@@ -1,9 +1,7 @@
-// server-token/api/index.js
-
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const { RtcTokenBuilder2, RtcRole } = require("agora-access-token-v2"); 
+const { RtcTokenBuilder2, RtcRole } = require("agora-access-token");
 require("dotenv").config();
 
 // Log important environment variables
@@ -21,7 +19,15 @@ const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
 
 const app = express();
 
-app.use(cors());
+// Update CORS settings to allow requests from your Bubble app
+app.use(
+  cors({
+    origin: "https://sccopy-38403.bubbleapps.io", // Your Bubble app domain
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Allowed methods
+    credentials: true, // If you need to send cookies or other credentials
+  })
+);
+
 app.use(express.json());
 
 // Handle preflight requests
@@ -63,9 +69,6 @@ app.get("/access_token", nocache, (req, res) => {
   console.log("Generated Token:", token); // Log the generated token for debugging
   return res.json({ token });
 });
-
-
-
 
 // Acquire resource
 app.post("/acquire", async (req, res) => {
