@@ -49,15 +49,30 @@ app.get("/access_token", nocache, (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
 
   const channelName = req.query.channelName;
-  const uid = req.query.uid || "0"; // Default to "0" for recording or joining
-
   if (!channelName) {
     return res.status(400).json({ error: "channelName is required" });
   }
 
-  let role = Role.PUBLISHER; // Always use PUBLISHER role for joining a call
-  let expireTime = parseInt(req.query.expireTime, 10) || 3600;
-  
+  let uid = req.query.uid;
+  if (!uid || uid === "") {
+    uid = "0";
+  }
+
+  let role;
+  if (req.query.role === "publisher") {
+    role = RtcRole.PUBLISHER;
+  } else if (req.query.role === "audience") {
+    role = RtcRole.SUBSCRIBER;
+  } else {
+    // Default to PUBLISHER if role is not specified or invalid
+    role = RtcRole.PUBLISHER;
+  }
+
+  let expireTime = parseInt(req.query.expireTime, 10);
+  if (!expireTime || isNaN(expireTime)) {
+    expireTime = 3600; // Default to 1 hour if not specified or invalid
+  }
+
   const currentTime = Math.floor(Date.now() / 1000);
   const privilegeExpireTime = currentTime + expireTime;
 
@@ -72,6 +87,13 @@ app.get("/access_token", nocache, (req, res) => {
     );
 
     console.log("Generated Token:", token);
+    console.log("Token details:", {
+      channelName,
+      uid,
+      role: role === RtcRole.PUBLISHER ? "publisher" : "audience",
+      expireTime: new Date((currentTime + expireTime) * 1000).toISOString(),
+    });
+
     return res.json({ token });
   } catch (error) {
     console.error("Token generation failed:", error);

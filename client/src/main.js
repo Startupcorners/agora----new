@@ -270,34 +270,31 @@ const startRecording = async () => {
   /**
    * Functions
    */
-  const fetchToken = async () => {
-    if (config.serverUrl !== "") {
-      try {
-        const res = await fetch(
-          config.serverUrl +
-            `/access_token?channelName=${config.channelName}&uid=${config.uid}`
-        );
-        const data = await res.text();
-        const json = await JSON.parse(data);
-        config.token = json.token;
-
-        return json.token;
-      } catch (err) {
-        log(err);
-      }
-    } else {
-      return config.token;
+const fetchToken = async () => {
+  if (config.serverUrl !== "") {
+    try {
+      const role = config.user.role === "audience" ? "audience" : "publisher";
+      const res = await fetch(
+        `${config.serverUrl}/access_token?channelName=${config.channelName}&uid=${config.uid}&role=${role}`
+      );
+      const data = await res.text();
+      const json = await JSON.parse(data);
+      config.token = json.token;
+      return json.token;
+    } catch (err) {
+      log(err);
+      throw err; // Rethrow the error so it can be handled by the caller
     }
-  };
+  } else {
+    return config.token;
+  }
+};
 
   const join = async () => {
-    // Start by joining the RTM (Real-Time Messaging) channel
-    //await joinRTM();
+    await joinRTM();
 
-    // Set the client's role based on the user's role
-    await client.setClientRole(
-      config.user.role === "audience" ? "audience" : "host"
-    );
+    const role = config.user.role === "audience" ? "audience" : "host";
+    await client.setClientRole(role);
 
     // Register common event listeners for all users
     client.on("user-published", handleUserPublished);
@@ -309,15 +306,12 @@ const startRecording = async () => {
 
     // Join the Agora channel
     const { appId, uid, channelName } = config;
-    const token = await fetchToken(config);
-    client.on("token-privilege-will-expire", handleRenewToken);
-    await client.join(appId, channelName, token, uid);
+    const token = await fetchToken();
+    await client.join(config.appId, config.channelName, token, config.uid);
 
-    // If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
-    if (config.onNeedJoinToVideoStage(config.user)) {
+    if (role !== "audience") {
       await joinToVideoStage(config.user);
     }
-    // Audience members do not publish tracks or join the video stage
   };
 
   const handleUserUnpublished = async (user, mediaType) => {
@@ -823,10 +817,16 @@ const startRecording = async () => {
     }, 1000);
   };
 
-  const handleRenewToken = async () => {
-    config.token = await fetchToken();
-    await client.renewToken(config.token);
-  };
+ const handleRenewToken = async () => {
+   try {
+     const newToken = await fetchToken();
+     await client.renewToken(newToken);
+     console.log("Token renewed successfully");
+   } catch (error) {
+     console.error("Failed to renew token:", error);
+     // Handle the error (e.g., notify the user, attempt to rejoin)
+   }
+ };
 
   const subscribe = async (user, mediaType) => {
     await client.subscribe(user, mediaType);
