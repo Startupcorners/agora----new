@@ -15,7 +15,6 @@ const MainApp = function (initConfig) {
     user: {
       id: null,
       name: "guest",
-      bubbleID: "",
       avatar:
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
       role: "", //host, speaker, audience,
