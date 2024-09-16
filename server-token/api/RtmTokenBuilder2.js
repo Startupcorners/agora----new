@@ -1,5 +1,5 @@
-const AccessToken = require('../src/AccessToken2').AccessToken2
-const ServiceRtm = require('../src/AccessToken2').ServiceRtm
+const AccessToken = require('./AccessToken2').AccessToken2
+const ServiceRtm = require('./AccessToken2').ServiceRtm
 
 class RtmTokenBuilder {
     /**

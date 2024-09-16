@@ -3,6 +3,8 @@ const cors = require("cors");
 const axios = require("axios");
 const { RtcTokenBuilder, Role } = require("./RtcTokenBuilder2"); // Import Role from RtcTokenBuilder2.js
   // Path to RtcTokenBuilder2.js in the same folder
+const { RtmTokenBuilder } = require("./RtmTokenBuilder2"); // Import Role from RtcTokenBuilder2.js
+  // Path to RtcTokenBuilder2.js in the same folder
 
 require("dotenv").config();
 
@@ -316,5 +318,63 @@ app.get("/generate_recording_token", (req, res) => {
   } catch (error) {
     console.error("Error generating token:", error);
     res.status(500).json({ error: "Failed to generate token" });
+  }
+});
+
+
+const { RtmTokenBuilder, RtmRole } = require("agora-access-token");
+
+app.get("/rtm_token", (req, res) => {
+  const uid = req.query.uid;
+
+  if (!uid) {
+    return res.status(400).json({ error: "uid is required" });
+  }
+
+  // Log the APP_ID and APP_CERTIFICATE (partially masked for security)
+  console.log(
+    `APP_ID: ${
+      process.env.APP_ID
+        ? process.env.APP_ID.substring(0, 5) + "..."
+        : "Not Set"
+    }`
+  );
+  console.log(
+    `APP_CERTIFICATE: ${
+      process.env.APP_CERTIFICATE
+        ? process.env.APP_CERTIFICATE.substring(0, 5) + "..."
+        : "Not Set"
+    }`
+  );
+
+  if (!process.env.APP_ID || !process.env.APP_CERTIFICATE) {
+    console.error("APP_ID or APP_CERTIFICATE is not set");
+    return res.status(500).json({ error: "Server configuration error" });
+  }
+
+  console.log(`Generating RTM token for UID: ${uid}`);
+
+  try {
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const expirationTimeInSeconds = 3600;
+    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+
+    const token = RtmTokenBuilder.buildToken(
+      process.env.APP_ID,
+      process.env.APP_CERTIFICATE,
+      uid,
+      RtmRole.Rtm_User,
+      privilegeExpiredTs
+    );
+
+    // Log a portion of the generated token for verification
+    console.log(
+      `Generated RTM token (first 10 characters): ${token.substring(0, 10)}...`
+    );
+
+    res.json({ token });
+  } catch (error) {
+    console.error("Error generating RTM token:", error);
+    res.status(500).json({ error: "Failed to generate RTM token" });
   }
 });
