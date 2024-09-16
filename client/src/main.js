@@ -302,7 +302,7 @@ const fetchToken = async () => {
 
   const join = async () => {
     // Start by joining the RTM (Real-Time Messaging) channel
-    await joinRTM();
+    //await joinRTM();
 
     // Set the client's role based on the user's role
     await client.setClientRole(
