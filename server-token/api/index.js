@@ -5,6 +5,7 @@ const { RtcTokenBuilder2, RtcRole } = require("agora-access-token");
 require("dotenv").config();
 
 // Log important environment variables
+console.log("RtcTokenBuilder2:", RtcTokenBuilder2);
 console.log("APP_ID:", process.env.APP_ID || "Not Defined");
 console.log("APP_CERTIFICATE:", process.env.APP_CERTIFICATE || "Not Defined");
 console.log("Customer ID:", process.env.CUSTOMER_ID || "Not Defined");
