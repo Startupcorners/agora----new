@@ -213,7 +213,7 @@ const startRecording = async () => {
       console.error("SID not received in the response:", startData);
     }
 
-    config.sid = startData.sid; // Store the SID if received
+    config.sid = startData.sid; // Store the SID if receivedf
     console.log(
       "Recording started successfully. Resource ID:",
       resourceId,
