@@ -324,8 +324,6 @@ app.get("/generate_recording_token", (req, res) => {
 });
 
 
-
-
 app.get("/rtm_token", nocache, (req, res) => {
   const { uid } = req.query;
 
@@ -340,16 +338,23 @@ app.get("/rtm_token", nocache, (req, res) => {
 
   try {
     console.log(`Generating RTM token for UID: ${uid}`);
+    const expirationTimeInSeconds = 3600;
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
 
     const token = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       uid,
-      Math.floor(Date.now() / 1000) + 3600
+      privilegeExpiredTs
     );
 
     console.log("Generated RTM Token:", token);
-    return res.json({ token });
+    console.log(
+      "Token expiration:",
+      new Date(privilegeExpiredTs * 1000).toISOString()
+    );
+    return res.json({ token, expiresAt: privilegeExpiredTs });
   } catch (error) {
     console.error("RTM Token generation failed:", error);
     return res.status(500).json({
