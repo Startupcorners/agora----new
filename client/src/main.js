@@ -393,14 +393,21 @@ const startRecording = async () => {
   };
 
   const joinRTM = async () => {
-    const rtmUid = config.uid.toString();
+    const rtmUid = config.uid.toString(); // Ensure UID is a string
+
     clientRTM
       .login({ uid: rtmUid })
       .then(() => {
-        clientRTM.addOrUpdateLocalUserAttributes(config.user).then(() => {
-          // Success updating user attributes
-          log("addOrUpdateLocalUserAttributes: success");
-        });
+        // Filter out any unwanted keys from config.user
+        const { id, name, avatar, role } = config.user;
+        const validUserAttributes = { name, avatar, role }; // Only the required keys
+
+        clientRTM
+          .addOrUpdateLocalUserAttributes(validUserAttributes)
+          .then(() => {
+            // Success updating user attributes
+            log("addOrUpdateLocalUserAttributes: success");
+          });
 
         channelRTM.join().then(() => {
           handleOnUpdateParticipants();
@@ -439,15 +446,17 @@ const startRecording = async () => {
             messageObj.event === "change_user_role"
           ) {
             if (config.uid === messageObj.targetUid) {
-              //if local user
+              // If local user
               config.user.role = messageObj.role;
               log("latest attr => ");
               log(config.user);
 
-              clientRTM.addOrUpdateLocalUserAttributes(config.user).then(() => {
-                //success update user attr
-                log("addOrUpdateLocalUserAttributes: success");
-              });
+              clientRTM
+                .addOrUpdateLocalUserAttributes(validUserAttributes)
+                .then(() => {
+                  // Success updating user attributes
+                  log("addOrUpdateLocalUserAttributes: success");
+                });
 
               await client.leave();
               await leaveFromVideoStage(config.user);
@@ -469,6 +478,8 @@ const startRecording = async () => {
       });
   };
 
+
+  
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
 
