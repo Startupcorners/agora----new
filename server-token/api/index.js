@@ -173,14 +173,16 @@ app.post("/start", async (req, res) => {
         token: token,
         recordingConfig: {
           maxIdleTime: 30,
-          streamTypes: 2
+          streamTypes: 2,
+          channelType: 0, // 0 for communication, 1 for live broadcast
+          subscribeUidGroup: 0, // 0 means to record all users
         },
         storageConfig: {
           vendor: 2,
           region: 0,
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
-          secretKey: process.env.S3_SECRET_KEY
+          secretKey: process.env.S3_SECRET_KEY,
         },
       },
     };
