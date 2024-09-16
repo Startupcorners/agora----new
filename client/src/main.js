@@ -1,10 +1,3 @@
-/**
- * please include agora on your html, since this not use nodejs import module approach
- * <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
- * <script src="https://cdn.jsdelivr.net/npm/agora-rtm-sdk@1.3.1/index.js"></script>
- * <script src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
- */
-
 const MainApp = function (initConfig) {
   let config = {
     debugEnabled: true,
@@ -78,12 +71,10 @@ const MainApp = function (initConfig) {
     },
     onNeedJoinToVideoStage: (user) => {
       log(`onNeedJoinToVideoStage: ${user}`);
-
       return true;
     },
     onNeedMuteCameraAndMic: (user) => {
       log(`onNeedMuteCameraAndMic: ${user}`);
-
       return false;
     },
     onError: (error) => {
@@ -117,8 +108,9 @@ const MainApp = function (initConfig) {
     throw new Error("please set the uid first");
   }
 
+  // AgoraRTC client creation
   const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
-  AgoraRTC.setLogLevel(config.debugEnabled ? 0 : 4); //0 debug, 4 none
+  AgoraRTC.setLogLevel(config.debugEnabled ? 0 : 4); // 0 = debug, 4 = none
   AgoraRTC.onCameraChanged = (info) => {
     config.onCameraChanged(info);
   };
@@ -129,147 +121,15 @@ const MainApp = function (initConfig) {
     config.onSpeakerChanged(info);
   };
 
-  const clientRTM = AgoraRTM.createInstance(config.appId, {
-    enableLogUpload: false,
-    logFilter: config.debugEnabled
-      ? AgoraRTM.LOG_FILTER_INFO
-      : AgoraRTM.LOG_FILTER_OFF,
-  });
-  const channelRTM = clientRTM.createChannel(config.channelName);
-
   const extensionVirtualBackground = new VirtualBackgroundExtension();
   if (!extensionVirtualBackground.checkCompatibility()) {
     log("Does not support Virtual Background!");
   }
   AgoraRTC.registerExtensions([extensionVirtualBackground]);
-  let processor = null;
 
-const acquireResource = async () => {
-  try {
-    // Log the payload before making the API call
-    console.log("Payload for acquire resource:", {
-      channelName: config.channelName,
-      uid: "0",
-    });
+  // Removed clientRTM and RTM functions since they are not needed
 
-    const response = await fetch(config.serverUrl + "/acquire", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        channelName: config.channelName, // Provide the channel name
-        uid: "0", // Provide the UID
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Error acquiring resource:", errorData);
-      throw new Error(`Failed to acquire resource: ${errorData.error}`);
-    }
-
-    const data = await response.json();
-    console.log("Resource acquired:", data.resourceId); // Log the resourceId
-    return data.resourceId;
-  } catch (error) {
-    console.error("Error acquiring resource:", error);
-    throw error;
-  }
-};
-
-
-const startRecording = async () => {
-  try {
-    const resourceId = await acquireResource(); // Acquire the resource first
-    console.log("Resource acquired:", resourceId);
-
-    // Add a 2-second delay
-    await new Promise((resolve) => setTimeout(resolve, 3000));
-    console.log("Waited 2 seconds after acquiring resource");
-    
-
-    // Fetch a new token for recording with PUBLISHER role
-    const recordingTokenResponse = await fetch(
-      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=0`,
-      {
-        method: "GET",
-      }
-    );
-
-    const tokenData = await recordingTokenResponse.json();
-    const recordingToken = tokenData.token;
-
-    // Log the recording token for debugging purposes
-    console.log("Recording token received:", recordingToken);
-
-    const response = await fetch(config.serverUrl + "/start", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resourceId: resourceId, // Pass the correct resourceId
-        channelName: config.channelName, // Channel name must match the one used for the call
-        uid: "0", // UID should be "0" for recording
-        token: recordingToken, // Use the new token generated for recording
-      }),
-    });
-
-    const startData = await response.json();
-
-    // Log the full response for detailed analysis
-    console.log("Response from start recording:", startData);
-
-    if (!response.ok) {
-      console.error("Error starting recording:", startData);
-      throw new Error(`Failed to start recording: ${startData.error}`);
-    }
-
-    // Check if SID is received
-    if (startData.sid) {
-      console.log("SID received successfully:", startData.sid);
-    } else {
-      console.error("SID not received in the response:", startData);
-    }
-
-    config.sid = startData.sid; // Store the SID if received
-    console.log(
-      "Recording started successfully. Resource ID:",
-      resourceId,
-      "SID:",
-      config.sid
-    );
-
-    return startData;
-  } catch (error) {
-    console.error("Error starting recording:", error);
-    throw error;
-  }
-};
-
-
-
-
-  const stopRecording = async (resourceId, sid) => {
-    const response = await fetch(config.serverUrl + "/stop", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        channelName: config.channelName,
-        resourceId: resourceId,
-        sid: sid,
-      }),
-    });
-    const stopData = await response.json();
-    return stopData;
-  };
-
-  /**
-   * Functions
-   */
+  // AgoraRTC functions (video and audio)
   const fetchToken = async () => {
     if (config.serverUrl !== "") {
       try {
@@ -280,7 +140,6 @@ const startRecording = async () => {
         const data = await res.text();
         const json = await JSON.parse(data);
         config.token = json.token;
-
         return json.token;
       } catch (err) {
         log(err);
@@ -291,9 +150,6 @@ const startRecording = async () => {
   };
 
   const join = async () => {
-    // Start by joining the RTM (Real-Time Messaging) channel
-    await joinRTM();
-
     // Set the client's role based on the user's role
     await client.setClientRole(
       config.user.role === "audience" ? "audience" : "host"
@@ -317,164 +173,15 @@ const startRecording = async () => {
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     }
-    // Audience members do not publish tracks or join the video stage
-  };
-
-  const handleUserUnpublished = async (user, mediaType) => {
-    if (mediaType === "video") {
-      const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-      if (videoWrapper) {
-        const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
-        const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
-
-        videoPlayer.style.display = "none"; // Hide the video player
-        avatarDiv.style.display = "block"; // Show the avatar
-      }
-    }
-  };
-
-  const joinToVideoStage = async (user) => {
-    try {
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-
-      if (config.onNeedMuteCameraAndMic(user)) {
-        toggleCamera(true);
-        toggleMic(true);
-      }
-
-      let player = document.querySelector(`#video-wrapper-${user.id}`);
-      if (player != null) {
-        player.remove();
-      }
-      console.log("Avatar URL:", user.avatar);
-      let localPlayerContainer = config.participantPlayerContainer
-        .replaceAll("{{uid}}", user.id)
-        .replaceAll("{{name}}", user.name)
-        .replaceAll("{{avatar}}", user.avatar); // Ensure avatar is replaced as well
-
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", localPlayerContainer);
-
-      //need detect remote or not
-      if (user.id === config.uid) {
-        config.localVideoTrack.play(`stream-${user.id}`);
-
-        await client.publish([config.localAudioTrack, config.localVideoTrack]);
-      }
-    } catch (error) {
-      config.onError(error);
-    }
-  };
-
-  const leaveFromVideoStage = async (user) => {
-    let player = document.querySelector(`#video-wrapper-${user.id}`);
-    if (player != null) {
-      player.remove();
-    }
-
-    if (user.id === config.uid) {
-      try {
-        config.localAudioTrack.stop();
-        config.localVideoTrack.stop();
-
-        config.localAudioTrack.close();
-        config.localVideoTrack.close();
-
-        await client.unpublish([
-          config.localAudioTrack,
-          config.localVideoTrack,
-        ]);
-      } catch (error) {
-        //
-      }
-    }
-  };
-
-  const joinRTM = async () => {
-    clientRTM
-      .login({ uid: config.uid })
-      .then(() => {
-        clientRTM.addOrUpdateLocalUserAttributes(config.user).then(() => {
-          //success update user attr
-          log("addOrUpdateLocalUserAttributes: success");
-        });
-
-        channelRTM.join().then(() => {
-          handleOnUpdateParticipants();
-        });
-
-        clientRTM.on("MessageFromPeer", async (message, peerId) => {
-          log("messageFromPeer");
-          const data = JSON.parse(message.text);
-          log(data);
-
-          if (data.event === "mic_off") {
-            await toggleMic(true);
-          } else if (data.event === "cam_off") {
-            await toggleCamera(true);
-          } else if (data.event === "remove_participant") {
-            await leave();
-          }
-        });
-
-        channelRTM.on("MemberJoined", async (memberId) => {
-          handleOnUpdateParticipants();
-        });
-
-        channelRTM.on("MemberLeft", (memberId) => {
-          handleOnUpdateParticipants();
-        });
-
-        channelRTM.on("ChannelMessage", async (message, memberId, props) => {
-          log("on:ChannelMessage ->");
-
-          const messageObj = JSON.parse(message.text);
-          log(messageObj);
-
-          if (
-            messageObj.type === "broadcast" &&
-            messageObj.event === "change_user_role"
-          ) {
-            if (config.uid === messageObj.targetUid) {
-              //if local user
-              config.user.role = messageObj.role;
-              log("latest attr => ");
-              log(config.user);
-
-              clientRTM.addOrUpdateLocalUserAttributes(config.user).then(() => {
-                //success update user attr
-                log("addOrUpdateLocalUserAttributes: success");
-              });
-
-              await client.leave();
-              await leaveFromVideoStage(config.user);
-              await join();
-            }
-            handleOnUpdateParticipants();
-            config.onRoleChanged(messageObj.targetUid, messageObj.role);
-            return;
-          }
-
-          config.onMessageReceived(messageObj);
-        });
-      })
-      .catch((error) => {
-        log("RTM client channel join failed: ", error);
-      })
-      .catch((err) => {
-        log("RTM client login failure: ", err);
-      });
   };
 
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
-
-    await Promise.all([client.leave(), clientRTM.logout()]);
-
+    await client.leave();
     config.onUserLeave();
   };
+
+  // Removed all RTM functions like `joinRTM`, `sendMessageToPeer`, etc.
 
   const toggleMic = async (isMuted) => {
     if (isMuted) {
@@ -484,7 +191,6 @@ const startRecording = async () => {
       await config.localAudioTrack.setMuted(false);
       config.localAudioTrackMuted = false;
     }
-
     config.onMicMuted(config.localAudioTrackMuted);
   };
 
@@ -496,7 +202,6 @@ const startRecording = async () => {
       await config.localVideoTrack.setMuted(false);
       config.localVideoTrackMuted = false;
     }
-
     config.onCamMuted(config.localVideoTrackMuted);
   };
 
@@ -909,6 +614,6 @@ const startRecording = async () => {
     startRecording: startRecording,
     stopRecording: stopRecording,
   };
-}
+};
 
-window['MainApp'] = MainApp;
+window["MainApp"] = MainApp;
