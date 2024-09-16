@@ -184,12 +184,16 @@ app.post("/start", async (req, res) => {
             mixedVideoLayout: 1,
           },
         },
+        recordingFileConfig: {
+          avFileType: ["hls", "mp4"],
+        },
         storageConfig: {
           vendor: vendor,
           region: region,
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
+          fileNamePrefix: ["recordings"],
         },
       },
     };
