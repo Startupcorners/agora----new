@@ -394,13 +394,13 @@ const startRecording = async () => {
 
 const joinRTM = async () => {
   try {
-    const rtmUid = config.uid.toString(); // Ensure UID is a string for RTM
+    const rtmUid = config.uid.toString(); // Convert UID to string for RTM
 
-    // RTM login with string UID
+    // RTM login
     await clientRTM.login({ uid: rtmUid });
     log(`RTM login successful for UID: ${rtmUid}`);
 
-    // Update local user attributes (only necessary attributes)
+    // Update local user attributes
     await clientRTM.addOrUpdateLocalUserAttributes({
       name: config.user.name,
       avatar: config.user.avatar,
@@ -416,69 +416,53 @@ const joinRTM = async () => {
     handleOnUpdateParticipants();
 
     // Set up RTM event listeners
-
-    // Handle direct messages from peers
     clientRTM.on("MessageFromPeer", async (message, peerId) => {
-      log(`Message received from peer: ${peerId}`);
+      log("messageFromPeer");
       const data = JSON.parse(message.text);
       log(data);
 
-      // Handle specific events like muting mic or camera, or participant removal
-      switch (data.event) {
-        case "mic_off":
-          await toggleMic(true);
-          break;
-        case "cam_off":
-          await toggleCamera(true);
-          break;
-        case "remove_participant":
-          await leave();
-          break;
-        default:
-          log("Unknown event received:", data.event);
+      if (data.event === "mic_off") {
+        await toggleMic(true);
+      } else if (data.event === "cam_off") {
+        await toggleCamera(true);
+      } else if (data.event === "remove_participant") {
+        await leave();
       }
     });
 
-    // Handle when a new member joins the channel
     channelRTM.on("MemberJoined", async (memberId) => {
       log(`Member joined: ${memberId}`);
       handleOnUpdateParticipants();
     });
 
-    // Handle when a member leaves the channel
     channelRTM.on("MemberLeft", (memberId) => {
       log(`Member left: ${memberId}`);
       handleOnUpdateParticipants();
     });
 
-    // Handle channel messages (broadcast events)
     channelRTM.on("ChannelMessage", async (message, memberId, props) => {
-      log(`Channel message received from ${memberId}`);
+      log("on:ChannelMessage ->");
       const messageObj = JSON.parse(message.text);
       log(messageObj);
 
-      // Handle role changes broadcasted to the channel
       if (
         messageObj.type === "broadcast" &&
         messageObj.event === "change_user_role"
       ) {
         if (config.uid === messageObj.targetUid) {
-          // If the current user is targeted, update their role
-          config.user.role = messageObj.role;
-          log(`User role updated: ${config.user.role}`);
+          config.user.role = messageObj.role; // Update local role
+          log("User role changed:", config.user.role);
 
-          // Update local user attributes after the role change
+          // Update user attributes after role change
           await clientRTM.addOrUpdateLocalUserAttributes({
             role: config.user.role,
           });
-          log("User attributes updated after role change");
+          log("Updated user attributes after role change");
 
-          // Re-join the RTC session after the role change
           await client.leave();
           await leaveFromVideoStage(config.user);
-          await join();
+          await join(); // Re-join the RTC
         }
-
         handleOnUpdateParticipants();
         config.onRoleChanged(messageObj.targetUid, messageObj.role);
       } else {
@@ -489,6 +473,7 @@ const joinRTM = async () => {
     log("RTM join process failed:", error);
   }
 };
+
 
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
@@ -763,38 +748,38 @@ const joinRTM = async () => {
   };
 
   const handleUserJoined = async (user) => {
-  log("handleUserJoined Here");
-  config.remoteTracks[user.uid] = user;
+    log("handleUserJoined Here");
+    config.remoteTracks[user.uid] = user;
 
-  const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
+    const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
 
-  try {
-    // Fetch user attributes from RTM using the stringified UID
-    const userAttr = await clientRTM.getUserAttributes(rtmUid);
+    try {
+      // Fetch user attributes from RTM using the stringified UID
+      const userAttr = await clientRTM.getUserAttributes(rtmUid);
 
-    // Use the integer UID for the wrapper and player
-    let playerHTML = config.participantPlayerContainer
-      .replace(/{{uid}}/g, user.uid)  // Integer UID for the video wrapper
-      .replace(/{{name}}/g, userAttr.name)
-      .replace(/{{avatar}}/g, userAttr.avatar);
+      // Use the integer UID for the wrapper and player
+      let playerHTML = config.participantPlayerContainer
+        .replace(/{{uid}}/g, user.uid) // Integer UID for the video wrapper
+        .replace(/{{name}}/g, userAttr.name || "Unknown")
+        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
 
-    document
-      .querySelector(config.callContainerSelector)
-      .insertAdjacentHTML("beforeend", playerHTML);
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", playerHTML);
 
-    const player = document.querySelector(`#video-wrapper-${user.uid}`); // Integer UID
+      const player = document.querySelector(`#video-wrapper-${user.uid}`); // Integer UID
 
-    // Hide the video player and show the avatar since the user hasn't published video
-    const videoPlayer = document.querySelector(`#stream-${user.uid}`); // Integer UID
-    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);    // Integer UID
-    if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none";  // Hide the video player
-      avatarDiv.style.display = "block";   // Show the avatar
+      // Hide the video player and show the avatar since the user hasn't published video
+      const videoPlayer = document.querySelector(`#stream-${user.uid}`); // Integer UID
+      const avatarDiv = document.querySelector(`#avatar-${user.uid}`); // Integer UID
+      if (videoPlayer && avatarDiv) {
+        videoPlayer.style.display = "none"; // Hide the video player
+        avatarDiv.style.display = "block"; // Show the avatar
+      }
+    } catch (error) {
+      log("Failed to fetch user attributes:", error);
     }
-  } catch (error) {
-    log("Failed to fetch user attributes:", error);
-  }
-};
+  };
 
   const handleUserLeft = async (user, reason) => {
     delete config.remoteTracks[user.uid];
