@@ -3,7 +3,7 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
+const { RtcTokenBuilder2, RtcRole } = require("agora-access-token-v2"); 
 require("dotenv").config();
 
 // Log important environment variables
@@ -34,7 +34,7 @@ const nocache = (req, res, next) => {
   next();
 };
 
-// Token generation
+// Token generations
 app.get("/access_token", nocache, (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
 
@@ -50,8 +50,8 @@ app.get("/access_token", nocache, (req, res) => {
   const currentTime = Math.floor(Date.now() / 1000);
   const privilegeExpireTime = currentTime + expireTime;
 
-  // Generate token with UID as string "0" for recording
-  const token = RtcTokenBuilder.buildTokenWithUid(
+  // Generate 007 token using RtcTokenBuilder2
+  const token = RtcTokenBuilder2.buildTokenWithUid(
     APP_ID,
     APP_CERTIFICATE,
     channelName,
@@ -63,6 +63,8 @@ app.get("/access_token", nocache, (req, res) => {
   console.log("Generated Token:", token); // Log the generated token for debugging
   return res.json({ token });
 });
+
+
 
 
 // Acquire resource

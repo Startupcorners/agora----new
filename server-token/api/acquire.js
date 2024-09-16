@@ -41,7 +41,7 @@ app.post("/acquire", async (req, res) => {
       url,
       {
         cname: channelName, // Channel name
-        uid: uid, // Recording service UID
+        uid: "0", // Recording service UID
         clientRequest: {}, // No additional parameters required here
       },
       {
