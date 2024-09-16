@@ -271,25 +271,34 @@ const startRecording = async () => {
   /**
    * Functions
    */
-  const fetchToken = async () => {
-    if (config.serverUrl !== "") {
-      try {
-        const res = await fetch(
-          config.serverUrl +
-            `/access_token?channelName=${config.channelName}&uid=${config.uid}`
-        );
-        const data = await res.text();
-        const json = await JSON.parse(data);
-        config.token = json.token;
+const fetchToken = async () => {
+  if (config.serverUrl !== "") {
+    try {
+      const res = await fetch(
+        `${config.serverUrl}/access_token?channelName=${config.channelName}&uid=${config.uid}`
+      );
 
-        return json.token;
-      } catch (err) {
-        log(err);
+      // Check if the response is OK (status 200)
+      if (!res.ok) {
+        throw new Error(`Token fetch failed with status: ${res.status}`);
       }
-    } else {
-      return config.token;
+
+      const data = await res.json(); // Parse response as JSON directly
+      if (!data.token) {
+        throw new Error("Token not found in the response.");
+      }
+
+      config.token = data.token; // Store the token in the config
+      return data.token; // Return the token for use
+    } catch (err) {
+      console.error("Error fetching token:", err.message);
+      return null; // Return null in case of error
     }
-  };
+  } else {
+    return config.token; // Fallback to existing token in config if no serverUrl is provided
+  }
+};
+
 
   const join = async () => {
     // Start by joining the RTM (Real-Time Messaging) channel
