@@ -53,7 +53,7 @@ app.get("/access_token", nocache, (req, res) => {
   }
 
   let uid = req.query.uid || "0"; // Ensure uid is a string "0" for recording
-  let role = RtcRole.PUBLISHER; // Always use PUBLISHER role for recording
+  let role = Role.PUBLISHER; // Always use PUBLISHER role for recording
   let expireTime = parseInt(req.query.expireTime, 10) || 3600;
 
   const currentTime = Math.floor(Date.now() / 1000);
