@@ -180,7 +180,7 @@ app.post("/start", async (req, res) => {
         storageConfig: {
           vendor: 2, // Ensure vendor is a number
           region: 0, // Ensure region is a number
-          bucket: "agora-recordings-bucket",
+          bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
         },
