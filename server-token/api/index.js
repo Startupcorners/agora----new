@@ -62,12 +62,14 @@ app.get("/access_token", nocache, (req, res) => {
       `Generating token for channel: ${channelName}, UID: ${uid}, Role: ${role}`
     );
 
+    const tokenRole = role === "publisher" ? Role.PUBLISHER : Role.SUBSCRIBER;
+
     const token = RtcTokenBuilder.buildTokenWithUid(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
       uid,
-      role === "publisher" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER,
+      tokenRole,
       Math.floor(Date.now() / 1000) + 3600
     );
 
@@ -81,7 +83,6 @@ app.get("/access_token", nocache, (req, res) => {
     });
   }
 });
-
 
 // Acquire resource
 app.post("/acquire", async (req, res) => {
