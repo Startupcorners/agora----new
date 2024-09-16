@@ -3,7 +3,7 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const { RtcTokenBuilder2, Role } = require("agora-access-token"); // Using RtcTokenBuilder2 for 007 token
+const { RtcTokenBuilder, RtcRole } = require("agora-access-token");
 require("dotenv").config();
 
 // Log important environment variables
@@ -34,7 +34,7 @@ const nocache = (req, res, next) => {
   next();
 };
 
-// Token generation using RtcTokenBuilder2 (007 token)
+// Token generation
 app.get("/access_token", nocache, (req, res) => {
   res.header("Access-Control-Allow-Origin", "*");
 
@@ -43,31 +43,27 @@ app.get("/access_token", nocache, (req, res) => {
     return res.status(400).json({ error: "channelName is required" });
   }
 
-  // For recording, always use UID "0"
-  const uid = 0; 
-  const role = Role.PUBLISHER;  // Use PUBLISHER role for recording
-  const tokenExpirationInSeconds = parseInt(req.query.expireTime, 10) || 3600;
-  const privilegeExpirationInSeconds = tokenExpirationInSeconds; // Use the same expiration for privileges
+  let uid = req.query.uid || "0"; // Ensure uid is a string "0" for recording
+  let role = RtcRole.PUBLISHER; // Always use PUBLISHER role for recording
+  let expireTime = parseInt(req.query.expireTime, 10) || 3600;
 
-  try {
-    // Generate 007 token with UID
-    const token = RtcTokenBuilder2.buildTokenWithUid(
-      APP_ID,
-      APP_CERTIFICATE,
-      channelName,
-      uid,
-      role,
-      tokenExpirationInSeconds,
-      privilegeExpirationInSeconds
-    );
+  const currentTime = Math.floor(Date.now() / 1000);
+  const privilegeExpireTime = currentTime + expireTime;
 
-    console.log("Generated 007 Token:", token); // Log the new token for debugging
-    return res.json({ token });
-  } catch (error) {
-    console.error("Error generating token:", error.message);
-    return res.status(500).json({ error: "Failed to generate token" });
-  }
+  // Generate token with UID as string "0" for recording
+  const token = RtcTokenBuilder.buildTokenWithUid(
+    APP_ID,
+    APP_CERTIFICATE,
+    channelName,
+    uid,
+    role,
+    privilegeExpireTime
+  );
+
+  console.log("Generated Token:", token); // Log the generated token for debugging
+  return res.json({ token });
 });
+
 
 // Acquire resource
 app.post("/acquire", async (req, res) => {
@@ -86,7 +82,7 @@ app.post("/acquire", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: "0", // For recording, always use UID "0"
+      uid: "0",
       clientRequest: {},
     };
 
@@ -120,7 +116,7 @@ app.post("/start", async (req, res) => {
   const { channelName, resourceId, token } = req.body;
 
   // Set uid to "0" for Agora recording
-  let uid = "0";
+  let uid = "0"; 
 
   if (!channelName || !resourceId || !token) {
     return res.status(400).json({
@@ -131,7 +127,7 @@ app.post("/start", async (req, res) => {
   console.log("Start recording request for:", {
     channelName,
     resourceId,
-    uid,
+    uid, // UID is now "0"
     token,
   });
 
@@ -146,7 +142,7 @@ app.post("/start", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: uid, // Always "0" for Agora recording
+      uid: uid, // Make sure UID is "0"
       clientRequest: {
         token: token,
         recordingConfig: {
@@ -202,6 +198,7 @@ app.post("/start", async (req, res) => {
     res.status(500).json({ error: "Failed to start recording" });
   }
 });
+
 
 // Stop recording endpoint
 app.post("/stop", (req, res) => {
