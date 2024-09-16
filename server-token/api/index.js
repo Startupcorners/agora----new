@@ -146,6 +146,10 @@ app.post("/start", async (req, res) => {
     });
   }
 
+  console.log("App ID:", process.env.APP_ID);
+  console.log("Resource ID:", resourceId);
+
+
   console.log("Start recording request for:", {
     channelName,
     resourceId,
