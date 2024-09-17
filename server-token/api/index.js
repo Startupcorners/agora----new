@@ -390,3 +390,5 @@ app.get("/generate_recording_token", (req, res) => {
 });
 
 
+
+module.exports = app;

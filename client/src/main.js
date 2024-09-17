@@ -259,9 +259,8 @@ const startRecording = async () => {
       },
       body: JSON.stringify({
         channelName: config.channelName,
-        resourceId:
-          "re-eKiH2xTMbNWyf4nBAyhfn3mVyfhK3PURzjiB3aLicHYLhrLYDtSXCslxsIMefSMFmNzQju7WuAcYNAXQn4Uu-rQHneR3iJXXyhYX8t0SNK77kyvzOysaLls5ju6SfOWSGpg9a-rBGd3lGO12-VMXQJGXxm9dHoFa4Q1k_gqu64qYTKRDfxQMUf3tLmjuaOmk-822Cybhyrm9hzNhNlU--AAjOY9A76h604N5rVKs",
-        sid: "05731fa287482df48470c794b6d92bc2",
+        resourceId: resourceId,
+        sid: sid,
       }),
     });
     const stopData = await response.json();
