@@ -175,7 +175,8 @@ app.post("/start", async (req, res) => {
         recordingConfig: {
           maxIdleTime: 30,
           streamTypes: 2,
-          channelType: 1,
+          audioProfile: 1,
+          channelType: 0,
           videoStreamType: 0,
           transcodingConfig: {
             height: 640,
@@ -183,10 +184,11 @@ app.post("/start", async (req, res) => {
             bitrate: 500,
             fps: 15,
             mixedVideoLayout: 1,
+            backgroundColor: "#FF0000",
           },
-        },
-        recordingFileConfig: {
-          avFileType: ["hls", "mp4"],
+          subscribeVideoUids: ["123", "456"],
+          subscribeAudioUids: ["123", "456"],
+          subscribeUidGroup: 0,
         },
         storageConfig: {
           vendor: 2,
