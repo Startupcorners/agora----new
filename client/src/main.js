@@ -302,7 +302,7 @@ const stopRecording = async (uid) => {
       return config.token;
     }
   };
-AgoraRTC.Logger.enableLogUpload = false;
+
   const join = async () => {
     // Start by joining the RTM (Real-Time Messaging) channel
     await joinRTM();
