@@ -251,23 +251,30 @@ const startRecording = async () => {
 
 
 
- const stopRecording = async (resourceId, sid, uid) => {
-   const response = await fetch(config.serverUrl + "/stop", {
-     method: "POST",
-     headers: {
-       "Content-Type": "application/json",
-     },
-     body: JSON.stringify({
-       channelName: config.channelName,
-       resourceId: resourceId,
-       sid: sid,
-       uid: "123123", 
-     }),
-   });
+const stopRecording = async (resourceId, sid, uid) => {
+  console.log("Stopping recording with values:", {
+    resourceId,
+    sid,
+    uid,
+  });
 
-   const stopData = await response.json();
-   return stopData;
- };
+  const response = await fetch(config.serverUrl + "/stop", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      channelName: config.channelName,
+      resourceId: resourceId, // Check if this is being passed correctly
+      sid: sid, // Check if this is being passed correctly
+      uid: uid || "123123", // Use dynamic uid or fallback to hardcoded one
+    }),
+  });
+
+  const stopData = await response.json();
+  return stopData;
+};
+
 
 
   /**
