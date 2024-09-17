@@ -104,7 +104,7 @@ app.post("/acquire", async (req, res) => {
       uid: "123123",
       clientRequest: {
         resourceExpiredHour: 24, // Set resource expiration to 24 hours
-        scene: 0,
+        scene: 1,
       },
     };
 
@@ -173,24 +173,24 @@ app.post("/start", async (req, res) => {
     
     const payload = {
       cname: channelName,
-      uid:"123123",
+      uid: "123123",
       clientRequest: {
         token: token,
-        recordingConfig: {
-          channelType: 0,
-          streamTypes: 2,
-          videoStreamType: 0,
-          maxIdleTime: 120,
-          subscribeVideoUids: ["#allstream#"],
-          subscribeAudioUids: ["#allstream#"],
-          subscribeUidGroup: 0,
-        },
-        transcodingConfig: {
-          height: 640,
-          width: 360,
-          bitrate: 500,
-          fps: 15,
-          mixedVideoLayout: 1,
+        extensionServiceConfig: {
+          errorHandlePolicy: "error_abort",
+          extensionServices: [
+            {
+              serviceName: "web_recorder_service",
+              errorHandlePolicy: "error_abort",
+              serviceParam: {
+                url: "https://google.com",
+                audioProfile: 0,
+                videoWidth: 1280,
+                videoHeight: 720,
+                maxRecordingHour: 72,
+              },
+            },
+          ],
         },
         recordingFileConfig: {
           avFileType: ["hls", "mp4"],
@@ -211,7 +211,7 @@ app.post("/start", async (req, res) => {
     );
 
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/web/start`,
       payload,
       {
         headers: {
