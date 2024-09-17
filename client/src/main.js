@@ -715,15 +715,16 @@ const joinRTM = async () => {
         {
           text: JSON.stringify(data),
         },
-        `${uid}`
+        `${uid}` // Ensuring uid is passed as a string
       )
       .then(() => {
-        //success
+        console.log("Message sent successfully");
       })
       .catch((error) => {
-        log(error);
+        console.error("Failed to send message:", error);
       });
   };
+
 
   const sendMessage = (data) => {
     channelRTM
