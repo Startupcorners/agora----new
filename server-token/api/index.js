@@ -183,7 +183,7 @@ app.post("/start", async (req, res) => {
               serviceName: "web_recorder_service",
               errorHandlePolicy: "error_abort",
               serviceParam: {
-                url: "https://google.com",
+                url: "https://sccopy-38403.bubbleapps.io/video/1726195519465x346418864932257800?r=1721913797942x965183480405939000",
                 audioProfile: 0,
                 videoWidth: 1280,
                 videoHeight: 720,
