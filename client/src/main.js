@@ -184,10 +184,12 @@ const startRecording = async () => {
     const resourceId = await acquireResource(); // Acquire the resource first
     console.log("Resource acquired:", resourceId);
 
+    // Store the resourceId for later use
+    config.resourceId = resourceId; // <--- Store the resourceId here
+
     // Add a 2-second delay
     await new Promise((resolve) => setTimeout(resolve, 2000));
     console.log("Waited 2 seconds after acquiring resource");
-    
 
     // Fetch a new token for recording with PUBLISHER role
     const recordingTokenResponse = await fetch(
@@ -229,11 +231,11 @@ const startRecording = async () => {
     // Check if SID is received
     if (startData.sid) {
       console.log("SID received successfully:", startData.sid);
+      config.sid = startData.sid; // Store the SID if received
     } else {
       console.error("SID not received in the response:", startData);
     }
 
-    config.sid = startData.sid; // Store the SID if received
     console.log(
       "Recording started successfully. Resource ID:",
       resourceId,
@@ -251,10 +253,11 @@ const startRecording = async () => {
 
 
 
-const stopRecording = async (resourceId, sid, uid) => {
+
+const stopRecording = async (uid) => {
   console.log("Stopping recording with values:", {
-    resourceId,
-    sid,
+    resourceId: config.resourceId, // Now using config.resourceId
+    sid: config.sid, // Now using config.sid
     uid,
   });
 
@@ -265,9 +268,9 @@ const stopRecording = async (resourceId, sid, uid) => {
     },
     body: JSON.stringify({
       channelName: config.channelName,
-      resourceId: resourceId, // Check if this is being passed correctly
-      sid: sid, // Check if this is being passed correctly
-      uid: uid || "123123", // Use dynamic uid or fallback to hardcoded one
+      resourceId: config.resourceId, // Use the stored resourceId from config
+      sid: config.sid, // Use the stored sid from config
+      uid: "123123", // Pass uid or fallback to hardcoded one
     }),
   });
 
