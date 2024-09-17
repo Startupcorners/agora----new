@@ -102,7 +102,10 @@ app.post("/acquire", async (req, res) => {
     const payload = {
       cname: channelName,
       uid: "0",
-      clientRequest: {},
+      clientRequest: {
+        resourceExpiredHour: 24, // Set resource expiration to 24 hours
+        scene: 0,
+      },
     };
 
     console.log("Payload sent to Agora for acquire:", payload);
@@ -175,8 +178,7 @@ app.post("/start", async (req, res) => {
         recordingConfig: {
           maxIdleTime: 30,
           streamTypes: 2,
-          audioProfile: 1,
-          channelType: 0,
+          channelType: 1,
           videoStreamType: 0,
           transcodingConfig: {
             height: 640,
@@ -184,11 +186,10 @@ app.post("/start", async (req, res) => {
             bitrate: 500,
             fps: 15,
             mixedVideoLayout: 1,
-            backgroundColor: "#FF0000",
           },
-          subscribeVideoUids: ["123", "456"],
-          subscribeAudioUids: ["123", "456"],
-          subscribeUidGroup: 0,
+        },
+        recordingFileConfig: {
+          avFileType: ["hls", "mp4"],
         },
         storageConfig: {
           vendor: 2,
@@ -196,7 +197,6 @@ app.post("/start", async (req, res) => {
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
-          fileNamePrefix: ["directory1", "directory2"],
         },
       },
     };
