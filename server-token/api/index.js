@@ -101,7 +101,7 @@ app.post("/acquire", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: "123123",
+      uid: "123123123",
       clientRequest: {
         resourceExpiredHour: 24, // Set resource expiration to 24 hours
         scene: 1,
@@ -173,7 +173,7 @@ app.post("/start", async (req, res) => {
     
     const payload = {
       cname: channelName,
-      uid: "123123",
+      uid: "123123123",
       clientRequest: {
         token: token,
         extensionServiceConfig: {

@@ -258,7 +258,7 @@ const stopRecording = async (uid) => {
   console.log("Stopping recording with values:", {
     resourceId: config.resourceId, // Now using config.resourceId
     sid: config.sid, // Now using config.sid
-    uid: "123123", // Fix: Properly added 'uid'
+    uid: "123123123", // Fix: Properly added 'uid'
   });
 
   const response = await fetch(config.serverUrl + "/stop", {
@@ -270,7 +270,7 @@ const stopRecording = async (uid) => {
       channelName: config.channelName,
       resourceId: config.resourceId, // Use the stored resourceId from config
       sid: config.sid, // Use the stored sid from config
-      uid: "123123", // Pass uid or fallback to hardcoded one
+      uid: "123123123", // Pass uid or fallback to hardcoded one
     }),
   });
 
