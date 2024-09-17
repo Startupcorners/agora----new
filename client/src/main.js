@@ -258,7 +258,7 @@ const stopRecording = async (uid) => {
   console.log("Stopping recording with values:", {
     resourceId: config.resourceId, // Now using config.resourceId
     sid: config.sid, // Now using config.sid
-    uid,
+    uid: "123123", // Fix: Properly added 'uid'
   });
 
   const response = await fetch(config.serverUrl + "/stop", {

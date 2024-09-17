@@ -175,7 +175,7 @@ app.post("/start", async (req, res) => {
       cname: channelName,
       uid:"123123",
       clientRequest: {
-        token: "",
+        token: token,
         recordingConfig: {
           channelType: 0,
           streamTypes: 2,
