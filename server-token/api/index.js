@@ -244,93 +244,30 @@ app.post("/start", async (req, res) => {
   }
 });
 // Stop recording endpoint
+app.post("/stop", (req, res) => {
+  const { channelName, resourceId, sid } = req.body;
 
-const axios = require("axios");
-
-app.post("/stop", async (req, res) => {
-  const { channelName, resourceId, sid, uid } = req.body;
-
-  // Validate required parameters
-  if (!channelName || !resourceId || !sid || !uid) {
-    console.error("Missing required parameters:", {
-      channelName,
-      resourceId,
-      sid,
-      uid,
-    });
+  if (!channelName || !resourceId || !sid) {
     return res.status(400).json({
-      error: "channelName, resourceId, sid, and uid are required",
+      error: "channelName, resourceId, and sid are required",
     });
   }
 
-  console.log("Stopping recording with details:", {
-    channelName,
-    resourceId,
-    sid,
-    uid,
-  });
-
-  try {
-    // Generate the Authorization token
-    const authorizationToken = Buffer.from(
-      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
-    ).toString("base64");
-
-    console.log("Authorization token created.");
-
-    // Create the payload for the stop request
-    const payload = {
-      cname: channelName,
-      uid: uid, // Must match the recording uid used when starting the recording
-      clientRequest: {},
-    };
-
-    console.log("Payload for stop request:", JSON.stringify(payload, null, 2));
-
-    // Make the API call to stop recording
-    const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/mix/stop`,
-      payload,
-      {
-        headers: {
-          Authorization: `Basic ${authorizationToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    // Log the response from Agora
-    console.log("Stop recording response from Agora:", response.data);
-
-    // Handle response and return the file list if recording stopped successfully
-    if (response.data.serverResponse && response.data.serverResponse.fileList) {
-      console.log(
-        "File list from Agora:",
-        response.data.serverResponse.fileList
-      );
-      res.json({
-        message: "Recording stopped",
-        fileList: response.data.serverResponse.fileList,
-      });
-    } else {
-      console.error("No file list returned from Agora:", response.data);
-      res
-        .status(500)
-        .json({ error: "Failed to stop recording: No file list returned" });
-    }
-  } catch (error) {
-    // Log detailed error information
-    console.error(
-      "Error stopping recording:",
-      error.response ? error.response.data : error.message
-    );
-    res.status(500).json({
-      error: "Failed to stop recording",
-      details: error.response ? error.response.data : error.message,
-    });
-  }
+  res.json({ message: "Recording stopped", resourceId, sid });
 });
 
+// Root endpoint to check server status
+app.get("/", (req, res) => {
+  const now = new Date();
+  const formattedDate = now.toISOString().replace(/T/, " ").replace(/\..+/, "");
+
+  return res.json({
+    status: "up",
+    time: formattedDate,
+  });
+});
+
+module.exports = app;
 
 
 app.get("/generate_recording_token", (req, res) => {
@@ -388,7 +325,3 @@ app.get("/generate_recording_token", (req, res) => {
     res.status(500).json({ error: "Failed to generate token" });
   }
 });
-
-
-
-module.exports = app;
