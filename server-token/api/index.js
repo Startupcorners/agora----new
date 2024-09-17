@@ -244,27 +244,62 @@ app.post("/start", async (req, res) => {
   }
 });
 // Stop recording endpoint
-app.post("/stop", (req, res) => {
-  const { channelName, resourceId, sid } = req.body;
 
-  if (!channelName || !resourceId || !sid) {
+app.post("/stop", async (req, res) => {
+  const { channelName, resourceId, sid, uid } = req.body;
+
+  // Validate required parameters
+  if (!channelName || !resourceId || !sid || !uid) {
     return res.status(400).json({
-      error: "channelName, resourceId, and sid are required",
+      error: "channelName, resourceId, sid, and uid are required",
     });
   }
 
-  res.json({ message: "Recording stopped", resourceId, sid });
-});
+  try {
+    // Generate the Authorization token
+    const authorizationToken = Buffer.from(
+      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
+    ).toString("base64");
 
-// Root endpoint to check server status
-app.get("/", (req, res) => {
-  const now = new Date();
-  const formattedDate = now.toISOString().replace(/T/, " ").replace(/\..+/, "");
+    // Create the payload for the stop request
+    const payload = {
+      cname: channelName,
+      uid: "123123", // Must match the recording uid used when starting the recording
+      clientRequest: {},
+    };
 
-  return res.json({
-    status: "up",
-    time: formattedDate,
-  });
+    // Make the API call to stop recording
+    const response = await axios.post(
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/re-eKiH2xTMbNWyf4nBAyhfn3mVyfhK3PURzjiB3aLicHYLhrLYDtSXCslxsIMefSMFmNzQju7WuAcYNAXQn4Uu-rQHneR3iJXXyhYX8t0SNK77kyvzOysaLls5ju6SfOWSGpg9a-rBGd3lGO12-VMXQJGXxm9dHoFa4Q1k_gqu64qYTKRDfxQMUf3tLmjuaOmk-822Cybhyrm9hzNhNlU--AAjOY9A76h604N5rVKs/sid/05731fa287482df48470c794b6d92bc2/mode/mix/stop`,
+      payload,
+      {
+        headers: {
+          Authorization: `Basic ${authorizationToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // Log the response from Agora
+    console.log("Stop recording response:", response.data);
+
+    // Handle response and return the file list if recording stopped successfully
+    if (response.data.serverResponse && response.data.serverResponse.fileList) {
+      res.json({
+        message: "Recording stopped",
+        fileList: response.data.serverResponse.fileList,
+      });
+    } else {
+      res
+        .status(500)
+        .json({ error: "Failed to stop recording: No file list returned" });
+    }
+  } catch (error) {
+    console.error("Error stopping recording:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to stop recording", details: error.message });
+  }
 });
 
 module.exports = app;
