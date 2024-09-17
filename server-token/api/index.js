@@ -101,7 +101,7 @@ app.post("/acquire", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: "0",
+      uid: 0,
       clientRequest: {
         resourceExpiredHour: 24, // Set resource expiration to 24 hours
         scene: 0,
@@ -305,7 +305,7 @@ app.get("/generate_recording_token", (req, res) => {
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
-      "0",
+      0,
       role,
       Math.floor(Date.now() / 1000) + 3600 // Token valid for 1 hour
     );
