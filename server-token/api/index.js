@@ -101,7 +101,7 @@ app.post("/acquire", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: "0",
+      uid: "123123",
       clientRequest: {
         resourceExpiredHour: 24, // Set resource expiration to 24 hours
         scene: 0,
@@ -170,23 +170,27 @@ app.post("/start", async (req, res) => {
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
+    
     const payload = {
       cname: channelName,
-      uid: 123,
+      uid:"123123",
       clientRequest: {
-        token: token,
+        token: "",
         recordingConfig: {
-          maxIdleTime: 120,
+          channelType: 0,
           streamTypes: 2,
-          channelType: 1,
           videoStreamType: 0,
-          transcodingConfig: {
-            height: 640,
-            width: 360,
-            bitrate: 500,
-            fps: 15,
-            mixedVideoLayout: 1,
-          },
+          maxIdleTime: 120,
+          subscribeVideoUids: ["#allstream#"],
+          subscribeAudioUids: ["#allstream#"],
+          subscribeUidGroup: 0,
+        },
+        transcodingConfig: {
+          height: 640,
+          width: 360,
+          bitrate: 500,
+          fps: 15,
+          mixedVideoLayout: 1,
         },
         recordingFileConfig: {
           avFileType: ["hls", "mp4"],
