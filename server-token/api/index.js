@@ -176,15 +176,15 @@ app.post("/start", async (req, res) => {
       clientRequest: {
         token: token,
         recordingConfig: {
-          maxIdleTime: 120,
+          maxIdleTime: 30,
           streamTypes: 2,
-          channelType: 0,
+          channelType: 1,
           videoStreamType: 0,
           transcodingConfig: {
             height: 640,
             width: 360,
             bitrate: 500,
-            fps: 30,
+            fps: 15,
             mixedVideoLayout: 1,
           },
         },
@@ -305,7 +305,7 @@ app.get("/generate_recording_token", (req, res) => {
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
-      "0",
+      0,
       role,
       Math.floor(Date.now() / 1000) + 3600 // Token valid for 1 hour
     );
