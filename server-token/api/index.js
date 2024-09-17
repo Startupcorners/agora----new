@@ -289,7 +289,7 @@ app.post("/stop", async (req, res) => {
 
     // Make the API call to stop recording
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/mix/stop`,
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/web/stop`,
       payload,
       {
         headers: {
