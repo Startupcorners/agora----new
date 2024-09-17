@@ -174,9 +174,10 @@ app.post("/start", async (req, res) => {
       cname: channelName,
       uid: "0",
       clientRequest: {
-        token: token,
+        token:
+          "007eJxTYAgMqtkz39/oL+O66dm7b3R3vHL6VZDyoufPnvvCzbd6DzgqMFiaploaWloYpJqamJgkWqRamCWZpJoYJpunGRgnmRsat9W9TGsIZGRYsvYeMyMDBIL4CgyG5kZmhpampoaWJmamFcYmZiaGFhZmJpbGRkam5hYGBgwMADYPJ/U=",
         recordingConfig: {
-          maxIdleTime: 30,
+          maxIdleTime: 120,
           streamTypes: 2,
           channelType: 1,
           videoStreamType: 0,
@@ -305,7 +306,7 @@ app.get("/generate_recording_token", (req, res) => {
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
-      0,
+      "0",
       role,
       Math.floor(Date.now() / 1000) + 3600 // Token valid for 1 hour
     );
