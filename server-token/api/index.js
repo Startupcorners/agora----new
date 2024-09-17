@@ -172,10 +172,9 @@ app.post("/start", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: "0",
+      uid: 123,
       clientRequest: {
-        token:
-          "007eJxTYAgMqtkz39/oL+O66dm7b3R3vHL6VZDyoufPnvvCzbd6DzgqMFiaploaWloYpJqamJgkWqRamCWZpJoYJpunGRgnmRsat9W9TGsIZGRYsvYeMyMDBIL4CgyG5kZmhpampoaWJmamFcYmZiaGFhZmJpbGRkam5hYGBgwMADYPJ/U=",
+        token: token,
         recordingConfig: {
           maxIdleTime: 120,
           streamTypes: 2,
