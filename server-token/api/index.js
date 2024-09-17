@@ -305,7 +305,7 @@ app.get("/generate_recording_token", (req, res) => {
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
-      0,
+      "0",
       role,
       Math.floor(Date.now() / 1000) + 3600 // Token valid for 1 hour
     );
