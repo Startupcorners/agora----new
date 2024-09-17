@@ -176,15 +176,15 @@ app.post("/start", async (req, res) => {
       clientRequest: {
         token: token,
         recordingConfig: {
-          maxIdleTime: 30,
+          maxIdleTime: 120,
           streamTypes: 2,
-          channelType: 1,
+          channelType: 0,
           videoStreamType: 0,
           transcodingConfig: {
             height: 640,
             width: 360,
             bitrate: 500,
-            fps: 15,
+            fps: 30,
             mixedVideoLayout: 1,
           },
         },
