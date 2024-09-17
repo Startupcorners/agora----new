@@ -192,7 +192,7 @@ app.post("/start", async (req, res) => {
           avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: 2,
+          vendor: 1,
           region: 0,
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
