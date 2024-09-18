@@ -1,19 +1,19 @@
-const getMp4FromS3 = require("./getMp4FromS3"); // Import the function directly
+const getMp4FromS3 = require("./getMp4FromS3");
 
 // Poll for MP4 file from AWS S3
 const pollForMp4 = async (
   resourceId,
   channelName,
   timestamp,
-  maxAttempts = 20,
-  delay = 30000
+  maxAttempts = 20, // Total number of attempts
+  delay = 30000 // 30 seconds delay between attempts
 ) => {
   let attempts = 0;
 
   while (attempts < maxAttempts) {
     try {
-      // Call the getMp4FromS3 function directly instead of making an HTTP request
-      const mp4Files = await getMp4FromS3(resourceId, channelName, timestamp);
+      // Try to get MP4 files from S3
+      const mp4Files = await getMp4FromS3(channelName, timestamp);
 
       if (mp4Files && mp4Files.length > 0) {
         console.log("MP4 files found:", mp4Files);
