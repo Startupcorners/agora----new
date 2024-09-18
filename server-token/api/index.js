@@ -358,22 +358,44 @@ app.post("/query", async (req, res) => {
       }
     );
 
+    // Log the entire response from Agora for debugging purposes
+    console.log(
+      "Full query response from Agora:",
+      JSON.stringify(response.data, null, 2)
+    );
+
+    // Extract and log the fileList
     if (response.data.serverResponse && response.data.serverResponse.fileList) {
-      res.json({
+      console.log(
+        "File list from Agora:",
+        JSON.stringify(response.data.serverResponse.fileList, null, 2)
+      );
+      return res.json({
         fileList: response.data.serverResponse.fileList,
       });
     } else {
-      res
+      console.log(
+        "Files not ready yet or no fileList returned:",
+        response.data
+      );
+      return res
         .status(200)
         .json({ message: "Files not ready yet. Please try again later." });
     }
   } catch (error) {
-    res.status(500).json({
+    console.error(
+      "Error querying for recording status:",
+      error.response
+        ? JSON.stringify(error.response.data, null, 2)
+        : error.message
+    );
+    return res.status(500).json({
       error: "Failed to query recording status",
       details: error.response ? error.response.data : error.message,
     });
   }
 });
+
 
 
 
