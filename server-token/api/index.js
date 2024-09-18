@@ -3,6 +3,13 @@ const cors = require("cors");
 const axios = require("axios");
 const { RtcTokenBuilder, Role } = require("./RtcTokenBuilder2"); // Import Role from RtcTokenBuilder2.js
   // Path to RtcTokenBuilder2.js in the same folder
+const AWS = require("aws-sdk");
+  // Set up AWS S3
+const s3 = new AWS.S3({
+    accessKeyId: process.env.S3_ACCESS_KEY,
+    secretAccessKey: process.env.S3_SECRET_KEY,
+    region: "us-east-1",
+  });
 
 require("dotenv").config();
 
@@ -136,195 +143,98 @@ app.post("/acquire", async (req, res) => {
 
 // Start recordingconst axios = require("axios");
 
-app.post("/start", async (req, res) => {
-  const { channelName, resourceId, uid, token } = req.body;
-
-  if (!channelName || !resourceId || !uid || !token) {
-    console.error("Missing required parameters:", {
-      channelName,
-      resourceId,
-      uid,
-      token,
-    });
-    return res.status(400).json({
-      error: "channelName, resourceId, uid, and token are required",
-    });
-  }
-
-  console.log("App ID:", process.env.APP_ID);
-  console.log("Resource ID:", resourceId);
-
-
-  console.log("Start recording request for:", {
-    channelName,
-    resourceId,
-    uid,
-    token,
-  });
-
-  // Convert environment variables to numbers
-  const vendor = parseInt(process.env.S3_VENDOR, 10) || 2;
-  const region = parseInt(process.env.S3_REGION, 10) || 0;
-
+const startRecording = async () => {
   try {
-    const authorizationToken = Buffer.from(
-      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
-    ).toString("base64");
+    const resourceId = await acquireResource();
+    console.log("Resource acquired:", resourceId);
 
-    
-    const payload = {
-      cname: channelName,
-      uid: uid,
-      clientRequest: {
-        token: token,
-        extensionServiceConfig: {
-          errorHandlePolicy: "error_abort",
-          extensionServices: [
-            {
-              serviceName: "web_recorder_service",
-              errorHandlePolicy: "error_abort",
-              serviceParam: {
-                url: "https://sccopy-38403.bubbleapps.io/video/1726195519465x346418864932257800?r=1721913797942x965183480405939000&isaws=yes",
-                audioProfile: 1,
-                videoWidth: 1280,
-                videoHeight: 720,
-                maxRecordingHour: 1,
-              },
-            },
-          ],
-        },
-        recordingFileConfig: {
-          avFileType: ["hls", "mp4"],
-        },
-        storageConfig: {
-          vendor: 1,
-          region: 0,
-          bucket: process.env.S3_BUCKET_NAME,
-          accessKey: process.env.S3_ACCESS_KEY,
-          secretKey: process.env.S3_SECRET_KEY,
-          fileNamePrefix: ["recordings", channelName],
-        },
+    config.resourceId = resourceId;
+
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    console.log("Waited 2 seconds after acquiring resource");
+
+    const recordingTokenResponse = await fetch(
+      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=0`,
+      {
+        method: "GET",
+      }
+    );
+
+    const tokenData = await recordingTokenResponse.json();
+    const recordingToken = tokenData.token;
+
+    const timestamp = Date.now().toString(); // Generate a timestamp
+
+    const response = await fetch(config.serverUrl + "/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
       },
-    };
-
-    console.log(
-      "Payload sent to Agora for start recording:",
-      JSON.stringify(payload, null, 2)
-    );
-
-    const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/web/start`,
-      payload,
-      {
-        headers: {
-          Authorization: `Basic ${authorizationToken}`,
-          "Content-Type": "application/json",
+      body: JSON.stringify({
+        resourceId: resourceId,
+        channelName: config.channelName,
+        uid: config.recordId, // Use recordId for UID
+        token: recordingToken,
+        clientRequest: {
+          extensionServiceConfig: {
+            errorHandlePolicy: "error_abort",
+            extensionServices: [
+              {
+                serviceName: "web_recorder_service",
+                errorHandlePolicy: "error_abort",
+                serviceParam: {
+                  url: `https://sccopy-38403.bubbleapps.io/video/${config.channelName}?timestamp=${timestamp}`,
+                  audioProfile: 1,
+                  videoWidth: 1280,
+                  videoHeight: 720,
+                  maxRecordingHour: 1,
+                },
+              },
+            ],
+          },
+          recordingFileConfig: {
+            avFileType: ["hls", "mp4"],
+          },
+          storageConfig: {
+            vendor: 1,
+            region: 0,
+            bucket: process.env.S3_BUCKET_NAME,
+            accessKey: process.env.S3_ACCESS_KEY,
+            secretKey: process.env.S3_SECRET_KEY,
+            fileNamePrefix: ["recordings", config.channelName, timestamp],
+          },
         },
-      }
-    );
+      }),
+    });
 
-    console.log("Start recording response:", response.data);
+    const startData = await response.json();
 
-    if (response.data.sid) {
-      console.log("SID received:", response.data.sid);
-      res.json({ resourceId, sid: response.data.sid });
-    } else {
-      console.error("No SID in response:", response.data);
-      res.status(500).json({ error: "Failed to start recording: No SID received" });
+    if (!response.ok) {
+      throw new Error(`Failed to start recording: ${startData.error}`);
     }
-  } catch (error) {
-    console.error("Full error object:", JSON.stringify(error, null, 2));
-    console.error("Error response data:", error.response ? JSON.stringify(error.response.data, null, 2) : "No response data");
-    console.error("Error message:", error.message);
-    console.error("Error stack:", error.stack);
 
+    if (startData.sid) {
+      config.sid = startData.sid;
+      console.log("SID received:", startData.sid);
 
-    res.status(500).json({
-      error: "Failed to start recording",
-      details: error.response ? error.response.data : error.message,
-    });
-  }
-});
-
-
-// Stop recording endpoint
-
-app.post("/stop", async (req, res) => {
-  const { channelName, resourceId, sid, uid } = req.body;
-
-  if (!channelName || !resourceId || !sid || !uid) {
-    console.error("Missing required parameters:", {
-      channelName,
-      resourceId,
-      sid,
-      uid,
-    });
-    return res.status(400).json({
-      error: "channelName, resourceId, sid, and uid are required",
-    });
-  }
-
-  console.log("Stopping recording with details:", {
-    channelName,
-    resourceId,
-    sid,
-    uid,
-  });
-
-  try {
-    const authorizationToken = Buffer.from(
-      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
-    ).toString("base64");
-
-    const payload = {
-      cname: channelName,
-      uid: uid,
-      clientRequest: {},
-    };
-
-    const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/web/stop`,
-      payload,
-      {
-        headers: {
-          Authorization: `Basic ${authorizationToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (response.data.serverResponse && response.data.serverResponse.fileList) {
-      const mp4File = response.data.serverResponse.fileList.find(
-        (file) => file.fileType === "mp4"
-      );
-
-      if (mp4File) {
-        const mp4Url = mp4File.fileName;
-
-        if (typeof bubble_fn_mp4 === "function") {
-          bubble_fn_mp4(mp4Url);
-        }
-
-        res.json({
-          message: "Recording stopped",
-          fileList: response.data.serverResponse.fileList,
-          mp4Url: mp4Url,
-        });
-      } else {
-        res.status(500).json({ error: "No MP4 file found in the file list" });
-      }
+      bubble_fn_record({
+        output1: resourceId,
+        output2: startData.sid,
+        output3: config.recordId,
+      });
     } else {
-      res
-        .status(500)
-        .json({ error: "Failed to stop recording: No file list returned" });
+      console.error("SID not received in the response:", startData);
     }
+
+    return startData;
   } catch (error) {
-    res.status(500).json({
-      error: "Failed to stop recording",
-      details: error.response ? error.response.data : error.message,
-    });
+    console.error("Error starting recording:", error);
+    throw error;
   }
-});
+};
+
+
+
 
 
 
@@ -454,5 +364,127 @@ app.get("/generate_recording_token", (req, res) => {
     res.status(500).json({ error: "Failed to generate token" });
   }
 });
+
+
+
+// Stop recording endpoint
+app.post("/stop", async (req, res) => {
+  const { channelName, resourceId, sid, uid, timestamp } = req.body;
+
+  if (!channelName || !resourceId || !sid || !uid || !timestamp) {
+    return res.status(400).json({
+      error: "channelName, resourceId, sid, uid, and timestamp are required",
+    });
+  }
+
+  console.log("Stopping recording with details:", {
+    channelName,
+    resourceId,
+    sid,
+    uid,
+  });
+
+  try {
+    const authorizationToken = Buffer.from(
+      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
+    ).toString("base64");
+
+    const payload = {
+      cname: channelName,
+      uid: uid,
+      clientRequest: {},
+    };
+
+    const response = await axios.post(
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/web/stop`,
+      payload,
+      {
+        headers: {
+          Authorization: `Basic ${authorizationToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    console.log("Recording stopped on Agora");
+
+    // After stopping, call the AWS S3 function to retrieve the MP4
+    const getMp4Response = await axios.post(
+      `${config.serverUrl}/getMp4FromS3`,
+      {
+        channelName: channelName,
+        timestamp: timestamp,
+      }
+    );
+
+    if (getMp4Response.data.files && getMp4Response.data.files.length > 0) {
+      const mp4Url = getMp4Response.data.files[0];
+
+      if (typeof bubble_fn_mp4 === "function") {
+        bubble_fn_mp4(mp4Url);
+      }
+
+      res.json({
+        message: "Recording stopped",
+        mp4Url: mp4Url,
+      });
+    } else {
+      res.status(500).json({ error: "No MP4 file found in S3" });
+    }
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to stop recording",
+      details: error.response ? error.response.data : error.message,
+    });
+  }
+});
+
+
+
+app.post("/getMp4FromS3", async (req, res) => {
+  const { channelName, timestamp } = req.body;
+
+  if (!channelName || !timestamp) {
+    return res
+      .status(400)
+      .json({ error: "channelName and timestamp are required" });
+  }
+
+  const prefix = `recordings/${channelName}/${timestamp}/`;
+  const bucketName = process.env.S3_BUCKET_NAME;
+
+  try {
+    const params = {
+      Bucket: bucketName,
+      Prefix: prefix,
+    };
+
+    const data = await s3.listObjectsV2(params).promise();
+
+    const mp4Files = data.Contents.filter((file) => file.Key.endsWith(".mp4"));
+
+    if (mp4Files.length === 0) {
+      return res.status(404).json({ error: "No MP4 files found" });
+    }
+
+    const mp4Urls = mp4Files.map((file) => {
+      return `https://${bucketName}.s3.amazonaws.com/${file.Key}`;
+    });
+
+    res.json({
+      message: "MP4 files retrieved successfully",
+      files: mp4Urls,
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: "Failed to retrieve MP4 files from S3",
+      details: error.message,
+    });
+  }
+});
+
+
+
+
 
 module.exports = app;
