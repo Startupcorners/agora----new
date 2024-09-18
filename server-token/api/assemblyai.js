@@ -1,12 +1,4 @@
 const axios = require("axios");
-const nocache = (req, res, next) => {
-  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-  res.header("Expires", "-1");
-  res.header("Pragma", "no-cache");
-  next();
-};
-
-const assemblyAiApiKey = process.env.ASSEMBLY_AI_API_KEY;
 
 const sendToAssemblyAiAndGetSummary = async (mp4Url) => {
   try {
@@ -14,46 +6,25 @@ const sendToAssemblyAiAndGetSummary = async (mp4Url) => {
       "https://api.assemblyai.com/v2/transcript",
       {
         audio_url: mp4Url,
-        auto_highlights: true, // Enables highlights
-        summarization: true,   // Enables summarization
-        summary_type: "bullets", // 'bullets', 'gist', or 'headline'
+        auto_highlights: true,
+        summarization: true,
+        summary_model: "informational", // You can also use "conversational" based on your needs
+        summary_type: "bullets",
       },
       {
         headers: {
-          authorization: assemblyAiApiKey,
-          "content-type": "application/json",
+          authorization: process.env.ASSEMBLY_AI_API_KEY, // Ensure you have your AssemblyAI key in your environment variables
+          "Content-Type": "application/json",
         },
       }
     );
 
-    const transcriptId = response.data.id;
-
-    let summary = "";
-
-    while (true) {
-      const transcriptResponse = await axios.get(
-        `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
-        {
-          headers: {
-            authorization: assemblyAiApiKey,
-          },
-        }
-      );
-
-      if (transcriptResponse.data.status === "completed") {
-        summary = transcriptResponse.data.summary;
-        break;
-      } else if (transcriptResponse.data.status === "failed") {
-        throw new Error("Transcription and summarization failed");
-      }
-
-      // Wait before polling again
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-    }
-
-    return summary;
+    return response.data;
   } catch (error) {
-    console.error("Error sending MP4 to AssemblyAI:", error);
+    console.error(
+      "Error sending MP4 to AssemblyAI:",
+      error.response ? error.response.data : error.message
+    );
     throw error;
   }
 };
