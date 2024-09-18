@@ -180,157 +180,204 @@ const MainApp = function (initConfig) {
     }
   };
 
-const startRecording = async () => {
-  try {
-    const resourceId = await acquireResource();
-    console.log("Resource acquired:", resourceId);
+  const startRecording = async () => {
+    try {
+      const resourceId = await acquireResource();
+      console.log("Resource acquired:", resourceId);
 
-    config.resourceId = resourceId;
+      config.resourceId = resourceId;
 
-    const timestamp = Date.now().toString(); // Generate timestamp in the frontend
-    config.timestamp = timestamp; // Save the timestamp in config for later use
+      const timestamp = Date.now().toString(); // Generate timestamp in the frontend
+      config.timestamp = timestamp; // Save the timestamp in config for later use
 
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log("Waited 2 seconds after acquiring resource");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log("Waited 2 seconds after acquiring resource");
 
-    const recordingTokenResponse = await fetch(
-      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.recordId}`,
-      {
-        method: "GET",
-      }
-    );
+      const recordingTokenResponse = await fetch(
+        `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.recordId}`,
+        {
+          method: "GET",
+        }
+      );
 
-    const tokenData = await recordingTokenResponse.json();
-    const recordingToken = tokenData.token;
+      const tokenData = await recordingTokenResponse.json();
+      const recordingToken = tokenData.token;
 
-    console.log("Recording token received:", recordingToken);
+      console.log("Recording token received:", recordingToken);
 
-    // Log the parameters before sending the request to ensure they're correct
-    console.log("Sending the following data to the backend:", {
-      resourceId: config.resourceId,
-      channelName: config.channelName,
-      uid: config.recordId,
-      token: recordingToken,
-      timestamp: config.timestamp, // Ensure the timestamp is being passed here
-    });
-
-    const response = await fetch(config.serverUrl + "/start", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+      // Log the parameters before sending the request to ensure they're correct
+      console.log("Sending the following data to the backend:", {
         resourceId: config.resourceId,
         channelName: config.channelName,
         uid: config.recordId,
         token: recordingToken,
-        timestamp: config.timestamp, // Ensure the timestamp is passed here
-      }),
-    });
-
-    const startData = await response.json();
-    console.log("Response from start recording:", startData);
-
-    if (!response.ok) {
-      console.error("Error starting recording:", startData);
-      throw new Error(`Failed to start recording: ${startData.error}`);
-    }
-
-    if (startData.sid) {
-      console.log("SID received successfully:", startData.sid);
-      config.sid = startData.sid;
-    } else {
-      console.error("SID not received in the response:", startData);
-    }
-
-    console.log(
-      "Recording started successfully. Resource ID:",
-      resourceId,
-      "SID:",
-      config.sid
-    );
-
-    if (typeof bubble_fn_record === "function") {
-      bubble_fn_record({
-        output1: resourceId,
-        output2: config.sid,
-        output3: config.recordId,
-        output4: config.timestamp, // Pass the timestamp to Bubble function
+        timestamp: config.timestamp, // Ensure the timestamp is being passed here
       });
-      console.log("Called bubble_fn_record with:", {
-        output1: resourceId,
-        output2: config.sid,
-        output3: config.recordId,
-        output4: config.timestamp,
-      });
-    } else {
-      console.warn("bubble_fn_record is not defined");
-    }
 
-    return startData;
-  } catch (error) {
-    console.error("Error starting recording:", error);
-    throw error;
-  }
-};
-
-  
-  
-  // Stop recording function
-const stopRecording = async () => {
-  try {
-    // Step 1: Make the stop request to the backend
-    const stopResponse = await fetch(`${config.serverUrl}/stop`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resourceId: config.resourceId,
-        sid: config.sid,
-        channelName: config.channelName,
-        uid: config.recordId,
-        timestamp: config.timestamp,
-      }),
-    });
-
-    const stopData = await stopResponse.json();
-
-    if (stopResponse.ok) {
-      console.log("Recording stopped successfully:", stopData);
-
-      // Step 2: After stopping the recording, call the getMp4FromS3 endpoint
-      const mp4Response = await fetch(`${config.serverUrl}/getMp4FromS3`, {
+      const response = await fetch(config.serverUrl + "/start", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          resourceId: config.resourceId,
           channelName: config.channelName,
+          uid: config.recordId,
+          token: recordingToken,
+          timestamp: config.timestamp, // Ensure the timestamp is passed here
+        }),
+      });
+
+      const startData = await response.json();
+      console.log("Response from start recording:", startData);
+
+      if (!response.ok) {
+        console.error("Error starting recording:", startData);
+        throw new Error(`Failed to start recording: ${startData.error}`);
+      }
+
+      if (startData.sid) {
+        console.log("SID received successfully:", startData.sid);
+        config.sid = startData.sid;
+      } else {
+        console.error("SID not received in the response:", startData);
+      }
+
+      console.log(
+        "Recording started successfully. Resource ID:",
+        resourceId,
+        "SID:",
+        config.sid
+      );
+
+      if (typeof bubble_fn_record === "function") {
+        bubble_fn_record({
+          output1: resourceId,
+          output2: config.sid,
+          output3: config.recordId,
+          output4: config.timestamp, // Pass the timestamp to Bubble function
+        });
+        console.log("Called bubble_fn_record with:", {
+          output1: resourceId,
+          output2: config.sid,
+          output3: config.recordId,
+          output4: config.timestamp,
+        });
+      } else {
+        console.warn("bubble_fn_record is not defined");
+      }
+
+      return startData;
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      throw error;
+    }
+  };
+
+  // Poll for MP4 file from AWS S3
+  const pollForMp4 = async (
+    resourceId,
+    channelName,
+    timestamp,
+    maxAttempts = 20,
+    delay = 30000
+  ) => {
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      try {
+        // Call the backend to check for MP4 file in S3
+        const response = await fetch(`${config.serverUrl}/getMp4FromS3`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            resourceId: resourceId,
+            channelName: channelName,
+            timestamp: timestamp,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.files && data.files.length > 0) {
+          console.log("MP4 files found:", data.files);
+
+          // Send MP4 URL to your Bubble endpoint
+          const mp4Url = data.files[0];
+          await fetch(
+            "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receiveawsvideo",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                ressourceID: resourceId,
+                url: mp4Url,
+              }),
+            }
+          );
+
+          console.log(`Successfully sent MP4 URL to Bubble: ${mp4Url}`);
+          return mp4Url;
+        } else {
+          console.log(
+            `Attempt ${attempts + 1}: MP4 file not found. Retrying...`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Attempt ${attempts + 1}: Error fetching MP4 from S3`,
+          error
+        );
+      }
+
+      // Wait before the next attempt
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      attempts++;
+    }
+
+    throw new Error("MP4 file not found in AWS S3 after maximum attempts.");
+  };
+
+  // Stop recording function with polling
+  const stopRecording = async () => {
+    try {
+      // Stop the recording via backend
+      const response = await fetch(`${config.serverUrl}/stop`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resourceId: config.resourceId,
+          sid: config.sid,
+          channelName: config.channelName,
+          uid: config.recordId,
           timestamp: config.timestamp,
         }),
       });
 
-      const mp4Data = await mp4Response.json();
+      const stopData = await response.json();
 
-      if (mp4Response.ok && mp4Data.files.length > 0) {
-        console.log("MP4 files retrieved:", mp4Data.files);
+      if (response.ok) {
+        console.log("Recording stopped successfully:", stopData);
 
-        // Call the Bubble function with the MP4 URL
-        if (typeof bubble_fn_mp4 === "function") {
-          bubble_fn_mp4(mp4Data.files[0]);
-        }
+        // Start polling for the MP4 file in AWS
+        await pollForMp4(
+          config.resourceId,
+          config.channelName,
+          config.timestamp
+        );
       } else {
-        console.error("No MP4 file found or error retrieving MP4 file");
+        console.error("Error stopping recording:", stopData.error);
       }
-    } else {
-      console.error("Error stopping recording:", stopData.error);
+    } catch (error) {
+      console.error("Error stopping recording:", error);
     }
-  } catch (error) {
-    console.error("Error stopping recording or retrieving MP4:", error);
-  }
-};
-
+  };
   /**
    * Functions
    */
