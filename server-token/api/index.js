@@ -193,7 +193,7 @@ app.post("/start", async (req, res) => {
           ],
         },
         recordingFileConfig: {
-          avFileType: ["hls", "mp4"],
+          avFileType: ["mp4"],
         },
         storageConfig: {
           vendor: 1,
@@ -201,6 +201,10 @@ app.post("/start", async (req, res) => {
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
+          fileNamePrefix: [
+            channelName, // Use channel name as the top-level folder
+            "recordings", // Optional sub-folder (can be removed if not needed)
+          ],
         },
       },
     };
@@ -308,10 +312,33 @@ app.post("/stop", async (req, res) => {
         "File list from Agora:",
         response.data.serverResponse.fileList
       );
-      res.json({
-        message: "Recording stopped",
-        fileList: response.data.serverResponse.fileList,
-      });
+
+      // Extract the MP4 file URL
+      const mp4File = response.data.serverResponse.fileList.find(
+        (file) => file.fileType === "mp4"
+      );
+
+      if (mp4File) {
+        const mp4Url = mp4File.fileName;
+        console.log("MP4 file URL:", mp4Url);
+
+        // Call the Bubble function with the MP4 URL
+        if (typeof bubble_fn_mp4 === "function") {
+          bubble_fn_mp4(mp4Url); // Pass the MP4 URL to Bubble
+          console.log("Called bubble_fn_mp4 with:", mp4Url);
+        } else {
+          console.warn("bubble_fn_mp4 is not defined");
+        }
+
+        res.json({
+          message: "Recording stopped",
+          fileList: response.data.serverResponse.fileList,
+          mp4Url: mp4Url, // Include the MP4 URL in the response
+        });
+      } else {
+        console.error("No MP4 file found in the file list");
+        res.status(500).json({ error: "No MP4 file found in the file list" });
+      }
     } else {
       console.error("No file list returned from Agora:", response.data);
       res
@@ -330,6 +357,7 @@ app.post("/stop", async (req, res) => {
     });
   }
 });
+
 
 
 app.get("/generate_recording_token", (req, res) => {
