@@ -158,8 +158,8 @@ const MainApp = function (initConfig) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          channelName: config.channelName, // Provide the channel name
-          uid: "0", // Provide the UID
+          channelName: config.channelName,
+          uid: "0",
         }),
       });
 
@@ -210,10 +210,10 @@ const MainApp = function (initConfig) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          resourceId: resourceId, // Pass the correct resourceId
-          channelName: config.channelName, // Channel name must match the one used for the call
-          uid: "0", // UID should be "0" for recording
-          token: recordingToken, // Use the new token generated for recording
+          resourceId: resourceId,
+          channelName: config.channelName,
+          uid: "0",
+          token: recordingToken,
         }),
       });
 
@@ -311,7 +311,7 @@ const MainApp = function (initConfig) {
           resourceId: resourceId,
           sid: sid,
           channelName: config.channelName,
-          uid: "1111",
+          uid: "0",
         }),
       });
 
