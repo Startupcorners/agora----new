@@ -51,7 +51,6 @@ const acquire = require("./acquire");
 const generateRecordingToken = require("./generate_recording_token");
 const startRecording = require("./startRecording");
 const stopRecording = require("./stopRecording");
-const pollForMp4 = require("./pollForMp4");
 
 // Using routes
 app.use("/access-token", accessTokenGeneration);
@@ -59,7 +58,6 @@ app.use("/acquire", acquire);
 app.use("/generate_recording_token", generateRecordingToken);
 app.use("/start", startRecording);
 app.use("/stop", stopRecording);
-app.use("/poll-for-mp4", pollForMp4); // For polling MP4 file availability
 
 // Export the app
 module.exports = app;
