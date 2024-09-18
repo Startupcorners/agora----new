@@ -8,7 +8,7 @@ const sendToAssemblyAiAndGetSummary = async (mp4Url) => {
         audio_url: mp4Url,
         auto_highlights: true,
         summarization: true,
-        summary_model: "informational", // You can also use "conversational" based on your needs
+        summary_model: "informative", // Replace with "conversational" or "catchy" if needed
         summary_type: "bullets",
       },
       {
