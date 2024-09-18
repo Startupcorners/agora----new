@@ -253,78 +253,29 @@ const startRecording = async () => {
 
 
 
-// Function to poll Agora for recording status
-const pollRecordingStatus = async (resourceId, sid, retries = 10) => {
-  try {
-    for (let i = 0; i < retries; i++) {
-      console.log(`Polling attempt ${i + 1}/${retries} for resourceId: ${resourceId} and sid: ${sid}`);
 
-      const response = await fetch(`${config.serverUrl}/query`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          resourceId: resourceId,
-          sid: sid,
-          channelName: config.channelName,
-        }),
-      });
+const stopRecording = async (uid) => {
+  console.log("Stopping recording with values:", {
+    resourceId: config.resourceId, // Now using config.resourceId
+    sid: config.sid, // Now using config.sid
+    uid: "123123123", // Fix: Properly added 'uid'
+  });
 
-      const data = await response.json();
-      
-      // Check if the file list is returned
-      if (data.serverResponse && data.serverResponse.fileList) {
-        console.log("Recording files are ready:", data.serverResponse.fileList);
-        
-        // Run Bubble function with the MP4 URL or any other post-processing
-        bubble_fn_mp4(data.serverResponse.fileList[0].file);
-        
-        // Break out of the loop once we have the file list
-        return;
-      }
+  const response = await fetch(config.serverUrl + "/stop", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      channelName: config.channelName,
+      resourceId: config.resourceId, // Use the stored resourceId from config
+      sid: config.sid, // Use the stored sid from config
+      uid: "123123123", // Pass uid or fallback to hardcoded one
+    }),
+  });
 
-      console.log("Recording files not ready yet. Retrying...");
-      
-      // Wait before polling again
-      await new Promise((resolve) => setTimeout(resolve, 5000)); // 5-second delay
-    }
-
-    console.error("Polling timed out. Could not retrieve file list.");
-  } catch (error) {
-    console.error("Error while polling for recording status:", error);
-  }
-};
-
-// Call the poll function after stopping the recording
-const stopRecording = async (resourceId, sid) => {
-  try {
-    const response = await fetch(`${config.serverUrl}/stop`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resourceId: resourceId,
-        sid: sid,
-        channelName: config.channelName,
-        uid: "123123123",
-      }),
-    });
-
-    const stopData = await response.json();
-
-    if (stopData.fileList) {
-      console.log("Recording stopped and files ready:", stopData.fileList);
-      bubble_fn_mp4(stopData.fileList[0].file);
-    } else {
-      console.log("Recording stopped, but files not ready. Initiating polling...");
-      // Start polling to check for the recording status
-      await pollRecordingStatus(resourceId, sid);
-    }
-  } catch (error) {
-    console.error("Error stopping recording:", error);
-  }
+  const stopData = await response.json();
+  return stopData;
 };
 
 
@@ -895,7 +846,6 @@ const joinRTM = async () => {
         });
     }, 1000);
   };
-
   
 
   const handleRenewToken = async () => {
