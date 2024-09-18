@@ -148,7 +148,6 @@ const MainApp = function (initConfig) {
   const acquireResource = async () => {
     config.recordId = Math.floor(100000 + Math.random() * 900000).toString();
     try {
-      // Log the payload before making the API call
       console.log("Payload for acquire resource:", {
         channelName: config.channelName,
         uid: config.recordId,
@@ -161,7 +160,7 @@ const MainApp = function (initConfig) {
         },
         body: JSON.stringify({
           channelName: config.channelName,
-          uid: "0",
+          uid: config.recordId,
         }),
       });
 
@@ -172,13 +171,14 @@ const MainApp = function (initConfig) {
       }
 
       const data = await response.json();
-      console.log("Resource acquired:", data.resourceId); // Log the resourceId
+      console.log("Resource acquired:", data.resourceId);
       return data.resourceId;
     } catch (error) {
       console.error("Error acquiring resource:", error);
       throw error;
     }
   };
+
 
   const startRecording = async () => {
   try {

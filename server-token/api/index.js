@@ -111,7 +111,7 @@ app.post("/acquire", async (req, res) => {
     console.log("Payload sent to Agora for acquire:", payload);
 
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/acquire`,
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/acquire`,
       payload,
       {
         headers: {
@@ -132,6 +132,7 @@ app.post("/acquire", async (req, res) => {
     res.status(500).json({ error: "Failed to acquire resource" });
   }
 });
+
 
 // Start recordingconst axios = require("axios");
 
