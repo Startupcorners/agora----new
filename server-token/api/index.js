@@ -193,7 +193,7 @@ app.post("/start", async (req, res) => {
           ],
         },
         recordingFileConfig: {
-          avFileType: ["mp4"],
+          avFileType: ["hls", "mp4"],
         },
         storageConfig: {
           vendor: 1,
@@ -341,7 +341,7 @@ app.post("/stop", async (req, res) => {
     });
   }
 });
-
+o
 
 
 app.get("/generate_recording_token", (req, res) => {
