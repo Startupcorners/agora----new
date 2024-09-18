@@ -50,4 +50,5 @@ const pollForMp4 = async (
   throw new Error("MP4 file not found in AWS S3 after maximum attempts.");
 };
 
-module.exports = { pollForMp4 };
+
+module.exports = pollForMp4;
