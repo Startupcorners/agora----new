@@ -1,10 +1,4 @@
 const express = require("express");
-const nocache = (req, res, next) => {
-  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-  res.header("Expires", "-1");
-  res.header("Pragma", "no-cache");
-  next();
-};
 const axios = require("axios");
 const pollForMp4 = require("./pollForMp4"); // Import the pollForMp4 function
 const sendToAssemblyAiAndGetSummary = require("./assemblyai"); // Import AssemblyAI function
@@ -39,6 +33,7 @@ router.post("/", async (req, res) => {
       clientRequest: {},
     };
 
+    // Stopping recording on Agora
     const response = await axios.post(
       `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/web/stop`,
       payload,
