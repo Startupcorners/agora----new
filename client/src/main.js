@@ -11,6 +11,7 @@ const MainApp = function (initConfig) {
     callContainerSelector: null,
     participantPlayerContainer: null,
     appId: null,
+    timestamp: "",
     recordId: null,
     uid: null,
     user: {
@@ -186,6 +187,9 @@ const MainApp = function (initConfig) {
 
       config.resourceId = resourceId;
 
+      const timestamp = Date.now().toString(); // Generate timestamp in the frontend
+      config.timestamp = timestamp; // Save the timestamp in config for later use
+
       await new Promise((resolve) => setTimeout(resolve, 2000));
       console.log("Waited 2 seconds after acquiring resource");
 
@@ -207,10 +211,11 @@ const MainApp = function (initConfig) {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          resourceId: resourceId,
+          resourceId: config.resourceId,
           channelName: config.channelName,
           uid: config.recordId,
           token: recordingToken,
+          timestamp: config.timestamp, // Send the timestamp to the backend
         }),
       });
 
@@ -241,11 +246,13 @@ const MainApp = function (initConfig) {
           output1: resourceId,
           output2: config.sid,
           output3: config.recordId,
+          output4: config.timestamp, // Pass the timestamp to Bubble function
         });
         console.log("Called bubble_fn_record with:", {
           output1: resourceId,
           output2: config.sid,
           output3: config.recordId,
+          output4: config.timestamp,
         });
       } else {
         console.warn("bubble_fn_record is not defined");
@@ -256,11 +263,14 @@ const MainApp = function (initConfig) {
       console.error("Error starting recording:", error);
       throw error;
     }
-  }; // Stop recording function
+  };
+
+  
+  
+  // Stop recording function
   const stopRecording = async () => {
     try {
-      const timestamp = Date.now().toString();
-
+      
       // Make the stop request to the backend
       const response = await fetch(`${config.serverUrl}/stop`, {
         method: "POST",
@@ -272,7 +282,7 @@ const MainApp = function (initConfig) {
           sid: config.sid,
           channelName: config.channelName,
           uid: config.recordId,
-          timestamp: timestamp,
+          timestamp: config.timestamp,
         }),
       });
 

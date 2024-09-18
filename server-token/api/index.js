@@ -140,99 +140,108 @@ app.post("/acquire", async (req, res) => {
   }
 });
 
+app.post("/start", async (req, res) => {
+  const { channelName, resourceId, uid, token, timestamp } = req.body;
 
-// Start recordingconst axios = require("axios");
+  if (!channelName || !resourceId || !uid || !token || !timestamp) {
+    console.error("Missing required parameters:", {
+      channelName,
+      resourceId,
+      uid,
+      token,
+      timestamp,
+    });
+    return res.status(400).json({
+      error: "channelName, resourceId, uid, token, and timestamp are required",
+    });
+  }
 
-const startRecording = async () => {
+  console.log("App ID:", process.env.APP_ID);
+  console.log("Resource ID:", resourceId);
+
+  console.log("Start recording request for:", {
+    channelName,
+    resourceId,
+    uid,
+    token,
+    timestamp,
+  });
+
   try {
-    const resourceId = await acquireResource();
-    console.log("Resource acquired:", resourceId);
+    const authorizationToken = Buffer.from(
+      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
+    ).toString("base64");
 
-    config.resourceId = resourceId;
+    const payload = {
+      cname: channelName,
+      uid: uid,
+      clientRequest: {
+        token: token,
+        extensionServiceConfig: {
+          errorHandlePolicy: "error_abort",
+          extensionServices: [
+            {
+              serviceName: "web_recorder_service",
+              errorHandlePolicy: "error_abort",
+              serviceParam: {
+                url: `https://your-frontend-url/video/${channelName}?isaws=yes`,
+                audioProfile: 1,
+                videoWidth: 1280,
+                videoHeight: 720,
+                maxRecordingHour: 1,
+              },
+            },
+          ],
+        },
+        recordingFileConfig: {
+          avFileType: ["hls", "mp4"],
+        },
+        storageConfig: {
+          vendor: 1,
+          region: 0,
+          bucket: process.env.S3_BUCKET_NAME,
+          accessKey: process.env.S3_ACCESS_KEY,
+          secretKey: process.env.S3_SECRET_KEY,
+          fileNamePrefix: ["recordings", channelName, timestamp], // Use the timestamp from frontend
+        },
+      },
+    };
 
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log("Waited 2 seconds after acquiring resource");
+    console.log(
+      "Payload sent to Agora for start recording:",
+      JSON.stringify(payload, null, 2)
+    );
 
-    const recordingTokenResponse = await fetch(
-      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=0`,
+    const response = await axios.post(
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/web/start`,
+      payload,
       {
-        method: "GET",
+        headers: {
+          Authorization: `Basic ${authorizationToken}`,
+          "Content-Type": "application/json",
+        },
       }
     );
 
-    const tokenData = await recordingTokenResponse.json();
-    const recordingToken = tokenData.token;
+    console.log("Start recording response:", response.data);
 
-    const timestamp = Date.now().toString(); // Generate a timestamp
-
-    const response = await fetch(config.serverUrl + "/start", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resourceId: resourceId,
-        channelName: config.channelName,
-        uid: config.recordId, // Use recordId for UID
-        token: recordingToken,
-        clientRequest: {
-          extensionServiceConfig: {
-            errorHandlePolicy: "error_abort",
-            extensionServices: [
-              {
-                serviceName: "web_recorder_service",
-                errorHandlePolicy: "error_abort",
-                serviceParam: {
-                  url: `https://sccopy-38403.bubbleapps.io/video/${config.channelName}?timestamp=${timestamp}`,
-                  audioProfile: 1,
-                  videoWidth: 1280,
-                  videoHeight: 720,
-                  maxRecordingHour: 1,
-                },
-              },
-            ],
-          },
-          recordingFileConfig: {
-            avFileType: ["hls", "mp4"],
-          },
-          storageConfig: {
-            vendor: 1,
-            region: 0,
-            bucket: process.env.S3_BUCKET_NAME,
-            accessKey: process.env.S3_ACCESS_KEY,
-            secretKey: process.env.S3_SECRET_KEY,
-            fileNamePrefix: ["recordings", config.channelName, timestamp],
-          },
-        },
-      }),
-    });
-
-    const startData = await response.json();
-
-    if (!response.ok) {
-      throw new Error(`Failed to start recording: ${startData.error}`);
-    }
-
-    if (startData.sid) {
-      config.sid = startData.sid;
-      console.log("SID received:", startData.sid);
-
-      bubble_fn_record({
-        output1: resourceId,
-        output2: startData.sid,
-        output3: config.recordId,
-      });
+    if (response.data.sid) {
+      console.log("SID received:", response.data.sid);
+      res.json({ resourceId, sid: response.data.sid, timestamp });
     } else {
-      console.error("SID not received in the response:", startData);
+      console.error("No SID in response:", response.data);
+      res
+        .status(500)
+        .json({ error: "Failed to start recording: No SID received" });
     }
-
-    return startData;
   } catch (error) {
     console.error("Error starting recording:", error);
-    throw error;
+    res.status(500).json({
+      error: "Failed to start recording",
+      details: error.response ? error.response.data : error.message,
+    });
   }
-};
-
+});
 
 
 
@@ -406,7 +415,6 @@ app.post("/stop", async (req, res) => {
 
     console.log("Recording stopped on Agora");
 
-    // After stopping, call the AWS S3 function to retrieve the MP4
     const getMp4Response = await axios.post(
       `${process.env.SERVER_URL}/getMp4FromS3`,
       {
@@ -418,7 +426,10 @@ app.post("/stop", async (req, res) => {
     if (getMp4Response.data.files && getMp4Response.data.files.length > 0) {
       const mp4Url = getMp4Response.data.files[0];
 
-      // Instead of calling bubble_fn_mp4, just return the MP4 URL to the frontend
+      if (typeof bubble_fn_mp4 === "function") {
+        bubble_fn_mp4(mp4Url);
+      }
+
       res.json({
         message: "Recording stopped",
         mp4Url: mp4Url,
@@ -427,13 +438,14 @@ app.post("/stop", async (req, res) => {
       res.status(500).json({ error: "No MP4 file found in S3" });
     }
   } catch (error) {
-    console.error("Error stopping recording:", error);
     res.status(500).json({
       error: "Failed to stop recording",
       details: error.response ? error.response.data : error.message,
     });
   }
 });
+
+
 
 // AWS S3 Get MP4 files
 app.post("/getMp4FromS3", async (req, res) => {
