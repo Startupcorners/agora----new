@@ -1,45 +1,64 @@
-// server-token/api/stopRecording.js
+const express = require("express");
 const axios = require("axios");
+const router = express.Router();
+const { pollForMp4 } = require("./pollForMp4"); // Import the polling function
 
-module.exports = async (req, res) => {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+// Stop recording endpoint
+router.post("/stop", async (req, res) => {
+  const { channelName, resourceId, sid, uid, timestamp } = req.body;
+
+  if (!channelName || !resourceId || !sid || !uid || !timestamp) {
+    return res.status(400).json({
+      error: "channelName, resourceId, sid, uid, and timestamp are required",
+    });
   }
 
-  const { resourceId, sid, channelName, uid } = req.body;
-
-  // Agora Credentials from Environment Variables
-  const APP_ID = process.env.AGORA_APP_ID;
-  const CUSTOMER_ID = process.env.AGORA_CUSTOMER_ID;
-  const CUSTOMER_CERTIFICATE = process.env.AGORA_CUSTOMER_CERTIFICATE;
-
-  const auth = Buffer.from(`${CUSTOMER_ID}:${CUSTOMER_CERTIFICATE}`).toString(
-    "base64"
-  );
+  console.log("Stopping recording with details:", {
+    channelName,
+    resourceId,
+    sid,
+    uid,
+    timestamp,
+  });
 
   try {
+    const authorizationToken = Buffer.from(
+      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
+    ).toString("base64");
+
+    const payload = {
+      cname: channelName,
+      uid: uid,
+      clientRequest: {},
+    };
+
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/mix/stop`,
-      {
-        cname: channelName,
-        uid: uid,
-        clientRequest: {},
-      },
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/web/stop`,
+      payload,
       {
         headers: {
-          Authorization: `Basic ${auth}`,
+          Authorization: `Basic ${authorizationToken}`,
           "Content-Type": "application/json",
         },
       }
     );
-    res.status(200).json(response.data);
+
+    console.log("Recording stopped on Agora");
+
+    // Poll for MP4 in AWS S3 and return MP4 URL
+    const mp4Url = await pollForMp4(resourceId, channelName, timestamp);
+
+    res.json({
+      message: "Recording stopped and MP4 retrieved successfully",
+      mp4Url: mp4Url,
+    });
   } catch (error) {
-    console.error(
-      "Stop Recording Error:",
-      error.response ? error.response.data : error.message
-    );
-    res
-      .status(500)
-      .json({ error: error.response ? error.response.data : error.message });
+    console.error("Error stopping recording:", error);
+    res.status(500).json({
+      error: "Failed to stop recording",
+      details: error.response ? error.response.data : error.message,
+    });
   }
-};
+});
+
+module.exports = router;

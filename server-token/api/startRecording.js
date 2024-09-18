@@ -1,102 +1,108 @@
+const express = require("express");
 const axios = require("axios");
+const router = express.Router();
 
-module.exports = async (req, res) => {
-  if (req.method !== "POST") {
-    console.error("Invalid request method:", req.method);
-    return res.status(405).json({ error: "Method not allowed" });
-  }
+router.post("/start", async (req, res) => {
+  const { channelName, resourceId, uid, token, timestamp } = req.body;
 
-  const { resourceId, channelName, uid, token } = req.body;
-
-  if (!resourceId || !channelName || !uid || !token) {
+  if (!channelName || !resourceId || !uid || !token || !timestamp) {
     console.error("Missing required parameters:", {
-      resourceId,
       channelName,
+      resourceId,
       uid,
       token,
+      timestamp,
     });
     return res.status(400).json({
-      error: "resourceId, channelName, uid, and token are required",
+      error: "channelName, resourceId, uid, token, and timestamp are required",
     });
   }
 
-  // Log environment variables to ensure they're being loaded
-  const APP_ID = process.env.APP_ID;
-  const CUSTOMER_ID = process.env.CUSTOMER_ID;
-  const CUSTOMER_SECRET = process.env.CUSTOMER_SECRET;
+  console.log("App ID:", process.env.APP_ID);
+  console.log("Resource ID:", resourceId);
 
-  console.log("Environment variables:");
-  console.log("APP_ID:", APP_ID || "Not Defined");
-  console.log("CUSTOMER_ID:", CUSTOMER_ID || "Not Defined");
-  console.log("CUSTOMER_SECRET:", CUSTOMER_SECRET ? "Defined" : "Not Defined");
-
-  if (!APP_ID || !CUSTOMER_ID || !CUSTOMER_SECRET) {
-    console.error("Missing required environment variables");
-    return res.status(500).json({ error: "Server configuration error" });
-  }
-
-  const auth = Buffer.from(`${CUSTOMER_ID}:${CUSTOMER_SECRET}`).toString(
-    "base64"
-  );
-
-  const payload = {
-    cname: channelName,
-    uid: "0",
-    clientRequest: {
-      token: token,
-      recordingConfig: {
-        maxIdleTime: 30,
-        streamTypes: 2,
-        channelType: 1,
-        videoStreamType: 0,
-        transcodingConfig: {
-          height: 640,
-          width: 360,
-          bitrate: 500,
-          fps: 15,
-          mixedVideoLayout: 1,
-        },
-      },
-      recordingFileConfig: {
-        avFileType: ["hls", "mp4"],
-      },
-      storageConfig: {
-        vendor: 2,
-        region: parseInt(process.env.S3_REGION, 10),
-        bucket: process.env.S3_BUCKET_NAME,
-        accessKey: process.env.S3_ACCESS_KEY,
-        secretKey: process.env.S3_SECRET_KEY,
-        fileNamePrefix: ["recordings"],
-      },
-    },
-  };
-
-  // Log the full payload to ensure correctness
-  console.log("Start recording payload:", JSON.stringify(payload, null, 2));
+  console.log("Start recording request for:", {
+    channelName,
+    resourceId,
+    uid,
+    token,
+    timestamp,
+  });
 
   try {
+    const authorizationToken = Buffer.from(
+      `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
+    ).toString("base64");
+
+    const payload = {
+      cname: channelName,
+      uid: uid,
+      clientRequest: {
+        token: token,
+        extensionServiceConfig: {
+          errorHandlePolicy: "error_abort",
+          extensionServices: [
+            {
+              serviceName: "web_recorder_service",
+              errorHandlePolicy: "error_abort",
+              serviceParam: {
+                url: `https://sccopy-38403.bubbleapps.io/video/1726195519465x346418864932257800?r=1721913797942x965183480405939000&isaws=yes`,
+                audioProfile: 1,
+                videoWidth: 1280,
+                videoHeight: 720,
+                maxRecordingHour: 1,
+              },
+            },
+          ],
+        },
+        recordingFileConfig: {
+          avFileType: ["hls", "mp4"],
+        },
+        storageConfig: {
+          vendor: 1,
+          region: 0,
+          bucket: process.env.S3_BUCKET_NAME,
+          accessKey: process.env.S3_ACCESS_KEY,
+          secretKey: process.env.S3_SECRET_KEY,
+          fileNamePrefix: ["recordings", channelName, timestamp],
+        },
+      },
+    };
+
+    console.log(
+      "Payload sent to Agora for start recording:",
+      JSON.stringify(payload, null, 2)
+    );
+
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/web/start`,
       payload,
       {
         headers: {
-          Authorization: `Basic ${auth}`,
+          Authorization: `Basic ${authorizationToken}`,
           "Content-Type": "application/json",
         },
       }
     );
+
     console.log("Start recording response:", response.data);
-    res.status(200).json(response.data);
+
+    if (response.data.sid) {
+      console.log("SID received:", response.data.sid);
+      res.json({ resourceId, sid: response.data.sid, timestamp });
+    } else {
+      console.error("No SID in response:", response.data);
+      res
+        .status(500)
+        .json({ error: "Failed to start recording: No SID received" });
+    }
   } catch (error) {
-    console.error(
-      "Start Recording Error:",
-      error.response
-        ? JSON.stringify(error.response.data, null, 2)
-        : error.message
-    );
-    res.status(error.response ? error.response.status : 500).json({
-      error: error.response ? error.response.data : error.message,
-      details: error.response ? error.response.data : undefined,
+    console.error("Error starting recording:", error);
+    res.status(500).json({
+      error: "Failed to start recording",
+      details: error.response ? error.response.data : error.message,
     });
   }
-};
+});
+
+module.exports = router;
