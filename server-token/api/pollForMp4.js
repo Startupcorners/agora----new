@@ -1,10 +1,4 @@
-const axios = require("axios");
-const nocache = (req, res, next) => {
-  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-  res.header("Expires", "-1");
-  res.header("Pragma", "no-cache");
-  next();
-};
+const getMp4FromS3 = require("./getMp4FromS3"); // Import the function directly
 
 // Poll for MP4 file from AWS S3
 const pollForMp4 = async (
@@ -18,20 +12,12 @@ const pollForMp4 = async (
 
   while (attempts < maxAttempts) {
     try {
-      const response = await axios.post(
-        `${process.env.SERVER_URL}/getMp4FromS3`,
-        {
-          resourceId: resourceId,
-          channelName: channelName,
-          timestamp: timestamp,
-        }
-      );
+      // Call the getMp4FromS3 function directly instead of making an HTTP request
+      const mp4Files = await getMp4FromS3(resourceId, channelName, timestamp);
 
-      const data = response.data;
-
-      if (response.status === 200 && data.files && data.files.length > 0) {
-        console.log("MP4 files found:", data.files);
-        return data.files[0]; // Return the first MP4 file URL
+      if (mp4Files && mp4Files.length > 0) {
+        console.log("MP4 files found:", mp4Files);
+        return mp4Files[0]; // Return the first MP4 file URL
       } else {
         console.log(`Attempt ${attempts + 1}: MP4 file not found. Retrying...`);
       }
@@ -49,6 +35,5 @@ const pollForMp4 = async (
 
   throw new Error("MP4 file not found in AWS S3 after maximum attempts.");
 };
-
 
 module.exports = pollForMp4;

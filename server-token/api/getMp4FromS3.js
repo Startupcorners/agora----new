@@ -1,11 +1,15 @@
-// AWS S3 Get MP4 files
-app.post("/getMp4FromS3", async (req, res) => {
-  const { channelName, timestamp } = req.body;
+const AWS = require("aws-sdk");
 
+const s3 = new AWS.S3({
+  accessKeyId: process.env.S3_ACCESS_KEY,
+  secretAccessKey: process.env.S3_SECRET_KEY,
+  region: process.env.S3_REGION || "us-east-1",
+});
+
+// Function to get MP4 files from S3
+const getMp4FromS3 = async (channelName, timestamp) => {
   if (!channelName || !timestamp) {
-    return res
-      .status(400)
-      .json({ error: "channelName and timestamp are required" });
+    throw new Error("channelName and timestamp are required");
   }
 
   const prefix = `recordings/${channelName}/${timestamp}/`;
@@ -22,22 +26,19 @@ app.post("/getMp4FromS3", async (req, res) => {
     const mp4Files = data.Contents.filter((file) => file.Key.endsWith(".mp4"));
 
     if (mp4Files.length === 0) {
-      return res.status(404).json({ error: "No MP4 files found" });
+      throw new Error("No MP4 files found");
     }
 
+    // Generate MP4 URLs
     const mp4Urls = mp4Files.map((file) => {
       return `https://${bucketName}.s3.amazonaws.com/${file.Key}`;
     });
 
-    res.json({
-      message: "MP4 files retrieved successfully",
-      files: mp4Urls,
-    });
+    return mp4Urls; // Return the array of MP4 file URLs
   } catch (error) {
     console.error("Error retrieving MP4 files from S3:", error);
-    res.status(500).json({
-      error: "Failed to retrieve MP4 files from S3",
-      details: error.message,
-    });
+    throw new Error("Failed to retrieve MP4 files from S3");
   }
-});
+};
+
+module.exports = getMp4FromS3;
