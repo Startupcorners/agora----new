@@ -319,7 +319,7 @@ const MainApp = function (initConfig) {
       try {
         const res = await fetch(
           config.serverUrl +
-            `/access_token?channelName=${config.channelName}&uid=${config.uid}`
+            `/access-token?channelName=${config.channelName}&uid=${config.uid}`
         );
         const data = await res.text();
         const json = await JSON.parse(data);
