@@ -144,141 +144,193 @@ const MainApp = function (initConfig) {
   AgoraRTC.registerExtensions([extensionVirtualBackground]);
   let processor = null;
 
-const acquireResource = async () => {
-  try {
-    // Log the payload before making the API call
-    console.log("Payload for acquire resource:", {
-      channelName: config.channelName,
-      uid: "0",
-    });
+  const acquireResource = async () => {
+    try {
+      // Log the payload before making the API call
+      console.log("Payload for acquire resource:", {
+        channelName: config.channelName,
+        uid: "0",
+      });
 
-    const response = await fetch(config.serverUrl + "/acquire", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        channelName: config.channelName, // Provide the channel name
-        uid: "0", // Provide the UID
-      }),
-    });
+      const response = await fetch(config.serverUrl + "/acquire", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          channelName: config.channelName, // Provide the channel name
+          uid: "0", // Provide the UID
+        }),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Error acquiring resource:", errorData);
-      throw new Error(`Failed to acquire resource: ${errorData.error}`);
-    }
-
-    const data = await response.json();
-    console.log("Resource acquired:", data.resourceId); // Log the resourceId
-    return data.resourceId;
-  } catch (error) {
-    console.error("Error acquiring resource:", error);
-    throw error;
-  }
-};
-
-
-const startRecording = async () => {
-  try {
-    const resourceId = await acquireResource(); // Acquire the resource first
-    console.log("Resource acquired:", resourceId);
-
-    // Store the resourceId for later use
-    config.resourceId = resourceId; // <--- Store the resourceId here
-
-    // Add a 2-second delay
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log("Waited 2 seconds after acquiring resource");
-
-    // Fetch a new token for recording with PUBLISHER role
-    const recordingTokenResponse = await fetch(
-      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=0`,
-      {
-        method: "GET",
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Error acquiring resource:", errorData);
+        throw new Error(`Failed to acquire resource: ${errorData.error}`);
       }
-    );
 
-    const tokenData = await recordingTokenResponse.json();
-    const recordingToken = tokenData.token;
-
-    // Log the recording token for debugging purposes
-    console.log("Recording token received:", recordingToken);
-
-    const response = await fetch(config.serverUrl + "/start", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resourceId: resourceId, // Pass the correct resourceId
-        channelName: config.channelName, // Channel name must match the one used for the call
-        uid: "0", // UID should be "0" for recording
-        token: recordingToken, // Use the new token generated for recording
-      }),
-    });
-
-    const startData = await response.json();
-
-    // Log the full response for detailed analysis
-    console.log("Response from start recording:", startData);
-
-    if (!response.ok) {
-      console.error("Error starting recording:", startData);
-      throw new Error(`Failed to start recording: ${startData.error}`);
+      const data = await response.json();
+      console.log("Resource acquired:", data.resourceId); // Log the resourceId
+      return data.resourceId;
+    } catch (error) {
+      console.error("Error acquiring resource:", error);
+      throw error;
     }
+  };
 
-    // Check if SID is received
-    if (startData.sid) {
-      console.log("SID received successfully:", startData.sid);
-      config.sid = startData.sid; // Store the SID if received
-    } else {
-      console.error("SID not received in the response:", startData);
+  const startRecording = async () => {
+    try {
+      const resourceId = await acquireResource(); // Acquire the resource first
+      console.log("Resource acquired:", resourceId);
+
+      // Store the resourceId for later use
+      config.resourceId = resourceId; // <--- Store the resourceId here
+
+      // Add a 2-second delay
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log("Waited 2 seconds after acquiring resource");
+
+      // Fetch a new token for recording with PUBLISHER role
+      const recordingTokenResponse = await fetch(
+        `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=0`,
+        {
+          method: "GET",
+        }
+      );
+
+      const tokenData = await recordingTokenResponse.json();
+      const recordingToken = tokenData.token;
+
+      // Log the recording token for debugging purposes
+      console.log("Recording token received:", recordingToken);
+
+      const response = await fetch(config.serverUrl + "/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resourceId: resourceId, // Pass the correct resourceId
+          channelName: config.channelName, // Channel name must match the one used for the call
+          uid: "0", // UID should be "0" for recording
+          token: recordingToken, // Use the new token generated for recording
+        }),
+      });
+
+      const startData = await response.json();
+
+      // Log the full response for detailed analysis
+      console.log("Response from start recording:", startData);
+
+      if (!response.ok) {
+        console.error("Error starting recording:", startData);
+        throw new Error(`Failed to start recording: ${startData.error}`);
+      }
+
+      // Check if SID is received
+      if (startData.sid) {
+        console.log("SID received successfully:", startData.sid);
+        config.sid = startData.sid; // Store the SID if received
+      } else {
+        console.error("SID not received in the response:", startData);
+      }
+
+      console.log(
+        "Recording started successfully. Resource ID:",
+        resourceId,
+        "SID:",
+        config.sid
+      );
+
+      return startData;
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      throw error;
     }
+  };
 
-    console.log(
-      "Recording started successfully. Resource ID:",
-      resourceId,
-      "SID:",
-      config.sid
-    );
+  // Function to poll Agora for recording status
+  const pollRecordingStatus = async (resourceId, sid, retries = 10) => {
+    try {
+      for (let i = 0; i < retries; i++) {
+        console.log(
+          `Polling attempt ${
+            i + 1
+          }/${retries} for resourceId: ${resourceId} and sid: ${sid}`
+        );
 
-    return startData;
-  } catch (error) {
-    console.error("Error starting recording:", error);
-    throw error;
-  }
-};
+        const response = await fetch(`${config.serverUrl}/query`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            resourceId: resourceId,
+            sid: sid,
+            channelName: config.channelName,
+          }),
+        });
 
+        const data = await response.json();
 
+        // Check if the file list is returned
+        if (data.serverResponse && data.serverResponse.fileList) {
+          console.log(
+            "Recording files are ready:",
+            data.serverResponse.fileList
+          );
 
+          // Run Bubble function with the MP4 URL or any other post-processing
+          bubble_fn_mp4(data.serverResponse.fileList[0].file);
 
+          // Break out of the loop once we have the file list
+          return;
+        }
 
-const stopRecording = async (uid) => {
-  console.log("Stopping recording with values:", {
-    resourceId: config.resourceId, // Now using config.resourceId
-    sid: config.sid, // Now using config.sid
-    uid: "123123123", // Fix: Properly added 'uid'
-  });
+        console.log("Recording files not ready yet. Retrying...");
 
-  const response = await fetch(config.serverUrl + "/stop", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      channelName: config.channelName,
-      resourceId: config.resourceId, // Use the stored resourceId from config
-      sid: config.sid, // Use the stored sid from config
-      uid: "123123123", // Pass uid or fallback to hardcoded one
-    }),
-  });
+        // Wait before polling again
+        await new Promise((resolve) => setTimeout(resolve, 5000)); // 5-second delay
+      }
 
-  const stopData = await response.json();
-  return stopData;
-};
+      console.error("Polling timed out. Could not retrieve file list.");
+    } catch (error) {
+      console.error("Error while polling for recording status:", error);
+    }
+  };
 
+  // Call the poll function after stopping the recording
+  const stopRecording = async (resourceId, sid) => {
+    try {
+      const response = await fetch(`${config.serverUrl}/stop`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resourceId: resourceId,
+          sid: sid,
+          channelName: config.channelName,
+          uid: config.uid,
+        }),
+      });
 
+      const stopData = await response.json();
+
+      if (stopData.fileList) {
+        console.log("Recording stopped and files ready:", stopData.fileList);
+        bubble_fn_mp4(stopData.fileList[0].file);
+      } else {
+        console.log(
+          "Recording stopped, but files not ready. Initiating polling..."
+        );
+        // Start polling to check for the recording status
+        await pollRecordingStatus(resourceId, sid);
+      }
+    } catch (error) {
+      console.error("Error stopping recording:", error);
+    }
+  };
 
   /**
    * Functions
@@ -405,88 +457,87 @@ const stopRecording = async (uid) => {
     }
   };
 
-const joinRTM = async () => {
-  try {
-    const rtmUid = config.uid.toString(); // Convert UID to string for RTM
+  const joinRTM = async () => {
+    try {
+      const rtmUid = config.uid.toString(); // Convert UID to string for RTM
 
-    // RTM login
-    await clientRTM.login({ uid: rtmUid });
-    log(`RTM login successful for UID: ${rtmUid}`);
+      // RTM login
+      await clientRTM.login({ uid: rtmUid });
+      log(`RTM login successful for UID: ${rtmUid}`);
 
-    // Update local user attributes
-    await clientRTM.addOrUpdateLocalUserAttributes({
-      name: config.user.name,
-      avatar: config.user.avatar,
-      role: config.user.role,
-    });
-    log("addOrUpdateLocalUserAttributes: success");
+      // Update local user attributes
+      await clientRTM.addOrUpdateLocalUserAttributes({
+        name: config.user.name,
+        avatar: config.user.avatar,
+        role: config.user.role,
+      });
+      log("addOrUpdateLocalUserAttributes: success");
 
-    // Join the RTM channel
-    await channelRTM.join();
-    log("Joined RTM channel successfully");
+      // Join the RTM channel
+      await channelRTM.join();
+      log("Joined RTM channel successfully");
 
-    // Update participants after joining
-    handleOnUpdateParticipants();
-
-    // Set up RTM event listeners
-    clientRTM.on("MessageFromPeer", async (message, peerId) => {
-      log("messageFromPeer");
-      const data = JSON.parse(message.text);
-      log(data);
-
-      if (data.event === "mic_off") {
-        await toggleMic(true);
-      } else if (data.event === "cam_off") {
-        await toggleCamera(true);
-      } else if (data.event === "remove_participant") {
-        await leave();
-      }
-    });
-
-    channelRTM.on("MemberJoined", async (memberId) => {
-      log(`Member joined: ${memberId}`);
+      // Update participants after joining
       handleOnUpdateParticipants();
-    });
 
-    channelRTM.on("MemberLeft", (memberId) => {
-      log(`Member left: ${memberId}`);
-      handleOnUpdateParticipants();
-    });
+      // Set up RTM event listeners
+      clientRTM.on("MessageFromPeer", async (message, peerId) => {
+        log("messageFromPeer");
+        const data = JSON.parse(message.text);
+        log(data);
 
-    channelRTM.on("ChannelMessage", async (message, memberId, props) => {
-      log("on:ChannelMessage ->");
-      const messageObj = JSON.parse(message.text);
-      log(messageObj);
-
-      if (
-        messageObj.type === "broadcast" &&
-        messageObj.event === "change_user_role"
-      ) {
-        if (config.uid === messageObj.targetUid) {
-          config.user.role = messageObj.role; // Update local role
-          log("User role changed:", config.user.role);
-
-          // Update user attributes after role change
-          await clientRTM.addOrUpdateLocalUserAttributes({
-            role: config.user.role,
-          });
-          log("Updated user attributes after role change");
-
-          await client.leave();
-          await leaveFromVideoStage(config.user);
-          await join(); // Re-join the RTC
+        if (data.event === "mic_off") {
+          await toggleMic(true);
+        } else if (data.event === "cam_off") {
+          await toggleCamera(true);
+        } else if (data.event === "remove_participant") {
+          await leave();
         }
-        handleOnUpdateParticipants();
-        config.onRoleChanged(messageObj.targetUid, messageObj.role);
-      } else {
-        config.onMessageReceived(messageObj);
-      }
-    });
-  } catch (error) {
-    log("RTM join process failed:", error);
-  }
-};
+      });
 
+      channelRTM.on("MemberJoined", async (memberId) => {
+        log(`Member joined: ${memberId}`);
+        handleOnUpdateParticipants();
+      });
+
+      channelRTM.on("MemberLeft", (memberId) => {
+        log(`Member left: ${memberId}`);
+        handleOnUpdateParticipants();
+      });
+
+      channelRTM.on("ChannelMessage", async (message, memberId, props) => {
+        log("on:ChannelMessage ->");
+        const messageObj = JSON.parse(message.text);
+        log(messageObj);
+
+        if (
+          messageObj.type === "broadcast" &&
+          messageObj.event === "change_user_role"
+        ) {
+          if (config.uid === messageObj.targetUid) {
+            config.user.role = messageObj.role; // Update local role
+            log("User role changed:", config.user.role);
+
+            // Update user attributes after role change
+            await clientRTM.addOrUpdateLocalUserAttributes({
+              role: config.user.role,
+            });
+            log("Updated user attributes after role change");
+
+            await client.leave();
+            await leaveFromVideoStage(config.user);
+            await join(); // Re-join the RTC
+          }
+          handleOnUpdateParticipants();
+          config.onRoleChanged(messageObj.targetUid, messageObj.role);
+        } else {
+          config.onMessageReceived(messageObj);
+        }
+      });
+    } catch (error) {
+      log("RTM join process failed:", error);
+    }
+  };
 
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
@@ -738,7 +789,6 @@ const joinRTM = async () => {
       });
   };
 
-
   const sendMessage = (data) => {
     channelRTM
       .sendMessage({
@@ -933,6 +983,5 @@ const joinRTM = async () => {
     startRecording: startRecording,
     stopRecording: stopRecording,
   };
-
 }
 window['MainApp'] = MainApp;
