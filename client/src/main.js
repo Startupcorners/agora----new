@@ -265,8 +265,8 @@ const MainApp = function (initConfig) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            resourceId: resourceId,
-            sid: sid,
+            resourceId: config.resourceId,
+            sid: config.sid,
             channelName: config.channelName,
           }),
         });
