@@ -58,4 +58,5 @@ app.use("/stop", stopRecording);
 app.use("/poll-for-mp4", pollForMp4); // For polling MP4 file availability
 
 // Export the app
-module.exports = app;
+
+module.exports = { app, nocache };
