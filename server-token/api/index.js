@@ -173,7 +173,7 @@ app.post("/start", async (req, res) => {
     
     const payload = {
       cname: channelName,
-      uid: "0",
+      uid: uid,
       clientRequest: {
         token: token,
         extensionServiceConfig: {
@@ -250,7 +250,6 @@ app.post("/start", async (req, res) => {
 app.post("/stop", async (req, res) => {
   const { channelName, resourceId, sid, uid } = req.body;
 
-  // Validate required parameters
   if (!channelName || !resourceId || !sid || !uid) {
     console.error("Missing required parameters:", {
       channelName,
@@ -271,23 +270,20 @@ app.post("/stop", async (req, res) => {
   });
 
   try {
-    // Generate the Authorization token
     const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
     console.log("Authorization token created.");
 
-    // Create the payload for the stop request
     const payload = {
       cname: channelName,
-      uid: uid, // Must match the recording uid used when starting the recording
+      uid: uid,
       clientRequest: {},
     };
 
     console.log("Payload for stop request:", JSON.stringify(payload, null, 2));
 
-    // Make the API call to stop recording
     const response = await axios.post(
       `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/web/stop`,
       payload,
@@ -299,17 +295,14 @@ app.post("/stop", async (req, res) => {
       }
     );
 
-    // Log the response from Agora
     console.log("Stop recording response from Agora:", response.data);
 
-    // Handle response and return the file list if recording stopped successfully
     if (response.data.serverResponse && response.data.serverResponse.fileList) {
       console.log(
         "File list from Agora:",
         response.data.serverResponse.fileList
       );
 
-      // Extract the MP4 file URL
       const mp4File = response.data.serverResponse.fileList.find(
         (file) => file.fileType === "mp4"
       );
@@ -318,9 +311,8 @@ app.post("/stop", async (req, res) => {
         const mp4Url = mp4File.fileName;
         console.log("MP4 file URL:", mp4Url);
 
-        // Call the Bubble function with the MP4 URL
         if (typeof bubble_fn_mp4 === "function") {
-          bubble_fn_mp4(mp4Url); // Pass the MP4 URL to Bubble
+          bubble_fn_mp4(mp4Url);
           console.log("Called bubble_fn_mp4 with:", mp4Url);
         } else {
           console.warn("bubble_fn_mp4 is not defined");
@@ -329,7 +321,7 @@ app.post("/stop", async (req, res) => {
         res.json({
           message: "Recording stopped",
           fileList: response.data.serverResponse.fileList,
-          mp4Url: mp4Url, // Include the MP4 URL in the response
+          mp4Url: mp4Url,
         });
       } else {
         console.error("No MP4 file found in the file list");
@@ -342,7 +334,6 @@ app.post("/stop", async (req, res) => {
         .json({ error: "Failed to stop recording: No file list returned" });
     }
   } catch (error) {
-    // Log detailed error information
     console.error(
       "Error stopping recording:",
       error.response ? error.response.data : error.message
@@ -353,6 +344,7 @@ app.post("/stop", async (req, res) => {
     });
   }
 });
+
 
 
 app.post("/query", async (req, res) => {

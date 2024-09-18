@@ -179,75 +179,64 @@ const MainApp = function (initConfig) {
   };
 
   const startRecording = async () => {
-    try {
-      const resourceId = await acquireResource(); // Acquire the resource first
-      console.log("Resource acquired:", resourceId);
+  try {
+    const resourceId = await acquireResource();
+    console.log("Resource acquired:", resourceId);
 
-      // Store the resourceId for later use
-      config.resourceId = resourceId; // <--- Store the resourceId here
+    config.resourceId = resourceId;
+    config.recordId = Math.floor(100000 + Math.random() * 900000).toString();
 
-      // Add a 2-second delay
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log("Waited 2 seconds after acquiring resource");
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    console.log("Waited 2 seconds after acquiring resource");
 
-      // Fetch a new token for recording with PUBLISHER role
-      const recordingTokenResponse = await fetch(
-        `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=0`,
-        {
-          method: "GET",
-        }
-      );
-
-      const tokenData = await recordingTokenResponse.json();
-      const recordingToken = tokenData.token;
-
-      // Log the recording token for debugging purposes
-      console.log("Recording token received:", recordingToken);
-
-      const response = await fetch(config.serverUrl + "/start", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          resourceId: resourceId,
-          channelName: config.channelName,
-          uid: "0",
-          token: recordingToken,
-        }),
-      });
-
-      const startData = await response.json();
-
-      // Log the full response for detailed analysis
-      console.log("Response from start recording:", startData);
-
-      if (!response.ok) {
-        console.error("Error starting recording:", startData);
-        throw new Error(`Failed to start recording: ${startData.error}`);
+    const recordingTokenResponse = await fetch(
+      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.recordId}`,
+      {
+        method: "GET",
       }
+    );
 
-      // Check if SID is received
-      if (startData.sid) {
-        console.log("SID received successfully:", startData.sid);
-        config.sid = startData.sid; // Store the SID if received
-      } else {
-        console.error("SID not received in the response:", startData);
-      }
+    const tokenData = await recordingTokenResponse.json();
+    const recordingToken = tokenData.token;
 
-      console.log(
-        "Recording started successfully. Resource ID:",
-        resourceId,
-        "SID:",
-        config.sid
-      );
+    console.log("Recording token received:", recordingToken);
 
-      return startData;
-    } catch (error) {
-      console.error("Error starting recording:", error);
-      throw error;
+    const response = await fetch(config.serverUrl + "/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        resourceId: resourceId,
+        channelName: config.channelName,
+        uid: config.recordId,
+        token: recordingToken,
+      }),
+    });
+
+    const startData = await response.json();
+    console.log("Response from start recording:", startData);
+
+    if (!response.ok) {
+      console.error("Error starting recording:", startData);
+      throw new Error(`Failed to start recording: ${startData.error}`);
     }
-  };
+
+    if (startData.sid) {
+      console.log("SID received successfully:", startData.sid);
+      config.sid = startData.sid;
+    } else {
+      console.error("SID not received in the response:", startData);
+    }
+
+    console.log("Recording started successfully. Resource ID:", resourceId, "SID:", config.sid);
+
+    return startData;
+  } catch (error) {
+    console.error("Error starting recording:", error);
+    throw error;
+  }
+};
 
   // Function to poll Agora for recording status
   const pollRecordingStatus = async (resourceId, sid, retries = 10) => {
@@ -311,7 +300,7 @@ const MainApp = function (initConfig) {
           resourceId: resourceId,
           sid: sid,
           channelName: config.channelName,
-          uid: "0",
+          uid: config.recordId,
         }),
       });
 
