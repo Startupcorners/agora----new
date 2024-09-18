@@ -351,9 +351,7 @@ app.post("/stop", async (req, res) => {
 app.post("/query", async (req, res) => {
   const { resourceId, sid } = req.body;
 
-  // Validate required parameters
   if (!resourceId || !sid) {
-    console.error("Missing required parameters:", { resourceId, sid });
     return res.status(400).json({
       error: "resourceId and sid are required",
     });
@@ -365,12 +363,10 @@ app.post("/query", async (req, res) => {
   });
 
   try {
-    // Generate the Authorization token
     const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
-    // Make the API call to query the recording status
     const response = await axios.post(
       `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/web/query`,
       {},
@@ -382,26 +378,18 @@ app.post("/query", async (req, res) => {
       }
     );
 
-    // Log the response from Agora
     console.log("Query response from Agora:", response.data);
 
-    // Handle response and return the file list if files are available
     if (response.data.serverResponse && response.data.serverResponse.fileList) {
-      console.log(
-        "File list from Agora:",
-        response.data.serverResponse.fileList
-      );
       res.json({
         fileList: response.data.serverResponse.fileList,
       });
     } else {
-      console.error("No file list returned from Agora:", response.data);
       res
         .status(200)
         .json({ message: "Files not ready yet. Please try again later." });
     }
   } catch (error) {
-    // Log detailed error information
     console.error(
       "Error querying for recording status:",
       error.response ? error.response.data : error.message
@@ -412,7 +400,6 @@ app.post("/query", async (req, res) => {
     });
   }
 });
-
 
 
 app.get("/generate_recording_token", (req, res) => {
