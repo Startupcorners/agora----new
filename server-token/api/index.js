@@ -373,6 +373,10 @@ app.get("/generate_recording_token", (req, res) => {
     res.status(500).json({ error: "Failed to generate token" });
   }
 });
+
+
+
+
 // Stop recording endpoint
 app.post("/stop", async (req, res) => {
   const { channelName, resourceId, sid, uid, timestamp } = req.body;
@@ -415,28 +419,7 @@ app.post("/stop", async (req, res) => {
 
     console.log("Recording stopped on Agora");
 
-    const getMp4Response = await axios.post(
-      `${process.env.SERVER_URL}/getMp4FromS3`,
-      {
-        channelName: channelName,
-        timestamp: timestamp,
-      }
-    );
-
-    if (getMp4Response.data.files && getMp4Response.data.files.length > 0) {
-      const mp4Url = getMp4Response.data.files[0];
-
-      if (typeof bubble_fn_mp4 === "function") {
-        bubble_fn_mp4(mp4Url);
-      }
-
-      res.json({
-        message: "Recording stopped",
-        mp4Url: mp4Url,
-      });
-    } else {
-      res.status(500).json({ error: "No MP4 file found in S3" });
-    }
+    res.json({ message: "Recording stopped", success: true });
   } catch (error) {
     res.status(500).json({
       error: "Failed to stop recording",
@@ -444,8 +427,6 @@ app.post("/stop", async (req, res) => {
     });
   }
 });
-
-
 
 // AWS S3 Get MP4 files
 app.post("/getMp4FromS3", async (req, res) => {

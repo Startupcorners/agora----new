@@ -277,46 +277,59 @@ const startRecording = async () => {
   
   
   // Stop recording function
-  const stopRecording = async () => {
-    try {
-      
-      // Make the stop request to the backend
-      const response = await fetch(`${config.serverUrl}/stop`, {
+const stopRecording = async () => {
+  try {
+    // Step 1: Make the stop request to the backend
+    const stopResponse = await fetch(`${config.serverUrl}/stop`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        resourceId: config.resourceId,
+        sid: config.sid,
+        channelName: config.channelName,
+        uid: config.recordId,
+        timestamp: config.timestamp,
+      }),
+    });
+
+    const stopData = await stopResponse.json();
+
+    if (stopResponse.ok) {
+      console.log("Recording stopped successfully:", stopData);
+
+      // Step 2: After stopping the recording, call the getMp4FromS3 endpoint
+      const mp4Response = await fetch(`${config.serverUrl}/getMp4FromS3`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          resourceId: config.resourceId,
-          sid: config.sid,
           channelName: config.channelName,
-          uid: config.recordId,
           timestamp: config.timestamp,
         }),
       });
 
-      const stopData = await response.json();
+      const mp4Data = await mp4Response.json();
 
-      if (response.ok) {
-        console.log("Recording stopped successfully:", stopData);
+      if (mp4Response.ok && mp4Data.files.length > 0) {
+        console.log("MP4 files retrieved:", mp4Data.files);
 
-        if (stopData.mp4Url) {
-          console.log("MP4 URL:", stopData.mp4Url);
-
-          // Call the Bubble function with the MP4 URL
-          if (typeof bubble_fn_mp4 === "function") {
-            bubble_fn_mp4(stopData.mp4Url);
-          }
-        } else {
-          console.error("MP4 URL not found in the response");
+        // Call the Bubble function with the MP4 URL
+        if (typeof bubble_fn_mp4 === "function") {
+          bubble_fn_mp4(mp4Data.files[0]);
         }
       } else {
-        console.error("Error stopping recording:", stopData.error);
+        console.error("No MP4 file found or error retrieving MP4 file");
       }
-    } catch (error) {
-      console.error("Error stopping recording:", error);
+    } else {
+      console.error("Error stopping recording:", stopData.error);
     }
-  };
+  } catch (error) {
+    console.error("Error stopping recording or retrieving MP4:", error);
+  }
+};
 
   /**
    * Functions
