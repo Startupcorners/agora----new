@@ -1,7 +1,13 @@
 const express = require("express");
+const nocache = (req, res, next) => {
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+};
 const axios = require("axios");
-const pollForMp4 = require("./pollForMp4"); // Import the pollForMp4 function
-const sendToAssemblyAiAndGetSummary = require("./assemblyai"); // Import AssemblyAI function
+const pollForMp4 = require("./pollForMp4");
+const sendToAssemblyAiAndGetSummary = require("./assemblyai");
 const router = express.Router();
 
 // Stop recording endpoint
@@ -50,10 +56,6 @@ router.post("/", async (req, res) => {
     const mp4Url = await pollForMp4(resourceId, channelName, timestamp);
     console.log("MP4 retrieved:", mp4Url);
 
-    if (!mp4Url) {
-      throw new Error("MP4 file URL not found.");
-    }
-
     // Post the MP4 URL to Bubble's API
     const bubbleResponse = await axios.post(
       "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receiveawsvideo",
@@ -65,34 +67,40 @@ router.post("/", async (req, res) => {
     console.log("MP4 URL sent to Bubble:", bubbleResponse.data);
 
     // Send MP4 URL to AssemblyAI for transcription and summary
-    const summary = await sendToAssemblyAiAndGetSummary(mp4Url);
-    console.log("Summary received:", summary);
+    const assemblyResponse = await sendToAssemblyAiAndGetSummary(mp4Url);
+    console.log("AssemblyAI Response received:", assemblyResponse);
 
-    if (!summary) {
-      throw new Error("Summary generation failed.");
+    // Check if a valid summary is present before sending to Bubble
+    if (assemblyResponse.summary && assemblyResponse.summary !== null) {
+      // Send summary to Bubble
+      const bubbleSummaryResponse = await axios.post(
+        "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receivesummary",
+        {
+          ressourceID: resourceId,
+          summary: assemblyResponse.summary,
+        }
+      );
+      console.log("Summary sent to Bubble:", bubbleSummaryResponse.data);
+    } else {
+      // Handle cases where there is no summary available
+      console.log("No summary available from AssemblyAI.");
+      await axios.post(
+        "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receivesummary",
+        {
+          ressourceID: resourceId,
+          summary: "No summary available for this audio.",
+        }
+      );
     }
-
-    // Send summary to Bubble
-    const bubbleSummaryResponse = await axios.post(
-      "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receivesummary",
-      {
-        ressourceID: resourceId,
-        summary: summary,
-      }
-    );
-    console.log("Summary sent to Bubble:", bubbleSummaryResponse.data);
 
     // Respond to the frontend
     res.json({
       message: "Recording stopped, MP4 sent to Bubble, summary sent to Bubble",
       mp4Url: mp4Url,
-      summary: summary,
+      summary: assemblyResponse.summary || "No summary available",
     });
   } catch (error) {
-    console.error(
-      "Error stopping recording:",
-      error.response ? error.response.data : error.message
-    );
+    console.error("Error stopping recording:", error);
     res.status(500).json({
       error: "Failed to stop recording",
       details: error.response ? error.response.data : error.message,
