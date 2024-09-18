@@ -179,136 +179,89 @@ const MainApp = function (initConfig) {
     }
   };
 
-
-
   const startRecording = async () => {
-  try {
-    const resourceId = await acquireResource();
-    console.log("Resource acquired:", resourceId);
-
-    config.resourceId = resourceId;
-
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log("Waited 2 seconds after acquiring resource");
-
-    const recordingTokenResponse = await fetch(
-      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.recordId}`,
-      {
-        method: "GET",
-      }
-    );
-
-    const tokenData = await recordingTokenResponse.json();
-    const recordingToken = tokenData.token;
-
-    console.log("Recording token received:", recordingToken);
-
-    const response = await fetch(config.serverUrl + "/start", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resourceId: resourceId,
-        channelName: config.channelName,
-        uid: config.recordId,
-        token: recordingToken,
-      }),
-    });
-
-    const startData = await response.json();
-    console.log("Response from start recording:", startData);
-
-    if (!response.ok) {
-      console.error("Error starting recording:", startData);
-      throw new Error(`Failed to start recording: ${startData.error}`);
-    }
-
-    if (startData.sid) {
-      console.log("SID received successfully:", startData.sid);
-      config.sid = startData.sid;
-    } else {
-      console.error("SID not received in the response:", startData);
-    }
-
-    console.log("Recording started successfully. Resource ID:", resourceId, "SID:", config.sid);
-
-   
-    if (typeof bubble_fn_record === "function") {
-      bubble_fn_record({
-        output1: resourceId,
-        output2: config.sid,
-        output3: config.recordId,
-      });
-      console.log("Called bubble_fn_record with:", {
-        output1: resourceId,
-        output2: config.sid,
-        output3: config.recordId,
-      });
-    } else {
-      console.warn("bubble_fn_record is not defined");
-    }
-
-    return startData;
-  } catch (error) {
-    console.error("Error starting recording:", error);
-    throw error;
-  }
-};
-
-  // Function to poll Agora for recording status
-  const pollRecordingStatus = async (resourceId, sid, retries = 10) => {
     try {
-      for (let i = 0; i < retries; i++) {
-        console.log(
-          `Polling attempt ${
-            i + 1
-          }/${retries} for resourceId: ${resourceId} and sid: ${sid}`
-        );
+      const resourceId = await acquireResource();
+      console.log("Resource acquired:", resourceId);
 
-        const response = await fetch(`${config.serverUrl}/query`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            resourceId: config.resourceId,
-            sid: config.sid,
-            channelName: config.channelName,
-          }),
-        });
+      config.resourceId = resourceId;
 
-        const data = await response.json();
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log("Waited 2 seconds after acquiring resource");
 
-        // Check if the file list is returned
-        if (data.serverResponse && data.serverResponse.fileList) {
-          console.log(
-            "Recording files are ready:",
-            data.serverResponse.fileList
-          );
-
-          // Run Bubble function with the MP4 URL or any other post-processing
-          bubble_fn_mp4(data.serverResponse.fileList[0].file);
-
-          // Break out of the loop once we have the file list
-          return;
+      const recordingTokenResponse = await fetch(
+        `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.recordId}`,
+        {
+          method: "GET",
         }
+      );
 
-        console.log("Recording files not ready yet. Retrying...");
+      const tokenData = await recordingTokenResponse.json();
+      const recordingToken = tokenData.token;
 
-        // Wait before polling again
-        await new Promise((resolve) => setTimeout(resolve, 5000)); // 5-second delay
+      console.log("Recording token received:", recordingToken);
+
+      const response = await fetch(config.serverUrl + "/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resourceId: resourceId,
+          channelName: config.channelName,
+          uid: config.recordId,
+          token: recordingToken,
+        }),
+      });
+
+      const startData = await response.json();
+      console.log("Response from start recording:", startData);
+
+      if (!response.ok) {
+        console.error("Error starting recording:", startData);
+        throw new Error(`Failed to start recording: ${startData.error}`);
       }
 
-      console.error("Polling timed out. Could not retrieve file list.");
-    } catch (error) {
-      console.error("Error while polling for recording status:", error);
-    }
-  };
+      if (startData.sid) {
+        console.log("SID received successfully:", startData.sid);
+        config.sid = startData.sid;
+      } else {
+        console.error("SID not received in the response:", startData);
+      }
 
-  // Call the poll function after stopping the recording
-  const stopRecording = async (resourceId, sid) => {
+      console.log(
+        "Recording started successfully. Resource ID:",
+        resourceId,
+        "SID:",
+        config.sid
+      );
+
+      if (typeof bubble_fn_record === "function") {
+        bubble_fn_record({
+          output1: resourceId,
+          output2: config.sid,
+          output3: config.recordId,
+        });
+        console.log("Called bubble_fn_record with:", {
+          output1: resourceId,
+          output2: config.sid,
+          output3: config.recordId,
+        });
+      } else {
+        console.warn("bubble_fn_record is not defined");
+      }
+
+      return startData;
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      throw error;
+    }
+  }; // Stop recording function
+  const stopRecording = async () => {
     try {
+      const timestamp = Date.now().toString();
+
+      // Make the stop request to the backend
       const response = await fetch(`${config.serverUrl}/stop`, {
         method: "POST",
         headers: {
@@ -319,20 +272,27 @@ const MainApp = function (initConfig) {
           sid: config.sid,
           channelName: config.channelName,
           uid: config.recordId,
+          timestamp: timestamp,
         }),
       });
 
       const stopData = await response.json();
 
-      if (stopData.fileList) {
-        console.log("Recording stopped and files ready:", stopData.fileList);
-        bubble_fn_mp4(stopData.fileList[0].file);
+      if (response.ok) {
+        console.log("Recording stopped successfully:", stopData);
+
+        if (stopData.mp4Url) {
+          console.log("MP4 URL:", stopData.mp4Url);
+
+          // Call the Bubble function with the MP4 URL
+          if (typeof bubble_fn_mp4 === "function") {
+            bubble_fn_mp4(stopData.mp4Url);
+          }
+        } else {
+          console.error("MP4 URL not found in the response");
+        }
       } else {
-        console.log(
-          "Recording stopped, but files not ready. Initiating polling..."
-        );
-        // Start polling to check for the recording status
-        await pollRecordingStatus(resourceId, sid);
+        console.error("Error stopping recording:", stopData.error);
       }
     } catch (error) {
       console.error("Error stopping recording:", error);

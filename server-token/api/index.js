@@ -364,9 +364,6 @@ app.get("/generate_recording_token", (req, res) => {
     res.status(500).json({ error: "Failed to generate token" });
   }
 });
-
-
-
 // Stop recording endpoint
 app.post("/stop", async (req, res) => {
   const { channelName, resourceId, sid, uid, timestamp } = req.body;
@@ -382,6 +379,7 @@ app.post("/stop", async (req, res) => {
     resourceId,
     sid,
     uid,
+    timestamp,
   });
 
   try {
@@ -410,7 +408,7 @@ app.post("/stop", async (req, res) => {
 
     // After stopping, call the AWS S3 function to retrieve the MP4
     const getMp4Response = await axios.post(
-      `${config.serverUrl}/getMp4FromS3`,
+      `${process.env.SERVER_URL}/getMp4FromS3`,
       {
         channelName: channelName,
         timestamp: timestamp,
@@ -420,10 +418,7 @@ app.post("/stop", async (req, res) => {
     if (getMp4Response.data.files && getMp4Response.data.files.length > 0) {
       const mp4Url = getMp4Response.data.files[0];
 
-      if (typeof bubble_fn_mp4 === "function") {
-        bubble_fn_mp4(mp4Url);
-      }
-
+      // Instead of calling bubble_fn_mp4, just return the MP4 URL to the frontend
       res.json({
         message: "Recording stopped",
         mp4Url: mp4Url,
@@ -432,6 +427,7 @@ app.post("/stop", async (req, res) => {
       res.status(500).json({ error: "No MP4 file found in S3" });
     }
   } catch (error) {
+    console.error("Error stopping recording:", error);
     res.status(500).json({
       error: "Failed to stop recording",
       details: error.response ? error.response.data : error.message,
@@ -439,15 +435,12 @@ app.post("/stop", async (req, res) => {
   }
 });
 
-
-
+// AWS S3 Get MP4 files
 app.post("/getMp4FromS3", async (req, res) => {
   const { channelName, timestamp } = req.body;
 
   if (!channelName || !timestamp) {
-    return res
-      .status(400)
-      .json({ error: "channelName and timestamp are required" });
+    return res.status(400).json({ error: "channelName and timestamp are required" });
   }
 
   const prefix = `recordings/${channelName}/${timestamp}/`;
@@ -476,15 +469,13 @@ app.post("/getMp4FromS3", async (req, res) => {
       files: mp4Urls,
     });
   } catch (error) {
+    console.error("Error retrieving MP4 files from S3:", error);
     res.status(500).json({
       error: "Failed to retrieve MP4 files from S3",
       details: error.message,
     });
   }
 });
-
-
-
 
 
 module.exports = app;
