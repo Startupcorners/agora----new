@@ -1,34 +1,14 @@
 {
     "version": 2,
-    "routes": [
+    "rewrites": [
         {
-            "src": "/access_token",
-            "dest": "/api/access_token_generation.js"
-        },
-        {
-            "src": "/acquire",
-            "dest": "/api/acquire.js"
-        },
-        {
-            "src": "/generate_recording_token",
-            "dest": "/api/generate_recording_token.js"
-        },
-        {
-            "src": "/start",
-            "dest": "/api/startRecording.js"
-        },
-        {
-            "src": "/stop",
-            "dest": "/api/stopRecording.js"
-        },
-        {
-            "src": "/(.*)",
-            "dest": "/api"
+            "source": "/(.*)",
+            "destination": "/api"
         }
     ],
     "headers": [
         {
-          "source": "/(.*)",
+          "source": "/api/(.*)",
           "headers": [
             { "key": "Access-Control-Allow-Credentials", "value": "true" },
             { "key": "Access-Control-Allow-Origin", "value": "*" },
@@ -36,5 +16,5 @@
             { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" }
           ]
         }
-    ]
+      ]
 }
