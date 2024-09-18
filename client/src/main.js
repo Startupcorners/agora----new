@@ -146,7 +146,7 @@ const MainApp = function (initConfig) {
   let processor = null;
 
   const acquireResource = async () => {
-    config.recordId = Math.floor(100000 + Math.random() * 900000).toString();
+    config.recordId = Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit recordId
     try {
       console.log("Payload for acquire resource:", {
         channelName: config.channelName,
@@ -178,6 +178,7 @@ const MainApp = function (initConfig) {
       throw error;
     }
   };
+
 
 
   const startRecording = async () => {
