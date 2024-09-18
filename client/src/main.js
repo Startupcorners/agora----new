@@ -274,8 +274,7 @@ const MainApp = function (initConfig) {
     }
   };
 
-
-  // Stop recording function with polling
+  // Stop recording function without polling
   const stopRecording = async () => {
     try {
       // Stop the recording via backend
@@ -297,13 +296,7 @@ const MainApp = function (initConfig) {
 
       if (response.ok) {
         console.log("Recording stopped successfully:", stopData);
-
-        // Start polling for the MP4 file in AWS
-        await pollForMp4(
-          config.resourceId,
-          config.channelName,
-          config.timestamp
-        );
+        // MP4 file handling and other tasks are now done in the backend
       } else {
         console.error("Error stopping recording:", stopData.error);
       }
@@ -311,6 +304,7 @@ const MainApp = function (initConfig) {
       console.error("Error stopping recording:", error);
     }
   };
+
   /**
    * Functions
    */
