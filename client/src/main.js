@@ -18,7 +18,7 @@ const MainApp = function (initConfig) {
       name: "guest",
       avatar:
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
-      role: "", //host, speaker, audience,
+      role: "", //host, speaker, audience, etc
       company: "",
       profileLink: "",
     },
@@ -232,6 +232,22 @@ const MainApp = function (initConfig) {
     }
 
     console.log("Recording started successfully. Resource ID:", resourceId, "SID:", config.sid);
+
+   
+    if (typeof bubble_fn_record === "function") {
+      bubble_fn_record({
+        output1: resourceId,
+        output2: config.sid,
+        output3: config.recordId,
+      });
+      console.log("Called bubble_fn_record with:", {
+        output1: resourceId,
+        output2: config.sid,
+        output3: config.recordId,
+      });
+    } else {
+      console.warn("bubble_fn_record is not defined");
+    }
 
     return startData;
   } catch (error) {
