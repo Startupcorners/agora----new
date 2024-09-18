@@ -201,10 +201,6 @@ app.post("/start", async (req, res) => {
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
-          fileNamePrefix: [
-            channelName,
-            "recordings"
-          ],
         },
       },
     };
