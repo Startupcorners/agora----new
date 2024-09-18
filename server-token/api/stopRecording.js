@@ -1,7 +1,8 @@
 const express = require("express");
 const axios = require("axios");
+const pollForMp4 = require("./pollForMp4"); // Import the pollForMp4 function
+const sendToAssemblyAiAndGetSummary = require("./assemblyai"); // Import AssemblyAI function
 const router = express.Router();
-const { pollForMp4 } = require("./pollForMp4"); // Import the polling function
 
 // Stop recording endpoint
 router.post("/stop", async (req, res) => {
@@ -45,12 +46,39 @@ router.post("/stop", async (req, res) => {
 
     console.log("Recording stopped on Agora");
 
-    // Poll for MP4 in AWS S3 and return MP4 URL
+    // Poll for MP4 in AWS S3
     const mp4Url = await pollForMp4(resourceId, channelName, timestamp);
+    console.log("MP4 retrieved:", mp4Url);
 
+    // Post the MP4 URL to Bubble's API
+    const bubbleResponse = await axios.post(
+      "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receiveawsvideo",
+      {
+        ressourceID: resourceId,
+        url: mp4Url,
+      }
+    );
+    console.log("MP4 URL sent to Bubble:", bubbleResponse.data);
+
+    // Send MP4 URL to AssemblyAI for transcription and summary
+    const summary = await sendToAssemblyAiAndGetSummary(mp4Url);
+    console.log("Summary received:", summary);
+
+    // Send summary to Bubble
+    const bubbleSummaryResponse = await axios.post(
+      "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receivesummary",
+      {
+        ressourceID: resourceId,
+        summary: summary,
+      }
+    );
+    console.log("Summary sent to Bubble:", bubbleSummaryResponse.data);
+
+    // Respond to the frontend
     res.json({
-      message: "Recording stopped and MP4 retrieved successfully",
+      message: "Recording stopped, MP4 sent to Bubble, summary sent to Bubble",
       mp4Url: mp4Url,
+      summary: summary,
     });
   } catch (error) {
     console.error("Error stopping recording:", error);

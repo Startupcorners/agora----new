@@ -56,6 +56,7 @@ const acquire = require("./acquire");
 const generateRecordingToken = require("./generate_recording_token");
 const startRecording = require("./startRecording");
 const stopRecording = require("./stopRecording");
+const pollForMp4 = require("./pollForMp4");
 const { transcriptSummaryEndpoint } = require("./summarizeTranscript");
 
 // Using routes
