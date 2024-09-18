@@ -1,4 +1,5 @@
 const express = require("express");
+const { RtcTokenBuilder, Role } = require("./RtcTokenBuilder2");
 const router = express.Router(); // Create the router
 const nocache = (req, res, next) => {
   res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
