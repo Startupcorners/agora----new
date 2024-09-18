@@ -1,6 +1,12 @@
 const express = require("express");
 const axios = require("axios");
 const router = express.Router(); // Use router for modular routes
+const nocache = (req, res, next) => {
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+};
 
 router.post("/acquire", async (req, res) => {
   const { channelName, uid } = req.body;

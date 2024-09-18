@@ -1,5 +1,11 @@
 const express = require("express");
 const router = express.Router(); // Create the router
+const nocache = (req, res, next) => {
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+};
 
 router.get("/access_token", nocache, (req, res) => {
   const { channelName, uid, role } = req.query;

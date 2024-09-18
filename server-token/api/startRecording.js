@@ -1,6 +1,12 @@
 const express = require("express");
 const axios = require("axios");
 const router = express.Router();
+const nocache = (req, res, next) => {
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+};
 
 router.post("/start", async (req, res) => {
   const { channelName, resourceId, uid, token, timestamp } = req.body;

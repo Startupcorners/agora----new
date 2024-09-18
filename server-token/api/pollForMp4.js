@@ -1,4 +1,10 @@
 const axios = require("axios");
+const nocache = (req, res, next) => {
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+};
 
 // Poll for MP4 file from AWS S3
 const pollForMp4 = async (

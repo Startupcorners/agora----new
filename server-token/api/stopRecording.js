@@ -1,4 +1,10 @@
 const express = require("express");
+const nocache = (req, res, next) => {
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+};
 const axios = require("axios");
 const pollForMp4 = require("./pollForMp4"); // Import the pollForMp4 function
 const sendToAssemblyAiAndGetSummary = require("./assemblyai"); // Import AssemblyAI function

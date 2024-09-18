@@ -3,7 +3,9 @@ app.post("/getMp4FromS3", async (req, res) => {
   const { channelName, timestamp } = req.body;
 
   if (!channelName || !timestamp) {
-    return res.status(400).json({ error: "channelName and timestamp are required" });
+    return res
+      .status(400)
+      .json({ error: "channelName and timestamp are required" });
   }
 
   const prefix = `recordings/${channelName}/${timestamp}/`;
@@ -39,4 +41,3 @@ app.post("/getMp4FromS3", async (req, res) => {
     });
   }
 });
-

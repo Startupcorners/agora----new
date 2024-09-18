@@ -1,4 +1,10 @@
 const express = require("express");
+const nocache = (req, res, next) => {
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+};
 const { RtcTokenBuilder, Role } = require("./RtcTokenBuilder2"); // Make sure this is correctly imported
 const router = express.Router(); // Use the router to modularize the routes
 
