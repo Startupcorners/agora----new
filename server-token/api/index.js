@@ -1,39 +1,8 @@
 const express = require("express");
-const cors = require("cors");
-const axios = require("axios");
-const AWS = require("aws-sdk");
-require("dotenv").config();
+const { RtcTokenBuilder, Role } = require("./RtcTokenBuilder2"); // Assuming the RtcTokenBuilder2.js file is in the same directory
+const router = express.Router();
 
-const app = express();
-
-// AWS S3 setup
-const s3 = new AWS.S3({
-  accessKeyId: process.env.S3_ACCESS_KEY,
-  secretAccessKey: process.env.S3_SECRET_KEY,
-  region: "us-east-1",
-});
-
-// Log environment variables for debugging
-console.log("APP_ID:", process.env.APP_ID || "Not Defined");
-console.log("APP_CERTIFICATE:", process.env.APP_CERTIFICATE || "Not Defined");
-console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
-
-// CORS setup for Bubble
-app.use(
-  cors({
-    origin: "https://sccopy-38403.bubbleapps.io",
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true,
-  })
-);
-
-// JSON parser middleware
-app.use(express.json());
-
-// Handle preflight requests
-app.options("*", cors());
-
-// Disable caching
+// Define nocache function to disable caching
 const nocache = (req, res, next) => {
   res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
   res.header("Expires", "-1");
@@ -41,22 +10,43 @@ const nocache = (req, res, next) => {
   next();
 };
 
-// Importing route files
-const accessTokenGeneration = require("./access_token_generation");
-const acquire = require("./acquire");
-const generateRecordingToken = require("./generate_recording_token");
-const startRecording = require("./startRecording");
-const stopRecording = require("./stopRecording");
-const pollForMp4 = require("./pollForMp4");
+router.get("/access_token", nocache, (req, res) => {
+  const { channelName, uid, role } = req.query;
 
-// Using routes
-app.use("/access-token", accessTokenGeneration);
-app.use("/acquire", acquire);
-app.use("/generate_recording_token", generateRecordingToken);
-app.use("/start", startRecording);
-app.use("/stop", stopRecording);
-app.use("/poll-for-mp4", pollForMp4); // For polling MP4 file availability
+  if (!channelName) {
+    return res.status(400).json({ error: "channelName is required" });
+  }
 
-// Export the app
+  if (!process.env.APP_ID || !process.env.APP_CERTIFICATE) {
+    console.error("APP_ID or APP_CERTIFICATE is not set");
+    return res.status(500).json({ error: "Server configuration error" });
+  }
 
-module.exports = { app, nocache };
+  try {
+    console.log(
+      `Generating token for channel: ${channelName}, UID: ${uid}, Role: ${role}`
+    );
+
+    const tokenRole = role === "publisher" ? Role.PUBLISHER : Role.SUBSCRIBER;
+
+    const token = RtcTokenBuilder.buildTokenWithUid(
+      process.env.APP_ID,
+      process.env.APP_CERTIFICATE,
+      channelName,
+      uid,
+      tokenRole,
+      Math.floor(Date.now() / 1000) + 3600 // Token valid for 1 hour
+    );
+
+    console.log("Generated Token:", token);
+    return res.json({ token });
+  } catch (error) {
+    console.error("Token generation failed:", error);
+    return res.status(500).json({
+      error: "Token generation failed",
+      details: error.message,
+    });
+  }
+});
+
+module.exports = router;

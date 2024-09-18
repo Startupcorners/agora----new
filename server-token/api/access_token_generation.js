@@ -1,6 +1,5 @@
 const express = require("express");
-const { nocache } = require("./index");
-const router = express.Router(); // Create the routere
+const router = express.Router(); // Create the router
 
 router.get("/access_token", nocache, (req, res) => {
   const { channelName, uid, role } = req.query;
