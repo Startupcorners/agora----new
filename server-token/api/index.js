@@ -101,7 +101,7 @@ app.post("/acquire", async (req, res) => {
 
     const payload = {
       cname: channelName,
-      uid: "0",
+      uid: uid,
       clientRequest: {
         resourceExpiredHour: 24,
         scene: 1,
