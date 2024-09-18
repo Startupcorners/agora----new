@@ -188,7 +188,7 @@ app.post("/start", async (req, res) => {
                 audioProfile: 1,
                 videoWidth: 1280,
                 videoHeight: 720,
-                maxRecordingHour: 0.0167,
+                maxRecordingHour: 1,
               },
             },
           ],
