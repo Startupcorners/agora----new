@@ -306,12 +306,8 @@ app.post("/stop", async (req, res) => {
     // Log the response from Agora
     console.log("Stop recording response from Agora:", response.data);
 
-    // Check for fileList in response
-    if (
-      response.data.serverResponse &&
-      response.data.serverResponse.fileList &&
-      response.data.serverResponse.fileList.length > 0
-    ) {
+    // Handle response and return the file list if recording stopped successfully
+    if (response.data.serverResponse && response.data.serverResponse.fileList) {
       console.log(
         "File list from Agora:",
         response.data.serverResponse.fileList
@@ -350,7 +346,7 @@ app.post("/stop", async (req, res) => {
         .json({ error: "Failed to stop recording: No file list returned" });
     }
   } catch (error) {
-    // Detailed error logging
+    // Log detailed error information
     console.error(
       "Error stopping recording:",
       error.response ? error.response.data : error.message
@@ -361,7 +357,6 @@ app.post("/stop", async (req, res) => {
     });
   }
 });
-
 
 
 
