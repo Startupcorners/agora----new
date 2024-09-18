@@ -1,19 +1,10 @@
 const express = require("express");
 const cors = require("cors");
 const axios = require("axios");
-const { SpeechClient } = require("@google-cloud/speech");
 const AWS = require("aws-sdk");
 require("dotenv").config();
 
 const app = express();
-
-// OpenAI configuration
-const { Configuration, OpenAIApi } = require("openai");
-const openaiClient = new OpenAIApi(
-  new Configuration({
-    apiKey: process.env.OPENAI_API_KEY,
-  })
-);
 
 // AWS S3 setup
 const s3 = new AWS.S3({
@@ -57,7 +48,6 @@ const generateRecordingToken = require("./generate_recording_token");
 const startRecording = require("./startRecording");
 const stopRecording = require("./stopRecording");
 const pollForMp4 = require("./pollForMp4");
-const { transcriptSummaryEndpoint } = require("./summarizeTranscript");
 
 // Using routes
 app.use("/access-token", accessTokenGeneration);
@@ -65,7 +55,7 @@ app.use("/acquire", acquire);
 app.use("/generate_recording_token", generateRecordingToken);
 app.use("/start", startRecording);
 app.use("/stop", stopRecording);
-app.post("/transcript-summary", transcriptSummaryEndpoint);
+app.use("/poll-for-mp4", pollForMp4); // For polling MP4 file availability
 
 // Export the app
 module.exports = app;
