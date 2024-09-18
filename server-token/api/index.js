@@ -193,7 +193,7 @@ app.post("/start", async (req, res) => {
           ],
         },
         recordingFileConfig: {
-          avFileType: ["hls", "mp4"],
+          avFileType: ["mp4"],
         },
         storageConfig: {
           vendor: 1,
@@ -201,7 +201,10 @@ app.post("/start", async (req, res) => {
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
-          fileNamePrefix: ["{{channelName}}"],
+          fileNamePrefix: [
+            channelName, // Use channel name as the top-level folder
+            "recordings",
+          ],
         },
       },
     };
