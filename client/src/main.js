@@ -846,7 +846,6 @@ const joinRTM = async () => {
         });
     }, 1000);
   };
-  
 
   const handleRenewToken = async () => {
     config.token = await fetchToken();
