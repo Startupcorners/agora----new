@@ -11,6 +11,7 @@ const MainApp = function (initConfig) {
     callContainerSelector: null,
     participantPlayerContainer: null,
     appId: null,
+    recordId: null,
     uid: null,
     user: {
       id: null,
@@ -145,11 +146,12 @@ const MainApp = function (initConfig) {
   let processor = null;
 
   const acquireResource = async () => {
+    config.recordId = Math.floor(100000 + Math.random() * 900000).toString();
     try {
       // Log the payload before making the API call
       console.log("Payload for acquire resource:", {
         channelName: config.channelName,
-        uid: "0",
+        uid: config.recordId,
       });
 
       const response = await fetch(config.serverUrl + "/acquire", {
@@ -184,7 +186,6 @@ const MainApp = function (initConfig) {
     console.log("Resource acquired:", resourceId);
 
     config.resourceId = resourceId;
-    config.recordId = Math.floor(100000 + Math.random() * 900000).toString();
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
     console.log("Waited 2 seconds after acquiring resource");
