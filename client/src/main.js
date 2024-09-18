@@ -180,90 +180,99 @@ const MainApp = function (initConfig) {
     }
   };
 
-  const startRecording = async () => {
-    try {
-      const resourceId = await acquireResource();
-      console.log("Resource acquired:", resourceId);
+const startRecording = async () => {
+  try {
+    const resourceId = await acquireResource();
+    console.log("Resource acquired:", resourceId);
 
-      config.resourceId = resourceId;
+    config.resourceId = resourceId;
 
-      const timestamp = Date.now().toString(); // Generate timestamp in the frontend
-      config.timestamp = timestamp; // Save the timestamp in config for later use
+    const timestamp = Date.now().toString(); // Generate timestamp in the frontend
+    config.timestamp = timestamp; // Save the timestamp in config for later use
 
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log("Waited 2 seconds after acquiring resource");
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    console.log("Waited 2 seconds after acquiring resource");
 
-      const recordingTokenResponse = await fetch(
-        `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.recordId}`,
-        {
-          method: "GET",
-        }
-      );
-
-      const tokenData = await recordingTokenResponse.json();
-      const recordingToken = tokenData.token;
-
-      console.log("Recording token received:", recordingToken);
-
-      const response = await fetch(config.serverUrl + "/start", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          resourceId: config.resourceId,
-          channelName: config.channelName,
-          uid: config.recordId,
-          token: recordingToken,
-          timestamp: config.timestamp, // Send the timestamp to the backend
-        }),
-      });
-
-      const startData = await response.json();
-      console.log("Response from start recording:", startData);
-
-      if (!response.ok) {
-        console.error("Error starting recording:", startData);
-        throw new Error(`Failed to start recording: ${startData.error}`);
+    const recordingTokenResponse = await fetch(
+      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.recordId}`,
+      {
+        method: "GET",
       }
+    );
 
-      if (startData.sid) {
-        console.log("SID received successfully:", startData.sid);
-        config.sid = startData.sid;
-      } else {
-        console.error("SID not received in the response:", startData);
-      }
+    const tokenData = await recordingTokenResponse.json();
+    const recordingToken = tokenData.token;
 
-      console.log(
-        "Recording started successfully. Resource ID:",
-        resourceId,
-        "SID:",
-        config.sid
-      );
+    console.log("Recording token received:", recordingToken);
 
-      if (typeof bubble_fn_record === "function") {
-        bubble_fn_record({
-          output1: resourceId,
-          output2: config.sid,
-          output3: config.recordId,
-          output4: config.timestamp, // Pass the timestamp to Bubble function
-        });
-        console.log("Called bubble_fn_record with:", {
-          output1: resourceId,
-          output2: config.sid,
-          output3: config.recordId,
-          output4: config.timestamp,
-        });
-      } else {
-        console.warn("bubble_fn_record is not defined");
-      }
+    // Log the parameters before sending the request to ensure they're correct
+    console.log("Sending the following data to the backend:", {
+      resourceId: config.resourceId,
+      channelName: config.channelName,
+      uid: config.recordId,
+      token: recordingToken,
+      timestamp: config.timestamp, // Ensure the timestamp is being passed here
+    });
 
-      return startData;
-    } catch (error) {
-      console.error("Error starting recording:", error);
-      throw error;
+    const response = await fetch(config.serverUrl + "/start", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        resourceId: config.resourceId,
+        channelName: config.channelName,
+        uid: config.recordId,
+        token: recordingToken,
+        timestamp: config.timestamp, // Ensure the timestamp is passed here
+      }),
+    });
+
+    const startData = await response.json();
+    console.log("Response from start recording:", startData);
+
+    if (!response.ok) {
+      console.error("Error starting recording:", startData);
+      throw new Error(`Failed to start recording: ${startData.error}`);
     }
-  };
+
+    if (startData.sid) {
+      console.log("SID received successfully:", startData.sid);
+      config.sid = startData.sid;
+    } else {
+      console.error("SID not received in the response:", startData);
+    }
+
+    console.log(
+      "Recording started successfully. Resource ID:",
+      resourceId,
+      "SID:",
+      config.sid
+    );
+
+    if (typeof bubble_fn_record === "function") {
+      bubble_fn_record({
+        output1: resourceId,
+        output2: config.sid,
+        output3: config.recordId,
+        output4: config.timestamp, // Pass the timestamp to Bubble function
+      });
+      console.log("Called bubble_fn_record with:", {
+        output1: resourceId,
+        output2: config.sid,
+        output3: config.recordId,
+        output4: config.timestamp,
+      });
+    } else {
+      console.warn("bubble_fn_record is not defined");
+    }
+
+    return startData;
+  } catch (error) {
+    console.error("Error starting recording:", error);
+    throw error;
+  }
+};
 
   
   
