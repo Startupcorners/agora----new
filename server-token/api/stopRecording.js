@@ -11,7 +11,7 @@ const sendToAssemblyAiAndGetSummary = require("./assemblyai"); // Import Assembl
 const router = express.Router();
 
 // Stop recording endpoint
-router.post("/stop", async (req, res) => {
+router.post("/", async (req, res) => {
   const { channelName, resourceId, sid, uid, timestamp } = req.body;
 
   if (!channelName || !resourceId || !sid || !uid || !timestamp) {

@@ -8,7 +8,7 @@ const nocache = (req, res, next) => {
 const { RtcTokenBuilder, Role } = require("./RtcTokenBuilder2"); // Make sure this is correctly imported
 const router = express.Router(); // Use the router to modularize the routes
 
-router.get("/generate_recording_token", (req, res) => {
+router.get("/", (req, res) => {
   const channelName = req.query.channelName;
 
   if (!channelName) {

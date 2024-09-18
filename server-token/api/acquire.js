@@ -8,7 +8,7 @@ const nocache = (req, res, next) => {
   next();
 };
 
-router.post("/acquire", async (req, res) => {
+router.post("/", async (req, res) => {
   const { channelName, uid } = req.body;
 
   console.log("Acquire request for channel:", channelName, "UID:", uid);

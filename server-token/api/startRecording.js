@@ -8,7 +8,7 @@ const nocache = (req, res, next) => {
   next();
 };
 
-router.post("/start", async (req, res) => {
+router.post("/", async (req, res) => {
   const { channelName, resourceId, uid, token, timestamp } = req.body;
 
   if (!channelName || !resourceId || !uid || !token || !timestamp) {

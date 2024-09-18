@@ -7,7 +7,8 @@ const nocache = (req, res, next) => {
   next();
 };
 
-router.get("/access_token", nocache, (req, res) => {
+router.get("/", nocache, (req, res) => {
+  // Change to "/" to avoid route duplication
   const { channelName, uid, role } = req.query;
 
   if (!channelName) {
