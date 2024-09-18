@@ -33,7 +33,6 @@ router.post("/", async (req, res) => {
       clientRequest: {},
     };
 
-    // Stopping recording on Agora
     const response = await axios.post(
       `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/web/stop`,
       payload,
@@ -51,6 +50,10 @@ router.post("/", async (req, res) => {
     const mp4Url = await pollForMp4(resourceId, channelName, timestamp);
     console.log("MP4 retrieved:", mp4Url);
 
+    if (!mp4Url) {
+      throw new Error("MP4 file URL not found.");
+    }
+
     // Post the MP4 URL to Bubble's API
     const bubbleResponse = await axios.post(
       "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receiveawsvideo",
@@ -64,6 +67,10 @@ router.post("/", async (req, res) => {
     // Send MP4 URL to AssemblyAI for transcription and summary
     const summary = await sendToAssemblyAiAndGetSummary(mp4Url);
     console.log("Summary received:", summary);
+
+    if (!summary) {
+      throw new Error("Summary generation failed.");
+    }
 
     // Send summary to Bubble
     const bubbleSummaryResponse = await axios.post(
@@ -82,7 +89,10 @@ router.post("/", async (req, res) => {
       summary: summary,
     });
   } catch (error) {
-    console.error("Error stopping recording:", error);
+    console.error(
+      "Error stopping recording:",
+      error.response ? error.response.data : error.message
+    );
     res.status(500).json({
       error: "Failed to stop recording",
       details: error.response ? error.response.data : error.message,
