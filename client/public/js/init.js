@@ -38,31 +38,29 @@ export function initAgoraApp(
       bubble_fn_isMicOff(isMuted);
     },
     onCamMuted = (uid, isMuted) => {
-      console.log(
-        `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
-      );
+  console.log(`Camera muted for UID ${uid}: ${isMuted ? 'Camera Off' : 'Camera On'}`);
 
-      // Find the video wrapper for the participant
-      const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
-      if (!videoWrapper) {
-        console.error(`No video wrapper found for UID: ${uid}`);
-        return;
-      }
+  // Find the video wrapper for the participant
+  const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
+  if (!videoWrapper) {
+    console.error(`No video wrapper found for UID: ${uid}`);
+    return;
+  }
 
-      const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
-      const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
+  const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
+  const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
 
-      // Toggle between showing video and avatar based on whether the camera is muted
-      if (isMuted) {
-        videoPlayer.style.display = "none"; // Hide the video player
-        avatarDiv.style.display = "block"; // Show the avatar
-      } else {
-        videoPlayer.style.display = "block"; // Show the video player
-        avatarDiv.style.display = "none"; // Hide the avatar
-      }
+  // Toggle between showing video and avatar based on whether the camera is muted
+  if (isMuted) {
+    videoPlayer.style.display = "none";  // Hide the video player
+    avatarDiv.style.display = "block";   // Show the avatar
+  } else {
+    videoPlayer.style.display = "block";  // Show the video player
+    avatarDiv.style.display = "none";     // Hide the avatar
+  }
 
-      bubble_fn_isCamOff(isMuted);
-    },
+  bubble_fn_isCamOff(isMuted);  // Optionally, send this status to Bubble if needed
+},
     onScreenShareEnabled = (enabled) => {
       console.log("Screen share status:", enabled ? "Sharing" : "Not sharing");
       bubble_fn_isScreenOff(enabled);

@@ -232,17 +232,27 @@ const joinToVideoStage = async (user) => {
   };
 
   // Toggle Camera
-  const toggleCamera = async (isMuted) => {
+const toggleCamera = async (isMuted, uid) => {
+  try {
     if (isMuted) {
-      await config.localVideoTrack.setMuted(true);
+      await config.localVideoTrack.setMuted(true); // Mute the video track
       config.localVideoTrackMuted = true;
     } else {
-      await config.localVideoTrack.setMuted(false);
+      await config.localVideoTrack.setMuted(false); // Unmute the video track
       config.localVideoTrackMuted = false;
     }
 
-    config.onCamMuted(config.localVideoTrackMuted);
-  };
+    // Call onCamMuted to update the UI
+    config.onCamMuted(uid, config.localVideoTrackMuted);
+  } catch (error) {
+    if (config.onError) {
+      config.onError(error);
+    } else {
+      console.error("Error in toggleCamera:", error);
+    }
+  }
+};
+
 
   // Send Message to Peer
   const sendMessageToPeer = (data, uid) => {
