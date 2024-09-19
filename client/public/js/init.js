@@ -40,6 +40,11 @@ export function initAgoraApp(
     onCamMuted = (uid, isMuted) => {
   console.log(`Camera muted for UID ${uid}: ${isMuted ? 'Camera Off' : 'Camera On'}`);
 
+  if (!uid) {
+    console.error("UID is undefined, cannot find video wrapper.");
+    return;
+  }
+
   // Find the video wrapper for the participant
   const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
   if (!videoWrapper) {
@@ -61,10 +66,6 @@ export function initAgoraApp(
 
   bubble_fn_isCamOff(isMuted);  // Optionally, send this status to Bubble if needed
 },
-    onScreenShareEnabled = (enabled) => {
-      console.log("Screen share status:", enabled ? "Sharing" : "Not sharing");
-      bubble_fn_isScreenOff(enabled);
-    },
     onUserLeave = () => {
       window.location.href = "https://sccopy-38403.bubbleapps.io/dashboard";
     },

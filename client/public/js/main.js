@@ -232,8 +232,11 @@ const joinToVideoStage = async (user) => {
   };
 
   // Toggle Camera
-const toggleCamera = async (isMuted, uid) => {
+const toggleCamera = async (isMuted) => {
   try {
+    // Assume the local user's uid is in config.uid
+    const uid = config.uid;
+
     if (isMuted) {
       await config.localVideoTrack.setMuted(true); // Mute the video track
       config.localVideoTrackMuted = true;
@@ -242,7 +245,7 @@ const toggleCamera = async (isMuted, uid) => {
       config.localVideoTrackMuted = false;
     }
 
-    // Call onCamMuted to update the UI
+    // Pass the uid and mute status to onCamMuted
     config.onCamMuted(uid, config.localVideoTrackMuted);
   } catch (error) {
     if (config.onError) {
@@ -252,6 +255,7 @@ const toggleCamera = async (isMuted, uid) => {
     }
   }
 };
+
 
 
   // Send Message to Peer
