@@ -178,6 +178,8 @@ console.log(
     onVolumeIndicatorChanged: onVolumeIndicatorChanged,
   });
 console.log("MainApp initialized:", mainApp);
+window.mainApp = mainApp;
+
 
   // Call the join method to join the channel
   mainApp.join();
