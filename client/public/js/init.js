@@ -35,6 +35,10 @@ export function initAgoraApp(
     },
     onMicMuted = (isMuted) => {
       console.log("Microphone status:", isMuted ? "Muted" : "Unmuted");
+      const micStatusIcon = document.querySelector(`#mic-status-${uid}`);
+      if (micStatusIcon) {
+        micStatusIcon.style.display = isMuted ? "block" : "none"; // Show icon if muted, hide if not
+      }
       bubble_fn_isMicOff(isMuted);
     },
     onCamMuted = (uid, isMuted) => {
