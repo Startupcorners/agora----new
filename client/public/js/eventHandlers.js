@@ -3,12 +3,13 @@ import { log, debounce } from "./utils.js";
 
 export const handleUserPublished =
   (config, client) => async (user, mediaType) => {
-    log("handleUserPublished Here", config);
-    config.remoteTracks[user.uid] = user;
+    console.log("User published:", user.uid, "Media Type:", mediaType);
 
     await client.subscribe(user, mediaType);
+    console.log("Subscribed to user:", user.uid, "Media Type:", mediaType);
 
-    if (mediaType === "video") {
+    if (mediaType === "video" || mediaType === "screen") {
+      let playerId = `stream-${user.uid}`;
       let player = document.querySelector(`#video-wrapper-${user.uid}`);
       if (!player) {
         // Create the player if it doesn't exist
@@ -37,7 +38,7 @@ export const handleUserPublished =
       avatarDiv.style.display = "none"; // Hide the avatar
 
       // Play the video track for the user
-      user.videoTrack.play(`stream-${user.uid}`);
+      user.videoTrack.play(playerId);
     }
 
     if (mediaType === "audio") {

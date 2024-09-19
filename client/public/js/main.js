@@ -8,6 +8,8 @@ import { handleOnUpdateParticipants } from "./eventHandlers.js";
 
 export function MainApp(initConfig) {
   let config = { ...defaultConfig, ...initConfig };
+  let screenClient;
+  let localScreenShareTrack;
 
   // Perform required config checks
   if (!config.appId) throw new Error("Please set the appId first");
@@ -356,45 +358,52 @@ export function MainApp(initConfig) {
     config.isVirtualBackGroundEnabled = false;
   };
 
-  const toggleScreenShare = async (isEnabled) => {
-    if (isEnabled) {
-      try {
-        config.localVideoTrack.stop();
-        config.localVideoTrack.close();
-        client.unpublish([config.localVideoTrack]);
 
-        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
-        config.localScreenShareTrack.on("track-ended", handleScreenShareEnded);
+const toggleScreenShare = async (isEnabled) => {
+  if (isEnabled) {
+    try {
+      screenClient = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+      const screenShareUid = config.uid + 1000; // Ensure UID is unique
+      await screenClient.join(
+        config.appId,
+        config.channelName,
+        null,
+        screenShareUid
+      );
 
-        client.publish([config.localScreenShareTrack]);
-        config.localScreenShareTrack.play(`stream-${config.uid}`);
+      localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
 
-        config.localScreenShareEnabled = true;
-      } catch (e) {
-        config.onError(e);
-        config.localScreenShareTrack = null;
+      localScreenShareTrack.on("track-ended", async () => {
+        // Handle screen share stopped
+        await toggleScreenShare(false);
+      });
 
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        client.publish([config.localVideoTrack]);
-        config.localVideoTrack.play(`stream-${config.uid}`);
+      await screenClient.publish([localScreenShareTrack]);
 
-        config.localScreenShareEnabled = false;
-      }
-    } else {
-      config.localScreenShareTrack.stop();
-      config.localScreenShareTrack.close();
-      client.unpublish([config.localScreenShareTrack]);
-      config.localScreenShareTrack = null;
+      // Optionally play locally
+      localScreenShareTrack.play(`screen-share-${screenShareUid}`);
 
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      client.publish([config.localVideoTrack]);
-      config.localVideoTrack.play(`stream-${config.uid}`);
-
+      config.localScreenShareEnabled = true;
+    } catch (e) {
+      console.error("Error during screen sharing:", e);
+      config.onError(e);
       config.localScreenShareEnabled = false;
     }
+  } else {
+    if (localScreenShareTrack) {
+      localScreenShareTrack.stop();
+      localScreenShareTrack.close();
+    }
+    if (screenClient) {
+      await screenClient.unpublish([localScreenShareTrack]);
+      await screenClient.leave();
+      screenClient = null;
+    }
+    config.localScreenShareEnabled = false;
+  }
 
-    config.onScreenShareEnabled(config.localScreenShareEnabled);
-  };
+  config.onScreenShareEnabled(config.localScreenShareEnabled);
+};
 
   // Attach functions to config so they can be accessed in other modules
   config.toggleMic = toggleMic;
