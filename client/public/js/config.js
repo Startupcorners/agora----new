@@ -45,4 +45,8 @@ export const defaultConfig = {
   onError: (error) => {
     console.error("Error:", error);
   },
+  onNeedMuteCameraAndMic: (user) => {
+    console.log(`Default onNeedMuteCameraAndMic for user: ${user.id}`);
+    return false; // Default behavior, not muting mic or camera
+  },
 };

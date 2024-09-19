@@ -86,6 +86,10 @@ export function initAgoraApp(
       console.log(`onNeedJoinToVideoStage: ${user}`);
       return user.role !== "audience";
     },
+    onNeedMuteCameraAndMic = (user) => {
+      console.log(`Default onNeedMuteCameraAndMic for user: ${user.id}`);
+      return false; // Default behavior, not muting mic or camera
+    },
     onError = (error) => {
       console.error("Error occurred:", error);
       // You can display the error to the user or handle it as needed
@@ -162,6 +166,7 @@ export function initAgoraApp(
     onSpeakerChanged: onSpeakerChanged,
     onRoleChanged: onRoleChanged,
     onNeedJoinToVideoStage: onNeedJoinToVideoStage,
+    onNeedMuteCameraAndMic: onNeedMuteCameraAndMic,
   });
 
   // Call the join method to join the channel
