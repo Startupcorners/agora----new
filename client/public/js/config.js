@@ -42,5 +42,7 @@ export const defaultConfig = {
   onRoleChanged: null,
   onNeedJoinToVideoStage: null,
   onNeedMuteCameraAndMic: null,
-  onError: null,
+  onError: (error) => {
+    console.error("Error:", error);
+  },
 };
