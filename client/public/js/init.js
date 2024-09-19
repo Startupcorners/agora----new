@@ -86,6 +86,10 @@ export function initAgoraApp(
       console.log(`onNeedJoinToVideoStage: ${user}`);
       return user.role !== "audience";
     },
+    onError = (error) => {
+      console.error("Error occurred:", error);
+      // You can display the error to the user or handle it as needed
+    },
   } = options;
 
   // Set up the video stage element
@@ -152,6 +156,7 @@ export function initAgoraApp(
     onCamMuted: onCamMuted,
     onScreenShareEnabled: onScreenShareEnabled,
     onUserLeave: onUserLeave,
+    onError: onError,
     onCameraChanged: onCameraChanged,
     onMicrophoneChanged: onMicrophoneChanged,
     onSpeakerChanged: onSpeakerChanged,
