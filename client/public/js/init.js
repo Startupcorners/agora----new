@@ -1,5 +1,4 @@
 export function initAgoraApp(
-    
   channelName,
   uid,
   role,
@@ -186,3 +185,5 @@ console.log("MainApp initialized:", mainApp);
   return mainApp;
 
 }
+
+window.initAgoraApp = initAgoraApp;
