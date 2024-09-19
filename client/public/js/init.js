@@ -119,7 +119,7 @@ export function initAgoraApp(
       />
       
       <!-- User Name -->
-      <div id="name-{{uid}}" class="user-name" style="position: absolute; bottom: 10px; left: 10px; font-size: 16px; color: #fff; background-color: #fff; padding: 5px 10px; border-radius: 5px;">
+      <div id="name-{{uid}}" class="user-name" style="position: absolute; bottom: 10px; left: 10px; font-size: 16px; color: #fff; background-color: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 5px;">
         {{name || 'Guest User'}}
       </div>
       

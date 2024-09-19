@@ -147,10 +147,12 @@ const joinToVideoStage = async (user) => {
 
     // Generate the participant HTML using the new template
     console.log(`Generating new HTML for user ${user.id}`);
+    console.log("Generated participant HTML:", participantHTML);
     const participantHTML = config.participantPlayerContainer
       .replace(/{{uid}}/g, user.id)
       .replace(/{{name}}/g, user.name || "Guest User")
       .replace(/{{avatar}}/g, user.avatar || "path/to/default-avatar.png");
+      console.log("Generated participant HTML:", participantHTML);
 
     console.log("Inserting new participant HTML into the DOM.");
     // Insert the new template HTML into the container
