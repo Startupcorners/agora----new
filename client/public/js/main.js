@@ -123,32 +123,48 @@ export function MainApp(initConfig) {
   // Join to Video Stage
   const joinToVideoStage = async (user) => {
     try {
+      // Create local audio and video tracks
       config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
+      // Handle muting camera and microphone if needed
       if (config.onNeedMuteCameraAndMic(user)) {
         await toggleCamera(true);
         await toggleMic(true);
       }
 
-      // Prepare the local player container
-      let localPlayerContainer = config.participantPlayerContainer
-        .replaceAll("{{uid}}", user.id)
-        .replaceAll("{{name}}", user.name)
-        .replaceAll("{{avatar}}", user.avatar);
+      // Generate the participant HTML using the template
+      const participantHTML = config.participantPlayerContainer
+        .replace(/{{uid}}/g, user.id)
+        .replace(/{{name}}/g, user.name || "Guest User")
+        .replace(/{{avatar}}/g, user.avatar || "path/to/default-avatar.png");
 
+      // Insert the generated HTML into the call container
       document
         .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", localPlayerContainer);
+        .insertAdjacentHTML("beforeend", participantHTML);
 
+      // If the user is the local participant (the one joining), play and publish the local video track
       if (user.id === config.uid) {
+        // Play the video track in the stream element
         config.localVideoTrack.play(`stream-${user.id}`);
-        await client.publish([config.localAudioTrack, config.localVideoTrack]);
+
+        // Publish the local audio and video tracks
+        await config.client.publish([
+          config.localAudioTrack,
+          config.localVideoTrack,
+        ]);
       }
     } catch (error) {
-      config.onError(error);
+      // Handle any errors via the error callback
+      if (config.onError) {
+        config.onError(error);
+      } else {
+        console.error("Error in joinToVideoStage:", error);
+      }
     }
   };
+
 
   // Leave from Video Stage
   const leaveFromVideoStage = async (user) => {
