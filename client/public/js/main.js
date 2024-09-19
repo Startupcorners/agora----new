@@ -67,11 +67,10 @@ export function MainApp(initConfig) {
   const join = async () => {
     // Start by joining the RTM (Real-Time Messaging) channel
     await joinRTM();
+    const roleToSet = config.user.role === "audience" ? "audience" : "host";
+    console.log("Setting client role to:", roleToSet);
 
-    // Set the client's role based on the user's role
-    await client.setClientRole(
-      config.user.role === "audience" ? "audience" : "host"
-    );
+    await client.setClientRole(roleToSet);
 
     // Join the Agora channel
     const token = await fetchToken();
