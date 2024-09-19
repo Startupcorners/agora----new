@@ -146,6 +146,7 @@ const joinToVideoStage = async (user) => {
     }
 
     // Generate the participant HTML using the new template
+    console.log(config.participantPlayerContainer);
     console.log(`Generating new HTML for user ${user.id}`);
     const participantHTML = config.participantPlayerContainer
       .replace(/{{uid}}/g, user.id)
