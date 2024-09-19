@@ -67,21 +67,28 @@ export function MainApp(initConfig) {
   const join = async () => {
     // Start by joining the RTM (Real-Time Messaging) channel
     await joinRTM();
-    const roleToSet = config.user.role === "audience" ? "audience" : "host";
-    console.log("Setting client role to:", roleToSet);
-
-    await client.setClientRole(roleToSet);
 
     // Join the Agora channel
     const token = await fetchToken();
     await client.join(config.appId, config.channelName, token, config.uid);
 
+    // Set the client's role based on the user's role
+    console.log("config.user.role:", config.user.role);
+
+    const roleToSet = config.user.role === "audience" ? "audience" : "host";
+    console.log("Setting client role to:", roleToSet);
+
+    await client.setClientRole(roleToSet);
+
+    // Check the client's role
+    console.log("Client role after setting:", client.role);
+
     // If the user needs to join the video stage, proceed to publish tracks
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     }
-    // Audience members do not publish tracks or join the video stage
   };
+
 
   // Join RTM Function
   const joinRTM = async () => {
@@ -361,48 +368,70 @@ export function MainApp(initConfig) {
 const toggleScreenShare = async (isEnabled) => {
   if (isEnabled) {
     try {
-      screenClient = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
-      const screenShareUid = config.uid + 1000; // Ensure UID is unique
-      await screenClient.join(
-        config.appId,
-        config.channelName,
-        null,
-        screenShareUid
-      );
+      console.log("Client role before screen sharing:", client.role);
 
-      localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+      // Ensure the client has joined the channel
+      if (!client.connectionState || client.connectionState !== "CONNECTED") {
+        console.log("Client not connected, joining channel...");
+        const token = await fetchToken();
+        await client.join(config.appId, config.channelName, token, config.uid);
+      }
 
-      localScreenShareTrack.on("track-ended", async () => {
-        // Handle screen share stopped
+      // Set the client role to 'host' if it's not already
+      if (client.role !== "host") {
+        console.log("Changing client role to 'host' for screen sharing");
+        await client.setClientRole("host");
+        config.user.role = "host";
+
+        // Update user attributes in RTM
+        await config.clientRTM.addOrUpdateLocalUserAttributes({
+          role: config.user.role,
+        });
+      }
+
+      // Proceed with screen sharing setup
+      if (config.localVideoTrack) {
+        config.localVideoTrack.stop();
+        config.localVideoTrack.close();
+        await client.unpublish([config.localVideoTrack]);
+      }
+
+      config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+      config.localScreenShareTrack.on("track-ended", async () => {
+        // Automatically stop screen sharing when the user stops it via the browser
         await toggleScreenShare(false);
       });
 
-      await screenClient.publish([localScreenShareTrack]);
-
-      // Optionally play locally
-      localScreenShareTrack.play(`screen-share-${screenShareUid}`);
+      await client.publish([config.localScreenShareTrack]);
+      config.localScreenShareTrack.play(`stream-${config.uid}`);
 
       config.localScreenShareEnabled = true;
+      config.onScreenShareEnabled(config.localScreenShareEnabled);
     } catch (e) {
       console.error("Error during screen sharing:", e);
       config.onError(e);
       config.localScreenShareEnabled = false;
+      config.onScreenShareEnabled(config.localScreenShareEnabled);
     }
   } else {
-    if (localScreenShareTrack) {
-      localScreenShareTrack.stop();
-      localScreenShareTrack.close();
+    // Stop screen sharing
+    if (config.localScreenShareTrack) {
+      config.localScreenShareTrack.stop();
+      config.localScreenShareTrack.close();
+      await client.unpublish([config.localScreenShareTrack]);
+      config.localScreenShareTrack = null;
     }
-    if (screenClient) {
-      await screenClient.unpublish([localScreenShareTrack]);
-      await screenClient.leave();
-      screenClient = null;
-    }
-    config.localScreenShareEnabled = false;
-  }
 
-  config.onScreenShareEnabled(config.localScreenShareEnabled);
+    // Re-create and publish the camera video track
+    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+    await client.publish([config.localVideoTrack]);
+    config.localVideoTrack.play(`stream-${config.uid}`);
+
+    config.localScreenShareEnabled = false;
+    config.onScreenShareEnabled(config.localScreenShareEnabled);
+  }
 };
+
 
   // Attach functions to config so they can be accessed in other modules
   config.toggleMic = toggleMic;
