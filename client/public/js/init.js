@@ -90,6 +90,10 @@ export function initAgoraApp(
       console.log(`Default onNeedMuteCameraAndMic for user: ${user.id}`);
       return false; // Default behavior, not muting mic or camera
     },
+    onVolumeIndicatorChanged = (volume) => {
+      console.log("Default onVolumeIndicatorChanged:", volume);
+      // You can send this info to Bubble or handle it differently
+    },
     onError = (error) => {
       console.error("Error occurred:", error);
       // You can display the error to the user or handle it as needed
@@ -167,6 +171,7 @@ export function initAgoraApp(
     onRoleChanged: onRoleChanged,
     onNeedJoinToVideoStage: onNeedJoinToVideoStage,
     onNeedMuteCameraAndMic: onNeedMuteCameraAndMic,
+    onVolumeIndicatorChanged: onVolumeIndicatorChanged,
   });
 
   // Call the join method to join the channel

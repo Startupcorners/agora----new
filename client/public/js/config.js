@@ -49,4 +49,8 @@ export const defaultConfig = {
     console.log(`Default onNeedMuteCameraAndMic for user: ${user.id}`);
     return false; // Default behavior, not muting mic or camera
   },
+  onVolumeIndicatorChanged: (volume) => {
+    console.log("Default onVolumeIndicatorChanged:", volume);
+    // Default behavior, e.g., display volume levels
+  },
 };
