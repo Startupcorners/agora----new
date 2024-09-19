@@ -180,7 +180,7 @@ console.log(
 console.log("MainApp initialized:", mainApp);
 
   // Call the join method to join the channel
-  mainApp.join();
+  //mainApp.join();
 
   return mainApp;
 }
