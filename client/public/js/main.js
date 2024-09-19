@@ -120,20 +120,17 @@ export function MainApp(initConfig) {
     }
   };
 
-  // Join to Video Stage
 const joinToVideoStage = async (user) => {
   try {
-    console.log("Joining user to video stage:", user);
+    // Debug user object
+    console.log("User object:", user);
 
     // Create local audio and video tracks
-    console.log("Creating local audio and video tracks...");
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-    console.log("Audio and video tracks created.");
 
     // Handle muting camera and microphone if needed
     if (config.onNeedMuteCameraAndMic(user)) {
-      console.log("Muting camera and mic for user:", user.id);
       await toggleCamera(true);
       await toggleMic(true);
     }
@@ -141,20 +138,22 @@ const joinToVideoStage = async (user) => {
     // Clean up old participant container, if it exists
     const existingWrapper = document.querySelector(`#video-wrapper-${user.id}`);
     if (existingWrapper) {
-      console.log(`Removing existing video wrapper for user ${user.id}`);
       existingWrapper.remove(); // Remove old template, if any
     }
 
     // Generate the participant HTML using the new template
-    console.log(config.participantPlayerContainer);
-    console.log(`Generating new HTML for user ${user.id}`);
-    const participantHTML = config.participantPlayerContainer
+    let participantHTML = config.participantPlayerContainer;
+    console.log("Before replacement:", participantHTML);
+
+    // Perform replacements
+    participantHTML = participantHTML
       .replace(/{{uid}}/g, user.id)
       .replace(/{{name}}/g, user.name || "Guest User")
       .replace(/{{avatar}}/g, user.avatar || "path/to/default-avatar.png");
-      console.log("Generated participant HTML:", participantHTML);
 
-    console.log("Inserting new participant HTML into the DOM.");
+    // Log the final HTML to check replacements
+    console.log("After replacement:", participantHTML);
+
     // Insert the new template HTML into the container
     document
       .querySelector(config.callContainerSelector)
@@ -162,27 +161,25 @@ const joinToVideoStage = async (user) => {
 
     // Play the video track in the correct stream element
     if (user.id === config.uid) {
-      console.log(`Playing video for local user ${user.id}`);
       const videoElement = document.querySelector(`#stream-${user.id}`);
       config.localVideoTrack.play(videoElement); // Play video in the correct stream div
 
       // Publish the local audio and video tracks
-      console.log("Publishing local audio and video tracks.");
       await config.client.publish([
         config.localAudioTrack,
         config.localVideoTrack,
       ]);
     }
-
-    console.log(`User ${user.id} successfully joined the video stage.`);
   } catch (error) {
     // Handle any errors via the error callback
-    console.error("Error in joinToVideoStage:", error);
     if (config.onError) {
       config.onError(error);
+    } else {
+      console.error("Error in joinToVideoStage:", error);
     }
   }
 };
+
 
 
   // Leave from Video Stage
