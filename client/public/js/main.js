@@ -400,6 +400,7 @@ const toggleScreenShare = async (isEnabled) => {
       }
 
       config.localScreenShareTrack.on("track-ended", async () => {
+        console.log("Screen share track ended");
         // Automatically stop screen sharing when the user stops it via the browser
         await toggleScreenShare(false);
       });
@@ -424,21 +425,28 @@ const toggleScreenShare = async (isEnabled) => {
       config.onScreenShareEnabled(config.localScreenShareEnabled);
     }
   } else {
-    // Stop screen sharing
-    if (config.localScreenShareTrack) {
-      config.localScreenShareTrack.stop();
-      config.localScreenShareTrack.close();
-      await client.unpublish([config.localScreenShareTrack]);
-      config.localScreenShareTrack = null;
+    try {
+      // Stop screen sharing
+      if (config.localScreenShareTrack) {
+        console.log("Stopping screen share track");
+        config.localScreenShareTrack.stop();
+        config.localScreenShareTrack.close();
+        await client.unpublish([config.localScreenShareTrack]);
+        config.localScreenShareTrack = null;
+      }
+
+      // Re-create and publish the camera video track
+      console.log("Recreating camera video track");
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      await client.publish([config.localVideoTrack]);
+      config.localVideoTrack.play(`stream-${config.uid}`);
+
+      config.localScreenShareEnabled = false;
+      config.onScreenShareEnabled(config.localScreenShareEnabled);
+    } catch (e) {
+      console.error("Error while stopping screen sharing:", e);
+      config.onError(e);
     }
-
-    // Re-create and publish the camera video track
-    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-    await client.publish([config.localVideoTrack]);
-    config.localVideoTrack.play(`stream-${config.uid}`);
-
-    config.localScreenShareEnabled = false;
-    config.onScreenShareEnabled(config.localScreenShareEnabled);
   }
 };
 
