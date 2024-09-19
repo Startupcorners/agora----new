@@ -66,6 +66,10 @@ export function initAgoraApp(
 
   bubble_fn_isCamOff(isMuted);  // Optionally, send this status to Bubble if needed
 },
+    onScreenShareEnabled = (enabled) => {
+      console.log("Screen share status:", enabled ? "Sharing" : "Not sharing");
+      bubble_fn_isScreenOff(enabled);
+    },
     onUserLeave = () => {
       window.location.href = "https://sccopy-38403.bubbleapps.io/dashboard";
     },
