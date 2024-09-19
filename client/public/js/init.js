@@ -1,4 +1,4 @@
-export function initAgoraApp(
+//export function initAgoraApp(
   channelName,
   uid,
   role,
