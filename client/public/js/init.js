@@ -174,6 +174,8 @@ export function initAgoraApp(
     onVolumeIndicatorChanged: onVolumeIndicatorChanged,
   });
 
+  console.log("Template being passed to MainApp:", templateVideoParticipant);
+
   // Call the join method to join the channel
   mainApp.join();
 
