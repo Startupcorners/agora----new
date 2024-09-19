@@ -185,4 +185,7 @@ console.log("MainApp initialized:", mainApp);
   mainApp.join();
 
   return mainApp;
+
+
 }
+  window.initAgoraApp = initAgoraApp;
