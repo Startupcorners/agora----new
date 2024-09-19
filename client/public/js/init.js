@@ -104,44 +104,43 @@ export function initAgoraApp(
   window["videoStage"] = document.querySelector("#video-stage");
 
   // Template for each video participant
-  const templateVideoParticipant = `
-    <div id="video-wrapper-{{uid}}" style="flex: 1 1 320px; max-width: 800px; min-height: 220px; height: 100%; display: flex; justify-content: center; align-items: center; margin: 5px; border-radius: 10px; overflow: hidden; position: relative; background-color: #000;" data-uid="{{uid}}">
-      <!-- Video Player -->
-      <div id="stream-{{uid}}" class="video-player" style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;"></div>
+  const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="flex: 1 1 320px; max-width: 800px; min-height: 220px; height: 100%; display: flex; justify-content: center; align-items: center; margin: 5px; border-radius: 10px; overflow: hidden; position: relative; background-color: #000;" data-uid="{{uid}}">
+    <!-- Video Player -->
+    <div id="stream-{{uid}}" class="video-player" style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;"></div>
+    
+    <!-- User Avatar (shown when video is off) -->
+    <img
+      id="avatar-{{uid}}"
+      class="user-avatar"
+      src="{{avatar}}"
+      alt="{{name}}'s avatar"
+      style="display: none; width: 100px; height: 100px; border-radius: 50%; object-fit: cover;"
+    />
+    
+    <!-- User Name -->
+    <div id="name-{{uid}}" class="user-name" style="position: absolute; bottom: 10px; left: 10px; font-size: 16px; color: #fff; background-color: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 5px;">
+      {{name}}
+    </div>
+    
+    <!-- Participant Status Indicators -->
+    <div class="status-indicators" style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px;">
+      <!-- Microphone Status Icon -->
+      <span
+        id="mic-status-{{uid}}"
+        class="mic-status"
+        title="Microphone is muted"
+        style="width: 24px; height: 24px; background-image: url('icons/mic-muted.svg'); background-size: contain; background-repeat: no-repeat; display: none;"
+      ></span>
       
-      <!-- User Avatar (shown when video is off) -->
-      <img
-        id="avatar-{{uid}}"
-        class="user-avatar"
-        src="{{avatar || 'path/to/default-avatar.png'}}"
-        alt="{{name || 'Guest User'}}'s avatar"
-        style="display: none; width: 100px; height: 100px; border-radius: 50%; object-fit: cover;"
-      />
-      
-      <!-- User Name -->
-      <div id="name-{{uid}}" class="user-name" style="position: absolute; bottom: 10px; left: 10px; font-size: 16px; color: #fff; background-color: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 5px;">
-        {{name || 'Guest User'}}
-      </div>
-      
-      <!-- Participant Status Indicators -->
-      <div class="status-indicators" style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px;">
-        <!-- Microphone Status Icon -->
-        <span
-          id="mic-status-{{uid}}"
-          class="mic-status"
-          title="Microphone is muted"
-          style="width: 24px; height: 24px; background-image: url('icons/mic-muted.svg'); background-size: contain; background-repeat: no-repeat; display: none;"
-        ></span>
-        
-        <!-- Camera Status Icon -->
-        <span
-          id="cam-status-{{uid}}"
-          class="cam-status"
-          title="Camera is off"
-          style="width: 24px; height: 24px; background-image: url('icons/camera-off.svg'); background-size: contain; background-repeat: no-repeat; display: none;"
-        ></span>
-      </div>
-    </div>`;
+      <!-- Camera Status Icon -->
+      <span
+        id="cam-status-{{uid}}"
+        class="cam-status"
+        title="Camera is off"
+        style="width: 24px; height: 24px; background-image: url('icons/camera-off.svg'); background-size: contain; background-repeat: no-repeat; display: none;"
+      ></span>
+    </div>
+  </div>`;
 
 console.log(
   "Template being passed before MainApp call:",
