@@ -5,6 +5,7 @@ import { setupAgoraRTCClient } from "./agoraRTCClient.js";
 import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
 import { handleOnUpdateParticipants } from "./eventHandlers.js";
+import { initAgoraApp } from "./init.js";
 
 export function MainApp(initConfig) {
   let config = { ...defaultConfig, ...initConfig };
@@ -404,6 +405,7 @@ const toggleScreenShare = async (isEnabled) => {
         // Automatically stop screen sharing when the user stops it via the browser
         await toggleScreenShare(false);
       });
+
 
       await client.publish([config.localScreenShareTrack]);
       config.localScreenShareTrack.play(`stream-${config.uid}`);

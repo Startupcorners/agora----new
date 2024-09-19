@@ -1,4 +1,3 @@
-// config.js
 export const defaultConfig = {
   debugEnabled: true,
   callContainerSelector: null,
@@ -27,59 +26,21 @@ export const defaultConfig = {
   localVideoTrackMuted: false,
   isVirtualBackGroundEnabled: false,
   remoteTracks: {},
-  // Callback functions
-  onParticipantsChanged: (participantIds) => {
-    console.log("onParticipantsChanged");
-    console.log(participantIds);
-  },
-  onParticipantLeft: (user) => {
-    console.log("onParticipantLeft");
-    console.log(user);
-  },
-  onVolumeIndicatorChanged: (volume) => {
-    console.log("onVolumeIndicatorChanged");
-    console.log(volume);
-  },
-  onMessageReceived: (messageObj) => {
-    console.log("onMessageReceived");
-    console.log(messageObj);
-  },
-  onMicMuted: (isMuted) => {
-    console.log("onMicMuted");
-    console.log(isMuted);
-  },
-  onCamMuted: (isMuted) => {
-    console.log("onCamMuted");
-    console.log(isMuted);
-  },
-  onScreenShareEnabled: (enabled) => {
-    console.log("onScreenShareEnabled");
-    console.log(enabled);
-  },
-  onUserLeave: () => {
-    console.log("onUserLeave");
-  },
-  onCameraChanged: (info) => {
-    console.log("camera changed!", info.state, info.device);
-  },
-  onMicrophoneChanged: (info) => {
-    console.log("microphone changed!", info.state, info.device);
-  },
-  onSpeakerChanged: (info) => {
-    console.log("speaker changed!", info.state, info.device);
-  },
-  onRoleChanged: (uid, role) => {
-    console.log(`current uid: ${uid}  role: ${role}`);
-  },
-  onNeedJoinToVideoStage: (user) => {
-    console.log(`onNeedJoinToVideoStage: ${user}`);
-    return true;
-  },
-  onNeedMuteCameraAndMic: (user) => {
-    console.log(`onNeedMuteCameraAndMic: ${user}`);
-    return false;
-  },
-  onError: (error) => {
-    console.log(`onError: ${error}`);
-  },
+
+  // Callback functions (initialize as null)
+  onParticipantsChanged: null,
+  onParticipantLeft: null,
+  onVolumeIndicatorChanged: null,
+  onMessageReceived: null,
+  onMicMuted: null,
+  onCamMuted: null,
+  onScreenShareEnabled: null,
+  onUserLeave: null,
+  onCameraChanged: null,
+  onMicrophoneChanged: null,
+  onSpeakerChanged: null,
+  onRoleChanged: null,
+  onNeedJoinToVideoStage: null,
+  onNeedMuteCameraAndMic: null,
+  onError: null,
 };
