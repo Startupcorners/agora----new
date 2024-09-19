@@ -122,7 +122,6 @@ export function MainApp(initConfig) {
 
 const joinToVideoStage = async (user) => {
   try {
-    // Debug user object
     console.log("User object:", user);
 
     // Create local audio and video tracks
@@ -151,13 +150,16 @@ const joinToVideoStage = async (user) => {
       .replace(/{{name}}/g, user.name || "Guest User")
       .replace(/{{avatar}}/g, user.avatar || "path/to/default-avatar.png");
 
-    // Log the final HTML to check replacements
     console.log("After replacement:", participantHTML);
 
     // Insert the new template HTML into the container
     document
       .querySelector(config.callContainerSelector)
       .insertAdjacentHTML("beforeend", participantHTML);
+
+    // Check DOM after insertion to verify the content
+    const insertedElement = document.querySelector(`#video-wrapper-${user.id}`);
+    console.log("Inserted element in the DOM:", insertedElement.outerHTML);
 
     // Play the video track in the correct stream element
     if (user.id === config.uid) {
@@ -171,7 +173,6 @@ const joinToVideoStage = async (user) => {
       ]);
     }
   } catch (error) {
-    // Handle any errors via the error callback
     if (config.onError) {
       config.onError(error);
     } else {
@@ -179,6 +180,7 @@ const joinToVideoStage = async (user) => {
     }
   }
 };
+
 
 
 
