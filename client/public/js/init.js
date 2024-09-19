@@ -119,14 +119,14 @@ export function initAgoraApp(
     <img
       id="avatar-{{uid}}"
       class="user-avatar"
-      src="{{avatar}}"
-      alt="{{name}}'s avatar"
+      src="{{avatar || 'path/to/default-avatar.png'}}"
+      alt="{{name || 'Guest User'}}'s avatar"
       style="display: none; width: 100px; height: 100px; border-radius: 50%; object-fit: cover;"
     />
     
     <!-- User Name -->
     <div id="name-{{uid}}" class="user-name" style="position: absolute; bottom: 10px; left: 10px; font-size: 16px; color: #fff; background-color: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 5px;">
-      {{name}}
+      {{name || 'Guest User'}}
     </div>
     
     <!-- Participant Status Indicators -->
