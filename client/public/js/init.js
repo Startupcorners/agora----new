@@ -177,7 +177,6 @@ export function initAgoraApp(
   console.log("Template being passed to MainApp:", templateVideoParticipant);
 
   // Call the join method to join the channel
-  mainApp.join();
 
   return mainApp;
 }
