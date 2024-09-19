@@ -1,4 +1,5 @@
 export function initAgoraApp(
+    
   channelName,
   uid,
   role,
@@ -6,6 +7,7 @@ export function initAgoraApp(
   avatar,
   options = {}
 ) {
+    console.log("initAgoraApp called");
   const {
     onParticipantsChanged = (participants) => {
       console.log("Participants changed:", participants);
@@ -180,7 +182,7 @@ console.log(
 console.log("MainApp initialized:", mainApp);
 
   // Call the join method to join the channel
-  //mainApp.join();
+  mainApp.join();
 
   return mainApp;
 }

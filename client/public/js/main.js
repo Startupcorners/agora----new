@@ -5,7 +5,6 @@ import { setupAgoraRTCClient } from "./agoraRTCClient.js";
 import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
 import { handleOnUpdateParticipants } from "./eventHandlers.js";
-import { initAgoraApp } from "./init.js";
 
 export function MainApp(initConfig) {
   let config = { ...defaultConfig, ...initConfig };
