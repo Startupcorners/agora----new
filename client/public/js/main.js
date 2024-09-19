@@ -389,14 +389,16 @@ const toggleScreenShare = async (isEnabled) => {
         });
       }
 
-      // Proceed with screen sharing setup
+      // Create the screen share track
+      config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+
+      // Stop and unpublish the local video track only after the screen share track is created
       if (config.localVideoTrack) {
         config.localVideoTrack.stop();
         config.localVideoTrack.close();
         await client.unpublish([config.localVideoTrack]);
       }
 
-      config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
       config.localScreenShareTrack.on("track-ended", async () => {
         // Automatically stop screen sharing when the user stops it via the browser
         await toggleScreenShare(false);
@@ -410,6 +412,14 @@ const toggleScreenShare = async (isEnabled) => {
     } catch (e) {
       console.error("Error during screen sharing:", e);
       config.onError(e);
+
+      // If there was an error (e.g., user canceled screen sharing), ensure the local video is still active
+      if (!config.localVideoTrack) {
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        await client.publish([config.localVideoTrack]);
+        config.localVideoTrack.play(`stream-${config.uid}`);
+      }
+
       config.localScreenShareEnabled = false;
       config.onScreenShareEnabled(config.localScreenShareEnabled);
     }
@@ -431,6 +441,7 @@ const toggleScreenShare = async (isEnabled) => {
     config.onScreenShareEnabled(config.localScreenShareEnabled);
   }
 };
+
 
 
   // Attach functions to config so they can be accessed in other modules
