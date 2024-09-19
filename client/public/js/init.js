@@ -34,11 +34,17 @@ export function initAgoraApp(
       console.log("Message received:", message);
     },
     onMicMuted = (isMuted) => {
-      console.log("Microphone status:", isMuted ? "Muted" : "Unmuted");
-      const micStatusIcon = document.querySelector(`#mic-status-${uid}`);
-      if (micStatusIcon) {
-        micStatusIcon.style.display = isMuted ? "block" : "none"; // Show icon if muted, hide if not
-      }
+      console.log(`Microphone muted for UID ${uid}: ${isMuted ? 'Mic Off' : 'Mic On'}`);
+
+  // Find the mic status icon for the participant
+  const micStatusIcon = document.querySelector(`#mic-status-${uid}`);
+  if (!micStatusIcon) {
+    console.error(`No mic status icon found for UID: ${uid}`);
+    return;
+  }
+
+  // Toggle the mic icon visibility based on the muted state
+  micStatusIcon.style.display = isMuted ? 'block' : 'none';
       bubble_fn_isMicOff(isMuted);
     },
     onCamMuted = (uid, isMuted) => {
