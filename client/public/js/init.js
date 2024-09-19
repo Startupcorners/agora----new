@@ -143,6 +143,10 @@ export function initAgoraApp(
       </div>
     </div>`;
 
+console.log(
+  "Template being passed before MainApp call:",
+  templateVideoParticipant
+);
   // Initialize the MainApp with the necessary configurations
   const mainApp = MainApp({
     appId: "88eb7ea8de544d68a718601966c086ce",
@@ -173,8 +177,7 @@ export function initAgoraApp(
     onNeedMuteCameraAndMic: onNeedMuteCameraAndMic,
     onVolumeIndicatorChanged: onVolumeIndicatorChanged,
   });
-
-  console.log("Template being passed to MainApp:", templateVideoParticipant);
+console.log("MainApp initialized:", mainApp);
 
   // Call the join method to join the channel
   mainApp.join();
