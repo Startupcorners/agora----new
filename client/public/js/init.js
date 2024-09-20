@@ -128,7 +128,7 @@ export function initAgoraApp(
   border-radius: 10px; 
   overflow: hidden; 
   position: relative; 
-  background-color: #000;
+  background-color: #3c4043;
   box-sizing: border-box;
 " data-uid="{{uid}}">
     <!-- Video Player -->
