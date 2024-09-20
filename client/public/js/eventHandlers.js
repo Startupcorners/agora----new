@@ -126,13 +126,14 @@ export const handleOnUpdateParticipants = (config) => {
       );
       config.onParticipantsChanged(participants);
     } catch (error) {
-      log(error, config);
+      console.error(error);
     }
   };
 
   const debouncedUpdateParticipants = debounce(updateParticipants, 1000);
   return debouncedUpdateParticipants;
 };
+
 
 // Function to handle microphone muting
 export const handleMicMuted = (config) => (isMuted) => {

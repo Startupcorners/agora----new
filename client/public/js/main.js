@@ -1,10 +1,11 @@
 import * as eventHandlers from "./eventHandlers.js";
+import { initAgoraApp } from "./init.js";
 import { defaultConfig } from "./config.js";
 import { log, imageUrlToBase64 } from "./utils.js";
 import { setupAgoraRTCClient } from "./agoraRTCClient.js";
 import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
-import { initAgoraApp } from "./init.js";
+
 
 
 export function MainApp(initConfig) {
