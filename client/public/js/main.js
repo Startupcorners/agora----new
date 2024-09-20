@@ -1,4 +1,3 @@
-// main.js
 import { defaultConfig } from "./config.js";
 import { log, imageUrlToBase64 } from "./utils.js";
 import { setupAgoraRTCClient } from "./agoraRTCClient.js";
@@ -6,6 +5,20 @@ import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
 import { handleOnUpdateParticipants } from "./eventHandlers.js";
 import { initAgoraApp } from "./init.js";
+
+// Wait for DOM content to be fully loaded
+document.addEventListener("DOMContentLoaded", () => {
+  // Check if initAgoraApp is available from the imported init.js
+  if (window.initAgoraApp) {
+    const mainApp = initAgoraApp(channelName, uid, role, name, avatar);
+    window.mainApp = mainApp;
+
+    // Now that mainApp is initialized, join the Agora session
+    mainApp.join();
+  } else {
+    console.error("initAgoraApp function is not available.");
+  }
+});
 
 export function MainApp(initConfig) {
   let config = { ...defaultConfig, ...initConfig };
@@ -65,52 +78,50 @@ export function MainApp(initConfig) {
     }
   };
 
+  function updateVideoWrapperSize() {
+    const videoStage = document.getElementById("video-stage");
+    const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
+    const count = videoWrappers.length;
+    const screenWidth = window.innerWidth;
+    const maxWrapperWidth = 800; // Maximum width of each video wrapper
 
-function updateVideoWrapperSize() {
-  const videoStage = document.getElementById("video-stage");
-  const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
-  const count = videoWrappers.length;
-  const screenWidth = window.innerWidth;
-  const maxWrapperWidth = 800; // Maximum width of each video wrapper
+    videoWrappers.forEach((wrapper) => {
+      wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
 
-  videoWrappers.forEach((wrapper) => {
-    wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
-
-    if (screenWidth < 768) {
-      wrapper.style.flex = "1 1 100%";
-      wrapper.style.maxWidth = "100%";
-      wrapper.style.minHeight = "50vh";
-    } else {
-      if (count === 1) {
+      if (screenWidth < 768) {
         wrapper.style.flex = "1 1 100%";
         wrapper.style.maxWidth = "100%";
-        wrapper.style.minHeight = "80vh";
-      } else if (count === 2) {
-        wrapper.style.flex = "1 1 45%";
-        wrapper.style.maxWidth = "50%";
-        wrapper.style.minHeight = "45vh";
-      } else if (count === 3) {
-        wrapper.style.flex = "1 1 30%";
-        wrapper.style.maxWidth = "33.333%";
-        wrapper.style.minHeight = "35vh";
+        wrapper.style.minHeight = "50vh";
       } else {
-        wrapper.style.flex = "1 1 auto";
-        wrapper.style.maxWidth = `${maxWrapperWidth}px`;
-        wrapper.style.minHeight = "30vh";
+        if (count === 1) {
+          wrapper.style.flex = "1 1 100%";
+          wrapper.style.maxWidth = "100%";
+          wrapper.style.minHeight = "80vh";
+        } else if (count === 2) {
+          wrapper.style.flex = "1 1 45%";
+          wrapper.style.maxWidth = "50%";
+          wrapper.style.minHeight = "45vh";
+        } else if (count === 3) {
+          wrapper.style.flex = "1 1 30%";
+          wrapper.style.maxWidth = "33.333%";
+          wrapper.style.minHeight = "35vh";
+        } else {
+          wrapper.style.flex = "1 1 auto";
+          wrapper.style.maxWidth = `${maxWrapperWidth}px`;
+          wrapper.style.minHeight = "30vh";
+        }
       }
-    }
+    });
+  }
+  window.updateVideoWrapperSize = updateVideoWrapperSize;
+
+  // Add a resize event listener to update video wrapper sizes dynamically
+  window.addEventListener("resize", updateVideoWrapperSize);
+
+  // Optionally, call the function once during initialization to set the initial layout
+  document.addEventListener("DOMContentLoaded", () => {
+    updateVideoWrapperSize();
   });
-}
-window.updateVideoWrapperSize = updateVideoWrapperSize;
-
-// Add a resize event listener to update video wrapper sizes dynamically
-window.addEventListener("resize", updateVideoWrapperSize);
-
-// Optionally, call the function once during initialization to set the initial layout
-document.addEventListener("DOMContentLoaded", () => {
-  updateVideoWrapperSize();
-});
-
 
   // Join Function
   const join = async () => {
@@ -137,7 +148,6 @@ document.addEventListener("DOMContentLoaded", () => {
       await joinToVideoStage(config.user);
     }
   };
-
 
   // Join RTM Function
   const joinRTM = async () => {
@@ -168,69 +178,70 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-const joinToVideoStage = async (user) => {
-  try {
-    console.log("User object:", user);
+  const joinToVideoStage = async (user) => {
+    try {
+      console.log("User object:", user);
 
-    // Create local audio and video tracks
-    config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      // Create local audio and video tracks
+      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
-    // Handle muting camera and microphone if needed
-    if (config.onNeedMuteCameraAndMic(user)) {
-      await toggleCamera(true);
-      await toggleMic(true);
+      // Handle muting camera and microphone if needed
+      if (config.onNeedMuteCameraAndMic(user)) {
+        await toggleCamera(true);
+        await toggleMic(true);
+      }
+
+      // Clean up old participant container, if it exists
+      const existingWrapper = document.querySelector(
+        `#video-wrapper-${user.id}`
+      );
+      if (existingWrapper) {
+        existingWrapper.remove(); // Remove old template, if any
+      }
+
+      // Generate the participant HTML using the new template
+      let participantHTML = config.participantPlayerContainer;
+      console.log("Before replacement:", participantHTML);
+
+      // Perform replacements
+      participantHTML = participantHTML
+        .replace(/{{uid}}/g, user.id)
+        .replace(/{{name}}/g, user.name || "Guest User")
+        .replace(/{{avatar}}/g, user.avatar || "path/to/default-avatar.png");
+
+      console.log("After replacement:", participantHTML);
+
+      // Insert the new template HTML into the container
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", participantHTML);
+
+      // Check DOM after insertion to verify the content
+      const insertedElement = document.querySelector(
+        `#video-wrapper-${user.id}`
+      );
+      console.log("Inserted element in the DOM:", insertedElement.outerHTML);
+
+      // Play the video track in the correct stream element
+      if (user.id === config.uid) {
+        const videoElement = document.querySelector(`#stream-${user.id}`);
+        config.localVideoTrack.play(videoElement); // Play video in the correct stream div
+
+        // Publish the local audio and video tracks
+        await config.client.publish([
+          config.localAudioTrack,
+          config.localVideoTrack,
+        ]);
+      }
+    } catch (error) {
+      if (config.onError) {
+        config.onError(error);
+      } else {
+        console.error("Error in joinToVideoStage:", error);
+      }
     }
-
-    // Clean up old participant container, if it exists
-    const existingWrapper = document.querySelector(`#video-wrapper-${user.id}`);
-    if (existingWrapper) {
-      existingWrapper.remove(); // Remove old template, if any
-    }
-
-    // Generate the participant HTML using the new template
-    let participantHTML = config.participantPlayerContainer;
-    console.log("Before replacement:", participantHTML);
-
-    // Perform replacements
-    participantHTML = participantHTML
-      .replace(/{{uid}}/g, user.id)
-      .replace(/{{name}}/g, user.name || "Guest User")
-      .replace(/{{avatar}}/g, user.avatar || "path/to/default-avatar.png");
-
-    console.log("After replacement:", participantHTML);
-
-    // Insert the new template HTML into the container
-    document
-      .querySelector(config.callContainerSelector)
-      .insertAdjacentHTML("beforeend", participantHTML);
-
-    // Check DOM after insertion to verify the content
-    const insertedElement = document.querySelector(`#video-wrapper-${user.id}`);
-    console.log("Inserted element in the DOM:", insertedElement.outerHTML);
-
-    // Play the video track in the correct stream element
-    if (user.id === config.uid) {
-      const videoElement = document.querySelector(`#stream-${user.id}`);
-      config.localVideoTrack.play(videoElement); // Play video in the correct stream div
-
-      // Publish the local audio and video tracks
-      await config.client.publish([
-        config.localAudioTrack,
-        config.localVideoTrack,
-      ]);
-    }
-  } catch (error) {
-    if (config.onError) {
-      config.onError(error);
-    } else {
-      console.error("Error in joinToVideoStage:", error);
-    }
-  }
-};
-
-
-
+  };
 
   // Leave from Video Stage
   const leaveFromVideoStage = async (user) => {
@@ -280,51 +291,47 @@ const joinToVideoStage = async (user) => {
   };
 
   // Toggle Camera
-const toggleCamera = async (isMuted) => {
-  try {
-    const uid = config.uid;
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatar = document.querySelector(`#avatar-${uid}`);
+  const toggleCamera = async (isMuted) => {
+    try {
+      const uid = config.uid;
+      const videoPlayer = document.querySelector(`#stream-${uid}`);
+      const avatar = document.querySelector(`#avatar-${uid}`);
 
-    // Check if the video track exists, if not create and initialize it
-    if (!config.localVideoTrack) {
-      console.log("Initializing new camera video track");
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      // Play the video in the designated player element
-      videoPlayer.style.display = "block";
-      config.localVideoTrack.play(videoPlayer);
-      await config.client.publish([config.localVideoTrack]);
+      // Check if the video track exists, if not create and initialize it
+      if (!config.localVideoTrack) {
+        console.log("Initializing new camera video track");
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        // Play the video in the designated player element
+        videoPlayer.style.display = "block";
+        config.localVideoTrack.play(videoPlayer);
+        await config.client.publish([config.localVideoTrack]);
+      }
+
+      // Mute or unmute the video track
+      if (isMuted) {
+        await config.localVideoTrack.setMuted(true); // Mute the video track
+        config.localVideoTrackMuted = true;
+
+        // Show the avatar and hide the video player
+        videoPlayer.style.display = "none";
+        avatar.style.display = "block";
+      } else {
+        await config.localVideoTrack.setMuted(false); // Unmute the video track
+        config.localVideoTrackMuted = false;
+
+        // Hide the avatar and show the video player
+        videoPlayer.style.display = "block";
+        avatar.style.display = "none";
+      }
+
+      config.onCamMuted(uid, config.localVideoTrackMuted);
+    } catch (error) {
+      console.error("Error in toggleCamera:", error);
+      if (config.onError) {
+        config.onError(error);
+      }
     }
-
-    // Mute or unmute the video track
-    if (isMuted) {
-      await config.localVideoTrack.setMuted(true); // Mute the video track
-      config.localVideoTrackMuted = true;
-
-      // Show the avatar and hide the video player
-      videoPlayer.style.display = "none";
-      avatar.style.display = "block";
-    } else {
-      await config.localVideoTrack.setMuted(false); // Unmute the video track
-      config.localVideoTrackMuted = false;
-
-      // Hide the avatar and show the video player
-      videoPlayer.style.display = "block";
-      avatar.style.display = "none";
-    }
-
-    config.onCamMuted(uid, config.localVideoTrackMuted);
-  } catch (error) {
-    console.error("Error in toggleCamera:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
-  }
-};
-
-
-
-
+  };
 
   // Send Message to Peer
   const sendMessageToPeer = (data, uid) => {
@@ -481,94 +488,89 @@ const toggleCamera = async (isMuted) => {
     config.isVirtualBackGroundEnabled = false;
   };
 
+  const toggleScreenShare = async (isEnabled) => {
+    try {
+      const uid = config.uid;
+      const videoPlayer = document.querySelector(`#stream-${uid}`);
+      const avatar = document.querySelector(`#avatar-${uid}`);
 
+      if (isEnabled) {
+        console.log("Starting screen share");
 
+        // Store whether the camera was originally on before sharing
+        wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
 
+        // Create the screen share track
+        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
 
-const toggleScreenShare = async (isEnabled) => {
-  try {
-    const uid = config.uid;
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatar = document.querySelector(`#avatar-${uid}`);
+        // If we successfully create the screen share track, stop and unpublish the local video track
+        if (config.localVideoTrack) {
+          config.localVideoTrack.stop();
+          await config.client.unpublish([config.localVideoTrack]);
+          videoPlayer.style.display = "none"; // Hide the video player
+        }
 
-    if (isEnabled) {
-      console.log("Starting screen share");
+        // Play and publish the screen share track
+        config.localScreenShareTrack.on("track-ended", async () => {
+          console.log("Screen share track ended, reverting back to camera");
+          await toggleScreenShare(false); // Revert to camera when screen sharing stops
+        });
 
-      // Store whether the camera was originally on before sharing
-      wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
+        await config.client.publish([config.localScreenShareTrack]);
+        config.localScreenShareTrack.play(videoPlayer);
+        videoPlayer.style.display = "block"; // Show the screen share in the video player
+        avatar.style.display = "none"; // Hide the avatar during screen share
+      } else {
+        console.log("Stopping screen share");
 
-      // Create the screen share track
-      config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+        // Stop screen sharing and revert to the camera
+        if (config.localScreenShareTrack) {
+          config.localScreenShareTrack.stop();
+          await config.client.unpublish([config.localScreenShareTrack]);
+          config.localScreenShareTrack = null;
+        }
 
-      // If we successfully create the screen share track, stop and unpublish the local video track
-      if (config.localVideoTrack) {
-        config.localVideoTrack.stop();
-        await config.client.unpublish([config.localVideoTrack]);
-        videoPlayer.style.display = "none"; // Hide the video player
+        // Recreate the camera video track and publish it if the camera was originally on
+        if (!config.localVideoTrack) {
+          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        }
+
+        await config.client.publish([config.localVideoTrack]);
+        config.localVideoTrack.play(videoPlayer);
+
+        // Restore the camera or avatar visibility based on the initial state before screen sharing
+        if (wasCameraOnBeforeSharing) {
+          videoPlayer.style.display = "block"; // Show video player if the camera was on before sharing
+          avatar.style.display = "none"; // Hide avatar
+        } else {
+          videoPlayer.style.display = "none"; // Hide video player if the camera was off
+          avatar.style.display = "block"; // Show avatar
+        }
       }
 
-      // Play and publish the screen share track
-      config.localScreenShareTrack.on("track-ended", async () => {
-        console.log("Screen share track ended, reverting back to camera");
-        await toggleScreenShare(false); // Revert to camera when screen sharing stops
-      });
+      config.localScreenShareEnabled = isEnabled;
+      config.onScreenShareEnabled(isEnabled);
+    } catch (e) {
+      console.error("Error during screen sharing:", e);
+      config.onError(e);
 
-      await config.client.publish([config.localScreenShareTrack]);
-      config.localScreenShareTrack.play(videoPlayer);
-      videoPlayer.style.display = "block"; // Show the screen share in the video player
-      avatar.style.display = "none"; // Hide the avatar during screen share
-    } else {
-      console.log("Stopping screen share");
-
-      // Stop screen sharing and revert to the camera
-      if (config.localScreenShareTrack) {
-        config.localScreenShareTrack.stop();
-        await config.client.unpublish([config.localScreenShareTrack]);
-        config.localScreenShareTrack = null;
-      }
-
-      // Recreate the camera video track and publish it if the camera was originally on
-      if (!config.localVideoTrack) {
+      // If there's an error (like canceling screen share), ensure the local video is still active
+      if (!isEnabled && !config.localVideoTrack) {
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      }
+        await config.client.publish([config.localVideoTrack]);
+        config.localVideoTrack.play(videoPlayer);
 
-      await config.client.publish([config.localVideoTrack]);
-      config.localVideoTrack.play(videoPlayer);
-
-      // Restore the camera or avatar visibility based on the initial state before screen sharing
-      if (wasCameraOnBeforeSharing) {
-        videoPlayer.style.display = "block"; // Show video player if the camera was on before sharing
-        avatar.style.display = "none"; // Hide avatar
-      } else {
-        videoPlayer.style.display = "none"; // Hide video player if the camera was off
-        avatar.style.display = "block"; // Show avatar
-      }
-    }
-
-    config.localScreenShareEnabled = isEnabled;
-    config.onScreenShareEnabled(isEnabled);
-  } catch (e) {
-    console.error("Error during screen sharing:", e);
-    config.onError(e);
-
-    // If there's an error (like canceling screen share), ensure the local video is still active
-    if (!isEnabled && !config.localVideoTrack) {
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      await config.client.publish([config.localVideoTrack]);
-      config.localVideoTrack.play(videoPlayer);
-
-      // Restore camera or avatar visibility based on the initial state
-      if (wasCameraOnBeforeSharing) {
-        videoPlayer.style.display = "block"; // Show video player
-        avatar.style.display = "none"; // Hide avatar
-      } else {
-        videoPlayer.style.display = "none"; // Hide video player
-        avatar.style.display = "block"; // Show avatar
+        // Restore camera or avatar visibility based on the initial state
+        if (wasCameraOnBeforeSharing) {
+          videoPlayer.style.display = "block"; // Show video player
+          avatar.style.display = "none"; // Hide avatar
+        } else {
+          videoPlayer.style.display = "none"; // Hide video player
+          avatar.style.display = "block"; // Show avatar
+        }
       }
     }
-  }
-};
-
+  };
 
   // Attach functions to config so they can be accessed in other modules
   config.toggleMic = toggleMic;
@@ -632,6 +634,3 @@ const toggleScreenShare = async (isEnabled) => {
   };
 }
 window["MainApp"] = MainApp;
-
-
-

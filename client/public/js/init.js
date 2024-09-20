@@ -155,12 +155,15 @@ export function initAgoraApp(
   });
 
   console.log("MainApp initialized:", mainApp);
+
+  // Store mainApp globally after it's fully initialized
   window.mainApp = mainApp;
 
-  // Call the join method to join the channel
+  // Call the join method to join the channel (move this after initialization)
   mainApp.join();
 
   return mainApp;
 }
 
+// Ensure initAgoraApp is globally available after being defined
 window.initAgoraApp = initAgoraApp;
