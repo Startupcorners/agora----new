@@ -4,22 +4,26 @@ import { setupAgoraRTCClient } from "./agoraRTCClient.js";
 import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
 
-
 export class MainApp {
   constructor(userConfig = {}) {
-    // Merge the default config with the user-provided config
-    this.config = { ...defaultConfig, ...userConfig };
+    try {
+      // Merge the default config with the user-provided config
+      this.config = { ...defaultConfig, ...userConfig };
 
-    this.screenClient = null;
-    this.localScreenShareTrack = null;
-    this.wasCameraOnBeforeSharing = false;
-    this.processor = null;
+      this.screenClient = null;
+      this.localScreenShareTrack = null;
+      this.wasCameraOnBeforeSharing = false;
+      this.processor = null;
 
-    this.validateConfig();
-    this.initializeAgoraClients();
-    this.initializeRecordingFunctions();
-    this.initializeVirtualBackground();
-    this.setupEventListeners();
+      this.validateConfig();
+      this.initializeAgoraClients();
+      this.initializeRecordingFunctions();
+      this.initializeVirtualBackground();
+      this.setupEventListeners();
+    } catch (error) {
+      console.error("Error initializing MainApp:", error);
+      throw error;
+    }
   }
 
   validateConfig() {
@@ -52,18 +56,26 @@ export class MainApp {
   }
 
   initializeVirtualBackground() {
-    const extensionVirtualBackground = new VirtualBackgroundExtension();
-    if (!extensionVirtualBackground.checkCompatibility()) {
-      log("Does not support Virtual Background!", this.config);
+    try {
+      const extensionVirtualBackground = new VirtualBackgroundExtension();
+      if (!extensionVirtualBackground.checkCompatibility()) {
+        log("Does not support Virtual Background!", this.config);
+      }
+      AgoraRTC.registerExtensions([extensionVirtualBackground]);
+    } catch (error) {
+      console.error("Error initializing Virtual Background:", error);
+      // Decide whether to throw this error or just log it
     }
-    AgoraRTC.registerExtensions([extensionVirtualBackground]);
   }
 
   setupEventListeners() {
-    window.addEventListener("resize", this.updateVideoWrapperSize);
-    document.addEventListener("DOMContentLoaded", this.updateVideoWrapperSize);
+    window.addEventListener("resize", this.updateVideoWrapperSize.bind(this));
+    document.addEventListener(
+      "DOMContentLoaded",
+      this.updateVideoWrapperSize.bind(this)
+    );
   }
-
+  
   async fetchToken() {
     if (this.config.serverUrl !== "") {
       try {
