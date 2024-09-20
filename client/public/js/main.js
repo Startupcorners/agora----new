@@ -610,12 +610,15 @@ const toggleScreenShare = async (isEnabled) => {
   };
 }
 
+// Make sure the updateVideoWrapperSize function is globally available first
+window.updateVideoWrapperSize = updateVideoWrapperSize;
+
 window["MainApp"] = MainApp;
+
+// Add a resize event listener to update video wrapper sizes dynamically
 window.addEventListener('resize', updateVideoWrapperSize);
 
 // Optionally, call the function once during initialization to set the initial layout
 document.addEventListener("DOMContentLoaded", () => {
   updateVideoWrapperSize();
 });
-
-window.updateVideoWrapperSize = updateVideoWrapperSize;
