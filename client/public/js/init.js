@@ -122,9 +122,9 @@ export function initAgoraApp(
   // Template for each video participant
   const templateVideoParticipant = `
 <div id="video-wrapper-{{uid}}" style="
-  flex: 1 1 100%; /* Full width for 1 participant */
-  max-width: 100%; 
-  min-height: 80vh; /* Use at least 80% of the viewport height */
+  flex: 1 1 320px; 
+  max-width: 800px; 
+  min-height: 220px; 
   height: 100%; 
   display: flex; 
   justify-content: center; 
@@ -134,7 +134,7 @@ export function initAgoraApp(
   overflow: hidden; 
   position: relative; 
   background-color: #000;
-  box-sizing: border-box;
+  box-sizing: border-box; /* Ensures padding and border are included in total width */
 " data-uid="{{uid}}">
     <!-- Video Player -->
     <div id="stream-{{uid}}" class="video-player" style="

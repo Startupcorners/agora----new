@@ -69,9 +69,12 @@ export function MainApp(initConfig) {
    const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
    const count = videoWrappers.length;
    const screenWidth = window.innerWidth;
-   const maxWrapperWidth = 800; // Maximum width of each video wrapper in pixels
+   const maxWrapperWidth = 800; // Maximum width of each video wrapper
 
    videoWrappers.forEach((wrapper) => {
+     // Apply consistent box sizing to prevent overflow due to padding or borders
+     wrapper.style.boxSizing = "border-box";
+
      // For smaller screens, make participants full width
      if (screenWidth < 768) {
        wrapper.style.flex = "1 1 100%";
@@ -92,14 +95,15 @@ export function MainApp(initConfig) {
          wrapper.style.maxWidth = "33.333%";
          wrapper.style.minHeight = "35vh";
        } else {
-         // For 4+ participants, use a fixed max width for each stream
+         // For 4+ participants, limit max width and allow for flexible resizing
          wrapper.style.flex = "1 1 auto";
-         wrapper.style.maxWidth = `${maxWrapperWidth}px`; // Limit max width
+         wrapper.style.maxWidth = `${maxWrapperWidth}px`;
          wrapper.style.minHeight = "30vh";
        }
      }
    });
  }
+
 
 
 
