@@ -3,9 +3,9 @@ import { log, imageUrlToBase64, debounce } from "./utils.js";
 import { setupAgoraRTCClient } from "./agoraRTCClient.js";
 import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
-import { VirtualBackgroundExtension } from 'agora-extension-virtual-background';
+
 export class MainApp {
-  constructor(initConfig) {
+  constructor(initConfiVirtualBackgroundExtensiong) {
     this.config = { ...defaultConfig, ...initConfig };
     this.screenClient = null;
     this.localScreenShareTrack = null;
