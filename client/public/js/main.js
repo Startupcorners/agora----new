@@ -488,7 +488,12 @@ const toggleScreenShare = async (isEnabled) => {
       });
 
       await config.client.publish([config.localScreenShareTrack]);
-      config.localScreenShareTrack.play(`stream-${config.uid}`); // Display the screen share in the correct div
+
+      // Ensure the video-player element is visible again
+      const videoElement = document.querySelector(`#stream-${config.uid}`);
+      videoElement.style.display = "block"; // Make sure the video player is visible
+
+      config.localScreenShareTrack.play(videoElement); // Play screen share in the correct div
 
       config.localScreenShareEnabled = true;
       config.onScreenShareEnabled(config.localScreenShareEnabled);
