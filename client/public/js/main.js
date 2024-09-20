@@ -1,7 +1,7 @@
 import * as eventHandlers from "./eventHandlers.js";
 import { initAgoraApp } from "./init.js";
-console.log(eventHandlers); // Should log an object with the functions
-console.log(initAgoraApp); // Should log the function definition
+console.log("Eventhandlers", eventHandlers); // Should log an object with the functions
+console.log("init", initAgoraApp); // Should log the function definition
 import { defaultConfig } from "./config.js";
 import { log, imageUrlToBase64 } from "./utils.js";
 import { setupAgoraRTCClient } from "./agoraRTCClient.js";
