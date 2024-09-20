@@ -543,6 +543,7 @@ const toggleScreenShare = async (isEnabled) => {
 
 
 
+
   // Attach functions to config so they can be accessed in other modules
   config.toggleMic = toggleMic;
   config.toggleScreenShare = toggleScreenShare;
