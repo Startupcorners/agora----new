@@ -486,6 +486,9 @@ const toggleScreenShare = async (isEnabled) => {
     if (isEnabled) {
       console.log("Starting screen share");
 
+      // Store whether the camera was originally on before sharing
+      wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
+
       // Create the screen share track
       config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
 
@@ -498,15 +501,14 @@ const toggleScreenShare = async (isEnabled) => {
 
       // Play and publish the screen share track
       config.localScreenShareTrack.on("track-ended", async () => {
-        // Automatically stop screen sharing when the user stops it via the browser
         console.log("Screen share track ended, reverting back to camera");
-        await toggleScreenShare(false);
+        await toggleScreenShare(false); // Revert to camera when screen sharing stops
       });
 
       await config.client.publish([config.localScreenShareTrack]);
       config.localScreenShareTrack.play(videoPlayer);
       videoPlayer.style.display = "block"; // Show the screen share in the video player
-      avatar.style.display = "none"; // Hide the avatar
+      avatar.style.display = "none"; // Hide the avatar during screen share
     } else {
       console.log("Stopping screen share");
 
@@ -517,15 +519,22 @@ const toggleScreenShare = async (isEnabled) => {
         config.localScreenShareTrack = null;
       }
 
-      // Recreate the camera video track and publish it
+      // Recreate the camera video track and publish it if the camera was originally on
       if (!config.localVideoTrack) {
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
       }
 
       await config.client.publish([config.localVideoTrack]);
       config.localVideoTrack.play(videoPlayer);
-      videoPlayer.style.display = "block"; // Show the video player
-      avatar.style.display = config.localVideoTrackMuted ? "block" : "none"; // Toggle avatar visibility based on mute status
+
+      // Restore the camera or avatar visibility based on the initial state before screen sharing
+      if (wasCameraOnBeforeSharing) {
+        videoPlayer.style.display = "block"; // Show video player if the camera was on before sharing
+        avatar.style.display = "none"; // Hide avatar
+      } else {
+        videoPlayer.style.display = "none"; // Hide video player if the camera was off
+        avatar.style.display = "block"; // Show avatar
+      }
     }
 
     config.localScreenShareEnabled = isEnabled;
@@ -539,13 +548,18 @@ const toggleScreenShare = async (isEnabled) => {
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
       await config.client.publish([config.localVideoTrack]);
       config.localVideoTrack.play(videoPlayer);
-      videoPlayer.style.display = "block";
-      avatar.style.display = config.localVideoTrackMuted ? "block" : "none"; // Toggle avatar visibility
+
+      // Restore camera or avatar visibility based on the initial state
+      if (wasCameraOnBeforeSharing) {
+        videoPlayer.style.display = "block"; // Show video player
+        avatar.style.display = "none"; // Hide avatar
+      } else {
+        videoPlayer.style.display = "none"; // Hide video player
+        avatar.style.display = "block"; // Show avatar
+      }
     }
   }
 };
-
-
 
 
   // Attach functions to config so they can be accessed in other modules
