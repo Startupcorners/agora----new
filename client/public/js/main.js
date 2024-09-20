@@ -64,7 +64,7 @@ export function MainApp(initConfig) {
     }
   };
 
-  
+
 function updateVideoWrapperSize() {
   const videoStage = document.getElementById("video-stage");
   const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
@@ -617,3 +617,5 @@ window.addEventListener('resize', updateVideoWrapperSize);
 document.addEventListener("DOMContentLoaded", () => {
   updateVideoWrapperSize();
 });
+
+window.updateVideoWrapperSize = updateVideoWrapperSize;
