@@ -161,12 +161,13 @@ export function MainApp(initConfig) {
       log("Joined RTM channel successfully", config);
 
       // Update participants after joining
-      handleOnUpdateParticipants(config)();
+      eventHandlers.handleOnUpdateParticipants(config)(); // Correct reference
     } catch (error) {
       log("RTM join process failed:", error, config);
       throw error;
     }
   };
+
 
   const joinToVideoStage = async (user) => {
     try {
@@ -423,7 +424,7 @@ export function MainApp(initConfig) {
       role: role,
     };
     sendBroadcast(messageObj);
-    handleOnUpdateParticipants(config)();
+    eventHandlers.handleOnUpdateParticipants(config)();
     config.onRoleChanged(uid, role);
   };
 
