@@ -6,28 +6,7 @@ import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
 import { initAgoraApp } from "./init.js";
 
-// Wait for DOM content to be fully loaded
-document.addEventListener("DOMContentLoaded", () => {
-  // Check if initAgoraApp is available from the imported init.js
-  if (window.initAgoraApp) {
-    const mainApp = initAgoraApp(
-      "Room1",
-      "12345",
-      "host",
-      "John Doe",
-      "https://example.com/avatar.png",
-      {
-        onParticipantsChanged: eventHandlers.handleOnUpdateParticipants,
-      }
-    );
-    window.mainApp = mainApp;
 
-    // Now that mainApp is initialized, join the Agora session
-    mainApp.join();
-  } else {
-    console.error("initAgoraApp function is not available.");
-  }
-});
 export function MainApp(initConfig) {
   let config = { ...defaultConfig, ...initConfig };
   let screenClient;
