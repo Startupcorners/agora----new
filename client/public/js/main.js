@@ -277,18 +277,21 @@ const toggleCamera = async (isMuted) => {
     const uid = config.uid;
 
     if (isMuted) {
+      // If muting the camera, stop and unpublish the video track
       if (config.localVideoTrack) {
         await config.localVideoTrack.stop(); // Stop the video track
         await config.client.unpublish([config.localVideoTrack]); // Unpublish the video track
         config.localVideoTrack.close(); // Close the track completely
-        config.localVideoTrack = null; // Set it to null
+        config.localVideoTrack = null; // Set to null
       }
       config.localVideoTrackMuted = true;
     } else {
-      if (!config.localVideoTrack) {
-        // Re-create the camera video track if the camera is being turned on
+      // If unmuting, recreate and publish the camera video track if screen sharing is not active
+      if (!config.localVideoTrack && !config.localScreenShareEnabled) {
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
         await config.client.publish([config.localVideoTrack]);
+        const videoElement = document.querySelector(`#stream-${config.uid}`);
+        config.localVideoTrack.play(videoElement); // Play in the correct div
       }
       config.localVideoTrackMuted = false;
     }
@@ -303,6 +306,7 @@ const toggleCamera = async (isMuted) => {
     }
   }
 };
+
 
 
 
@@ -467,12 +471,12 @@ const toggleScreenShare = async (isEnabled) => {
     try {
       console.log("Starting screen sharing");
 
-      // Ensure the camera track is stopped and unpublished before screen sharing
+      // If there is a camera track, stop and unpublish it before starting screen sharing
       if (config.localVideoTrack) {
         await config.localVideoTrack.stop();
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.close();
-        config.localVideoTrack = null; // Set it to null after stopping
+        config.localVideoTrack = null;
       }
 
       // Create and publish the screen share track
@@ -480,12 +484,11 @@ const toggleScreenShare = async (isEnabled) => {
 
       config.localScreenShareTrack.on("track-ended", async () => {
         console.log("Screen share track ended");
-        // Automatically stop screen sharing when the user stops it via the browser
-        await toggleScreenShare(false);
+        await toggleScreenShare(false); // Automatically stop screen sharing when user stops it
       });
 
       await config.client.publish([config.localScreenShareTrack]);
-      config.localScreenShareTrack.play(`stream-${config.uid}`);
+      config.localScreenShareTrack.play(`stream-${config.uid}`); // Display the screen share in the correct div
 
       config.localScreenShareEnabled = true;
       config.onScreenShareEnabled(config.localScreenShareEnabled);
@@ -493,7 +496,7 @@ const toggleScreenShare = async (isEnabled) => {
       console.error("Error during screen sharing:", e);
       config.onError(e);
 
-      // If there was an error, re-publish the camera track if necessary
+      // If there's an error, re-enable the camera if it's not muted
       if (!config.localVideoTrackMuted) {
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
         await config.client.publish([config.localVideoTrack]);
@@ -505,7 +508,7 @@ const toggleScreenShare = async (isEnabled) => {
     }
   } else {
     try {
-      // Stop the screen share
+      // Stop screen sharing
       if (config.localScreenShareTrack) {
         console.log("Stopping screen share track");
         config.localScreenShareTrack.stop();
@@ -529,6 +532,7 @@ const toggleScreenShare = async (isEnabled) => {
     }
   }
 };
+
 
 
 
