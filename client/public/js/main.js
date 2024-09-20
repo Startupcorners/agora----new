@@ -64,6 +64,42 @@ export function MainApp(initConfig) {
     }
   };
 
+ function updateVideoWrapperSize() {
+   const videoStage = document.getElementById("video-stage");
+   const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
+   const count = videoWrappers.length;
+   const screenWidth = window.innerWidth;
+
+   videoWrappers.forEach((wrapper) => {
+     if (screenWidth < 768) {
+       // For mobile screens, each participant takes full width
+       wrapper.style.flex = "1 1 100%";
+       wrapper.style.maxWidth = "100%";
+       wrapper.style.minHeight = "50vh"; // Use 50% of the viewport height for each
+     } else {
+       if (count === 1) {
+         wrapper.style.flex = "1 1 100%";
+         wrapper.style.maxWidth = "100%";
+         wrapper.style.minHeight = "80vh"; // Full screen height for one participant
+       } else if (count === 2) {
+         wrapper.style.flex = "1 1 45%";
+         wrapper.style.maxWidth = "50%";
+         wrapper.style.minHeight = "45vh";
+       } else if (count === 3) {
+         wrapper.style.flex = "1 1 30%";
+         wrapper.style.maxWidth = "33.333%";
+         wrapper.style.minHeight = "35vh";
+       } else {
+         wrapper.style.flex = "1 1 300px";
+         wrapper.style.maxWidth = "33.333%";
+         wrapper.style.minHeight = "30vh";
+       }
+     }
+   });
+ }
+
+
+
   // Join Function
   const join = async () => {
     // Start by joining the RTM (Real-Time Messaging) channel
@@ -565,3 +601,9 @@ const toggleScreenShare = async (isEnabled) => {
 }
 
 window["MainApp"] = MainApp;
+window.addEventListener('resize', updateVideoWrapperSize);
+
+// Optionally, call the function once during initialization to set the initial layout
+document.addEventListener("DOMContentLoaded", () => {
+  updateVideoWrapperSize();
+});
