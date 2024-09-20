@@ -69,18 +69,20 @@ export function MainApp(initConfig) {
    const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
    const count = videoWrappers.length;
    const screenWidth = window.innerWidth;
+   const maxWrapperWidth = 800; // Maximum width of each video wrapper in pixels
 
    videoWrappers.forEach((wrapper) => {
+     // For smaller screens, make participants full width
      if (screenWidth < 768) {
-       // For mobile screens, each participant takes full width
        wrapper.style.flex = "1 1 100%";
        wrapper.style.maxWidth = "100%";
-       wrapper.style.minHeight = "50vh"; // Use 50% of the viewport height for each
+       wrapper.style.minHeight = "50vh";
      } else {
+       // Adjust layout based on the number of participants
        if (count === 1) {
          wrapper.style.flex = "1 1 100%";
          wrapper.style.maxWidth = "100%";
-         wrapper.style.minHeight = "80vh"; // Full screen height for one participant
+         wrapper.style.minHeight = "80vh";
        } else if (count === 2) {
          wrapper.style.flex = "1 1 45%";
          wrapper.style.maxWidth = "50%";
@@ -90,13 +92,15 @@ export function MainApp(initConfig) {
          wrapper.style.maxWidth = "33.333%";
          wrapper.style.minHeight = "35vh";
        } else {
-         wrapper.style.flex = "1 1 300px";
-         wrapper.style.maxWidth = "33.333%";
+         // For 4+ participants, use a fixed max width for each stream
+         wrapper.style.flex = "1 1 auto";
+         wrapper.style.maxWidth = `${maxWrapperWidth}px`; // Limit max width
          wrapper.style.minHeight = "30vh";
        }
      }
    });
  }
+
 
 
 
