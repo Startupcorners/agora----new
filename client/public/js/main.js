@@ -4,9 +4,12 @@ import { setupAgoraRTCClient } from "./agoraRTCClient.js";
 import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
 
+
 export class MainApp {
-  constructor(initConfiVirtualBackgroundExtensiong) {
+  constructor(userConfig = {}) {
+    // Merge the default config with the user-provided config
     this.config = { ...defaultConfig, ...userConfig };
+
     this.screenClient = null;
     this.localScreenShareTrack = null;
     this.wasCameraOnBeforeSharing = false;
