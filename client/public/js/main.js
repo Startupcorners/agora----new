@@ -6,7 +6,7 @@ import { recordingFunctions } from "./recording.js";
 
 export class MainApp {
   constructor(initConfiVirtualBackgroundExtensiong) {
-    this.config = { ...defaultConfig, ...initConfig };
+    this.config = { ...defaultConfig, ...userConfig };
     this.screenClient = null;
     this.localScreenShareTrack = null;
     this.wasCameraOnBeforeSharing = false;
