@@ -474,6 +474,7 @@ const toggleCamera = async (isMuted) => {
 
 
 
+
 const toggleScreenShare = async (isEnabled) => {
   const avatarElement = document.querySelector(`#avatar-${config.uid}`);
   const videoElement = document.querySelector(`#stream-${config.uid}`);
@@ -535,24 +536,24 @@ const toggleScreenShare = async (isEnabled) => {
         config.localScreenShareTrack = null;
       }
 
-      // Re-create and publish the camera video track if the camera was on before screen sharing
+      // Restore camera state
       if (cameraWasInitiallyOn) {
-        console.log(
-          "Recreating and publishing the camera video track (camera was initially on)"
-        );
+        console.log("Re-enabling the camera because it was originally on");
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
         await config.client.publish([config.localVideoTrack]);
         config.localVideoTrack.play(`stream-${config.uid}`);
 
-        videoElement.style.display = "block"; // Make sure the video player is visible
+        // Ensure the video player is visible, and the avatar is hidden
+        videoElement.style.display = "block";
         if (avatarElement) {
-          avatarElement.style.display = "none"; // Hide avatar if the camera was on
+          avatarElement.style.display = "none";
         }
       } else {
-        // If the camera was off initially, hide the video player and show the avatar
-        videoElement.style.display = "none"; // Hide the video player
+        // If the camera was off initially, keep it off and show the avatar
+        console.log("Camera was off initially, keeping it off");
+        videoElement.style.display = "none";
         if (avatarElement) {
-          avatarElement.style.display = "block"; // Show the avatar if the camera is off
+          avatarElement.style.display = "block";
         }
       }
 
