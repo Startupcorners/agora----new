@@ -11,8 +11,9 @@ export function initAgoraApp(
   const {
     onParticipantsChanged = (participants) => {
       console.log("Participants changed:", participants);
-      const idList = participants.map((participant) => participant.id);
       updateVideoWrapperSize();
+      const idList = participants.map((participant) => participant.id);
+      console.log("Participants idList sent to bubble:", idList);
 
       // Send the list of participant UIDs to Bubble
       bubble_fn_participantList(idList);
