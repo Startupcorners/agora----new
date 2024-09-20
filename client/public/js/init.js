@@ -117,41 +117,25 @@ export function initAgoraApp(
   window["videoStage"] = document.querySelector("#video-stage");
 
   // Template for each video participant
-  const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="flex: 1 1 320px; max-width: 800px; min-height: 220px; height: 100%; display: flex; justify-content: center; align-items: center; margin: 5px; border-radius: 10px; overflow: hidden; position: relative; background-color: #000;" data-uid="{{uid}}">
+  const templateVideoParticipant = `<div id="video-wrapper-965183480" style="flex: 1 1 30%; max-width: 400px; min-width: 250px; min-height: 200px; height: auto; display: flex; justify-content: center; align-items: center; margin: 5px; border-radius: 10px; overflow: hidden; position: relative; background-color: #000;">
     <!-- Video Player -->
-    <div id="stream-{{uid}}" class="video-player" style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;"></div>
+    <div id="stream-965183480" class="video-player" style="width: 100%; height: auto; aspect-ratio: 16/9; display: flex; justify-content: center; align-items: center;"></div>
     
     <!-- User Avatar (shown when video is off) -->
-    <img
-      id="avatar-{{uid}}"
-      class="user-avatar"
-      src="{{avatar}}"
-      alt="{{name}}'s avatar"
-      style="display: none; width: 100px; height: 100px; border-radius: 50%; object-fit: cover;"
-    />
+    <img id="avatar-965183480" class="user-avatar" src="//8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1721914804225x763896299148515200/image.png" alt="Emily's avatar" style="display: none; width: 100px; height: 100px; border-radius: 50%; object-fit: cover;">
     
     <!-- User Name -->
-    <div id="name-{{uid}}" class="user-name" style="position: absolute; bottom: 10px; left: 10px; font-size: 16px; color: #fff; background-color: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 5px;">
-      {{name}}
+    <div id="name-965183480" class="user-name" style="position: absolute; bottom: 10px; left: 10px; font-size: 16px; color: #fff; background-color: rgba(0, 0, 0, 0.5); padding: 5px 10px; border-radius: 5px;">
+      Emily
     </div>
     
     <!-- Participant Status Indicators -->
-    <div class="status-indicators" style="position: absolute; top: 10px; right: 10px; display: flex; gap: 5px;">
+    <div class="status-indicators" style="position: absolute; top: 10px; right: 10px; display: flex; gap: 10px;">
       <!-- Microphone Status Icon -->
-      <span
-        id="mic-status-{{uid}}"
-        class="mic-status"
-        title="Microphone is muted"
-        style="width: 24px; height: 24px; background-image: url('icons/mic-muted.svg'); background-size: contain; background-repeat: no-repeat; display: none;"
-      ></span>
+      <span id="mic-status-965183480" class="mic-status" title="Microphone is muted" style="width: 24px; height: 24px; background-image: url('icons/mic-muted.svg'); background-size: contain; background-repeat: no-repeat; display: none;"></span>
       
       <!-- Camera Status Icon -->
-      <span
-        id="cam-status-{{uid}}"
-        class="cam-status"
-        title="Camera is off"
-        style="width: 24px; height: 24px; background-image: url('icons/camera-off.svg'); background-size: contain; background-repeat: no-repeat; display: none;"
-      ></span>
+      <span id="cam-status-965183480" class="cam-status" title="Camera is off" style="width: 24px; height: 24px; background-image: url('icons/camera-off.svg'); background-size: contain; background-repeat: no-repeat; display: none;"></span>
     </div>
   </div>`;
 
