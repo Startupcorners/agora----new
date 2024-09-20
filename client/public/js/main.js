@@ -11,7 +11,7 @@ export function MainApp(initConfig) {
   let config = { ...defaultConfig, ...initConfig };
   let screenClient;
   let localScreenShareTrack;
-  let cameraWasInitiallyOn = !config.localVideoTrackMuted;
+  let wasCameraOnBeforeSharing = false;
 
   // Perform required config checks
   if (!config.appId) throw new Error("Please set the appId first");
