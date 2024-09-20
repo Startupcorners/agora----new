@@ -231,3 +231,100 @@ export const handleUserLeave = (config) => async (user, reason) => {
   }
   config.onParticipantLeft(user); // Call the `onParticipantLeft` handler in the config if needed
 };
+
+export const handleMuteCameraAndMic = (config) => async (user, isMuted) => {
+  console.log(
+    `handleMuteCameraAndMic called for user: ${user.id}, isMuted: ${isMuted}`
+  );
+
+  if (!user.id) {
+    console.error("User ID is undefined, cannot mute/unmute camera and mic.");
+    return;
+  }
+
+  const videoWrapper = document.querySelector(`#video-wrapper-${user.id}`);
+  if (!videoWrapper) {
+    console.error(`No video wrapper found for UID: ${user.id}`);
+    return;
+  }
+
+  const videoPlayer = videoWrapper.querySelector(`#stream-${user.id}`);
+  const avatarDiv = videoWrapper.querySelector(`#avatar-${user.id}`);
+
+  // If camera and mic are muted, hide video and show avatar
+  if (isMuted) {
+    if (videoPlayer) {
+      videoPlayer.style.display = "none"; // Hide the video player
+    }
+    if (avatarDiv) {
+      avatarDiv.style.display = "block"; // Show the avatar
+    }
+  } else {
+    // If unmuted, show video and hide avatar
+    if (videoPlayer) {
+      videoPlayer.style.display = "block"; // Show the video player
+    }
+    if (avatarDiv) {
+      avatarDiv.style.display = "none"; // Hide the avatar
+    }
+  }
+
+  // Optionally, you can send the mute state to another service or log it
+  console.log(
+    `Camera and Mic are now ${isMuted ? "muted" : "unmuted"} for user: ${
+      user.id
+    }`
+  );
+};
+
+export const handleJoinToVideoStage = (config) => async (user) => {
+  try {
+    console.log("Joining video stage for user:", user.id);
+
+    // Create local audio and video tracks
+    config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+
+    // Handle muting camera and microphone if needed
+    if (config.onNeedMuteCameraAndMic(user)) {
+      await config.localVideoTrack.setMuted(true); // Mute camera
+      await config.localAudioTrack.setMuted(true); // Mute microphone
+    }
+
+    // Remove old participant container, if it exists
+    const existingWrapper = document.querySelector(`#video-wrapper-${user.id}`);
+    if (existingWrapper) {
+      existingWrapper.remove(); // Remove old video wrapper
+    }
+
+    // Generate the participant HTML template
+    let participantHTML = config.participantPlayerContainer
+      .replace(/{{uid}}/g, user.id)
+      .replace(/{{name}}/g, user.name || "Guest User")
+      .replace(/{{avatar}}/g, user.avatar || "path/to/default-avatar.png");
+
+    // Insert the new template into the container
+    document
+      .querySelector(config.callContainerSelector)
+      .insertAdjacentHTML("beforeend", participantHTML);
+
+    // Play the video track in the correct stream element
+    const videoElement = document.querySelector(`#stream-${user.id}`);
+    if (config.localVideoTrack && videoElement) {
+      config.localVideoTrack.play(videoElement);
+    }
+
+    // Publish the local audio and video tracks
+    await config.client.publish([
+      config.localAudioTrack,
+      config.localVideoTrack,
+    ]);
+
+    console.log("User joined video stage:", user.id);
+  } catch (error) {
+    console.error("Error in handleJoinToVideoStage:", error);
+    if (config.onError) {
+      config.onError(error);
+    }
+  }
+};
