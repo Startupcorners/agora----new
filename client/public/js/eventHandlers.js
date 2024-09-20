@@ -208,3 +208,13 @@ export const handleNeedMuteCameraAndMic = (config) => (user) => {
 export const handleError = (config) => (error) => {
   console.error("Error occurred:", error);
 };
+
+export const handleRenewToken = (config, client) => async () => {
+  try {
+    config.token = await fetchToken(config);
+    await client.renewToken(config.token);
+    console.log("Token renewed successfully");
+  } catch (error) {
+    console.error("Failed to renew token:", error);
+  }
+};
