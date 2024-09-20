@@ -1,4 +1,3 @@
-// Import necessary event handlers
 import * as eventHandlers from "./eventHandlers.js";
 
 export function initAgoraApp(
@@ -119,18 +118,23 @@ export function initAgoraApp(
     onNeedJoinToVideoStage: eventHandlers.handleJoinToVideoStage(options),
     onNeedMuteCameraAndMic: eventHandlers.handleMuteCameraAndMic(options),
     onVolumeIndicatorChanged: eventHandlers.handleVolumeIndicator(options),
-    handleUserPublished: eventHandlers.handleUserPublished(options, mainApp),
-    handleUserUnpublished: eventHandlers.handleUserUnpublished(options),
-    handleUserJoined: eventHandlers.handleUserJoined(options),
-    handleScreenShareEnded: eventHandlers.handleScreenShareEnded(
-      options,
-      mainApp
-    ),
-    handleRenewToken: eventHandlers.handleRenewToken(options, mainApp),
   });
 
   console.log("MainApp initialized:", mainApp);
   window.mainApp = mainApp;
+
+  // Bind the event handlers that need mainApp after initialization
+  mainApp.handleUserPublished = eventHandlers.handleUserPublished(
+    options,
+    mainApp
+  );
+  mainApp.handleUserUnpublished = eventHandlers.handleUserUnpublished(options);
+  mainApp.handleUserJoined = eventHandlers.handleUserJoined(options);
+  mainApp.handleScreenShareEnded = eventHandlers.handleScreenShareEnded(
+    options,
+    mainApp
+  );
+  mainApp.handleRenewToken = eventHandlers.handleRenewToken(options, mainApp);
 
   // Call the join method to join the channel
   mainApp.join();
