@@ -1,33 +1,25 @@
+import * as eventHandlers from "./eventHandlers.js";
 import { defaultConfig } from "./config.js";
 import { log, imageUrlToBase64 } from "./utils.js";
 import { setupAgoraRTCClient } from "./agoraRTCClient.js";
 import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
-import * as eventHandlers from "./eventHandlers.js"; // Import all handlers
-import { initAgoraApp } from "./init.js"; // Import initAgoraApp
+import { initAgoraApp } from "./init.js";
 
 // Wait for DOM content to be fully loaded
 document.addEventListener("DOMContentLoaded", () => {
-  // Ensure all necessary parameters are defined before initializing Agora
-  const channelName = "your_channel_name"; // Replace with actual channel name
-  const uid = "user_id"; // Replace with actual user ID
-  const role = "host"; // Define the role, either 'host' or 'audience'
-  const name = "User Name"; // Replace with actual user name
-  const avatar = "https://example.com/avatar.png"; // Replace with actual avatar URL
-
   // Check if initAgoraApp is available from the imported init.js
-  if (typeof initAgoraApp === "function") {
-    const mainApp = initAgoraApp(channelName, uid, role, name, avatar, {
-      handleUserPublished: eventHandlers.handleUserPublished,
-      handleUserUnpublished: eventHandlers.handleUserUnpublished,
-      handleUserJoined: eventHandlers.handleUserJoined,
-      handleUserLeft: eventHandlers.handleUserLeft,
-      handleVolumeIndicator: eventHandlers.handleVolumeIndicator,
-      handleScreenShareEnded: eventHandlers.handleScreenShareEnded,
-      handleOnUpdateParticipants: eventHandlers.handleOnUpdateParticipants,
-      handleRenewToken: eventHandlers.handleRenewToken,
-    });
-
+  if (window.initAgoraApp) {
+    const mainApp = initAgoraApp(
+      "Room1",
+      "12345",
+      "host",
+      "John Doe",
+      "https://example.com/avatar.png",
+      {
+        onParticipantsChanged: eventHandlers.handleOnUpdateParticipants,
+      }
+    );
     window.mainApp = mainApp;
 
     // Now that mainApp is initialized, join the Agora session
@@ -36,7 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error("initAgoraApp function is not available.");
   }
 });
-
 export function MainApp(initConfig) {
   let config = { ...defaultConfig, ...initConfig };
   let screenClient;
