@@ -465,7 +465,6 @@ const toggleCamera = async (isMuted) => {
 
 
 
-let cameraWasInitiallyOn = !config.localVideoTrackMuted; // Track initial camera state
 
 const toggleScreenShare = async (isEnabled) => {
   const avatarElement = document.querySelector(`#avatar-${config.uid}`);
