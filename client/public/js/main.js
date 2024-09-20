@@ -73,16 +73,13 @@ function updateVideoWrapperSize() {
   const maxWrapperWidth = 800; // Maximum width of each video wrapper
 
   videoWrappers.forEach((wrapper) => {
-    // Apply consistent box sizing to prevent overflow due to padding or borders
-    wrapper.style.boxSizing = "border-box";
+    wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
 
-    // For smaller screens, make participants full width
     if (screenWidth < 768) {
       wrapper.style.flex = "1 1 100%";
       wrapper.style.maxWidth = "100%";
       wrapper.style.minHeight = "50vh";
     } else {
-      // Adjust layout based on the number of participants
       if (count === 1) {
         wrapper.style.flex = "1 1 100%";
         wrapper.style.maxWidth = "100%";
@@ -96,7 +93,6 @@ function updateVideoWrapperSize() {
         wrapper.style.maxWidth = "33.333%";
         wrapper.style.minHeight = "35vh";
       } else {
-        // For 4+ participants, limit max width and allow for flexible resizing
         wrapper.style.flex = "1 1 auto";
         wrapper.style.maxWidth = `${maxWrapperWidth}px`;
         wrapper.style.minHeight = "30vh";
@@ -104,9 +100,6 @@ function updateVideoWrapperSize() {
     }
   });
 }
-
-
-
 
 
 
@@ -610,15 +603,6 @@ const toggleScreenShare = async (isEnabled) => {
   };
 }
 window["MainApp"] = MainApp;
-// Make sure the updateVideoWrapperSize function is globally available first
-window.updateVideoWrapperSize = updateVideoWrapperSize;
 
 
 
-// Add a resize event listener to update video wrapper sizes dynamically
-window.addEventListener('resize', updateVideoWrapperSize);
-
-// Optionally, call the function once during initialization to set the initial layout
-document.addEventListener("DOMContentLoaded", () => {
-  updateVideoWrapperSize();
-});
