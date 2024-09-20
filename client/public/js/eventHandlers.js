@@ -223,3 +223,11 @@ export const handleMessageReceived = (config) => (message) => {
   console.log("Message received:", message);
   // You can add more logic here based on your app's needs
 };
+
+export const handleUserLeave = (config) => async (user, reason) => {
+  delete config.remoteTracks[user.uid];
+  if (document.querySelector(`#video-wrapper-${user.uid}`)) {
+    document.querySelector(`#video-wrapper-${user.uid}`).remove();
+  }
+  config.onParticipantLeft(user); // Call the `onParticipantLeft` handler in the config if needed
+};
