@@ -480,10 +480,12 @@ const toggleScreenShare = async (isEnabled) => {
       // Create the screen share track
       config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
 
-      // Stop and unpublish the local video track only after the screen share track is created
-      if (config.localVideoTrack) {
+      // Stop and unpublish the local video track (if the camera is on)
+      if (config.localVideoTrack && !config.localVideoTrackMuted) {
+        console.log(
+          "Stopping and unpublishing local video track for screen sharing."
+        );
         config.localVideoTrack.stop();
-        config.localVideoTrack.close();
         await client.unpublish([config.localVideoTrack]);
       }
 
@@ -493,7 +495,7 @@ const toggleScreenShare = async (isEnabled) => {
         await toggleScreenShare(false);
       });
 
-
+      // Publish the screen share track
       await client.publish([config.localScreenShareTrack]);
       config.localScreenShareTrack.play(`stream-${config.uid}`);
 
@@ -504,7 +506,7 @@ const toggleScreenShare = async (isEnabled) => {
       config.onError(e);
 
       // If there was an error (e.g., user canceled screen sharing), ensure the local video is still active
-      if (!config.localVideoTrack) {
+      if (!config.localVideoTrack || config.localVideoTrackMuted) {
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
         await client.publish([config.localVideoTrack]);
         config.localVideoTrack.play(`stream-${config.uid}`);
@@ -519,16 +521,17 @@ const toggleScreenShare = async (isEnabled) => {
       if (config.localScreenShareTrack) {
         console.log("Stopping screen share track");
         config.localScreenShareTrack.stop();
-        config.localScreenShareTrack.close();
         await client.unpublish([config.localScreenShareTrack]);
         config.localScreenShareTrack = null;
       }
 
-      // Re-create and publish the camera video track
-      console.log("Recreating camera video track");
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      await client.publish([config.localVideoTrack]);
-      config.localVideoTrack.play(`stream-${config.uid}`);
+      // Re-create and publish the camera video track if the camera is not muted
+      if (!config.localVideoTrackMuted) {
+        console.log("Recreating and publishing the camera video track");
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        await client.publish([config.localVideoTrack]);
+        config.localVideoTrack.play(`stream-${config.uid}`);
+      }
 
       config.localScreenShareEnabled = false;
       config.onScreenShareEnabled(config.localScreenShareEnabled);
@@ -538,6 +541,7 @@ const toggleScreenShare = async (isEnabled) => {
     }
   }
 };
+
 
 
 
