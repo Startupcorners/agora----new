@@ -1,3 +1,5 @@
+import * as eventHandlers from "./eventHandlers.js";
+
 export function initAgoraApp(
   channelName,
   uid,
@@ -6,110 +8,22 @@ export function initAgoraApp(
   avatar,
   options = {}
 ) {
-
-
   const {
-    onParticipantsChanged = (participants) => {
-      console.log("Participants changed:", participants);
-      updateVideoWrapperSize();
-      const idList = participants.map((participant) => participant.id);
-      console.log("Participants idList sent to bubble:", idList);
-
-      // Send the list of participant UIDs to Bubble
-      bubble_fn_participantList(idList);
-    },
-    onParticipantLeft = (user) => {
-      console.log(`Participant left: ${user.id}`);
-
-      // Find and remove the participant's video wrapper from the DOM
-      const videoWrapper = document.querySelector(`#video-wrapper-${user.id}`);
-      if (videoWrapper) {
-        videoWrapper.remove();
-      }
-
-      // Update Bubble with the remaining participants' UIDs
-      const remainingParticipants = Array.from(
-        document.querySelectorAll("[data-uid]")
-      ).map((element) => element.getAttribute("data-uid"));
-
-      bubble_fn_participantList(remainingParticipants);
-      updateVideoWrapperSize();
-    },
-    onMessageReceived = (message) => {
-      console.log("Message received:", message);
-    },
-    onMicMuted = (isMuted) => {
-      console.log(
-        `Microphone muted for UID ${uid}: ${isMuted ? "Mic Off" : "Mic On"}`
-      );
-
-      // Find the mic status icon for the participant
-      const micStatusIcon = document.querySelector(`#mic-status-${uid}`);
-      if (micStatusIcon) {
-        micStatusIcon.style.display = isMuted ? "block" : "none";
-      }
-      bubble_fn_isMicOff(isMuted);
-    },
-    onCamMuted = (uid, isMuted) => {
-      console.log(
-        `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
-      );
-
-      if (!uid) {
-        console.error("UID is undefined, cannot find video wrapper.");
-        return;
-      }
-
-      // Find the video wrapper for the participant
-      const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
-      if (videoWrapper) {
-        const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
-        const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
-
-        // Toggle between showing video and avatar based on whether the camera is muted
-        if (isMuted) {
-          videoPlayer.style.display = "none"; // Hide the video player
-          avatarDiv.style.display = "block"; // Show the avatar
-        } else {
-          videoPlayer.style.display = "block"; // Show the video player
-          avatarDiv.style.display = "none"; // Hide the avatar
-        }
-      }
-      bubble_fn_isCamOff(isMuted);
-    },
-    onScreenShareEnabled = (enabled) => {
-      console.log("Screen share status:", enabled ? "Sharing" : "Not sharing");
-      bubble_fn_isScreenOff(enabled);
-    },
-    onUserLeave = () => {
-      window.location.href = "https://sccopy-38403.bubbleapps.io/dashboard";
-    },
-    onCameraChanged = (info) => {
-      console.log("Camera changed!", info.state, info.device);
-    },
-    onMicrophoneChanged = (info) => {
-      console.log("Microphone changed!", info.state, info.device);
-    },
-    onSpeakerChanged = (info) => {
-      console.log("Speaker changed!", info.state, info.device);
-    },
-    onRoleChanged = async (targetUid, role) => {
-      console.log(`Role changed for UID ${targetUid}, new role: ${role}`);
-    },
-    onNeedJoinToVideoStage = (user) => {
-      console.log(`onNeedJoinToVideoStage: ${user}`);
-      return user.role !== "audience";
-    },
-    onNeedMuteCameraAndMic = (user) => {
-      console.log(`Default onNeedMuteCameraAndMic for user: ${user.id}`);
-      return false; // Default behavior, not muting mic or camera
-    },
-    onVolumeIndicatorChanged = (volume) => {
-      console.log("Default onVolumeIndicatorChanged:", volume);
-    },
-    onError = (error) => {
-      console.error("Error occurred:", error);
-    },
+    onParticipantsChanged = eventHandlers.handleOnUpdateParticipants(options),
+    onParticipantLeft = eventHandlers.handleUserLeft(options),
+    onMessageReceived = eventHandlers.handleMessageReceived(options),
+    onMicMuted = eventHandlers.handleMicMuted(options),
+    onCamMuted = eventHandlers.handleCamMuted(options),
+    onScreenShareEnabled = eventHandlers.handleScreenShareEnabled(options),
+    onUserLeave = eventHandlers.handleUserLeave(options),
+    onCameraChanged = eventHandlers.handleCameraChanged(options),
+    onMicrophoneChanged = eventHandlers.handleMicrophoneChanged(options),
+    onSpeakerChanged = eventHandlers.handleSpeakerChanged(options),
+    onRoleChanged = eventHandlers.handleRoleChanged(options),
+    onNeedJoinToVideoStage = eventHandlers.handleNeedJoinToVideoStage(options),
+    onNeedMuteCameraAndMic = eventHandlers.handleNeedMuteCameraAndMic(options),
+    onVolumeIndicatorChanged = eventHandlers.handleVolumeIndicator(options),
+    onError = eventHandlers.handleError(options),
   } = options;
 
   // Set up the video stage element
@@ -117,84 +31,84 @@ export function initAgoraApp(
 
   // Template for each video participant
   const templateVideoParticipant = `
-<div id="video-wrapper-{{uid}}" style="
-  flex: 1 1 320px; 
-  max-width: 800px; 
-  min-height: 220px; 
-  height: 100%; 
-  display: flex; 
-  justify-content: center; 
-  align-items: center; 
-  margin: 5px; 
-  border-radius: 10px; 
-  overflow: hidden; 
-  position: relative; 
-  background-color: #3c4043;
-  box-sizing: border-box;
-" data-uid="{{uid}}">
-    <!-- Video Player -->
-    <div id="stream-{{uid}}" class="video-player" style="
-      width: 100%; 
-      height: 100%; 
-      display: flex; 
-      justify-content: center; 
+    <div id="video-wrapper-{{uid}}" style="
+      flex: 1 1 320px;
+      max-width: 800px;
+      min-height: 220px;
+      height: 100%;
+      display: flex;
+      justify-content: center;
       align-items: center;
-      object-fit: cover;
-    "></div>
+      margin: 5px;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
+      background-color: #3c4043;
+      box-sizing: border-box;
+    " data-uid="{{uid}}">
+      <!-- Video Player -->
+      <div id="stream-{{uid}}" class="video-player" style="
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        object-fit: cover;
+      "></div>
     
-    <!-- User Avatar (shown when video is off) -->
-    <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" style="
-      display: none; 
-      width: 100px; 
-      height: 100px; 
-      border-radius: 50%; 
-      object-fit: cover;
-    " />
-
-    <!-- User Name -->
-    <div id="name-{{uid}}" class="user-name" style="
-      position: absolute; 
-      bottom: 10px; 
-      left: 10px; 
-      font-size: 16px; 
-      color: #fff; 
-      background-color: rgba(0, 0, 0, 0.5); 
-      padding: 5px 10px; 
-      border-radius: 5px;
-    ">
-      {{name}}
-    </div>
-
-    <!-- Participant Status Indicators -->
-    <div class="status-indicators" style="
-      position: absolute; 
-      top: 10px; 
-      right: 10px; 
-      display: flex; 
-      gap: 5px;
-    ">
-      <!-- Microphone Status Icon -->
-      <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" style="
-        width: 24px; 
-        height: 24px; 
-        background-image: url('https://startupcorners-df3e7.web.app/icons/mic-muted.svg'); 
-        background-size: contain; 
-        background-repeat: no-repeat; 
+      <!-- User Avatar (shown when video is off) -->
+      <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" style="
         display: none;
-      "></span>
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+      " />
+    
+      <!-- User Name -->
+      <div id="name-{{uid}}" class="user-name" style="
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        font-size: 16px;
+        color: #fff;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
+        border-radius: 5px;
+      ">
+        {{name}}
+      </div>
+    
+      <!-- Participant Status Indicators -->
+      <div class="status-indicators" style="
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 5px;
+      ">
+        <!-- Microphone Status Icon -->
+        <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" style="
+          width: 24px;
+          height: 24px;
+          background-image: url('https://startupcorners-df3e7.web.app/icons/mic-muted.svg');
+          background-size: contain;
+          background-repeat: no-repeat;
+          display: none;
+        "></span>
       
-      <!-- Camera Status Icon -->
-      <span id="cam-status-{{uid}}" class="cam-status" title="Camera is off" style="
-        width: 24px; 
-        height: 24px; 
-        background-image: url('icons/camera-off.svg'); 
-        background-size: contain; 
-        background-repeat: no-repeat; 
-        display: none;
-      "></span>
+        <!-- Camera Status Icon -->
+        <span id="cam-status-{{uid}}" class="cam-status" title="Camera is off" style="
+          width: 24px;
+          height: 24px;
+          background-image: url('icons/camera-off.svg');
+          background-size: contain;
+          background-repeat: no-repeat;
+          display: none;
+        "></span>
+      </div>
     </div>
-  </div>
-`;
+  `;
 
   // Initialize the MainApp with the necessary configurations
   const mainApp = MainApp({
@@ -205,9 +119,9 @@ export function initAgoraApp(
     uid: uid,
     user: {
       id: uid,
-      name: name, // Dynamically pass the user's name
-      avatar: avatar, // Dynamically pass the user's avatar
-      role: role, // 'host' or 'audience'
+      name: name,
+      avatar: avatar,
+      role: role,
     },
     participantPlayerContainer: templateVideoParticipant,
     onParticipantsChanged: onParticipantsChanged,
@@ -217,7 +131,6 @@ export function initAgoraApp(
     onCamMuted: onCamMuted,
     onScreenShareEnabled: onScreenShareEnabled,
     onUserLeave: onUserLeave,
-    onError: onError,
     onCameraChanged: onCameraChanged,
     onMicrophoneChanged: onMicrophoneChanged,
     onSpeakerChanged: onSpeakerChanged,
@@ -225,6 +138,19 @@ export function initAgoraApp(
     onNeedJoinToVideoStage: onNeedJoinToVideoStage,
     onNeedMuteCameraAndMic: onNeedMuteCameraAndMic,
     onVolumeIndicatorChanged: onVolumeIndicatorChanged,
+    onError: onError,
+    handleUserPublished: eventHandlers.handleUserPublished(options, mainApp),
+    handleUserUnpublished: eventHandlers.handleUserUnpublished(options),
+    handleUserJoined: eventHandlers.handleUserJoined(options),
+    handleUserLeft: eventHandlers.handleUserLeft(options),
+    handleVolumeIndicator: eventHandlers.handleVolumeIndicator(options),
+    handleScreenShareEnded: eventHandlers.handleScreenShareEnded(
+      options,
+      mainApp
+    ),
+    handleOnUpdateParticipants:
+      eventHandlers.handleOnUpdateParticipants(options),
+    handleRenewToken: eventHandlers.handleRenewToken(options, mainApp),
   });
 
   console.log("MainApp initialized:", mainApp);
