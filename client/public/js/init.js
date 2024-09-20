@@ -176,7 +176,7 @@ export function initAgoraApp(
       <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" style="
         width: 24px; 
         height: 24px; 
-        background-image: url('icons/mic-muted.svg'); 
+        background-image: url('https://startupcorners-df3e7.web.app/icons/mic-muted.svg'); 
         background-size: contain; 
         background-repeat: no-repeat; 
         display: none;
