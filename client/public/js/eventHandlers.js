@@ -218,3 +218,8 @@ export const handleRenewToken = (config, client) => async () => {
     console.error("Failed to renew token:", error);
   }
 };
+
+export const handleMessageReceived = (config) => (message) => {
+  console.log("Message received:", message);
+  // You can add more logic here based on your app's needs
+};

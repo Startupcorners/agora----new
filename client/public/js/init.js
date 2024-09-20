@@ -141,6 +141,7 @@ export function initAgoraApp(
     onError: onError,
     handleUserPublished: eventHandlers.handleUserPublished(options, mainApp),
     handleUserUnpublished: eventHandlers.handleUserUnpublished(options),
+    handleMessageReceived: eventHandlers.handleMessageReceived(config),
     handleUserJoined: eventHandlers.handleUserJoined(options),
     handleUserLeft: eventHandlers.handleUserLeft(options),
     handleVolumeIndicator: eventHandlers.handleVolumeIndicator(options),
