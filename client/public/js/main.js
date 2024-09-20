@@ -101,7 +101,15 @@ function updateVideoWrapperSize() {
     }
   });
 }
+window.updateVideoWrapperSize = updateVideoWrapperSize;
 
+// Add a resize event listener to update video wrapper sizes dynamically
+window.addEventListener("resize", updateVideoWrapperSize);
+
+// Optionally, call the function once during initialization to set the initial layout
+document.addEventListener("DOMContentLoaded", () => {
+  updateVideoWrapperSize();
+});
 
 
   // Join Function
