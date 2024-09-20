@@ -1,14 +1,18 @@
 {
   "hosting": {
     "public": "public",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
     "headers": [
       {
-        "source": "/**/*.js",
+        "source": "**/*.@(js|css)",
         "headers": [
           {
             "key": "Access-Control-Allow-Origin",
-            "value": "*"
+            "value": "https://sccopy-38403.bubbleapps.io"
           }
         ]
       }
