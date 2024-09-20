@@ -6,18 +6,64 @@ export function initAgoraApp(
   avatar,
   options = {}
 ) {
+  // Function to update the size of video wrappers dynamically
+  function updateVideoWrapperSize() {
+    const videoStage = document.getElementById("video-stage");
+    const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
+    const count = videoWrappers.length;
+    const screenWidth = window.innerWidth;
+    const maxWrapperWidth = 800; // Maximum width of each video wrapper
+
+    videoWrappers.forEach((wrapper) => {
+      wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
+
+      if (screenWidth < 768) {
+        wrapper.style.flex = "1 1 100%";
+        wrapper.style.maxWidth = "100%";
+        wrapper.style.minHeight = "50vh";
+      } else {
+        if (count === 1) {
+          wrapper.style.flex = "1 1 100%";
+          wrapper.style.maxWidth = "100%";
+          wrapper.style.minHeight = "80vh";
+        } else if (count === 2) {
+          wrapper.style.flex = "1 1 45%";
+          wrapper.style.maxWidth = "50%";
+          wrapper.style.minHeight = "45vh";
+        } else if (count === 3) {
+          wrapper.style.flex = "1 1 30%";
+          wrapper.style.maxWidth = "33.333%";
+          wrapper.style.minHeight = "35vh";
+        } else {
+          wrapper.style.flex = "1 1 auto";
+          wrapper.style.maxWidth = `${maxWrapperWidth}px`;
+          wrapper.style.minHeight = "30vh";
+        }
+      }
+    });
+  }
+
+  window.updateVideoWrapperSize = updateVideoWrapperSize;
+
+  // Add a resize event listener to update video wrapper sizes dynamically
+  window.addEventListener("resize", updateVideoWrapperSize);
+
+  // Optionally, call the function once during initialization to set the initial layout
+  document.addEventListener("DOMContentLoaded", () => {
+    updateVideoWrapperSize();
+  });
+
   const {
     onParticipantsChanged = (participants) => {
       console.log("Participants changed:", participants);
       const idList = participants.map((participant) => participant.id);
-       updateVideoWrapperSize();
+      updateVideoWrapperSize();
 
       // Send the list of participant UIDs to Bubble
       bubble_fn_participantList(idList);
     },
     onParticipantLeft = (user) => {
       console.log(`Participant left: ${user.id}`);
-      
 
       // Find and remove the participant's video wrapper from the DOM
       const videoWrapper = document.querySelector(`#video-wrapper-${user.id}`);
@@ -31,54 +77,50 @@ export function initAgoraApp(
       ).map((element) => element.getAttribute("data-uid"));
 
       bubble_fn_participantList(remainingParticipants);
-       updateVideoWrapperSize();
+      updateVideoWrapperSize();
     },
     onMessageReceived = (message) => {
       console.log("Message received:", message);
     },
     onMicMuted = (isMuted) => {
-      console.log(`Microphone muted for UID ${uid}: ${isMuted ? 'Mic Off' : 'Mic On'}`);
+      console.log(
+        `Microphone muted for UID ${uid}: ${isMuted ? "Mic Off" : "Mic On"}`
+      );
 
-  // Find the mic status icon for the participant
-  const micStatusIcon = document.querySelector(`#mic-status-${uid}`);
-  if (!micStatusIcon) {
-    console.error(`No mic status icon found for UID: ${uid}`);
-    return;
-  }
-
-  // Toggle the mic icon visibility based on the muted state
-  micStatusIcon.style.display = isMuted ? 'block' : 'none';
+      // Find the mic status icon for the participant
+      const micStatusIcon = document.querySelector(`#mic-status-${uid}`);
+      if (micStatusIcon) {
+        micStatusIcon.style.display = isMuted ? "block" : "none";
+      }
       bubble_fn_isMicOff(isMuted);
     },
     onCamMuted = (uid, isMuted) => {
-  console.log(`Camera muted for UID ${uid}: ${isMuted ? 'Camera Off' : 'Camera On'}`);
+      console.log(
+        `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
+      );
 
-  if (!uid) {
-    console.error("UID is undefined, cannot find video wrapper.");
-    return;
-  }
+      if (!uid) {
+        console.error("UID is undefined, cannot find video wrapper.");
+        return;
+      }
 
-  // Find the video wrapper for the participant
-  const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
-  if (!videoWrapper) {
-    console.error(`No video wrapper found for UID: ${uid}`);
-    return;
-  }
+      // Find the video wrapper for the participant
+      const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
+      if (videoWrapper) {
+        const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
+        const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
 
-  const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
-  const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
-
-  // Toggle between showing video and avatar based on whether the camera is muted
-  if (isMuted) {
-    videoPlayer.style.display = "none";  // Hide the video player
-    avatarDiv.style.display = "block";   // Show the avatar
-  } else {
-    videoPlayer.style.display = "block";  // Show the video player
-    avatarDiv.style.display = "none";     // Hide the avatar
-  }
-
-  bubble_fn_isCamOff(isMuted);  // Optionally, send this status to Bubble if needed
-},
+        // Toggle between showing video and avatar based on whether the camera is muted
+        if (isMuted) {
+          videoPlayer.style.display = "none"; // Hide the video player
+          avatarDiv.style.display = "block"; // Show the avatar
+        } else {
+          videoPlayer.style.display = "block"; // Show the video player
+          avatarDiv.style.display = "none"; // Hide the avatar
+        }
+      }
+      bubble_fn_isCamOff(isMuted);
+    },
     onScreenShareEnabled = (enabled) => {
       console.log("Screen share status:", enabled ? "Sharing" : "Not sharing");
       bubble_fn_isScreenOff(enabled);
@@ -108,11 +150,9 @@ export function initAgoraApp(
     },
     onVolumeIndicatorChanged = (volume) => {
       console.log("Default onVolumeIndicatorChanged:", volume);
-      // You can send this info to Bubble or handle it differently
     },
     onError = (error) => {
       console.error("Error occurred:", error);
-      // You can display the error to the user or handle it as needed
     },
   } = options;
 
@@ -134,7 +174,7 @@ export function initAgoraApp(
   overflow: hidden; 
   position: relative; 
   background-color: #000;
-  box-sizing: border-box; /* Ensures padding and border are included in total width */
+  box-sizing: border-box;
 " data-uid="{{uid}}">
     <!-- Video Player -->
     <div id="stream-{{uid}}" class="video-player" style="
@@ -143,7 +183,7 @@ export function initAgoraApp(
       display: flex; 
       justify-content: center; 
       align-items: center;
-      object-fit: cover; /* Ensure video takes full container size */
+      object-fit: cover;
     "></div>
     
     <!-- User Avatar (shown when video is off) -->
@@ -200,10 +240,6 @@ export function initAgoraApp(
   </div>
 `;
 
-console.log(
-  "Template being passed before MainApp call:",
-  templateVideoParticipant
-);
   // Initialize the MainApp with the necessary configurations
   const mainApp = MainApp({
     appId: "88eb7ea8de544d68a718601966c086ce",
@@ -234,15 +270,14 @@ console.log(
     onNeedMuteCameraAndMic: onNeedMuteCameraAndMic,
     onVolumeIndicatorChanged: onVolumeIndicatorChanged,
   });
-console.log("MainApp initialized:", mainApp);
-window.mainApp = mainApp;
 
+  console.log("MainApp initialized:", mainApp);
+  window.mainApp = mainApp;
 
   // Call the join method to join the channel
   mainApp.join();
 
   return mainApp;
-
 }
 
 window.initAgoraApp = initAgoraApp;
