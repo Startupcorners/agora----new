@@ -475,6 +475,7 @@ const toggleCamera = async (isMuted) => {
 
 
 
+
 const toggleScreenShare = async (isEnabled) => {
   const avatarElement = document.querySelector(`#avatar-${config.uid}`);
   const videoElement = document.querySelector(`#stream-${config.uid}`);
