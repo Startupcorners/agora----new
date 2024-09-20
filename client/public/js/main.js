@@ -609,11 +609,11 @@ const toggleScreenShare = async (isEnabled) => {
     stopRecording,
   };
 }
-
+window["MainApp"] = MainApp;
 // Make sure the updateVideoWrapperSize function is globally available first
 window.updateVideoWrapperSize = updateVideoWrapperSize;
 
-window["MainApp"] = MainApp;
+
 
 // Add a resize event listener to update video wrapper sizes dynamically
 window.addEventListener('resize', updateVideoWrapperSize);
