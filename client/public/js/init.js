@@ -105,21 +105,21 @@ export function initAgoraApp(
     participantPlayerContainer: templateVideoParticipant, // Ensure this is passed
 
     // Event handlers, no need to repeat "handle" prefix for Agora's internal options
-    onParticipantsChanged: eventHandlers.handleOnUpdateParticipants(options),
-    onParticipantLeft: eventHandlers.handleUserLeft(options),
-    onMessageReceived: eventHandlers.handleMessageReceived(options),
-    onMicMuted: eventHandlers.handleMicMuted(options),
-    onCamMuted: eventHandlers.handleCamMuted(options),
-    onScreenShareEnabled: eventHandlers.handleScreenShareEnabled(options),
-    onUserLeave: eventHandlers.handleUserLeave(options),
-    onError: eventHandlers.handleError(options),
-    onCameraChanged: eventHandlers.handleCameraChanged(options),
-    onMicrophoneChanged: eventHandlers.handleMicrophoneChanged(options),
-    onSpeakerChanged: eventHandlers.handleSpeakerChanged(options),
-    onRoleChanged: eventHandlers.handleRoleChanged(options),
-    onNeedJoinToVideoStage: eventHandlers.handleNeedJoinToVideoStage(options),
-    onNeedMuteCameraAndMic: eventHandlers.handleNeedMuteCameraAndMic(options),
-    onVolumeIndicatorChanged: eventHandlers.handleVolumeIndicator(options),
+    onParticipantsChanged: eventHandlers.handleOnUpdateParticipants,
+    onParticipantLeft: eventHandlers.handleUserLeft,
+    onMessageReceived: eventHandlers.handleMessageReceived,
+    onMicMuted: eventHandlers.handleMicMuted,
+    onCamMuted: eventHandlers.handleCamMuted,
+    onScreenShareEnabled: eventHandlers.handleScreenShareEnabled,
+    onUserLeave: eventHandlers.handleUserLeave,
+    onError: eventHandlers.handleError,
+    onCameraChanged: eventHandlers.handleCameraChanged,
+    onMicrophoneChanged: eventHandlers.handleMicrophoneChanged,
+    onSpeakerChanged: eventHandlers.handleSpeakerChanged,
+    onRoleChanged: eventHandlers.handleRoleChanged,
+    onNeedJoinToVideoStage: eventHandlers.handleNeedJoinToVideoStage,
+    onNeedMuteCameraAndMic: eventHandlers.handleNeedMuteCameraAndMic,
+    onVolumeIndicatorChanged: eventHandlers.handleVolumeIndicator,
   });
 
   console.log("MainApp initialized:", mainApp);
@@ -130,8 +130,8 @@ export function initAgoraApp(
     options,
     mainApp
   );
-  mainApp.handleUserUnpublished = eventHandlers.handleUserUnpublished(options);
-  mainApp.handleUserJoined = eventHandlers.handleUserJoined(options);
+  mainApp.handleUserUnpublished = eventHandlers.handleUserUnpublished;
+  mainApp.handleUserJoined = eventHandlers.handleUserJoined;
   mainApp.handleScreenShareEnded = eventHandlers.handleScreenShareEnded(
     options,
     mainApp
