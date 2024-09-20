@@ -1,82 +1,93 @@
-import * as eventHandlers from "./eventHandlers.js";
-import { initAgoraApp } from "./init.js";
-console.log("Eventhandlers", eventHandlers); // Should log an object with the functions
-console.log("init", initAgoraApp); // Should log the function definition
 import { defaultConfig } from "./config.js";
-import { log, imageUrlToBase64 } from "./utils.js";
+import { log, imageUrlToBase64, debounce } from "./utils.js";
 import { setupAgoraRTCClient } from "./agoraRTCClient.js";
 import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
+import { VirtualBackgroundExtension } from 'agora-extension-virtual-background';
+export class MainApp {
+  constructor(initConfig) {
+    this.config = { ...defaultConfig, ...initConfig };
+    this.screenClient = null;
+    this.localScreenShareTrack = null;
+    this.wasCameraOnBeforeSharing = false;
+    this.processor = null;
 
-
-
-export function MainApp(initConfig) {
-  let config = { ...defaultConfig, ...initConfig };
-  let screenClient;
-  let localScreenShareTrack;
-  let wasCameraOnBeforeSharing = false;
-
-  // Perform required config checks
-  if (!config.appId) throw new Error("Please set the appId first");
-  if (!config.callContainerSelector)
-    throw new Error("Please set the callContainerSelector first");
-  if (!config.serverUrl) throw new Error("Please set the serverUrl first");
-  if (!config.participantPlayerContainer)
-    throw new Error("Please set the participantPlayerContainer first");
-  if (!config.channelName) throw new Error("Please set the channelName first");
-  if (!config.uid) throw new Error("Please set the uid first");
-
-  // Initialize Agora clients
-  const client = setupAgoraRTCClient(config);
-  const { clientRTM, channelRTM } = setupAgoraRTMClient(config);
-  config.clientRTM = clientRTM; // Add clientRTM to config for access in handlers
-  config.channelRTM = channelRTM;
-  config.client = client;
-
-  // Initialize recording functions
-  const { acquireResource, startRecording, stopRecording } =
-    recordingFunctions(config);
-
-  // Other necessary initializations (e.g., extensions)
-  const extensionVirtualBackground = new VirtualBackgroundExtension();
-  if (!extensionVirtualBackground.checkCompatibility()) {
-    log("Does not support Virtual Background!", config);
+    this.validateConfig();
+    this.initializeAgoraClients();
+    this.initializeRecordingFunctions();
+    this.initializeVirtualBackground();
+    this.setupEventListeners();
   }
-  AgoraRTC.registerExtensions([extensionVirtualBackground]);
-  let processor = null;
 
-  /**
-   * Functions that tie everything together
-   */
+  validateConfig() {
+    if (!this.config.appId) throw new Error("Please set the appId first");
+    if (!this.config.callContainerSelector)
+      throw new Error("Please set the callContainerSelector first");
+    if (!this.config.serverUrl)
+      throw new Error("Please set the serverUrl first");
+    if (!this.config.participantPlayerContainer)
+      throw new Error("Please set the participantPlayerContainer first");
+    if (!this.config.channelName)
+      throw new Error("Please set the channelName first");
+    if (!this.config.uid) throw new Error("Please set the uid first");
+  }
 
-  // Fetch Token
-  const fetchToken = async () => {
-    if (config.serverUrl !== "") {
+  initializeAgoraClients() {
+    this.client = setupAgoraRTCClient(this.config);
+    const { clientRTM, channelRTM } = setupAgoraRTMClient(this.config);
+    this.config.clientRTM = clientRTM;
+    this.config.channelRTM = channelRTM;
+    this.config.client = this.client;
+  }
+
+  initializeRecordingFunctions() {
+    const { acquireResource, startRecording, stopRecording } =
+      recordingFunctions(this.config);
+    this.acquireResource = acquireResource;
+    this.startRecording = startRecording;
+    this.stopRecording = stopRecording;
+  }
+
+  initializeVirtualBackground() {
+    const extensionVirtualBackground = new VirtualBackgroundExtension();
+    if (!extensionVirtualBackground.checkCompatibility()) {
+      log("Does not support Virtual Background!", this.config);
+    }
+    AgoraRTC.registerExtensions([extensionVirtualBackground]);
+  }
+
+  setupEventListeners() {
+    window.addEventListener("resize", this.updateVideoWrapperSize);
+    document.addEventListener("DOMContentLoaded", this.updateVideoWrapperSize);
+  }
+
+  async fetchToken() {
+    if (this.config.serverUrl !== "") {
       try {
         const res = await fetch(
-          `${config.serverUrl}/access-token?channelName=${config.channelName}&uid=${config.uid}`
+          `${this.config.serverUrl}/access-token?channelName=${this.config.channelName}&uid=${this.config.uid}`
         );
         const data = await res.json();
-        config.token = data.token;
+        this.config.token = data.token;
         return data.token;
       } catch (err) {
-        log(err, config);
+        log(err, this.config);
         throw err;
       }
     } else {
-      return config.token;
+      return this.config.token;
     }
-  };
+  }
 
-  function updateVideoWrapperSize() {
+  updateVideoWrapperSize = () => {
     const videoStage = document.getElementById("video-stage");
     const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
     const count = videoWrappers.length;
     const screenWidth = window.innerWidth;
-    const maxWrapperWidth = 800; // Maximum width of each video wrapper
+    const maxWrapperWidth = 800;
 
     videoWrappers.forEach((wrapper) => {
-      wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
+      wrapper.style.boxSizing = "border-box";
 
       if (screenWidth < 768) {
         wrapper.style.flex = "1 1 100%";
@@ -102,386 +113,152 @@ export function MainApp(initConfig) {
         }
       }
     });
-  }
-  window.updateVideoWrapperSize = updateVideoWrapperSize;
-
-  // Add a resize event listener to update video wrapper sizes dynamically
-  window.addEventListener("resize", updateVideoWrapperSize);
-
-  // Optionally, call the function once during initialization to set the initial layout
-  document.addEventListener("DOMContentLoaded", () => {
-    updateVideoWrapperSize();
-  });
-
-  // Join Function
-  const join = async () => {
-    // Start by joining the RTM (Real-Time Messaging) channel
-    await joinRTM();
-
-    // Join the Agora channel
-    const token = await fetchToken();
-    await client.join(config.appId, config.channelName, token, config.uid);
-
-    // Set the client's role based on the user's role
-    console.log("config.user.role:", config.user.role);
-
-    const roleToSet = config.user.role === "audience" ? "audience" : "host";
-    console.log("Setting client role to:", roleToSet);
-
-    await client.setClientRole(roleToSet);
-
-    // Check the client's role
-    console.log("Client role after setting:", client.role);
-
-    // If the user needs to join the video stage, proceed to publish tracks
-    if (config.onNeedJoinToVideoStage(config.user)) {
-      await joinToVideoStage(config.user);
-    }
   };
 
-  // Join RTM Function
-  const joinRTM = async () => {
+  async join() {
+    await this.joinRTM();
+    const token = await this.fetchToken();
+    await this.client.join(
+      this.config.appId,
+      this.config.channelName,
+      token,
+      this.config.uid
+    );
+
+    const roleToSet =
+      this.config.user.role === "audience" ? "audience" : "host";
+    await this.client.setClientRole(roleToSet);
+
+    if (this.config.onNeedJoinToVideoStage(this.config.user)) {
+      await this.joinToVideoStage(this.config.user);
+    }
+  }
+
+  async joinRTM() {
     try {
-      const rtmUid = config.uid.toString();
-
-      // RTM login
-      await clientRTM.login({ uid: rtmUid });
-      log(`RTM login successful for UID: ${rtmUid}`, config);
-
-      // Update local user attributes
-      await clientRTM.addOrUpdateLocalUserAttributes({
-        name: config.user.name,
-        avatar: config.user.avatar,
-        role: config.user.role,
+      const rtmUid = this.config.uid.toString();
+      await this.config.clientRTM.login({ uid: rtmUid });
+      await this.config.clientRTM.addOrUpdateLocalUserAttributes({
+        name: this.config.user.name,
+        avatar: this.config.user.avatar,
+        role: this.config.user.role,
       });
-      log("addOrUpdateLocalUserAttributes: success", config);
-
-      // Join the RTM channel
-      await channelRTM.join();
-      log("Joined RTM channel successfully", config);
-
-      // Update participants after joining
-      eventHandlers.handleOnUpdateParticipants(config)(); // Correct reference
+      await this.config.channelRTM.join();
+      this.handleOnUpdateParticipants();
     } catch (error) {
-      log("RTM join process failed:", error, config);
+      log("RTM join process failed:", error, this.config);
       throw error;
     }
-  };
+  }
 
-
-  const joinToVideoStage = async (user) => {
+  async joinToVideoStage(user) {
     try {
-      console.log("User object:", user);
+      this.config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      this.config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
-      // Create local audio and video tracks
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-
-      // Handle muting camera and microphone if needed
-      if (config.onNeedMuteCameraAndMic(user)) {
-        await toggleCamera(true);
-        await toggleMic(true);
+      if (this.config.onNeedMuteCameraAndMic(user)) {
+        await this.toggleCamera(true);
+        await this.toggleMic(true);
       }
 
-      // Clean up old participant container, if it exists
       const existingWrapper = document.querySelector(
         `#video-wrapper-${user.id}`
       );
       if (existingWrapper) {
-        existingWrapper.remove(); // Remove old template, if any
+        existingWrapper.remove();
       }
 
-      // Generate the participant HTML using the new template
-      let participantHTML = config.participantPlayerContainer;
-      console.log("Before replacement:", participantHTML);
-
-      // Perform replacements
-      participantHTML = participantHTML
+      let participantHTML = this.config.participantPlayerContainer
         .replace(/{{uid}}/g, user.id)
         .replace(/{{name}}/g, user.name || "Guest User")
         .replace(/{{avatar}}/g, user.avatar || "path/to/default-avatar.png");
 
-      console.log("After replacement:", participantHTML);
-
-      // Insert the new template HTML into the container
       document
-        .querySelector(config.callContainerSelector)
+        .querySelector(this.config.callContainerSelector)
         .insertAdjacentHTML("beforeend", participantHTML);
 
-      // Check DOM after insertion to verify the content
-      const insertedElement = document.querySelector(
-        `#video-wrapper-${user.id}`
-      );
-      console.log("Inserted element in the DOM:", insertedElement.outerHTML);
-
-      // Play the video track in the correct stream element
-      if (user.id === config.uid) {
+      if (user.id === this.config.uid) {
         const videoElement = document.querySelector(`#stream-${user.id}`);
-        config.localVideoTrack.play(videoElement); // Play video in the correct stream div
-
-        // Publish the local audio and video tracks
-        await config.client.publish([
-          config.localAudioTrack,
-          config.localVideoTrack,
+        this.config.localVideoTrack.play(videoElement);
+        await this.config.client.publish([
+          this.config.localAudioTrack,
+          this.config.localVideoTrack,
         ]);
       }
     } catch (error) {
-      if (config.onError) {
-        config.onError(error);
+      if (this.config.onError) {
+        this.config.onError(error);
       } else {
         console.error("Error in joinToVideoStage:", error);
       }
     }
-  };
+  }
 
-  // Leave from Video Stage
-  const leaveFromVideoStage = async (user) => {
+  async leaveFromVideoStage(user) {
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player != null) {
       player.remove();
     }
 
-    if (user.id === config.uid) {
+    if (user.id === this.config.uid) {
       try {
-        config.localAudioTrack.stop();
-        config.localVideoTrack.stop();
-
-        config.localAudioTrack.close();
-        config.localVideoTrack.close();
-
-        await client.unpublish([
-          config.localAudioTrack,
-          config.localVideoTrack,
+        this.config.localAudioTrack.stop();
+        this.config.localVideoTrack.stop();
+        this.config.localAudioTrack.close();
+        this.config.localVideoTrack.close();
+        await this.client.unpublish([
+          this.config.localAudioTrack,
+          this.config.localVideoTrack,
         ]);
       } catch (error) {
-        log(error, config);
+        log(error, this.config);
       }
     }
-  };
+  }
 
-  // Leave Function
-  const leave = async () => {
-    document.querySelector(config.callContainerSelector).innerHTML = "";
+  async leave() {
+    document.querySelector(this.config.callContainerSelector).innerHTML = "";
+    await Promise.all([this.client.leave(), this.config.clientRTM.logout()]);
+    this.config.onUserLeave();
+  }
 
-    await Promise.all([client.leave(), clientRTM.logout()]);
+  async toggleMic(isMuted) {
+    await this.config.localAudioTrack.setMuted(isMuted);
+    this.config.localAudioTrackMuted = isMuted;
+    this.config.onMicMuted(this.config.localAudioTrackMuted);
+  }
 
-    config.onUserLeave();
-  };
-
-  // Toggle Microphone
-  const toggleMic = async (isMuted) => {
-    if (isMuted) {
-      await config.localAudioTrack.setMuted(true);
-      config.localAudioTrackMuted = true;
-    } else {
-      await config.localAudioTrack.setMuted(false);
-      config.localAudioTrackMuted = false;
-    }
-
-    config.onMicMuted(config.localAudioTrackMuted);
-  };
-
-  // Toggle Camera
-  const toggleCamera = async (isMuted) => {
+  async toggleCamera(isMuted) {
     try {
-      const uid = config.uid;
+      const uid = this.config.uid;
       const videoPlayer = document.querySelector(`#stream-${uid}`);
       const avatar = document.querySelector(`#avatar-${uid}`);
 
-      // Check if the video track exists, if not create and initialize it
-      if (!config.localVideoTrack) {
-        console.log("Initializing new camera video track");
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        // Play the video in the designated player element
+      if (!this.config.localVideoTrack) {
+        this.config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
         videoPlayer.style.display = "block";
-        config.localVideoTrack.play(videoPlayer);
-        await config.client.publish([config.localVideoTrack]);
+        this.config.localVideoTrack.play(videoPlayer);
+        await this.config.client.publish([this.config.localVideoTrack]);
       }
 
-      // Mute or unmute the video track
-      if (isMuted) {
-        await config.localVideoTrack.setMuted(true); // Mute the video track
-        config.localVideoTrackMuted = true;
+      await this.config.localVideoTrack.setMuted(isMuted);
+      this.config.localVideoTrackMuted = isMuted;
 
-        // Show the avatar and hide the video player
-        videoPlayer.style.display = "none";
-        avatar.style.display = "block";
-      } else {
-        await config.localVideoTrack.setMuted(false); // Unmute the video track
-        config.localVideoTrackMuted = false;
+      videoPlayer.style.display = isMuted ? "none" : "block";
+      avatar.style.display = isMuted ? "block" : "none";
 
-        // Hide the avatar and show the video player
-        videoPlayer.style.display = "block";
-        avatar.style.display = "none";
-      }
-
-      config.onCamMuted(uid, config.localVideoTrackMuted);
+      this.config.onCamMuted(uid, this.config.localVideoTrackMuted);
     } catch (error) {
       console.error("Error in toggleCamera:", error);
-      if (config.onError) {
-        config.onError(error);
+      if (this.config.onError) {
+        this.config.onError(error);
       }
     }
-  };
-
-  // Send Message to Peer
-  const sendMessageToPeer = (data, uid) => {
-    config.clientRTM
-      .sendMessageToPeer(
-        {
-          text: JSON.stringify(data),
-        },
-        `${uid}`
-      )
-      .then(() => {
-        log("Message sent successfully", config);
-      })
-      .catch((error) => {
-        log("Failed to send message:", error, config);
-      });
-  };
-
-  // Send Message
-  const sendMessage = (data) => {
-    config.channelRTM
-      .sendMessage({
-        text: JSON.stringify(data),
-      })
-      .then(() => {
-        // Success
-      })
-      .catch((error) => {
-        log(error, config);
-      });
-  };
-
-  // Send Chat
-  const sendChat = (data) => {
-    const messageObj = {
-      ...data,
-      type: "chat",
-      sender: config.user,
-    };
-    sendMessage(messageObj);
-    config.onMessageReceived(messageObj);
-  };
-
-  // Send Broadcast
-  const sendBroadcast = (data) => {
-    const messageObj = {
-      ...data,
-      type: "broadcast",
-      sender: config.user,
-    };
-    sendMessage(messageObj);
-    config.onMessageReceived(messageObj);
-  };
-
-  // Turn Off Mic
-  const turnOffMic = (...uids) => {
-    uids.forEach((uid) => {
-      sendMessageToPeer(
-        {
-          content: "",
-          event: "mic_off",
-        },
-        `${uid}`
-      );
-    });
-  };
-
-  // Turn Off Camera
-  const turnOffCamera = (...uids) => {
-    uids.forEach((uid) => {
-      sendMessageToPeer(
-        {
-          content: "",
-          event: "cam_off",
-        },
-        `${uid}`
-      );
-    });
-  };
-
-  // Remove Participant
-  const removeParticipant = (...uids) => {
-    uids.forEach((uid) => {
-      sendMessageToPeer(
-        {
-          content: "",
-          event: "remove_participant",
-        },
-        `${uid}`
-      );
-    });
-  };
-
-  // Change Role
-  const changeRole = (uid, role) => {
-    const messageObj = {
-      event: "change_user_role",
-      targetUid: uid,
-      role: role,
-    };
-    sendBroadcast(messageObj);
-    eventHandlers.handleOnUpdateParticipants(config)();
-    config.onRoleChanged(uid, role);
-  };
-
-  // Functions related to Virtual Backgrounds
-  async function getProcessorInstance() {
-    if (!processor && config.localVideoTrack) {
-      processor = extensionVirtualBackground.createProcessor();
-
-      try {
-        await processor.init();
-      } catch (e) {
-        log("Fail to load WASM resource!", config);
-        return null;
-      }
-      config.localVideoTrack
-        .pipe(processor)
-        .pipe(config.localVideoTrack.processorDestination);
-    }
-    return processor;
   }
 
-  const enableVirtualBackgroundBlur = async () => {
-    if (config.localVideoTrack) {
-      let processor = await getProcessorInstance();
-      processor.setOptions({ type: "blur", blurDegree: 2 });
-      await processor.enable();
-
-      config.isVirtualBackGroundEnabled = true;
-    }
-  };
-
-  const enableVirtualBackgroundImage = async (imageSrc) => {
-    const imgElement = document.createElement("img");
-    imgElement.onload = async () => {
-      let processor = await getProcessorInstance();
-      processor.setOptions({ type: "img", source: imgElement });
-      await processor.enable();
-
-      config.isVirtualBackGroundEnabled = true;
-    };
-
-    const base64 = await imageUrlToBase64(imageSrc);
-    imgElement.src = base64;
-  };
-
-  const disableVirtualBackground = async () => {
-    let processor = await getProcessorInstance();
-    if (processor) {
-      processor.disable();
-    }
-
-    config.isVirtualBackGroundEnabled = false;
-  };
-
-  const toggleScreenShare = async (isEnabled) => {
+  async toggleScreenShare(isEnabled) {
     try {
-      const uid = config.uid;
+      const uid = this.config.uid;
       const videoPlayer = document.querySelector(`#stream-${uid}`);
       const avatar = document.querySelector(`#avatar-${uid}`);
 
@@ -489,48 +266,51 @@ export function MainApp(initConfig) {
         console.log("Starting screen share");
 
         // Store whether the camera was originally on before sharing
-        wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
+        this.wasCameraOnBeforeSharing = !this.config.localVideoTrackMuted;
 
         // Create the screen share track
-        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+        this.config.localScreenShareTrack =
+          await AgoraRTC.createScreenVideoTrack();
 
         // If we successfully create the screen share track, stop and unpublish the local video track
-        if (config.localVideoTrack) {
-          config.localVideoTrack.stop();
-          await config.client.unpublish([config.localVideoTrack]);
+        if (this.config.localVideoTrack) {
+          this.config.localVideoTrack.stop();
+          await this.config.client.unpublish([this.config.localVideoTrack]);
           videoPlayer.style.display = "none"; // Hide the video player
         }
 
         // Play and publish the screen share track
-        config.localScreenShareTrack.on("track-ended", async () => {
+        this.config.localScreenShareTrack.on("track-ended", async () => {
           console.log("Screen share track ended, reverting back to camera");
-          await toggleScreenShare(false); // Revert to camera when screen sharing stops
+          await this.toggleScreenShare(false); // Revert to camera when screen sharing stops
         });
 
-        await config.client.publish([config.localScreenShareTrack]);
-        config.localScreenShareTrack.play(videoPlayer);
+        await this.config.client.publish([this.config.localScreenShareTrack]);
+        this.config.localScreenShareTrack.play(videoPlayer);
         videoPlayer.style.display = "block"; // Show the screen share in the video player
         avatar.style.display = "none"; // Hide the avatar during screen share
       } else {
         console.log("Stopping screen share");
 
         // Stop screen sharing and revert to the camera
-        if (config.localScreenShareTrack) {
-          config.localScreenShareTrack.stop();
-          await config.client.unpublish([config.localScreenShareTrack]);
-          config.localScreenShareTrack = null;
+        if (this.config.localScreenShareTrack) {
+          this.config.localScreenShareTrack.stop();
+          await this.config.client.unpublish([
+            this.config.localScreenShareTrack,
+          ]);
+          this.config.localScreenShareTrack = null;
         }
 
         // Recreate the camera video track and publish it if the camera was originally on
-        if (!config.localVideoTrack) {
-          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        if (!this.config.localVideoTrack) {
+          this.config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
         }
 
-        await config.client.publish([config.localVideoTrack]);
-        config.localVideoTrack.play(videoPlayer);
+        await this.config.client.publish([this.config.localVideoTrack]);
+        this.config.localVideoTrack.play(videoPlayer);
 
         // Restore the camera or avatar visibility based on the initial state before screen sharing
-        if (wasCameraOnBeforeSharing) {
+        if (this.wasCameraOnBeforeSharing) {
           videoPlayer.style.display = "block"; // Show video player if the camera was on before sharing
           avatar.style.display = "none"; // Hide avatar
         } else {
@@ -539,20 +319,20 @@ export function MainApp(initConfig) {
         }
       }
 
-      config.localScreenShareEnabled = isEnabled;
-      config.onScreenShareEnabled(isEnabled);
+      this.config.localScreenShareEnabled = isEnabled;
+      this.config.onScreenShareEnabled(isEnabled);
     } catch (e) {
       console.error("Error during screen sharing:", e);
-      config.onError(e);
+      this.config.onError(e);
 
       // If there's an error (like canceling screen share), ensure the local video is still active
-      if (!isEnabled && !config.localVideoTrack) {
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        await config.client.publish([config.localVideoTrack]);
-        config.localVideoTrack.play(videoPlayer);
+      if (!isEnabled && !this.config.localVideoTrack) {
+        this.config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        await this.config.client.publish([this.config.localVideoTrack]);
+        this.config.localVideoTrack.play(videoPlayer);
 
         // Restore camera or avatar visibility based on the initial state
-        if (wasCameraOnBeforeSharing) {
+        if (this.wasCameraOnBeforeSharing) {
           videoPlayer.style.display = "block"; // Show video player
           avatar.style.display = "none"; // Hide avatar
         } else {
@@ -561,67 +341,125 @@ export function MainApp(initConfig) {
         }
       }
     }
-  };
+  }
 
-  // Attach functions to config so they can be accessed in other modules
-  config.toggleMic = toggleMic;
-  config.toggleScreenShare = toggleScreenShare;
-  config.toggleCamera = toggleCamera;
-  config.leave = leave;
-  config.joinToVideoStage = joinToVideoStage;
-  config.leaveFromVideoStage = leaveFromVideoStage;
-  config.join = join;
-  config.fetchToken = fetchToken;
+  sendMessageToPeer(data, uid) {
+    this.config.clientRTM
+      .sendMessageToPeer({ text: JSON.stringify(data) }, `${uid}`)
+      .then(() => log("Message sent successfully", this.config))
+      .catch((error) => log("Failed to send message:", error, this.config));
+  }
 
-  // Expose Methods
-  return {
-    config,
-    clientRTM,
-    client,
-    join,
-    joinToVideoStage,
-    leaveFromVideoStage,
-    leave,
-    toggleMic,
-    toggleCamera,
-    toggleScreenShare,
-    turnOffMic,
-    turnOffCamera,
-    changeRole,
-    getCameras: async () => await AgoraRTC.getCameras(),
-    getMicrophones: async () => await AgoraRTC.getMicrophones(),
-    switchCamera: async (deviceId) => {
-      // Switch Camera logic
-      config.localVideoTrack.stop();
-      config.localVideoTrack.close();
-      client.unpublish([config.localVideoTrack]);
+  sendMessage(data) {
+    this.config.channelRTM
+      .sendMessage({ text: JSON.stringify(data) })
+      .then(() => {})
+      .catch((error) => log(error, this.config));
+  }
 
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack({
-        cameraId: deviceId,
-      });
-      client.publish([config.localVideoTrack]);
-      config.localVideoTrack.play(`stream-${config.uid}`);
-    },
-    switchMicrophone: async (deviceId) => {
-      // Switch Microphone logic
-      config.localAudioTrack.stop();
-      config.localAudioTrack.close();
-      client.unpublish([config.localAudioTrack]);
+  sendChat(data) {
+    const messageObj = {
+      ...data,
+      type: "chat",
+      sender: this.config.user,
+    };
+    this.sendMessage(messageObj);
+    this.config.onMessageReceived(messageObj);
+  }
 
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-        microphoneId: deviceId,
-      });
-      client.publish([config.localAudioTrack]);
-    },
-    removeParticipant,
-    sendChat,
-    sendBroadcast,
-    enableVirtualBackgroundBlur,
-    enableVirtualBackgroundImage,
-    disableVirtualBackground,
-    acquireResource,
-    startRecording,
-    stopRecording,
-  };
+  sendBroadcast(data) {
+    const messageObj = {
+      ...data,
+      type: "broadcast",
+      sender: this.config.user,
+    };
+    this.sendMessage(messageObj);
+    this.config.onMessageReceived(messageObj);
+  }
+
+  turnOffMic(...uids) {
+    uids.forEach((uid) => {
+      this.sendMessageToPeer({ content: "", event: "mic_off" }, `${uid}`);
+    });
+  }
+
+  turnOffCamera(...uids) {
+    uids.forEach((uid) => {
+      this.sendMessageToPeer({ content: "", event: "cam_off" }, `${uid}`);
+    });
+  }
+
+  removeParticipant(...uids) {
+    uids.forEach((uid) => {
+      this.sendMessageToPeer(
+        { content: "", event: "remove_participant" },
+        `${uid}`
+      );
+    });
+  }
+
+  changeRole(uid, role) {
+    const messageObj = {
+      event: "change_user_role",
+      targetUid: uid,
+      role: role,
+    };
+    this.sendBroadcast(messageObj);
+    this.handleOnUpdateParticipants();
+    this.config.onRoleChanged(uid, role);
+  }
+
+  async getProcessorInstance() {
+    if (!this.processor && this.config.localVideoTrack) {
+      this.processor = this.extensionVirtualBackground.createProcessor();
+      try {
+        await this.processor.init();
+        this.config.localVideoTrack
+          .pipe(this.processor)
+          .pipe(this.config.localVideoTrack.processorDestination);
+      } catch (e) {
+        log("Fail to load WASM resource!", this.config);
+        return null;
+      }
+    }
+    return this.processor;
+  }
+
+  async enableVirtualBackgroundBlur() {
+    if (this.config.localVideoTrack) {
+      let processor = await this.getProcessorInstance();
+      processor.setOptions({ type: "blur", blurDegree: 2 });
+      await processor.enable();
+      this.config.isVirtualBackGroundEnabled = true;
+    }
+  }
+
+  async enableVirtualBackgroundImage(imageSrc) {
+    const imgElement = document.createElement("img");
+    imgElement.onload = async () => {
+      let processor = await this.getProcessorInstance();
+      processor.setOptions({ type: "img", source: imgElement });
+      await processor.enable();
+      this.config.isVirtualBackGroundEnabled = true;
+    };
+    const base64 = await imageUrlToBase64(imageSrc);
+    imgElement.src = base64;
+  }
+
+  async disableVirtualBackground() {
+    let processor = await this.getProcessorInstance();
+    if (processor) {
+      processor.disable();
+    }
+    this.config.isVirtualBackGroundEnabled = false;
+  }
 }
-window["MainApp"] = MainApp;
+
+// Example usage
+const app = new MainApp({
+  appId: "your-app-id",
+  channelName: "your-channel-name",
+  uid: "user-id",
+  // Pass other parameters if necessary
+});
+app.join();
