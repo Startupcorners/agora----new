@@ -6,52 +6,7 @@ export function initAgoraApp(
   avatar,
   options = {}
 ) {
-  // Function to update the size of video wrappers dynamically
-  function updateVideoWrapperSize() {
-    const videoStage = document.getElementById("video-stage");
-    const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
-    const count = videoWrappers.length;
-    const screenWidth = window.innerWidth;
-    const maxWrapperWidth = 800; // Maximum width of each video wrapper
 
-    videoWrappers.forEach((wrapper) => {
-      wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
-
-      if (screenWidth < 768) {
-        wrapper.style.flex = "1 1 100%";
-        wrapper.style.maxWidth = "100%";
-        wrapper.style.minHeight = "50vh";
-      } else {
-        if (count === 1) {
-          wrapper.style.flex = "1 1 100%";
-          wrapper.style.maxWidth = "100%";
-          wrapper.style.minHeight = "80vh";
-        } else if (count === 2) {
-          wrapper.style.flex = "1 1 45%";
-          wrapper.style.maxWidth = "50%";
-          wrapper.style.minHeight = "45vh";
-        } else if (count === 3) {
-          wrapper.style.flex = "1 1 30%";
-          wrapper.style.maxWidth = "33.333%";
-          wrapper.style.minHeight = "35vh";
-        } else {
-          wrapper.style.flex = "1 1 auto";
-          wrapper.style.maxWidth = `${maxWrapperWidth}px`;
-          wrapper.style.minHeight = "30vh";
-        }
-      }
-    });
-  }
-
-  window.updateVideoWrapperSize = updateVideoWrapperSize;
-
-  // Add a resize event listener to update video wrapper sizes dynamically
-  window.addEventListener("resize", updateVideoWrapperSize);
-
-  // Optionally, call the function once during initialization to set the initial layout
-  document.addEventListener("DOMContentLoaded", () => {
-    updateVideoWrapperSize();
-  });
 
   const {
     onParticipantsChanged = (participants) => {
