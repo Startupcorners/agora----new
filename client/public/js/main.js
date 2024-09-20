@@ -278,14 +278,17 @@ const toggleCamera = async (isMuted) => {
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
 
+    // Check if the video track exists, if not create and initialize it
     if (!config.localVideoTrack) {
-      // Reinitialize the video track if it doesn't exist
-      console.log("Reinitializing camera video track");
+      console.log("Initializing new camera video track");
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      await config.client.publish([config.localVideoTrack]);
+      // Play the video in the designated player element
+      videoPlayer.style.display = "block";
       config.localVideoTrack.play(videoPlayer);
+      await config.client.publish([config.localVideoTrack]);
     }
 
+    // Mute or unmute the video track
     if (isMuted) {
       await config.localVideoTrack.setMuted(true); // Mute the video track
       config.localVideoTrackMuted = true;
@@ -310,6 +313,7 @@ const toggleCamera = async (isMuted) => {
     }
   }
 };
+
 
 
 
