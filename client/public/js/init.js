@@ -105,21 +105,21 @@ export function initAgoraApp(
     participantPlayerContainer: templateVideoParticipant, // Ensure this is passed
 
     // Event handlers, no need to repeat "handle" prefix for Agora's internal options
-    onParticipantsChanged: eventHandlers.handleOnUpdateParticipants,
-    onParticipantLeft: eventHandlers.handleUserLeft,
-    onMessageReceived: eventHandlers.handleMessageReceived,
-    onMicMuted: eventHandlers.handleMicMuted,
-    onCamMuted: eventHandlers.handleCamMuted,
-    onScreenShareEnabled: eventHandlers.handleScreenShareEnabled,
-    onUserLeave: eventHandlers.handleUserLeave,
-    onError: eventHandlers.handleError,
-    onCameraChanged: eventHandlers.handleCameraChanged,
-    onMicrophoneChanged: eventHandlers.handleMicrophoneChanged,
-    onSpeakerChanged: eventHandlers.handleSpeakerChanged,
-    onRoleChanged: eventHandlers.handleRoleChanged,
-    onNeedJoinToVideoStage: eventHandlers.handleNeedJoinToVideoStage,
-    onNeedMuteCameraAndMic: eventHandlers.handleNeedMuteCameraAndMic,
-    onVolumeIndicatorChanged: eventHandlers.handleVolumeIndicator,
+    onParticipantsChanged: eventHandlers.handleOnUpdateParticipants(config),
+    onParticipantLeft: eventHandlers.handleUserLeft(config),
+    onMessageReceived: eventHandlers.handleMessageReceived(config),
+    onMicMuted: eventHandlers.handleMicMuted(config),
+    onCamMuted: eventHandlers.handleCamMuted(config),
+    onScreenShareEnabled: eventHandlers.handleScreenShareEnabled(config),
+    onUserLeave: eventHandlers.handleUserLeave(config),
+    onError: eventHandlers.handleError(config),
+    onCameraChanged: eventHandlers.handleCameraChanged(config),
+    onMicrophoneChanged: eventHandlers.handleMicrophoneChanged(config),
+    onSpeakerChanged: eventHandlers.handleSpeakerChanged(config),
+    onRoleChanged: eventHandlers.handleRoleChanged(config),
+    onNeedJoinToVideoStage: eventHandlers.handleNeedJoinToVideoStage(config),
+    onNeedMuteCameraAndMic: eventHandlers.handleNeedMuteCameraAndMic(config),
+    onVolumeIndicatorChanged: eventHandlers.handleVolumeIndicator(config),
   });
 
   console.log("MainApp initialized:", mainApp);
@@ -127,16 +127,16 @@ export function initAgoraApp(
 
   // Bind the event handlers that need mainApp after initialization
   mainApp.handleUserPublished = eventHandlers.handleUserPublished(
-    options,
+    config,
     mainApp
   );
-  mainApp.handleUserUnpublished = eventHandlers.handleUserUnpublished;
-  mainApp.handleUserJoined = eventHandlers.handleUserJoined;
+  mainApp.handleUserUnpublished = eventHandlers.handleUserUnpublished(config);
+  mainApp.handleUserJoined = eventHandlers.handleUserJoined(config);
   mainApp.handleScreenShareEnded = eventHandlers.handleScreenShareEnded(
-    options,
+    config,
     mainApp
   );
-  mainApp.handleRenewToken = eventHandlers.handleRenewToken(options, mainApp);
+  mainApp.handleRenewToken = eventHandlers.handleRenewToken(config, mainApp);
 
   // Call the join method to join the channel
   mainApp.join();
