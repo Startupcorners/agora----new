@@ -756,6 +756,11 @@ const toggleScreenShare = async (isEnabled) => {
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
 
+    // Ensure the client is initialized before proceeding
+    if (!config.client) {
+      throw new Error("Agora client is not initialized");
+    }
+
     if (isEnabled) {
       console.log("Starting screen share");
 
@@ -768,7 +773,7 @@ const toggleScreenShare = async (isEnabled) => {
       // If we successfully create the screen share track, stop and unpublish the local video track
       if (config.localVideoTrack) {
         config.localVideoTrack.stop();
-        await config.client.unpublish([config.localVideoTrack]);
+        await config.client.unpublish([config.localVideoTrack]); // Ensure client is available here
         videoPlayer.style.display = "none"; // Hide the video player
       }
 
@@ -789,7 +794,7 @@ const toggleScreenShare = async (isEnabled) => {
       if (config.localScreenShareTrack) {
         config.localScreenShareTrack.stop(); // Stop sharing in the browser UI
         config.localScreenShareTrack.close(); // Ensure the track is closed
-        await config.client.unpublish([config.localScreenShareTrack]);
+        await config.client.unpublish([config.localScreenShareTrack]); // Ensure client is available here
         config.localScreenShareTrack = null;
       }
 
@@ -834,6 +839,7 @@ const toggleScreenShare = async (isEnabled) => {
     }
   }
 };
+
 
   const turnOffMic = (...uids) => {
     uids.forEach((uid) => {
