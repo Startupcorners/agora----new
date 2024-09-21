@@ -394,7 +394,8 @@ const newMainApp = function (initConfig) {
 const fetchTokens = async () => {
   try {
     const res = await fetch(
-      `https://your-backend-url.com/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`
+      config.serverUrl +
+        `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`
     );
     const data = await res.json();
     return {
