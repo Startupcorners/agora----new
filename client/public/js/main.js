@@ -758,15 +758,16 @@ const toggleScreenShare = async (isEnabled) => {
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
 
-    // Log state before starting or stopping screen share
-    console.log("Starting toggleScreenShare. isEnabled:", isEnabled);
-    console.log("Camera on before sharing:", wasCameraOnBeforeSharing);
-    console.log("Current video player:", videoPlayer);
-
     // Ensure the client is initialized before proceeding
     if (!config.client) {
       console.error("Agora client is not initialized!");
       return;
+    }
+
+    // If user is already screen sharing and they trigger the toggle, stop the share
+    if (config.localScreenShareEnabled && isEnabled) {
+      console.log("Already sharing. Stopping screen share.");
+      isEnabled = false; // Change the state to stop the screen share
     }
 
     if (isEnabled) {
@@ -775,11 +776,12 @@ const toggleScreenShare = async (isEnabled) => {
       // Store whether the camera was originally on before screen share
       wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
 
-      // Create the screen share track
-      screenClient = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-      localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+      // Create the screen share track if not already created
+      if (!localScreenShareTrack) {
+        localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+      }
 
-      // Stop and unpublish local video track if it exists
+      // Stop and unpublish the local video track if sharing is enabled
       if (config.localVideoTrack) {
         console.log(
           "Stopping and unpublishing camera track before screen share"
@@ -797,12 +799,12 @@ const toggleScreenShare = async (isEnabled) => {
 
       await config.client.publish([localScreenShareTrack]);
       localScreenShareTrack.play(videoPlayer);
-      videoPlayer.style.display = "block"; // Show screen share in the video player
+      videoPlayer.style.display = "block"; // Show the screen share in the video player
       avatar.style.display = "none"; // Hide avatar during screen share
     } else {
       console.log("Stopping screen share");
 
-      // Stop and unpublish screen share track
+      // Stop screen sharing and revert to the camera
       if (localScreenShareTrack) {
         localScreenShareTrack.stop(); // Stop screen sharing in the browser UI
         localScreenShareTrack.close(); // Ensure the track is closed
