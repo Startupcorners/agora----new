@@ -178,7 +178,7 @@ const newMainApp = function (initConfig) {
 
   config = { ...config, ...initConfig };
 
-  Object.freeze(config);
+  
 
   if (config.appId === null) {
     throw new Error("please set the appId first");
