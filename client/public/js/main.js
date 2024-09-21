@@ -441,6 +441,9 @@ const fetchTokens = async () => {
 
 const join = async () => {
   try {
+    // Initialize the Agora client and assign it to the config object
+    config.client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+
     // Step 1: Fetch both RTC and RTM tokens (even though RTM won't be used for now)
     const tokens = await fetchTokens(); // Fetches both RTC and RTM tokens
 
@@ -448,31 +451,25 @@ const join = async () => {
     console.log("RTC Token (during join):", tokens.rtcToken);
     console.log("RTC UID (during join):", config.uid);
 
-    // Step 2: Skip the RTM join by removing or commenting out the RTM logic
-    // await joinRTM(tokens.rtmToken); // <-- Comment this out to skip RTM
+    // Step 2: Set the client's role based on the user's role (audience or host)
+    await config.client.setClientRole(
+      config.user.role === "audience" ? "audience" : "host"
+    );
 
-    // Step 3: Set the client's role based on the user's role (audience or host)
-    try {
-      await client.setClientRole(
-        config.user.role === "audience" ? "audience" : "host"
-      );
-      console.log("Client role set to:", config.user.role);
-    } catch (error) {
-      console.error("Failed to set client role:", error);
-    }
+    console.log("Client role set to:", config.user.role);
 
-    // Step 4: Register RTC event listeners
-    client.on("user-published", handleUserPublished);
-    client.on("user-unpublished", handleUserUnpublished); // Handles avatar toggling when video is unpublished
-    client.on("user-joined", handleUserJoined);
-    client.on("user-left", handleUserLeft);
-    client.enableAudioVolumeIndicator();
-    client.on("volume-indicator", handleVolumeIndicator);
+    // Step 3: Register RTC event listeners
+    config.client.on("user-published", handleUserPublished);
+    config.client.on("user-unpublished", handleUserUnpublished); // Handles avatar toggling when video is unpublished
+    config.client.on("user-joined", handleUserJoined);
+    config.client.on("user-left", handleUserLeft);
+    config.client.enableAudioVolumeIndicator();
+    config.client.on("volume-indicator", handleVolumeIndicator);
 
-    // Step 5: Join the Agora RTC channel using the fetched RTC token
+    // Step 4: Join the Agora RTC channel using the fetched RTC token
     const { appId, uid, channelName } = config;
     const rtcToken = tokens.rtcToken; // Use the RTC token from the fetched tokens
-    client.on("token-privilege-will-expire", handleRenewToken); // Handle token renewal if it is about to expire
+    config.client.on("token-privilege-will-expire", handleRenewToken); // Handle token renewal if it is about to expire
 
     // Log the join attempt
     console.log(
@@ -483,18 +480,13 @@ const join = async () => {
       ", UID:",
       uid
     );
-    console.log("Config before join:", config);
 
-    await client.join(appId, channelName, rtcToken, uid);
+    await config.client.join(appId, channelName, rtcToken, uid);
 
-    // Step 6: If the user needs to join the video stage (host/speaker), publish their tracks
+    // If the user needs to join the video stage (host/speaker), publish their tracks
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     }
-
-    console.log("Config after join:", config);
-
-    // Audience members do not publish tracks or join the video stage
   } catch (error) {
     console.error("Failed to join the channel:", error);
   }
