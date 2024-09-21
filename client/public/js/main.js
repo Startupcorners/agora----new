@@ -163,14 +163,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     await client.setClientRole(roleToSet);
 
-    // Check the client's role
-    console.log("Client role after setting:", client.role);
+    // Listen for role change event to confirm that the role has been set
+    client.on("roleChanged", (newRole) => {
+      console.log("Client role after setting:", newRole);
+    });
 
     // If the user needs to join the video stage, proceed to publish tracks
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     }
   };
+
 
   // Join RTM Function
   const joinRTM = async () => {
