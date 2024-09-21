@@ -110,21 +110,31 @@ export const defaultConfig = {
   remoteTracks: {},
 
   // Callback functions (initialize as null)
-  onParticipantsChanged: eventHandlers.handleOnUpdateParticipants(config),
-  onParticipantLeft: eventHandlers.handleUserLeft(config),
-  onVolumeIndicatorChanged: eventHandlers.handleVolumeIndicator(config),
-  onMessageReceived: eventHandlers.handleMessageReceived(config),
-  onMicMuted: eventHandlers.handleMicMuted(config),
-  onCamMuted: eventHandlers.handleCamMuted(config),
-  onScreenShareEnabled: eventHandlers.handleScreenShareEnabled(config),
-  onUserLeave: eventHandlers.handleUserLeave(config),
-  onCameraChanged: eventHandlers.handleCameraChanged(config),
-  onMicrophoneChanged: eventHandlers.handleMicrophoneChanged(config),
-  onSpeakerChanged: eventHandlers.handleSpeakerChanged(config),
-  onRoleChanged: eventHandlers.handleRoleChanged(config),
-  onNeedJoinToVideoStage: eventHandlers.handleNeedJoinToVideoStage(config),
-  onNeedMuteCameraAndMic: eventHandlers.handleNeedMuteCameraAndMic(config),
-  onError: eventHandlers.handleError(config),
+  onParticipantsChanged: null,
+  onParticipantLeft: null,
+  onVolumeIndicatorChanged: null,
+  onMessageReceived: null,
+  onMicMuted: null,
+  onCamMuted: null,
+  onScreenShareEnabled: null,
+  onUserLeave: null,
+  onCameraChanged: null,
+  onMicrophoneChanged: null,
+  onSpeakerChanged: null,
+  onRoleChanged: null,
+  onNeedJoinToVideoStage: null,
+  onNeedMuteCameraAndMic: null,
+  onError: (error) => {
+    console.error("Error:", error);
+  },
+  onNeedMuteCameraAndMic: (user) => {
+    console.log(`Default onNeedMuteCameraAndMic for user: ${user.id}`);
+    return false; // Default behavior, not muting mic or camera
+  },
+  onVolumeIndicatorChanged: (volume) => {
+    console.log("Default onVolumeIndicatorChanged:", volume);
+    // Default behavior, e.g., display volume levels
+  },
 };
 
 console.log("Config appId:", defaultConfig.appId);
