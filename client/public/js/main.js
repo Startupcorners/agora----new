@@ -148,27 +148,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Join Function
   const join = async () => {
-    // Start by joining the RTM (Real-Time Messaging) channel
-    await joinRTM();
+    await joinRTM(); // Join RTM first
 
-    // Join the Agora channel
-    const token = await fetchToken();
-    await client.join(config.appId, config.channelName, token, config.uid);
-
-    // Set the client's role based on the user's role
-    console.log("config.user.role:", config.user.role);
+    const token = await fetchToken(); // Fetch token
+    await client.join(config.appId, config.channelName, token, config.uid); // Join the Agora channel
 
     const roleToSet = config.user.role === "audience" ? "audience" : "host";
-    console.log("Setting client role to:", roleToSet);
-
     await client.setClientRole(roleToSet);
 
-    // Listen for role change event to confirm that the role has been set
-    client.on("roleChanged", (newRole) => {
-      console.log("Client role after setting:", newRole);
+    // Set up the event listener for when a user joins the call
+    client.on("user-joined", async (user) => {
+      console.log(`User ${user.uid} joined`);
+
+      // Call the handler from eventHandlers
+      eventHandlers.handleUserJoined(mainApp)(user); // Make sure to pass user info
     });
 
-    // If the user needs to join the video stage, proceed to publish tracks
+    // Check if the user needs to join the video stage
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     }
