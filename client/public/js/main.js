@@ -739,7 +739,8 @@ const joinRTM = async (rtmToken) => {
           avatar.style.display = "none";
         }
 
-        config.onCamMuted(uid, config.localVideoTrackMuted);
+        // Swap the arguments: pass `config.localVideoTrackMuted` first, then `uid`
+        config.onCamMuted(config.localVideoTrackMuted, uid);
       } catch (error) {
         console.error("Error in toggleCamera:", error);
         if (config.onError) {
@@ -747,6 +748,7 @@ const joinRTM = async (rtmToken) => {
         }
       }
     };
+
 
 const toggleScreenShare = async (isEnabled) => {
   try {
