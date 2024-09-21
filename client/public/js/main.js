@@ -151,19 +151,17 @@ document.addEventListener("DOMContentLoaded", () => {
     await joinRTM(); // Join RTM first
 
     const token = await fetchToken(); // Fetch token
-    await client.join(config.appId, config.channelName, token, config.uid); // Join the Agora channel
+    await client.join(config.appId, config.channelName, token, config.uid);
+    console.log("User joined the channel. Setting up event listeners...");
 
-    const roleToSet = config.user.role === "audience" ? "audience" : "host";
-    await client.setClientRole(roleToSet);
-
-    // Set up the event listener for when a user joins the call
     client.on("user-joined", async (user) => {
-      console.log(`User ${user.uid} joined`);
+      console.log(`User ${user.uid} joined the call.`);
 
       // Call the handler from eventHandlers
-      eventHandlers.handleUserJoined(mainApp)(user); 
-      console.log(`handleUserJoined ran`);// Make sure to pass user info
+      eventHandlers.handleUserJoined(mainApp)(user);
+      console.log("handleUserJoined executed for user:", user.uid);
     });
+
 
     // Check if the user needs to join the video stage
     if (config.onNeedJoinToVideoStage(config.user)) {
