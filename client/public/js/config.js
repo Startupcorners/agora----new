@@ -135,3 +135,5 @@ export const defaultConfig = {
     // Default behavior, e.g., display volume levels
   },
 };
+
+console.log("Config appId:", defaultConfig.appId);
