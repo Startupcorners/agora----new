@@ -178,6 +178,8 @@ const newMainApp = function (initConfig) {
 
   config = { ...config, ...initConfig };
 
+  Object.freeze(config);
+
   if (config.appId === null) {
     throw new Error("please set the appId first");
   }
@@ -456,12 +458,6 @@ const join = async () => {
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     }
-
-    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-    console.log("Checking localVideoTrack before toggling camera:",config.localVideoTrack);
-
-    config.localVideoTrackMuted = false;
-    console.log("Checking localVideoTrackMuted before toggling camera:", config.localVideoTrackMuted);
 
     // Audience members do not publish tracks or join the video stage
   } catch (error) {
