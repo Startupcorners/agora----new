@@ -757,7 +757,6 @@ const toggleScreenShare = async (isEnabled) => {
       return;
     }
 
-    // Stop the screen share if it's already enabled
     if (config.localScreenShareEnabled && isEnabled) {
       console.log("Already sharing. Stopping screen share.");
       isEnabled = false;
@@ -767,7 +766,7 @@ const toggleScreenShare = async (isEnabled) => {
       console.log("Starting screen share");
       wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
 
-      // Create the screen share track
+      // Create the screen share track if it doesn't already exist
       if (!config.localScreenShareTrack) {
         config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
       }
@@ -782,7 +781,7 @@ const toggleScreenShare = async (isEnabled) => {
       // Play and publish the screen share track
       config.localScreenShareTrack.on("track-ended", async () => {
         console.log("Screen share track ended, reverting back to camera");
-        await toggleScreenShare(false); // Stop the screen share when it ends
+        await toggleScreenShare(false);
       });
 
       await config.client.publish([config.localScreenShareTrack]);
@@ -800,16 +799,17 @@ const toggleScreenShare = async (isEnabled) => {
         config.localScreenShareTrack = null;
       }
 
-      // Reinitialize the camera track only if it was on before screen sharing
+      // Restore the camera track if it was on before sharing
       if (wasCameraOnBeforeSharing) {
         console.log("Restoring camera track after screen share");
         if (!config.localVideoTrack) {
+          // Recreate the camera video track if it's missing
           config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        } else {
+          config.localVideoTrack.play(videoPlayer);
         }
 
-        // Republish the video track and play it in the video player
         await config.client.publish([config.localVideoTrack]);
-        config.localVideoTrack.play(videoPlayer);
         videoPlayer.style.display = "block";
         avatar.style.display = "none";
       } else {
