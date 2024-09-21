@@ -103,23 +103,6 @@ export function initAgoraApp(
       role: role, // Set user role as host/audience
     },
     participantPlayerContainer: templateVideoParticipant, // Ensure this is passed
-
-    // **Event handlers - Pass the function references directly without invoking them**
-    onParticipantsChanged: eventHandlers.handleOnUpdateParticipants,
-    onParticipantLeft: eventHandlers.handleUserLeft,
-    onMessageReceived: eventHandlers.handleMessageReceived,
-    onMicMuted: eventHandlers.handleMicMuted,
-    onCamMuted: eventHandlers.handleCamMuted,
-    onScreenShareEnabled: eventHandlers.handleScreenShareEnabled,
-    onUserLeave: eventHandlers.handleUserLeave,
-    onError: eventHandlers.handleError,
-    onCameraChanged: eventHandlers.handleCameraChanged,
-    onMicrophoneChanged: eventHandlers.handleMicrophoneChanged,
-    onSpeakerChanged: eventHandlers.handleSpeakerChanged,
-    onRoleChanged: eventHandlers.handleRoleChanged,
-    onNeedJoinToVideoStage: eventHandlers.handleNeedJoinToVideoStage,
-    onNeedMuteCameraAndMic: eventHandlers.handleNeedMuteCameraAndMic,
-    onVolumeIndicatorChanged: eventHandlers.handleVolumeIndicator,
   });
 
   console.log("MainApp initialized:", mainApp);
