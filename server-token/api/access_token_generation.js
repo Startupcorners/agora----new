@@ -19,30 +19,33 @@ module.exports = async (req, res) => {
 
   try {
     // Set token expiration to 1 hour (3600 seconds)
-    const expirationTimeInSeconds = 3600;
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-    const privilegeExpiredTs = currentTimestamp + expirationTimeInSeconds;
+    const expirationInSeconds = 3600;
+
+    // Convert UID to integer for RTC and string for RTM
+    const rtcUid = parseInt(uid); // RTC requires integer UID
+    const rtmUid = uid.toString(); // RTM requires string UID
+
+    console.log("RTC UID (Integer):", rtcUid);
+    console.log("RTM UID (String):", rtmUid);
 
     // Generate RTC token
     const rtcRole =
       role === "publisher" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
-
-    // Use the uid directly as an integer for RTC
     const rtcToken = RtcTokenBuilder.buildTokenWithUid(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
-      parseInt(uid), // RTC uid can be an integer
+      rtcUid, // Integer UID for RTC
       rtcRole,
-      privilegeExpiredTs
+      expirationInSeconds
     );
 
-    // Generate RTM token using uid as a string
+    // Generate RTM token
     const rtmToken = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
-      uid.toString(), // RTM requires the uid as a string
-      privilegeExpiredTs
+      rtmUid, // String UID for RTM
+      expirationInSeconds
     );
 
     console.log("Generated RTC Token:", rtcToken);

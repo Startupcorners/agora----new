@@ -528,9 +528,9 @@ const joinRTM = async (rtmToken) => {
     // Convert UID to string for RTM login
     const rtmUid = config.uid.toString(); // Ensure UID is a string for RTM
 
-    // Log the RTM Token and UID for debugging
-    console.log(`RTM Token: ${rtmToken}`);
-    console.log(`RTM UID: ${rtmUid}`);
+    // Log the RTM Token and UID
+    console.log("RTM Token (during login):", rtmToken);
+    console.log("RTM UID (during login):", rtmUid);
 
     // RTM login with the token
     await clientRTM.login({ token: rtmToken, uid: rtmUid });
@@ -548,68 +548,12 @@ const joinRTM = async (rtmToken) => {
     await channelRTM.join();
     log("Joined RTM channel successfully");
 
-    // Update participants after joining (if your app tracks this)
-    handleOnUpdateParticipants();
-
-    // Set up RTM event listeners
-    clientRTM.on("MessageFromPeer", async (message, peerId) => {
-      log("messageFromPeer");
-      const data = JSON.parse(message.text);
-      log(data);
-
-      if (data.event === "mic_off") {
-        await toggleMic(true);
-      } else if (data.event === "cam_off") {
-        await toggleCamera(true);
-      } else if (data.event === "remove_participant") {
-        await leave();
-      }
-    });
-
-    channelRTM.on("MemberJoined", async (memberId) => {
-      log(`Member joined: ${memberId}`);
-      handleOnUpdateParticipants();
-    });
-
-    channelRTM.on("MemberLeft", (memberId) => {
-      log(`Member left: ${memberId}`);
-      handleOnUpdateParticipants();
-    });
-
-    channelRTM.on("ChannelMessage", async (message, memberId, props) => {
-      log("on:ChannelMessage ->");
-      const messageObj = JSON.parse(message.text);
-      log(messageObj);
-
-      if (
-        messageObj.type === "broadcast" &&
-        messageObj.event === "change_user_role"
-      ) {
-        if (config.uid === messageObj.targetUid) {
-          config.user.role = messageObj.role; // Update local role
-          log("User role changed:", config.user.role);
-
-          // Update user attributes after role change
-          await clientRTM.addOrUpdateLocalUserAttributes({
-            role: config.user.role,
-          });
-          log("Updated user attributes after role change");
-
-          // Re-join RTC after role change
-          await client.leave();
-          await leaveFromVideoStage(config.user);
-          await join(); // Re-join the RTC
-        }
-        handleOnUpdateParticipants();
-        config.onRoleChanged(messageObj.targetUid, messageObj.role);
-      } else {
-        config.onMessageReceived(messageObj);
-      }
-    });
+    // Other code follows...
   } catch (error) {
     log("RTM join process failed:", error);
   }
 };
+
 
 
 
