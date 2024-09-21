@@ -452,10 +452,14 @@ const join = async () => {
     // await joinRTM(tokens.rtmToken); // <-- Comment this out to skip RTM
 
     // Step 3: Set the client's role based on the user's role (audience or host)
-    await client.setClientRole(
-      config.user.role === "audience" ? "audience" : "host"
-    );
-    console.log("client role after setting):", client.setClientRole);
+    try {
+      await client.setClientRole(
+        config.user.role === "audience" ? "audience" : "host"
+      );
+      console.log("Client role set to:", config.user.role);
+    } catch (error) {
+      console.error("Failed to set client role:", error);
+    }
 
     // Step 4: Register RTC event listeners
     client.on("user-published", handleUserPublished);
@@ -479,7 +483,7 @@ const join = async () => {
       ", UID:",
       uid
     );
-    console.log(config)
+    console.log("Config before join:", config);
 
     await client.join(appId, channelName, rtcToken, uid);
 
@@ -487,13 +491,15 @@ const join = async () => {
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     }
-    console.log(config);
+
+    console.log("Config after join:", config);
 
     // Audience members do not publish tracks or join the video stage
   } catch (error) {
     console.error("Failed to join the channel:", error);
   }
 };
+
 
 function updateVideoWrapperSize() {
   const videoStage = document.getElementById("video-stage");
