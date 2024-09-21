@@ -67,14 +67,13 @@ export function MainApp(initConfig) {
       return config.token;
     }
   };
-
 function updateVideoWrapperSize() {
   const videoStage = document.getElementById("video-stage");
 
-  // Ensure the video stage exists
+  // Check if videoStage exists
   if (!videoStage) {
     console.error("Error: #video-stage element not found.");
-    return; // Exit the function if the element doesn't exist
+    return;
   }
 
   const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
@@ -84,30 +83,44 @@ function updateVideoWrapperSize() {
 
   videoWrappers.forEach((wrapper) => {
     wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
+    wrapper.style.margin = "5px"; // Consistent margin
+    wrapper.style.borderRadius = "10px"; // Rounded corners
+    wrapper.style.overflow = "hidden";
+    wrapper.style.position = "relative";
+    wrapper.style.backgroundColor = "#3c4043";
+    wrapper.style.display = "flex";
+    wrapper.style.justifyContent = "center";
+    wrapper.style.alignItems = "center";
 
-    // For smaller screens
+    // Default styles
+    wrapper.style.flex = "1 1 auto";
+    wrapper.style.width = "100%";
+    wrapper.style.maxWidth = "100%";
+    wrapper.style.minHeight = "30vh";
+
+    // For smaller screens (<= 768px)
     if (screenWidth <= 768) {
-      wrapper.style.flex = "1 1 100%"; // Full width for smaller screens
+      wrapper.style.flex = "1 1 100%";
       wrapper.style.maxWidth = "100%";
-      wrapper.style.minHeight = "50vh"; // Set minimum height for smaller screens
+      wrapper.style.minHeight = "50vh";
     } else {
-      // For larger screens, calculate width based on participant count
+      // For larger screens (> 768px), adjust based on participant count
       if (count === 1) {
-        wrapper.style.flex = "1 1 100%"; // Full width for 1 participant
+        wrapper.style.flex = "1 1 100%";
         wrapper.style.maxWidth = "100%";
-        wrapper.style.minHeight = "80vh"; // Larger height for single participant
+        wrapper.style.minHeight = "80vh";
       } else if (count === 2) {
-        wrapper.style.flex = "1 1 48%"; // Approx 2 participants side by side
+        wrapper.style.flex = "1 1 48%";
         wrapper.style.maxWidth = "48%";
-        wrapper.style.minHeight = "45vh"; // Keep reasonable height
+        wrapper.style.minHeight = "45vh";
       } else if (count === 3) {
-        wrapper.style.flex = "1 1 30%"; // 3 participants
+        wrapper.style.flex = "1 1 30%";
         wrapper.style.maxWidth = "30%";
-        wrapper.style.minHeight = "35vh"; // Slightly smaller height for more participants
+        wrapper.style.minHeight = "35vh";
       } else {
-        // More than 3 participants
-        wrapper.style.flex = "1 1 auto";
-        wrapper.style.maxWidth = `${maxWrapperWidth}px`; // Max width per wrapper
+        // For more than 3 participants
+        wrapper.style.flex = "1 1 23%";
+        wrapper.style.maxWidth = "23%";
         wrapper.style.minHeight = "30vh";
       }
     }
