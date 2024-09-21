@@ -76,6 +76,7 @@ export class newMainApp {
           `${this.config.serverUrl}/access-token?channelName=${this.config.channelName}&uid=${this.config.uid}`
         );
         const data = await res.json();
+        console.log("Fetched Token Data:", data); // <-- Add this line to debug the response
         this.config.token = data.token;
         return data.token;
       } catch (err) {
