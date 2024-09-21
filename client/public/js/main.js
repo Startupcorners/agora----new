@@ -706,43 +706,72 @@ const toggleCamera = async (isMuted) => {
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
 
-    if (!videoPlayer) {
-      throw new Error(`Video player with id #stream-${uid} not found`);
+    if (!config.client) {
+      console.error("Agora client is not initialized!");
+      return;
     }
 
-    // Reinitialize the camera after screen sharing if needed
-    if (!config.localVideoTrack && !isMuted) {
-      console.log("Reinitializing the camera video track after screen share");
+    // Log the current state before toggling the camera
+    console.log(`Camera is about to be ${isMuted ? "muted" : "unmuted"}`);
+    console.log("Video player element:", videoPlayer);
+    console.log("Avatar element:", avatar);
+
+    if (!videoPlayer) {
+      console.error(`Video player with id #stream-${uid} not found`);
+      return;
+    }
+
+    // Check if the video track exists, if not create and initialize it
+    if (!config.localVideoTrack) {
+      console.log("Initializing new camera video track...");
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      await config.client.publish([config.localVideoTrack]);
-      config.localVideoTrack.play(videoPlayer);
     }
 
     // Mute or unmute the video track
     if (isMuted) {
-      await config.localVideoTrack.setMuted(true); // Mute the video track
+      console.log("Muting camera...");
+      await config.localVideoTrack.setMuted(true);
       config.localVideoTrackMuted = true;
 
       // Show the avatar and hide the video player
       videoPlayer.style.display = "none";
       avatar.style.display = "block";
     } else {
-      await config.localVideoTrack.setMuted(false); // Unmute the video track
-      config.localVideoTrackMuted = false;
+      console.log("Unmuting camera...");
 
-      // Hide the avatar and show the video player
+      // Ensure the video player is visible
       videoPlayer.style.display = "block";
       avatar.style.display = "none";
+
+      // Reattach and play the video track inside the video player
+      if (
+        videoPlayer.childNodes.length === 0 ||
+        !videoPlayer.querySelector("video")
+      ) {
+        console.log("Reattaching video element...");
+        config.localVideoTrack.play(videoPlayer); // Reattach the video track to the player
+      } else {
+        console.log("Video element already exists, playing it.");
+        config.localVideoTrack.play(videoPlayer); // Ensure the track plays
+      }
+
+      // Ensure the track is unmuted
+      await config.localVideoTrack.setMuted(false);
+      config.localVideoTrackMuted = false;
     }
 
-    // Pass the uid to the onCamMuted function
-    config.onCamMuted(uid, config.localVideoTrackMuted);
+    console.log(
+      `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
+    );
+
+    config.onCamMuted(config.localVideoTrackMuted);
   } catch (error) {
     console.error("Error in toggleCamera:", error);
-    config.onError(error);
+    if (config.onError) {
+      config.onError(error);
+    }
   }
 };
-
 
 
 
