@@ -163,8 +163,8 @@ export function MainApp(initConfig) {
       // Set the channelJoined flag to true
       config.channelJoined = true;
 
-      // Update participants after joining
-      handleOnUpdateParticipants(config)();
+      // Update participants after joining (corrected reference)
+      eventHandlers.handleOnUpdateParticipants(config)();
     } catch (error) {
       log("RTM join process failed:", error, config);
       throw error;
