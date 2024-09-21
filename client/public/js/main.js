@@ -458,6 +458,8 @@ const join = async () => {
     }
 
     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+    console.log("Checking localVideoTrack before toggling camera:",config.localVideoTrack);
+
     config.localVideoTrackMuted = false;
 
     // Audience members do not publish tracks or join the video stage
