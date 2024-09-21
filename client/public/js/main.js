@@ -755,11 +755,11 @@ const toggleScreenShare = async (isEnabled) => {
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
 
-    // If screen sharing is already active and user wants to stop it
+    // If screen sharing is already active and the user wants to stop it
     if (config.localScreenShareEnabled && !isEnabled) {
       console.log("Stopping screen share");
 
-      // Stop screen sharing and revert to the camera
+      // Stop screen sharing and revert to the camera or avatar
       if (config.localScreenShareTrack) {
         config.localScreenShareTrack.stop(); // Stop sharing in the browser UI
         config.localScreenShareTrack.close(); // Ensure the track is closed
@@ -767,21 +767,22 @@ const toggleScreenShare = async (isEnabled) => {
         config.localScreenShareTrack = null;
       }
 
-      // Recreate the camera video track and publish it if the camera was originally on
-      if (!config.localVideoTrack) {
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      }
-
-      await config.client.publish([config.localVideoTrack]);
-      config.localVideoTrack.play(videoPlayer);
-
-      // Restore the camera or avatar visibility based on the initial state before screen sharing
+      // Check if the camera was on before sharing started
       if (wasCameraOnBeforeSharing) {
-        videoPlayer.style.display = "block"; // Show video player if the camera was on before sharing
-        avatar.style.display = "none"; // Hide avatar
+        // Recreate the camera video track and publish it if the camera was originally on
+        if (!config.localVideoTrack) {
+          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        }
+        await config.client.publish([config.localVideoTrack]);
+        config.localVideoTrack.play(videoPlayer);
+
+        // Show the video player and hide the avatar
+        videoPlayer.style.display = "block";
+        avatar.style.display = "none";
       } else {
-        videoPlayer.style.display = "none"; // Hide video player if the camera was off
-        avatar.style.display = "block"; // Show avatar
+        // If the camera was off before sharing, keep it off and show the avatar
+        videoPlayer.style.display = "none";
+        avatar.style.display = "block";
       }
 
       config.localScreenShareEnabled = false; // Update the flag
@@ -841,6 +842,7 @@ const toggleScreenShare = async (isEnabled) => {
     }
   }
 };
+
 
 
   const turnOffMic = (...uids) => {
