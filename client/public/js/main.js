@@ -68,86 +68,52 @@ export function MainApp(initConfig) {
     }
   };
 
-  function updateVideoWrapperSize() {
-    const videoStage = document.getElementById("video-stage");
-    const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
-    const count = videoWrappers.length;
-    const screenWidth = window.innerWidth;
-    const maxWrapperWidth = 800; // Maximum width of each video wrapper
+function updateVideoWrapperSize() {
+  const videoStage = document.getElementById("video-stage");
+  const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
+  const count = videoWrappers.length;
+  const screenWidth = window.innerWidth;
+  const maxWrapperWidth = 800; // Maximum width of each video wrapper
 
-    videoWrappers.forEach((wrapper) => {
-      wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
+  videoWrappers.forEach((wrapper) => {
+    wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
 
-      if (screenWidth < 768) {
+    // General settings for all video wrappers
+    wrapper.style.flex = "1 1 auto"; // Set flex grow/shrink automatically
+    wrapper.style.maxWidth = `${maxWrapperWidth}px`; // Prevent overgrowth beyond 800px
+    wrapper.style.width = "100%"; // Reset width behavior
+
+    if (screenWidth < 768) {
+      // For small screens, let the wrapper take up the full width
+      wrapper.style.flex = "1 1 100%";
+      wrapper.style.maxWidth = "100%"; // Prevent any overflow
+      wrapper.style.minHeight = "50vh"; // Set a minimum height for smaller screens
+    } else {
+      if (count === 1) {
         wrapper.style.flex = "1 1 100%";
         wrapper.style.maxWidth = "100%";
-        wrapper.style.minHeight = "50vh";
+        wrapper.style.minHeight = "80vh";
+      } else if (count === 2) {
+        wrapper.style.flex = "1 1 45%"; // Let each video wrapper take up to 45% of width
+        wrapper.style.maxWidth = "50%"; // Prevent overlap
+        wrapper.style.minHeight = "45vh";
+      } else if (count === 3) {
+        wrapper.style.flex = "1 1 30%"; // 30% width for 3 participants
+        wrapper.style.maxWidth = "33.333%";
+        wrapper.style.minHeight = "35vh";
       } else {
-        if (count === 1) {
-          wrapper.style.flex = "1 1 100%";
-          wrapper.style.maxWidth = "100%";
-          wrapper.style.minHeight = "80vh";
-        } else if (count === 2) {
-   function updateVideoWrapperSize() {
-     const videoStage = document.getElementById("video-stage");
-     const videoWrappers = videoStage.querySelectorAll(
-       '[id^="video-wrapper-"]'
-     );
-     const count = videoWrappers.length;
-     const screenWidth = window.innerWidth;
-     const maxWrapperWidth = 800; // Maximum width of each video wrapper
-
-     videoWrappers.forEach((wrapper) => {
-       wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
-
-       // Ensure wrapper size respects the screen width
-       if (screenWidth < 768) {
-         wrapper.style.flex = "1 1 100%";
-         wrapper.style.maxWidth = "100%";
-         wrapper.style.minHeight = "50vh";
-       } else {
-         if (count === 1) {
-           wrapper.style.flex = "1 1 100%";
-           wrapper.style.maxWidth = "100%";
-           wrapper.style.minHeight = "80vh";
-         } else if (count === 2) {
-           wrapper.style.flex = "1 1 45%";
-           wrapper.style.maxWidth = "50%";
-           wrapper.style.minHeight = "45vh";
-         } else if (count === 3) {
-           wrapper.style.flex = "1 1 30%";
-           wrapper.style.maxWidth = "33.333%";
-           wrapper.style.minHeight = "35vh";
-         } else {
-           wrapper.style.flex = "1 1 auto";
-           wrapper.style.maxWidth = `${maxWrapperWidth}px`;
-           wrapper.style.minHeight = "30vh";
-         }
-       }
-
-       // Constrain the width of the wrapper within the available screen width
-       wrapper.style.width = `calc(100% - 20px)`; // Ensure it accounts for padding/margin
-     });
-   }
-       wrapper.style.flex = "1 1 45%";
-          wrapper.style.maxWidth = "50%";
-          wrapper.style.minHeight = "45vh";
-        } else if (count === 3) {
-          wrapper.style.flex = "1 1 30%";
-          wrapper.style.maxWidth = "33.333%";
-          wrapper.style.minHeight = "35vh";
-        } else {
-          wrapper.style.flex = "1 1 auto";
-          wrapper.style.maxWidth = `${maxWrapperWidth}px`;
-          wrapper.style.minHeight = "30vh";
-        }
+        wrapper.style.flex = "1 1 auto"; // For more than 3, distribute space evenly
+        wrapper.style.maxWidth = `${maxWrapperWidth}px`;
+        wrapper.style.minHeight = "30vh";
       }
-    });
-  }
+    }
+  });
+}
 
 
 
-  
+
+
   window.updateVideoWrapperSize = updateVideoWrapperSize;
 
   // Add a resize event listener to update video wrapper sizes dynamically
