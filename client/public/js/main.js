@@ -461,6 +461,7 @@ const join = async () => {
     console.log("Checking localVideoTrack before toggling camera:",config.localVideoTrack);
 
     config.localVideoTrackMuted = false;
+    console.log("Checking localVideoTrackMuted before toggling camera:", config.localVideoTrackMuted);
 
     // Audience members do not publish tracks or join the video stage
   } catch (error) {
