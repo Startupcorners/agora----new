@@ -4,7 +4,7 @@ import { setupAgoraRTCClient } from "./agoraRTCClient.js";
 import { setupAgoraRTMClient } from "./agoraRTMClient.js";
 import { recordingFunctions } from "./recording.js";
 
-export class MainApp {
+export class newMainApp {
   constructor(userConfig = {}) {
     try {
       // Merge defaultConfig with userConfig, ensuring defaultConfig.appId isn't overwritten
