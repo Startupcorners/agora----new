@@ -1040,4 +1040,4 @@ const newMainApp = function (initConfig) {
     stopRecording: stopRecording,
   };
 }
-window['newMainApp'] = newMainAppMainApp;
+window['newMainApp'] = newMainApp;
