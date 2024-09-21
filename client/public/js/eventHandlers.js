@@ -24,6 +24,7 @@ export const handleUserPublished =
           .insertAdjacentHTML("beforeend", playerHTML);
         player = document.querySelector(`#video-wrapper-${user.uid}`);
       }
+      bubble_fn_participantList(user.uid);
 
       const videoPlayer = player.querySelector(`#stream-${user.uid}`);
       const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
