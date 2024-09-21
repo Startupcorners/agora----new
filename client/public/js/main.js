@@ -752,20 +752,27 @@ const toggleScreenShare = async (isEnabled) => {
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
 
+    // Check if the user is already screen sharing
+    if (config.localScreenShareEnabled && isEnabled) {
+      console.log("User is already screen sharing, stopping screen share...");
+      await toggleScreenShare(false); // Stop the current screen share
+      return; // Exit the function so it doesn't start a new screen share
+    }
+
     if (isEnabled) {
       console.log("Starting screen share...");
 
-      // Remember the state of the camera before screen sharing
+      // Store whether the camera was originally on before sharing
       wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
 
       // Create the screen share track
       config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
 
-      // Stop and unpublish the local video track if it exists
+      // If we successfully create the screen share track, stop and unpublish the local video track
       if (config.localVideoTrack) {
         config.localVideoTrack.stop();
         await config.client.unpublish([config.localVideoTrack]);
-        if (videoPlayer) videoPlayer.style.display = "none";
+        if (videoPlayer) videoPlayer.style.display = "none"; // Hide the video player
       }
 
       // Play and publish the screen share track
@@ -776,8 +783,8 @@ const toggleScreenShare = async (isEnabled) => {
 
       await config.client.publish([config.localScreenShareTrack]);
       config.localScreenShareTrack.play(videoPlayer);
-      if (videoPlayer) videoPlayer.style.display = "block";
-      if (avatar) avatar.style.display = "none";
+      if (videoPlayer) videoPlayer.style.display = "block"; // Show the screen share in the video player
+      if (avatar) avatar.style.display = "none"; // Hide the avatar during screen share
     } else {
       console.log("Stopping screen share...");
 
@@ -809,9 +816,9 @@ const toggleScreenShare = async (isEnabled) => {
 
     config.localScreenShareEnabled = isEnabled;
     config.onScreenShareEnabled(isEnabled);
-  } catch (error) {
-    console.error("Error during screen sharing:", error);
-    config.onError(error);
+  } catch (e) {
+    console.error("Error during screen sharing:", e);
+    config.onError(e);
   }
 };
 
