@@ -756,13 +756,19 @@ const toggleScreenShare = async (isEnabled) => {
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
 
-    // Check if the Agora client is initialized
+    // Log the current state of the Agora client for debugging
+    console.log("Checking Agora client before screen share:", config.client);
+
+    // Ensure Agora client is initialized before proceeding
     if (!config.client) {
       throw new Error("Agora client is not initialized");
     }
 
     if (isEnabled) {
       console.log("Starting screen share");
+
+      // Store whether the camera was originally on before sharing
+      wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
 
       // Create the screen share track
       config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
@@ -785,6 +791,7 @@ const toggleScreenShare = async (isEnabled) => {
       config.localScreenShareTrack.play(videoPlayer);
       videoPlayer.style.display = "block"; // Show the screen share in the video player
       avatar.style.display = "none"; // Hide the avatar during screen share
+
     } else {
       console.log("Stopping screen share");
 
@@ -811,6 +818,7 @@ const toggleScreenShare = async (isEnabled) => {
 
     config.localScreenShareEnabled = isEnabled;
     config.onScreenShareEnabled(isEnabled);
+
   } catch (e) {
     console.error("Error during screen sharing:", e);
     if (config.onError) {
