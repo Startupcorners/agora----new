@@ -90,9 +90,7 @@ export const handleUserLeft = (config) => async (user, reason) => {
 
 // Function to handle volume indicators
 export const handleVolumeIndicator = (config) => (result) => {
-  result.forEach((volume, index) => {
-    config.onVolumeIndicatorChanged(volume);
-  });
+  console.log("Volume Indicator Result:", result);
 };
 
 // Function to handle when screen sharing ends
