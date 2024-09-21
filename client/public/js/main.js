@@ -391,71 +391,63 @@ const newMainApp = function (initConfig) {
   /**
    * Functions
    */
-  const fetchToken = async () => {
-    if (config.serverUrl !== "") {
-      try {
-        const res = await fetch(
-          config.serverUrl +
-            `/access-token?channelName=${config.channelName}&uid=${config.uid}`
-        );
-        const data = await res.text();
-        const json = await JSON.parse(data);
-        config.token = json.token;
-
-        return json.token;
-      } catch (err) {
-        log(err);
-      }
-    } else {
-      return config.token;
-    }
-  };
-
-  const fetchRTMToken = async () => {
-    try {
-      const res = await fetch(
-        `${config.serverUrl}/rtm-token?uid=${config.uid}` // Update this endpoint to match your backend's RTM token generation logic
-      );
-      const data = await res.json();
-      config.token = data.token; // Assuming the response contains the token
-
-      return config.token;
-    } catch (err) {
-      log(err);
-      throw new Error("Failed to fetch RTM token");
-    }
-  };
-
-
-  const join = async () => {
-    // Start by joining the RTM (Real-Time Messaging) channel
-    await joinRTM();
-
-    // Set the client's role based on the user's role
-    await client.setClientRole(
-      config.user.role === "audience" ? "audience" : "host"
+const fetchTokens = async () => {
+  try {
+    const res = await fetch(
+      `https://your-backend-url.com/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`
     );
+    const data = await res.json();
+    return {
+      rtcToken: data.rtcToken, // Extract the RTC token
+      rtmToken: data.rtmToken, // Extract the RTM token
+    };
+  } catch (err) {
+    console.error("Failed to fetch tokens:", err);
+    throw err;
+  }
+};
 
-    // Register common event listeners for all users
-    client.on("user-published", handleUserPublished);
-    client.on("user-unpublished", handleUserUnpublished); // Add this line to handle avatar toggling
-    client.on("user-joined", handleUserJoined);
-    client.on("user-left", handleUserLeft);
-    client.enableAudioVolumeIndicator();
-    client.on("volume-indicator", handleVolumeIndicator);
 
-    // Join the Agora channel
-    const { appId, uid, channelName } = config;
-    const token = await fetchToken(config);
-    client.on("token-privilege-will-expire", handleRenewToken);
-    await client.join(appId, channelName, token, uid);
 
-    // If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
-    if (config.onNeedJoinToVideoStage(config.user)) {
-      await joinToVideoStage(config.user);
-    }
-    // Audience members do not publish tracks or join the video stage
-  };
+ const join = async () => {
+   try {
+     // Fetch both RTC and RTM tokens
+     const tokens = await fetchTokens(); // This fetches both RTC and RTM tokens
+
+     // Use the RTM token to join the RTM channel
+     await joinRTM(tokens.rtmToken); // Pass the RTM token to the joinRTM function
+
+     // Set the client's role based on the user's role
+     await client.setClientRole(
+       config.user.role === "audience" ? "audience" : "host"
+     );
+
+     // Register common event listeners for all users
+     client.on("user-published", handleUserPublished);
+     client.on("user-unpublished", handleUserUnpublished); // Add this line to handle avatar toggling
+     client.on("user-joined", handleUserJoined);
+     client.on("user-left", handleUserLeft);
+     client.enableAudioVolumeIndicator();
+     client.on("volume-indicator", handleVolumeIndicator);
+
+     // Join the Agora RTC channel using the fetched RTC token
+     const { appId, uid, channelName } = config;
+     const rtcToken = tokens.rtcToken; // Use the RTC token from the fetched tokens
+     client.on("token-privilege-will-expire", handleRenewToken);
+
+     await client.join(appId, channelName, rtcToken, uid);
+
+     // If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
+     if (config.onNeedJoinToVideoStage(config.user)) {
+       await joinToVideoStage(config.user);
+     }
+
+     // Audience members do not publish tracks or join the video stage
+   } catch (error) {
+     console.error("Failed to join the channel:", error);
+   }
+ };
+
 
   const handleUserUnpublished = async (user, mediaType) => {
     if (mediaType === "video") {
@@ -529,18 +521,15 @@ const newMainApp = function (initConfig) {
     }
   };
 
-const joinRTM = async () => {
+const joinRTM = async (rtmToken) => {
   try {
     const rtmUid = config.uid.toString(); // Convert UID to string for RTM
 
-    // Fetch the RTM token
-    const rtmToken = await fetchRTMToken();
-
-    // RTM login with the token
+    // RTM login with the passed RTM token
     await clientRTM.login({ token: rtmToken, uid: rtmUid });
     log(`RTM login successful for UID: ${rtmUid}`);
 
-    // Update local user attributes
+    // Update local user attributes in RTM
     await clientRTM.addOrUpdateLocalUserAttributes({
       name: config.user.name,
       avatar: config.user.avatar,
@@ -613,6 +602,7 @@ const joinRTM = async () => {
     log("RTM join process failed:", error);
   }
 };
+
 
 
   const leave = async () => {
