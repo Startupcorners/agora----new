@@ -112,21 +112,15 @@ export const handleScreenShareEnded = (config, client) => async () => {
 export const handleOnUpdateParticipants = (config) => {
   const updateParticipants = async () => {
     try {
-      // Check if channelRTM and clientRTM are properly initialized
+      // Ensure the RTM channel is initialized before trying to get members
       if (!config.channelRTM) {
         throw new Error("RTM Channel is not initialized.");
       }
 
-      if (!config.clientRTM) {
-        throw new Error("RTM Client is not initialized.");
-      }
-
-      // Fetch all the members (UIDs) in the RTM channel
-      const uids = await config.channelRTM.getMembers();
-
-      // Fetch user attributes for each UID in the RTM channel
+      // Ensure the channel has been joined before fetching members
+      const channelMembers = await config.channelRTM.getMembers();
       const participants = await Promise.all(
-        uids.map(async (uid) => {
+        channelMembers.map(async (uid) => {
           const userAttr = await config.clientRTM.getUserAttributes(uid);
           return {
             id: uid,
@@ -135,19 +129,18 @@ export const handleOnUpdateParticipants = (config) => {
         })
       );
 
-      // Call the onParticipantsChanged callback with the updated participants
+      // Call the callback that updates the participants list in the app
       config.onParticipantsChanged(participants);
     } catch (error) {
-      // Log any errors
       console.error("Error in updating participants:", error);
     }
   };
 
-  // Debounce the updateParticipants function to avoid excessive calls
+  // Debounced update
   const debouncedUpdateParticipants = debounce(updateParticipants, 1000);
-
   return debouncedUpdateParticipants;
 };
+
 
 
 
