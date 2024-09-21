@@ -148,24 +148,28 @@ const newMainApp = function (initConfig) {
       }
       bubble_fn_isMicOff(isMuted);
     },
-    onCamMuted: (isMuted, uid) => {
-      console.log(
-        `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
-      );
-      const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
-      if (videoWrapper) {
-        const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
-        const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
-        if (isMuted) {
-          videoPlayer.style.display = "none";
-          avatarDiv.style.display = "block";
-        } else {
-          videoPlayer.style.display = "block";
-          avatarDiv.style.display = "none";
-        }
-      }
-      bubble_fn_isCamOff(isMuted);
-    },
+    onCamMuted: (uid, isMuted) => {
+  console.log(
+    `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
+  );
+
+  const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
+  if (videoWrapper) {
+    const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
+    const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
+
+    if (isMuted) {
+      videoPlayer.style.display = "none"; // Hide the video player
+      avatarDiv.style.display = "block"; // Show the avatar
+    } else {
+      videoPlayer.style.display = "block"; // Show the video player
+      avatarDiv.style.display = "none"; // Hide the avatar
+    }
+  }
+
+  // Call any additional functions related to camera muting, like in Bubble
+  bubble_fn_isCamOff(isMuted);
+},
     onScreenShareEnabled: (enabled) => {
       console.log(
         `Screen share status: ${enabled ? "Sharing" : "Not sharing"}`
@@ -696,49 +700,48 @@ const joinRTM = async (rtmToken) => {
     config.onMicMuted(config.localAudioTrackMuted);
   };
 
- const toggleCamera = async (isMuted) => {
-   try {
-     const uid = config.uid;
-     const videoPlayer = document.querySelector(`#stream-${uid}`);
-     const avatar = document.querySelector(`#avatar-${uid}`);
+const toggleCamera = async (isMuted) => {
+  try {
+    const uid = config.uid;
+    const videoPlayer = document.querySelector(`#stream-${uid}`);
+    const avatar = document.querySelector(`#avatar-${uid}`);
 
-     // Ensure video player element exists
-     if (!videoPlayer) {
-       throw new Error(`Video player with id #stream-${uid} not found`);
-     }
+    if (!videoPlayer) {
+      throw new Error(`Video player with id #stream-${uid} not found`);
+    }
 
-     // Check if we need to reinitialize the camera after screen sharing
-     if (!config.localVideoTrack && !isMuted) {
-       console.log("Reinitializing the camera video track after screen share");
-       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-       await config.client.publish([config.localVideoTrack]);
-       config.localVideoTrack.play(videoPlayer);
-     }
+    // Reinitialize the camera after screen sharing if needed
+    if (!config.localVideoTrack && !isMuted) {
+      console.log("Reinitializing the camera video track after screen share");
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      await config.client.publish([config.localVideoTrack]);
+      config.localVideoTrack.play(videoPlayer);
+    }
 
-     // Mute or unmute the video track
-     if (isMuted) {
-       await config.localVideoTrack.setMuted(true); // Mute the video track
-       config.localVideoTrackMuted = true;
+    // Mute or unmute the video track
+    if (isMuted) {
+      await config.localVideoTrack.setMuted(true); // Mute the video track
+      config.localVideoTrackMuted = true;
 
-       // Show the avatar and hide the video player
-       videoPlayer.style.display = "none";
-       avatar.style.display = "block";
-     } else {
-       await config.localVideoTrack.setMuted(false); // Unmute the video track
-       config.localVideoTrackMuted = false;
+      // Show the avatar and hide the video player
+      videoPlayer.style.display = "none";
+      avatar.style.display = "block";
+    } else {
+      await config.localVideoTrack.setMuted(false); // Unmute the video track
+      config.localVideoTrackMuted = false;
 
-       // Hide the avatar and show the video player
-       videoPlayer.style.display = "block";
-       avatar.style.display = "none";
-     }
+      // Hide the avatar and show the video player
+      videoPlayer.style.display = "block";
+      avatar.style.display = "none";
+    }
 
-     // Call the onCamMuted event
-     config.onCamMuted(config.localVideoTrackMuted);
-   } catch (error) {
-     console.error("Error in toggleCamera:", error);
-     config.onError(error);
-   }
- };
+    // Pass the uid to the onCamMuted function
+    config.onCamMuted(uid, config.localVideoTrackMuted);
+  } catch (error) {
+    console.error("Error in toggleCamera:", error);
+    config.onError(error);
+  }
+};
 
 
 
