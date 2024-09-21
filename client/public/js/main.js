@@ -168,7 +168,6 @@ export function MainApp(initConfig) {
     }
   };
 
-
   const joinToVideoStage = async (user) => {
     try {
       console.log("User object:", user);
@@ -282,11 +281,21 @@ export function MainApp(initConfig) {
   };
 
   // Toggle Camera
+  // Toggle Camera
   const toggleCamera = async (isMuted) => {
     try {
       const uid = config.uid;
       const videoPlayer = document.querySelector(`#stream-${uid}`);
       const avatar = document.querySelector(`#avatar-${uid}`);
+
+      // Log the UID and check if the element exists
+      console.log(`Attempting to toggle camera for UID: ${uid}`);
+      console.log("Video player element:", videoPlayer); // Log the element or null if it doesn't exist
+
+      // Check if the videoPlayer exists before trying to access its style
+      if (!videoPlayer) {
+        throw new Error(`Video player with id #stream-${uid} not found`);
+      }
 
       // Check if the video track exists, if not create and initialize it
       if (!config.localVideoTrack) {
