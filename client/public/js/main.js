@@ -457,6 +457,9 @@ const join = async () => {
       await joinToVideoStage(config.user);
     }
 
+    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+    config.localVideoTrackMuted = false;
+
     // Audience members do not publish tracks or join the video stage
   } catch (error) {
     console.error("Failed to join the channel:", error);
