@@ -768,11 +768,15 @@ const toggleScreenShare = async (isEnabled) => {
 
       // Create the screen share track if it doesn't already exist
       if (!config.localScreenShareTrack) {
+        console.log("Creating screen share track...");
         config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
       }
 
       // Stop and unpublish the local video track before screen share
       if (config.localVideoTrack) {
+        console.log(
+          "Stopping and unpublishing local video track before screen share..."
+        );
         config.localVideoTrack.stop();
         await config.client.unpublish([config.localVideoTrack]);
         videoPlayer.style.display = "none";
@@ -781,7 +785,7 @@ const toggleScreenShare = async (isEnabled) => {
       // Play and publish the screen share track
       config.localScreenShareTrack.on("track-ended", async () => {
         console.log("Screen share track ended, reverting back to camera");
-        await toggleScreenShare(false);
+        await toggleScreenShare(false); // Revert to camera when screen sharing stops
       });
 
       await config.client.publish([config.localScreenShareTrack]);
@@ -793,27 +797,36 @@ const toggleScreenShare = async (isEnabled) => {
 
       // Stop the screen share and revert to the camera
       if (config.localScreenShareTrack) {
+        console.log("Stopping and closing the screen share track...");
         config.localScreenShareTrack.stop();
         config.localScreenShareTrack.close();
         await config.client.unpublish([config.localScreenShareTrack]);
         config.localScreenShareTrack = null;
       }
 
-      // Restore the camera track if it was on before sharing
+      // Reinitialize the camera track only if it was on before sharing
       if (wasCameraOnBeforeSharing) {
-        console.log("Restoring camera track after screen share");
+        console.log("Restoring camera track after screen share...");
         if (!config.localVideoTrack) {
-          // Recreate the camera video track if it's missing
+          console.log("Creating new camera video track...");
           config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        } else {
-          config.localVideoTrack.play(videoPlayer);
         }
 
+        console.log("Publishing and playing the camera track...");
         await config.client.publish([config.localVideoTrack]);
-        videoPlayer.style.display = "block";
-        avatar.style.display = "none";
+
+        // Re-attach video track to the video player element
+        if (videoPlayer) {
+          console.log("Playing camera video track in videoPlayer...");
+          config.localVideoTrack.play(videoPlayer);
+          videoPlayer.style.display = "block";
+          avatar.style.display = "none";
+        } else {
+          console.error("Video player not found for camera playback!");
+        }
       } else {
         // If the camera was off, show the avatar
+        console.log("Camera was off before sharing, showing avatar...");
         videoPlayer.style.display = "none";
         avatar.style.display = "block";
       }
@@ -828,16 +841,25 @@ const toggleScreenShare = async (isEnabled) => {
     // Ensure local video is active in case of an error
     if (!isEnabled && !config.localVideoTrack) {
       try {
+        console.log("Reinitializing camera track after error...");
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
         await config.client.publish([config.localVideoTrack]);
-        config.localVideoTrack.play(videoPlayer);
 
-        if (wasCameraOnBeforeSharing) {
-          videoPlayer.style.display = "block";
-          avatar.style.display = "none";
+        if (videoPlayer) {
+          console.log(
+            "Playing camera video track in videoPlayer after error..."
+          );
+          config.localVideoTrack.play(videoPlayer);
+
+          if (wasCameraOnBeforeSharing) {
+            videoPlayer.style.display = "block";
+            avatar.style.display = "none";
+          } else {
+            videoPlayer.style.display = "none";
+            avatar.style.display = "block";
+          }
         } else {
-          videoPlayer.style.display = "none";
-          avatar.style.display = "block";
+          console.error("Video player not found after error!");
         }
       } catch (cameraError) {
         console.error("Error reinitializing camera track:", cameraError);
