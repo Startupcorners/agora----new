@@ -53,7 +53,7 @@ const startRecording = require("./startRecording");
 const stopRecording = require("./stopRecording");
 
 // Using routes
-app.use("/access-token", accessTokenGeneration);
+app.use("/generateTokens", accessTokenGeneration);
 app.use("/acquire", acquire);
 app.use("/generate_recording_token", generateRecordingToken);
 app.use("/start", startRecording);
