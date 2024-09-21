@@ -67,6 +67,8 @@ export function MainApp(initConfig) {
       return config.token;
     }
   };
+
+
 function updateVideoWrapperSize() {
   const videoStage = document.getElementById("video-stage");
 
@@ -93,24 +95,20 @@ function updateVideoWrapperSize() {
     wrapper.style.display = "flex";
     wrapper.style.justifyContent = "center";
     wrapper.style.alignItems = "center";
-
-    // Default styles for large screens
-    wrapper.style.flex = "1 1 auto";
-    wrapper.style.width = "100%";
-    wrapper.style.maxWidth = "100%";
-    wrapper.style.minHeight = "30vh";
+    wrapper.style.height = "100%";
 
     // Handle small screens (<= 768px)
     if (screenWidth <= 768) {
-      wrapper.style.flex = "1 1 100% !important"; // Force 100% width
+      wrapper.style.flex = "1 1 100% !important"; // Force 100% width for mobile
       wrapper.style.maxWidth = "100% !important";
-      wrapper.style.minHeight = "50vh !important"; // Slightly taller for mobile
+      wrapper.style.minHeight = "50vh !important";
     } else {
       // For larger screens (> 768px), adjust based on participant count
       if (count === 1) {
-        wrapper.style.flex = "1 1 100% !important"; // Full width for one participant
-        wrapper.style.maxWidth = "100% !important";
-        wrapper.style.minHeight = "80vh !important"; // Larger height for single video
+        wrapper.style.flex = "0 1 auto !important"; // Prevent flex-grow for single participant
+        wrapper.style.maxWidth = `${maxWrapperWidth}px !important`; // Ensure max-width for large screen
+        wrapper.style.width = "100% !important"; // Set width to 100% but respect max-width
+        wrapper.style.minHeight = "80vh !important"; // Large height for single video
       } else if (count === 2) {
         wrapper.style.flex = "1 1 48% !important"; // Two videos side-by-side
         wrapper.style.maxWidth = "48% !important";
@@ -135,6 +133,7 @@ window.addEventListener("resize", updateVideoWrapperSize);
 document.addEventListener("DOMContentLoaded", () => {
   updateVideoWrapperSize();
 });
+
 
 
   // Join Function
