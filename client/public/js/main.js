@@ -161,7 +161,8 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log(`User ${user.uid} joined`);
 
       // Call the handler from eventHandlers
-      eventHandlers.handleUserJoined(mainApp)(user); // Make sure to pass user info
+      eventHandlers.handleUserJoined(mainApp)(user); 
+      console.log(`handleUserJoined ran`);// Make sure to pass user info
     });
 
     // Check if the user needs to join the video stage
