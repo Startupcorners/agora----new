@@ -1,3 +1,5 @@
+import * as eventHandlers from "./eventHandlers.js";
+
 export const setupAgoraRTMClient = (config) => {
   if (!config.appId) {
     throw new Error("Agora appId is missing or invalid.");
@@ -19,23 +21,35 @@ export const setupAgoraRTMClient = (config) => {
     const data = JSON.parse(message.text);
     log(data, config);
 
-    if (data.event === "mic_off") {
-      await toggleMic(true);
-    } else if (data.event === "cam_off") {
-      await toggleCamera(true);
-    } else if (data.event === "remove_participant") {
-      await leave();
+    try {
+      if (data.event === "mic_off") {
+        await config.toggleMic(true); // Use config-bound function
+      } else if (data.event === "cam_off") {
+        await config.toggleCamera(true); // Use config-bound function
+      } else if (data.event === "remove_participant") {
+        await config.leave(); // Use config-bound function
+      }
+    } catch (error) {
+      console.error("Error handling peer message:", error);
     }
   });
 
   channelRTM.on("MemberJoined", async (memberId) => {
     log(`Member joined: ${memberId}`, config);
-    handleOnUpdateParticipants(config)();
+    try {
+      await handleOnUpdateParticipants(config)(); // Ensure proper update of participants
+    } catch (error) {
+      console.error("Error updating participants on member join:", error);
+    }
   });
 
-  channelRTM.on("MemberLeft", (memberId) => {
+  channelRTM.on("MemberLeft", async (memberId) => {
     log(`Member left: ${memberId}`, config);
-    handleOnUpdateParticipants(config)();
+    try {
+      await handleOnUpdateParticipants(config)(); // Ensure proper update of participants
+    } catch (error) {
+      console.error("Error updating participants on member leave:", error);
+    }
   });
 
   channelRTM.on("ChannelMessage", async (message, memberId, props) => {
@@ -43,29 +57,35 @@ export const setupAgoraRTMClient = (config) => {
     const messageObj = JSON.parse(message.text);
     log(messageObj, config);
 
-    if (
-      messageObj.type === "broadcast" &&
-      messageObj.event === "change_user_role"
-    ) {
-      if (config.uid === messageObj.targetUid) {
-        config.user.role = messageObj.role; // Update local role
-        log("User role changed:", config);
-        log(config.user.role, config);
+    try {
+      if (
+        messageObj.type === "broadcast" &&
+        messageObj.event === "change_user_role"
+      ) {
+        if (config.uid === messageObj.targetUid) {
+          config.user.role = messageObj.role; // Update local role
+          log("User role changed:", config);
+          log(config.user.role, config);
 
-        // Update user attributes after role change
-        await clientRTM.addOrUpdateLocalUserAttributes({
-          role: config.user.role,
-        });
-        log("Updated user attributes after role change", config);
+          // Update user attributes after role change
+          await clientRTM.addOrUpdateLocalUserAttributes({
+            role: config.user.role,
+          });
+          log("Updated user attributes after role change", config);
 
-        await config.client.leave();
-        await leaveFromVideoStage(config.user);
-        await join(); // Re-join the RTC
+          // Handle re-joining the RTC channel
+          await config.client.leave();
+          await config.leaveFromVideoStage(config.user); // Ensure config-bound function
+          await config.join(); // Ensure config-bound function
+        }
+
+        await handleOnUpdateParticipants(config)();
+        config.onRoleChanged(messageObj.targetUid, messageObj.role); // Handle role change event
+      } else {
+        config.onMessageReceived(messageObj); // Handle normal messages
       }
-      handleOnUpdateParticipants(config)();
-      config.onRoleChanged(messageObj.targetUid, messageObj.role);
-    } else {
-      config.onMessageReceived(messageObj);
+    } catch (error) {
+      console.error("Error handling channel message:", error);
     }
   });
 
