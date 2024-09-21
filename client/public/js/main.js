@@ -70,6 +70,13 @@ export function MainApp(initConfig) {
 
 function updateVideoWrapperSize() {
   const videoStage = document.getElementById("video-stage");
+
+  // Ensure the video stage exists
+  if (!videoStage) {
+    console.error("Error: #video-stage element not found.");
+    return; // Exit the function if the element doesn't exist
+  }
+
   const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
   const count = videoWrappers.length;
   const screenWidth = window.innerWidth;
