@@ -1,5 +1,5 @@
 const { RtcTokenBuilder, Role: RtcRole } = require("./RtcTokenBuilder2");
-const { RtmTokenBuilder } = require("./RtmTokenBuilder");
+const { RtmTokenBuilder } = require("./RtmTokenBuilder2");
 
 module.exports = async (req, res) => {
   const { channelName, uid, role } = req.query;
