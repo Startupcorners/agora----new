@@ -7,19 +7,19 @@ import { recordingFunctions } from "./recording.js";
 export class MainApp {
   constructor(userConfig = {}) {
     try {
-      // Merge the default config with the user-provided config
-      this.config = { ...defaultConfig, ...userConfig };
+      // Merge defaultConfig with userConfig, ensuring defaultConfig.appId isn't overwritten
+      this.config = {
+        ...defaultConfig,
+        ...userConfig,
+        appId: userConfig.appId, // Ensure appId falls back to defaultConfig.appId
+      };
 
-      this.screenClient = null;
-      this.localScreenShareTrack = null;
-      this.wasCameraOnBeforeSharing = false;
-      this.processor = null;
+      // Log the appId to verify
+      console.log("Agora appId in MainApp constructor:", this.config.appId);
 
-      this.validateConfig();
-      this.initializeAgoraClients();
-      this.initializeRecordingFunctions();
-      this.initializeVirtualBackground();
-      this.setupEventListeners();
+      this.validateConfig(); // Validate the configuration
+      this.initializeAgoraClients(); // Initialize Agora clients
+      this.setupEventListeners(); // Setup necessary event listeners
     } catch (error) {
       console.error("Error initializing MainApp:", error);
       throw error;
