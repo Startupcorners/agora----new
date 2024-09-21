@@ -1,7 +1,12 @@
+const functions = require("firebase-functions");
 const express = require("express");
 const { RtcTokenBuilder, Role: RtcRole } = require("./RtcTokenBuilder2");
 const { RtmTokenBuilder } = require("./RtmTokenBuilder");
-const router = express.Router(); // Create the router
+const cors = require("cors");
+
+// Initialize the Express app
+const app = express();
+app.use(cors({ origin: true })); // Enable CORS for all origins (optional, you can restrict this if needed)
 
 // Middleware to disable caching
 const nocache = (req, res, next) => {
@@ -11,7 +16,7 @@ const nocache = (req, res, next) => {
   next();
 };
 
-router.get("/", nocache, (req, res) => {
+app.get("/", nocache, (req, res) => {
   const { channelName, uid, role } = req.query;
 
   if (!channelName || !uid) {
@@ -66,4 +71,5 @@ router.get("/", nocache, (req, res) => {
   }
 });
 
-module.exports = router;
+// Export the function as a Firebase Cloud Function
+exports.generateTokens = functions.https.onRequest(app);
