@@ -746,46 +746,98 @@ const toggleCamera = async (isMuted) => {
 
 
 
-const toggleCamera = async (isMuted) => {
+const toggleScreenShare = async (isEnabled) => {
   try {
     const uid = config.uid;
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
 
-    if (!videoPlayer) {
-      throw new Error(`Video player with id #stream-${uid} not found`);
+    if (!config.client) {
+      console.error("Agora client is not initialized!");
+      return;
     }
 
-    // Reinitialize the camera after screen sharing if needed
-    if (!config.localVideoTrack && !isMuted) {
-      console.log("Reinitializing the camera video track after screen share");
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      await config.client.publish([config.localVideoTrack]);
-      config.localVideoTrack.play(videoPlayer);
+    if (config.localScreenShareEnabled && isEnabled) {
+      console.log("Already sharing. Stopping screen share.");
+      isEnabled = false; // Change the state to stop the screen share
     }
 
-    // Mute or unmute the video track
-    if (isMuted) {
-      await config.localVideoTrack.setMuted(true); // Mute the video track
-      config.localVideoTrackMuted = true;
+    if (isEnabled) {
+      console.log("Starting screen share");
+      wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
 
-      // Show the avatar and hide the video player
-      videoPlayer.style.display = "none";
-      avatar.style.display = "block";
-    } else {
-      await config.localVideoTrack.setMuted(false); // Unmute the video track
-      config.localVideoTrackMuted = false;
+      // Create the screen share track
+      if (!config.localScreenShareTrack) {
+        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+      }
 
-      // Hide the avatar and show the video player
+      // Stop and unpublish the local video track before screen share
+      if (config.localVideoTrack) {
+        config.localVideoTrack.stop();
+        await config.client.unpublish([config.localVideoTrack]);
+        videoPlayer.style.display = "none";
+      }
+
+      // Play and publish the screen share track
+      config.localScreenShareTrack.on("track-ended", async () => {
+        console.log("Screen share track ended, reverting back to camera");
+        await toggleScreenShare(false); // Revert to camera when screen sharing stops
+      });
+
+      await config.client.publish([config.localScreenShareTrack]);
+      config.localScreenShareTrack.play(videoPlayer);
       videoPlayer.style.display = "block";
       avatar.style.display = "none";
+    } else {
+      console.log("Stopping screen share");
+
+      // Stop screen sharing and revert to the camera
+      if (config.localScreenShareTrack) {
+        config.localScreenShareTrack.stop();
+        config.localScreenShareTrack.close();
+        await config.client.unpublish([config.localScreenShareTrack]);
+        config.localScreenShareTrack = null;
+      }
+
+      // Reinitialize the camera track only if it was on before sharing
+      if (wasCameraOnBeforeSharing && !config.localVideoTrack) {
+        console.log("Restoring camera track after screen share");
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        await config.client.publish([config.localVideoTrack]);
+        config.localVideoTrack.play(videoPlayer);
+
+        videoPlayer.style.display = "block";
+        avatar.style.display = "none";
+      } else if (!wasCameraOnBeforeSharing) {
+        // If the camera was off before, keep the avatar
+        videoPlayer.style.display = "none";
+        avatar.style.display = "block";
+      }
     }
 
-    // Pass the uid to the onCamMuted function
-    config.onCamMuted(uid, config.localVideoTrackMuted);
+    config.localScreenShareEnabled = isEnabled;
+    config.onScreenShareEnabled(isEnabled);
   } catch (error) {
-    console.error("Error in toggleCamera:", error);
+    console.error("Error during screen sharing:", error);
     config.onError(error);
+
+    // Ensure local video is active in case of an error
+    if (!isEnabled && !config.localVideoTrack) {
+      try {
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        await config.client.publish([config.localVideoTrack]);
+        config.localVideoTrack.play(videoPlayer);
+        if (wasCameraOnBeforeSharing) {
+          videoPlayer.style.display = "block";
+          avatar.style.display = "none";
+        } else {
+          videoPlayer.style.display = "none";
+          avatar.style.display = "block";
+        }
+      } catch (cameraError) {
+        console.error("Error reinitializing camera track:", cameraError);
+      }
+    }
   }
 };
 
