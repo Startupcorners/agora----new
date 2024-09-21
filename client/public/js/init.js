@@ -112,14 +112,17 @@ export function initAgoraApp(
     uid: uid,
     user: {
       id: uid,
-      name: name, // Pass user name
-      avatar: avatar, // Pass user avatar
-      role: role, // Set user role as host/audience
+      name: name,
+      avatar: avatar,
+      role: role,
     },
-    participantPlayerContainer: templateVideoParticipant, // Ensure this is passed
+    participantPlayerContainer: templateVideoParticipant,
 
-    // **Event handlers - Pass the function references directly without invoking them**
-    onParticipantsChanged: eventHandlers.handleOnUpdateParticipants(config),
+    // **Event handlers - Pass the actual function references directly**
+    onParticipantsChanged: (participants) => {
+      console.log("Participants updated:", participants);
+      // Any custom logic you want to handle with the participants
+    },
     onParticipantLeft: eventHandlers.handleUserLeft(config),
     onMessageReceived: eventHandlers.handleMessageReceived(config),
     onMicMuted: eventHandlers.handleMicMuted(config),
@@ -147,7 +150,6 @@ export function initAgoraApp(
     eventHandlers.handleScreenShareEnded(mainApp);
   mainApp.handleRenewToken = eventHandlers.handleRenewToken(mainApp);
 
-  // **Call the join method to join the channel**
   mainApp.join().catch((error) => {
     console.error("Error during mainApp.join():", error);
   });

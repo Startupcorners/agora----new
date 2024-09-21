@@ -145,11 +145,11 @@ export function MainApp(initConfig) {
       const rtmUid = config.uid.toString();
 
       // RTM login
-      await clientRTM.login({ uid: rtmUid });
+      await config.clientRTM.login({ uid: rtmUid });
       log(`RTM login successful for UID: ${rtmUid}`, config);
 
       // Update local user attributes
-      await clientRTM.addOrUpdateLocalUserAttributes({
+      await config.clientRTM.addOrUpdateLocalUserAttributes({
         name: config.user.name,
         avatar: config.user.avatar,
         role: config.user.role,
@@ -157,16 +157,20 @@ export function MainApp(initConfig) {
       log("addOrUpdateLocalUserAttributes: success", config);
 
       // Join the RTM channel
-      await channelRTM.join();
+      await config.channelRTM.join();
       log("Joined RTM channel successfully", config);
 
+      // Set the channelJoined flag to true
+      config.channelJoined = true;
+
       // Update participants after joining
-      eventHandlers.handleOnUpdateParticipants(config)(); // Correct reference
+      handleOnUpdateParticipants(config)();
     } catch (error) {
       log("RTM join process failed:", error, config);
       throw error;
     }
   };
+
 
   const joinToVideoStage = async (user) => {
     try {
