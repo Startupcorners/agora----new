@@ -75,7 +75,7 @@ export class MainApp {
       this.updateVideoWrapperSize.bind(this)
     );
   }
-  
+
   async fetchToken() {
     if (this.config.serverUrl !== "") {
       try {
@@ -470,11 +470,3 @@ export class MainApp {
   }
 }
 
-// Example usage
-const app = new MainApp({
-  appId: "your-app-id",
-  channelName: "your-channel-name",
-  uid: "user-id",
-  // Pass other parameters if necessary
-});
-app.join();
