@@ -1,13 +1,16 @@
-// agoraRTMClient.js
-import { log } from "./utils.js";
-
 export const setupAgoraRTMClient = (config) => {
+  if (!config.appId) {
+    throw new Error("Agora appId is missing or invalid.");
+  }
+  console.log("Agora appId:", config.appId); // Add this line to ensure appId is correct
+
   const clientRTM = AgoraRTM.createInstance(config.appId, {
     enableLogUpload: false,
     logFilter: config.debugEnabled
       ? AgoraRTM.LOG_FILTER_INFO
       : AgoraRTM.LOG_FILTER_OFF,
   });
+
   const channelRTM = clientRTM.createChannel(config.channelName);
 
   // Set up RTM event listeners
