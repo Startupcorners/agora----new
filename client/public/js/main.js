@@ -27,13 +27,6 @@ export class MainApp {
   }
 
   validateConfig() {
-    if (!this.config.appId) throw new Error("Please set the appId first");
-    if (!this.config.callContainerSelector)
-      throw new Error("Please set the callContainerSelector first");
-    if (!this.config.serverUrl)
-      throw new Error("Please set the serverUrl first");
-    if (!this.config.participantPlayerContainer)
-      throw new Error("Please set the participantPlayerContainer first");
     if (!this.config.channelName)
       throw new Error("Please set the channelName first");
     if (!this.config.uid) throw new Error("Please set the uid first");
