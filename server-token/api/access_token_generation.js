@@ -1,23 +1,12 @@
-const functions = require("firebase-functions");
-const express = require("express");
 const { RtcTokenBuilder, Role: RtcRole } = require("./RtcTokenBuilder2");
 const { RtmTokenBuilder } = require("./RtmTokenBuilder");
-const cors = require("cors");
 
-// Initialize the Express app
-const app = express();
-app.use(cors({ origin: true })); // Enable CORS for all origins (optional, you can restrict this if needed)
-
-// Middleware to disable caching
-const nocache = (req, res, next) => {
-  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-  res.header("Expires", "-1");
-  res.header("Pragma", "no-cache");
-  next();
-};
-
-app.get("/", nocache, (req, res) => {
+module.exports = async (req, res) => {
   const { channelName, uid, role } = req.query;
+
+  if (req.method !== "GET") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
 
   if (!channelName || !uid) {
     return res.status(400).json({ error: "channelName and uid are required" });
@@ -69,7 +58,4 @@ app.get("/", nocache, (req, res) => {
       details: error.message,
     });
   }
-});
-
-// Export the function as a Firebase Cloud Function
-exports.generateTokens = functions.https.onRequest(app);
+};

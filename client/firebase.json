@@ -16,12 +16,6 @@
           }
         ]
       }
-    ],
-    "rewrites": [
-      {
-        "source": "/generateTokens",
-        "function": "generateTokens"
-      }
     ]
   }
 }
