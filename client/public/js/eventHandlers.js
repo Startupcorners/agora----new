@@ -73,6 +73,7 @@ export const handleUserJoined = (config) => async (user) => {
     const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
     videoPlayer.style.display = "none";
     avatarDiv.style.display = "block";
+    bubble_fn_participantList(user.uid);
   } catch (error) {
     log("Failed to fetch user attributes:", config);
     log(error, config);
@@ -358,6 +359,7 @@ export const handleJoinToVideoStage = (config) => async (user) => {
       config.localAudioTrack,
       config.localVideoTrack,
     ]);
+    bubble_fn_participantList(user.uid);
 
     console.log("User joined video stage:", user.id);
   } catch (error) {
