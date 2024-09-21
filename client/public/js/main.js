@@ -145,7 +145,9 @@ export class newMainApp {
   async joinRTM() {
     try {
       const rtmUid = this.config.uid.toString();
-      await this.config.clientRTM.login({ uid: rtmUid });
+      const rtmToken = await this.fetchToken(); // Fetch the RTM token
+
+      await this.config.clientRTM.login({ uid: rtmUid, token: rtmToken });
       await this.config.clientRTM.addOrUpdateLocalUserAttributes({
         name: this.config.user.name,
         avatar: this.config.user.avatar,
