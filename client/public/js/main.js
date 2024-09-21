@@ -451,6 +451,7 @@ const join = async () => {
       ", UID:",
       uid
     );
+    console.log(config)
 
     await client.join(appId, channelName, rtcToken, uid);
 
@@ -458,6 +459,7 @@ const join = async () => {
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     }
+    console.log(config);
 
     // Audience members do not publish tracks or join the video stage
   } catch (error) {
