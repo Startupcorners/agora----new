@@ -756,7 +756,7 @@ const toggleScreenShare = async (isEnabled) => {
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
 
-    // Ensure the client is initialized before proceeding
+    // Check if the Agora client is initialized
     if (!config.client) {
       throw new Error("Agora client is not initialized");
     }
@@ -764,16 +764,13 @@ const toggleScreenShare = async (isEnabled) => {
     if (isEnabled) {
       console.log("Starting screen share");
 
-      // Store whether the camera was originally on before sharing
-      wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
-
       // Create the screen share track
       config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
 
-      // If we successfully create the screen share track, stop and unpublish the local video track
+      // If local video track exists, stop and unpublish it
       if (config.localVideoTrack) {
         config.localVideoTrack.stop();
-        await config.client.unpublish([config.localVideoTrack]); // Ensure client is available here
+        await config.client.unpublish([config.localVideoTrack]);
         videoPlayer.style.display = "none"; // Hide the video player
       }
 
@@ -783,6 +780,7 @@ const toggleScreenShare = async (isEnabled) => {
         await toggleScreenShare(false); // Revert to camera when screen sharing stops
       });
 
+      // Publish and play the screen share track
       await config.client.publish([config.localScreenShareTrack]);
       config.localScreenShareTrack.play(videoPlayer);
       videoPlayer.style.display = "block"; // Show the screen share in the video player
@@ -794,33 +792,30 @@ const toggleScreenShare = async (isEnabled) => {
       if (config.localScreenShareTrack) {
         config.localScreenShareTrack.stop(); // Stop sharing in the browser UI
         config.localScreenShareTrack.close(); // Ensure the track is closed
-        await config.client.unpublish([config.localScreenShareTrack]); // Ensure client is available here
+        await config.client.unpublish([config.localScreenShareTrack]);
         config.localScreenShareTrack = null;
       }
 
-      // Recreate the camera video track and publish it if the camera was originally on
+      // Recreate the camera video track and publish it
       if (!config.localVideoTrack) {
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
       }
 
+      // Publish and play the camera track
       await config.client.publish([config.localVideoTrack]);
       config.localVideoTrack.play(videoPlayer);
 
-      // Restore the camera or avatar visibility based on the initial state before screen sharing
-      if (wasCameraOnBeforeSharing) {
-        videoPlayer.style.display = "block"; // Show video player if the camera was on before sharing
-        avatar.style.display = "none"; // Hide avatar
-      } else {
-        videoPlayer.style.display = "none"; // Hide video player if the camera was off
-        avatar.style.display = "block"; // Show avatar
-      }
+      videoPlayer.style.display = "block"; // Show video player if the camera was on
+      avatar.style.display = "none"; // Hide avatar
     }
 
     config.localScreenShareEnabled = isEnabled;
     config.onScreenShareEnabled(isEnabled);
   } catch (e) {
     console.error("Error during screen sharing:", e);
-    config.onError(e);
+    if (config.onError) {
+      config.onError(e);
+    }
 
     // Ensure the local video is still active in case of an error
     if (!isEnabled && !config.localVideoTrack) {
@@ -828,17 +823,12 @@ const toggleScreenShare = async (isEnabled) => {
       await config.client.publish([config.localVideoTrack]);
       config.localVideoTrack.play(videoPlayer);
 
-      // Restore camera or avatar visibility
-      if (wasCameraOnBeforeSharing) {
-        videoPlayer.style.display = "block";
-        avatar.style.display = "none";
-      } else {
-        videoPlayer.style.display = "none";
-        avatar.style.display = "block";
-      }
+      videoPlayer.style.display = "block";
+      avatar.style.display = "none";
     }
   }
 };
+
 
 
   const turnOffMic = (...uids) => {
