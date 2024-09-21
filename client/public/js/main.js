@@ -455,6 +455,7 @@ const join = async () => {
     await client.setClientRole(
       config.user.role === "audience" ? "audience" : "host"
     );
+    console.log("client role after setting):", client.setClientRole);
 
     // Step 4: Register RTC event listeners
     client.on("user-published", handleUserPublished);
