@@ -503,7 +503,7 @@ const toggleScreenShare = async (isEnabled) => {
       // Create the screen share track
       config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
 
-      // Stop and unpublish the local video track
+      // If we successfully create the screen share track, stop and unpublish the local video track
       if (config.localVideoTrack) {
         config.localVideoTrack.stop();
         await config.client.unpublish([config.localVideoTrack]);
@@ -526,6 +526,7 @@ const toggleScreenShare = async (isEnabled) => {
       // Stop screen sharing and revert to the camera
       if (config.localScreenShareTrack) {
         config.localScreenShareTrack.stop(); // Stop sharing in the browser UI
+        config.localScreenShareTrack.close(); // Ensure the track is closed
         await config.client.unpublish([config.localScreenShareTrack]);
         config.localScreenShareTrack = null;
       }
@@ -571,6 +572,7 @@ const toggleScreenShare = async (isEnabled) => {
     }
   }
 };
+
 
   // Attach functions to config so they can be accessed in other modules
   config.toggleMic = toggleMic;
