@@ -137,16 +137,18 @@ const newMainApp = function (initConfig) {
       log(content);
     },
     onMicMuted: (isMuted) => {
-  console.log(
-    `Microphone muted for UID ${config.uid}: ${isMuted ? "Mic Off" : "Mic On"}`
-  );
-  const micStatusIcon = document.querySelector(`#mic-status-${config.uid}`);
-  if (micStatusIcon) {
-    micStatusIcon.style.display = isMuted ? "block" : "none";
-  }
-  bubble_fn_isMicOff(isMuted);
-},
-    onCamMuted: (isMuted) => {
+      console.log(
+        `Microphone muted for UID ${config.uid}: ${
+          isMuted ? "Mic Off" : "Mic On"
+        }`
+      );
+      const micStatusIcon = document.querySelector(`#mic-status-${config.uid}`);
+      if (micStatusIcon) {
+        micStatusIcon.style.display = isMuted ? "block" : "none";
+      }
+      bubble_fn_isMicOff(isMuted);
+    },
+    onCamMuted: (isMuted, uid) => {
       console.log(
         `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
       );
