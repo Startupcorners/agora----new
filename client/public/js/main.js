@@ -412,18 +412,22 @@ const fetchTokens = async () => {
 
 const join = async () => {
   try {
-    // Step 1: Fetch both RTC and RTM tokens via an API call
-    const tokens = await fetchTokens(); // This should return an object { rtcToken, rtmToken }
+    // Step 1: Fetch both RTC and RTM tokens (even though RTM won't be used for now)
+    const tokens = await fetchTokens(); // Fetches both RTC and RTM tokens
 
-    // Step 2: Use the RTM token to join the RTM channel
-    await joinRTM(tokens.rtmToken); // Pass the RTM token to the joinRTM function
+    // Log the RTC token and UID for debugging purposes
+    console.log("RTC Token (during join):", tokens.rtcToken);
+    console.log("RTC UID (during join):", config.uid);
 
-    // Step 3: Set the client's role based on the user's role (either audience or host)
+    // Step 2: Skip the RTM join by removing or commenting out the RTM logic
+    // await joinRTM(tokens.rtmToken); // <-- Comment this out to skip RTM
+
+    // Step 3: Set the client's role based on the user's role (audience or host)
     await client.setClientRole(
       config.user.role === "audience" ? "audience" : "host"
     );
 
-    // Step 4: Register RTC event listeners for various actions (user-published, user-left, etc.)
+    // Step 4: Register RTC event listeners
     client.on("user-published", handleUserPublished);
     client.on("user-unpublished", handleUserUnpublished); // Handles avatar toggling when video is unpublished
     client.on("user-joined", handleUserJoined);
@@ -432,23 +436,33 @@ const join = async () => {
     client.on("volume-indicator", handleVolumeIndicator);
 
     // Step 5: Join the Agora RTC channel using the fetched RTC token
-    const { appId, uid, channelName } = config; // Ensure these are set in your config object
+    const { appId, uid, channelName } = config;
     const rtcToken = tokens.rtcToken; // Use the RTC token from the fetched tokens
     client.on("token-privilege-will-expire", handleRenewToken); // Handle token renewal if it is about to expire
 
-    // Join RTC channel
+    // Log the join attempt
+    console.log(
+      "Joining RTC channel with appId:",
+      appId,
+      ", channelName:",
+      channelName,
+      ", UID:",
+      uid
+    );
+
     await client.join(appId, channelName, rtcToken, uid);
 
-    // Step 6: If the user needs to join the video stage (for hosts/speakers), publish their tracks
+    // Step 6: If the user needs to join the video stage (host/speaker), publish their tracks
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     }
 
-    // Step 7: Audience members do not publish tracks or join the video stage, so this is skipped for them
+    // Audience members do not publish tracks or join the video stage
   } catch (error) {
     console.error("Failed to join the channel:", error);
   }
 };
+
 
 
   const handleUserUnpublished = async (user, mediaType) => {
