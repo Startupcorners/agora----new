@@ -81,12 +81,24 @@ export const handleUserJoined = (config) => async (user) => {
 
 // Function to handle when a user leaves
 export const handleUserLeft = (config) => async (user, reason) => {
-  delete config.remoteTracks[user.uid];
-  if (document.querySelector(`#video-wrapper-${user.uid}`)) {
-    document.querySelector(`#video-wrapper-${user.uid}`).remove();
+  // Safely delete the user from the remoteTracks object
+  if (config.remoteTracks && config.remoteTracks[user.uid]) {
+    delete config.remoteTracks[user.uid];
   }
-  config.onParticipantLeft(user);
+
+  // Remove the video wrapper if it exists
+  const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+  if (videoWrapper) {
+    videoWrapper.remove();
+    console.log(`Removed video wrapper for user ${user.uid}`);
+  } else {
+    console.warn(`No video wrapper found for user ${user.uid}`);
+  }
+
+  // Any additional logic for when a participant leaves can be handled here
+  console.log(`User ${user.uid} left due to ${reason}`);
 };
+
 
 // Function to handle volume indicators
 export const handleVolumeIndicator = (config) => (result) => {
@@ -95,18 +107,37 @@ export const handleVolumeIndicator = (config) => (result) => {
 
 // Function to handle when screen sharing ends
 export const handleScreenShareEnded = (config, client) => async () => {
-  config.localScreenShareTrack.stop();
-  config.localScreenShareTrack.close();
-  client.unpublish([config.localScreenShareTrack]);
-  config.localScreenShareTrack = null;
+  // Stop and close the screen share track
+  if (config.localScreenShareTrack) {
+    config.localScreenShareTrack.stop();
+    config.localScreenShareTrack.close();
+    client.unpublish([config.localScreenShareTrack]);
+    config.localScreenShareTrack = null;
+  }
 
+  // Recreate the camera video track and publish it
   config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-  client.publish([config.localVideoTrack]);
+  await client.publish([config.localVideoTrack]);
   config.localVideoTrack.play(`stream-${config.uid}`);
 
+  // Mark the screen share as disabled
   config.localScreenShareEnabled = false;
-  config.onScreenShareEnabled(config.localScreenShareEnabled);
+
+  // Directly handle what should happen when screen sharing is disabled
+  console.log("Screen sharing has been disabled");
+
+  // Additional logic for updating the UI or other changes when screen sharing is disabled
+  const screenShareIndicator = document.querySelector(
+    `#screen-share-indicator-${config.uid}`
+  );
+  if (screenShareIndicator) {
+    screenShareIndicator.style.display = "none";
+  }
+
+  // If you want to notify other parts of the app or log screen share state
+  console.log("Screen share state:", config.localScreenShareEnabled);
 };
+
 
 // Function to update participants
 export const handleOnUpdateParticipants = (config) => {
