@@ -88,6 +88,20 @@ export function initAgoraApp(
       </div>
     </div>
   `;
+  const config = {
+    appId: "88eb7ea8de544d68a718601966c086ce",
+    callContainerSelector: "#video-stage",
+    serverUrl: "https://agora-new.vercel.app",
+    channelName: channelName,
+    uid: uid,
+    user: {
+      id: uid,
+      name: name, // Pass user name
+      avatar: avatar, // Pass user avatar
+      role: role, // Set user role as host/audience
+    },
+    participantPlayerContainer: templateVideoParticipant,
+  };
 
   // Initialize the MainApp with the necessary configurations
   const mainApp = MainApp({
@@ -105,21 +119,21 @@ export function initAgoraApp(
     participantPlayerContainer: templateVideoParticipant, // Ensure this is passed
 
     // **Event handlers - Pass the function references directly without invoking them**
-    onParticipantsChanged: eventHandlers.handleOnUpdateParticipants,
-    onParticipantLeft: eventHandlers.handleUserLeft,
-    onMessageReceived: eventHandlers.handleMessageReceived,
-    onMicMuted: eventHandlers.handleMicMuted,
-    onCamMuted: eventHandlers.handleCamMuted,
-    onScreenShareEnabled: eventHandlers.handleScreenShareEnabled,
-    onUserLeave: eventHandlers.handleUserLeave,
-    onError: eventHandlers.handleError,
-    onCameraChanged: eventHandlers.handleCameraChanged,
-    onMicrophoneChanged: eventHandlers.handleMicrophoneChanged,
-    onSpeakerChanged: eventHandlers.handleSpeakerChanged,
-    onRoleChanged: eventHandlers.handleRoleChanged,
-    onNeedJoinToVideoStage: eventHandlers.handleNeedJoinToVideoStage,
-    onNeedMuteCameraAndMic: eventHandlers.handleNeedMuteCameraAndMic,
-    onVolumeIndicatorChanged: eventHandlers.handleVolumeIndicator,
+    onParticipantsChanged: eventHandlers.handleOnUpdateParticipants(config),
+    onParticipantLeft: eventHandlers.handleUserLeft(config),
+    onMessageReceived: eventHandlers.handleMessageReceived(config),
+    onMicMuted: eventHandlers.handleMicMuted(config),
+    onCamMuted: eventHandlers.handleCamMuted(config),
+    onScreenShareEnabled: eventHandlers.handleScreenShareEnabled(config),
+    onUserLeave: eventHandlers.handleUserLeave(config),
+    onError: eventHandlers.handleError(config),
+    onCameraChanged: eventHandlers.handleCameraChanged(config),
+    onMicrophoneChanged: eventHandlers.handleMicrophoneChanged(config),
+    onSpeakerChanged: eventHandlers.handleSpeakerChanged(config),
+    onRoleChanged: eventHandlers.handleRoleChanged(config),
+    onNeedJoinToVideoStage: eventHandlers.handleNeedJoinToVideoStage(config),
+    onNeedMuteCameraAndMic: eventHandlers.handleNeedMuteCameraAndMic(config),
+    onVolumeIndicatorChanged: eventHandlers.handleVolumeIndicator(config),
   });
 
   console.log("MainApp initialized:", mainApp);
