@@ -26,20 +26,22 @@ module.exports = async (req, res) => {
     // Generate RTC token
     const rtcRole =
       role === "publisher" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+
+    // Use the uid directly as an integer for RTC
     const rtcToken = RtcTokenBuilder.buildTokenWithUid(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
-      uid,
+      parseInt(uid), // RTC uid can be an integer
       rtcRole,
       privilegeExpiredTs
     );
 
-    // Generate RTM token
+    // Generate RTM token using uid as a string
     const rtmToken = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
-      uid,
+      uid.toString(), // RTM requires the uid as a string
       privilegeExpiredTs
     );
 
