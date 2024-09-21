@@ -83,7 +83,7 @@ export const defaultConfig = {
   callContainerSelector: "#video-stage",
   participantPlayerContainer: null,
   serverUrl: "https://agora-new.vercel.app",
-  appId: "95e91980e5444a8e86b4e41c7f03b713",
+  appId: "",
   timestamp: "",
   recordId: null,
   uid: null,
