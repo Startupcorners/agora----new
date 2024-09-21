@@ -78,34 +78,29 @@ function updateVideoWrapperSize() {
   videoWrappers.forEach((wrapper) => {
     wrapper.style.boxSizing = "border-box"; // Prevent overflow due to padding or borders
 
-    // Reset styles to ensure consistent behavior
-    wrapper.style.width = "100%";
-    wrapper.style.maxWidth = `${maxWrapperWidth}px`;
-    wrapper.style.minHeight = "30vh"; // Default min height
-
-    // If screen width is smaller than 768px, use full width
+    // For smaller screens
     if (screenWidth <= 768) {
-      wrapper.style.flex = "1 1 100%"; // Full width
-      wrapper.style.maxWidth = "100%"; // Ensure no overflow
-      wrapper.style.minHeight = "50vh"; // Set min height for small screens
+      wrapper.style.flex = "1 1 100%"; // Full width for smaller screens
+      wrapper.style.maxWidth = "100%";
+      wrapper.style.minHeight = "50vh"; // Set minimum height for smaller screens
     } else {
-      // For screen widths larger than 768px, adjust based on participant count
+      // For larger screens, calculate width based on participant count
       if (count === 1) {
         wrapper.style.flex = "1 1 100%"; // Full width for 1 participant
         wrapper.style.maxWidth = "100%";
         wrapper.style.minHeight = "80vh"; // Larger height for single participant
       } else if (count === 2) {
-        wrapper.style.flex = "1 1 45%"; // 45% width for 2 participants
-        wrapper.style.maxWidth = "50%"; // Prevent wrapping beyond 50%
-        wrapper.style.minHeight = "45vh";
+        wrapper.style.flex = "1 1 48%"; // Approx 2 participants side by side
+        wrapper.style.maxWidth = "48%";
+        wrapper.style.minHeight = "45vh"; // Keep reasonable height
       } else if (count === 3) {
-        wrapper.style.flex = "1 1 30%"; // 30% width for 3 participants
-        wrapper.style.maxWidth = "33.333%"; // Prevent overflow
-        wrapper.style.minHeight = "35vh";
+        wrapper.style.flex = "1 1 30%"; // 3 participants
+        wrapper.style.maxWidth = "30%";
+        wrapper.style.minHeight = "35vh"; // Slightly smaller height for more participants
       } else {
-        // For more than 3 participants, restrict to a maximum width
+        // More than 3 participants
         wrapper.style.flex = "1 1 auto";
-        wrapper.style.maxWidth = `${maxWrapperWidth}px`;
+        wrapper.style.maxWidth = `${maxWrapperWidth}px`; // Max width per wrapper
         wrapper.style.minHeight = "30vh";
       }
     }
