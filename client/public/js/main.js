@@ -751,13 +751,6 @@ const joinRTM = async (rtmToken) => {
 
 const toggleScreenShare = async (isEnabled) => {
   try {
-    // Check if client is initialized
-    if (!config.client) {
-      throw new Error("Agora client is not initialized");
-    }
-
-    console.log("Client is initialized:", config.client);
-
     const uid = config.uid;
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
@@ -840,8 +833,6 @@ const toggleScreenShare = async (isEnabled) => {
     }
   }
 };
-
-
 
 
   const turnOffMic = (...uids) => {
