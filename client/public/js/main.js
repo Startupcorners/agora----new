@@ -11,7 +11,7 @@ export class newMainApp {
       this.config = {
         ...defaultConfig,
         ...userConfig,
-        appId: userConfig.appId, // Ensure appId falls back to defaultConfig.appId
+        appId: defaultConfig.appId, // Ensure appId falls back to defaultConfig.appId
       };
 
       // Log the appId to verify
