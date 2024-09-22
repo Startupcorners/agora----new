@@ -755,6 +755,41 @@ const toggleCamera = async (isMuted) => {
   }
 };
 
+const leaveFromVideoStage = async (user) => {
+  try {
+    // Find and remove the video wrapper element for the user
+    let player = document.querySelector(`#video-wrapper-${user.id}`);
+    if (player != null) {
+      player.remove(); // Remove the user's video element from the DOM
+    }
+
+    // If the leaving user is the current user
+    if (user.id === config.uid) {
+      // Stop and close the local audio and video tracks
+      if (config.localAudioTrack) {
+        config.localAudioTrack.stop();
+        config.localAudioTrack.close();
+      }
+      if (config.localVideoTrack) {
+        config.localVideoTrack.stop();
+        config.localVideoTrack.close();
+      }
+
+      // Unpublish the user's tracks
+      await config.client.unpublish([
+        config.localAudioTrack,
+        config.localVideoTrack,
+      ]);
+    }
+
+    console.log(`User ${user.id} left the video stage.`);
+  } catch (error) {
+    console.error("Error leaving video stage:", error);
+    if (config.onError) {
+      config.onError(error);
+    }
+  }
+};
 
 
 const toggleScreenShare = async (isEnabled) => {
