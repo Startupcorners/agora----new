@@ -148,6 +148,8 @@ const newMainApp = function (initConfig) {
       }
       bubble_fn_isMicOff(isMuted);
     },
+
+
     onCamMuted: (uid, isMuted) => {
   console.log(
     `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
@@ -591,6 +593,8 @@ const joinToVideoStage = async (user) => {
     // Ensure the camera is off when joining
     await config.localVideoTrack.setMuted(true); // Mute the video track (camera off)
     config.localVideoTrackMuted = true;
+
+    config.onCamMuted(config.localVideoTrackMuted);
 
     // Toggle mic based on whether it should be muted by default
     if (config.onNeedMuteCameraAndMic(user)) {
