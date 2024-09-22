@@ -573,53 +573,68 @@ document.addEventListener("DOMContentLoaded", () => {
   updateVideoWrapperSize();
 });
 
-  const handleUserUnpublished = async (user, mediaType) => {
-    if (mediaType === "video") {
-      const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-      if (videoWrapper) {
-        const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
-        const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
-
-        videoPlayer.style.display = "none"; // Hide the video player
-        avatarDiv.style.display = "block"; // Show the avatar
-      }
+const handleUserUnpublished = async (user, mediaType) => {
+  if (mediaType === "video") {
+    const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+    if (videoWrapper) {
+      // Remove the entire video wrapper from the DOM
+      videoWrapper.remove();
     }
-  };
+  }
 
-  const joinToVideoStage = async (user) => {
-    try {
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+  if (mediaType === "audio") {
+    console.log(`User ${user.uid} has unpublished their audio.`);
+    // Handle any specific audio-related logic here, if necessary
+  }
+};
 
-      if (config.onNeedMuteCameraAndMic(user)) {
-        toggleCamera(true);
-        toggleMic(true);
-      }
 
-      let player = document.querySelector(`#video-wrapper-${user.id}`);
-      if (player != null) {
-        player.remove();
-      }
-      console.log("Avatar URL:", user.avatar);
-      let localPlayerContainer = config.participantPlayerContainer
-        .replaceAll("{{uid}}", user.id)
-        .replaceAll("{{name}}", user.name)
-        .replaceAll("{{avatar}}", user.avatar); // Ensure avatar is replaced as well
+ const joinToVideoStage = async (user) => {
+   try {
+     // Create audio and video tracks for the local user
+     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", localPlayerContainer);
+     // Mute camera and mic if necessary
+     if (config.onNeedMuteCameraAndMic(user)) {
+       toggleCamera(true);
+       toggleMic(true);
+     }
 
-      //need detect remote or not
-      if (user.id === config.uid) {
-        config.localVideoTrack.play(`stream-${user.id}`);
+     // Remove any existing video wrapper
+     let player = document.querySelector(`#video-wrapper-${user.id}`);
+     if (player != null) {
+       player.remove();
+     }
 
-        await client.publish([config.localAudioTrack, config.localVideoTrack]);
-      }
-    } catch (error) {
-      config.onError(error);
-    }
-  };
+     console.log("Avatar URL:", user.avatar);
+     let localPlayerContainer = config.participantPlayerContainer
+       .replaceAll("{{uid}}", user.id)
+       .replaceAll("{{name}}", user.name)
+       .replaceAll("{{avatar}}", user.avatar);
+
+     // Insert the player container into the DOM
+     document
+       .querySelector(config.callContainerSelector)
+       .insertAdjacentHTML("beforeend", localPlayerContainer);
+
+     // Play the local video in the correct video element
+     if (user.id === config.uid) {
+       config.localVideoTrack.play(`stream-${user.id}`);
+       // Publish the local audio and video tracks to the Agora server
+       await config.client.publish([
+         config.localAudioTrack,
+         config.localVideoTrack,
+       ]);
+     }
+   } catch (error) {
+     console.error("Error joining video stage:", error);
+     if (config.onError) {
+       config.onError(error);
+     }
+   }
+ };
+
 
   const leaveFromVideoStage = async (user) => {
     let player = document.querySelector(`#video-wrapper-${user.id}`);
@@ -1093,10 +1108,43 @@ const toggleScreenShare = async (isEnabled) => {
    * Callback Handlers
    */
   const handleUserPublished = async (user, mediaType) => {
-    log("handleUserPublished Here");
-    config.remoteTracks[user.uid] = user;
-    subscribe(user, mediaType);
+    try {
+      console.log(`User published: ${user.uid}, mediaType: ${mediaType}`);
+      await config.client.subscribe(user, mediaType);
+
+      if (mediaType === "video") {
+        let player = document.querySelector(`#video-wrapper-${user.uid}`);
+        if (player != null) {
+          player.remove();
+        }
+        console.log("Creating video player for user:", user.uid);
+
+        let remotePlayerContainer = config.participantPlayerContainer
+          .replaceAll("{{uid}}", user.uid)
+          .replaceAll("{{name}}", user.name || "Guest")
+          .replaceAll(
+            "{{avatar}}",
+            user.avatar || "path/to/default-avatar.png"
+          );
+
+        document
+          .querySelector(config.callContainerSelector)
+          .insertAdjacentHTML("beforeend", remotePlayerContainer);
+
+        // Play the video track in the correct player
+        if (user.videoTrack) {
+          user.videoTrack.play(`stream-${user.uid}`);
+        }
+      }
+
+      if (mediaType === "audio") {
+        user.audioTrack.play();
+      }
+    } catch (error) {
+      console.error("Error handling user published:", error);
+    }
   };
+
 
   const handleUserJoined = async (user) => {
     log("handleUserJoined Here");
@@ -1132,13 +1180,38 @@ const toggleScreenShare = async (isEnabled) => {
     }
   };
 
-  const handleUserLeft = async (user, reason) => {
+const handleUserLeft = async (user, reason) => {
+  try {
+    // Log the reason why the user left (if needed)
+    console.log(`User ${user.uid} left due to ${reason}`);
+
+    // Clean up remote tracks
     delete config.remoteTracks[user.uid];
-    if (document.querySelector(`#video-wrapper-${user.uid}`)) {
-      document.querySelector(`#video-wrapper-${user.uid}`).remove();
+
+    // Remove the user's video player
+    const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+    if (videoWrapper) {
+      videoWrapper.remove();
     }
-    config.onParticipantLeft(user);
-  };
+
+    // Trigger any additional logic (if any)
+    if (typeof config.onParticipantLeft === "function") {
+      config.onParticipantLeft(user);
+    }
+
+    // If there's any additional cleanup related to user audio tracks, add it here
+    // For example, if you store or manage audio tracks in config.remoteTracks:
+    if (
+      config.remoteTracks[user.uid] &&
+      config.remoteTracks[user.uid].audioTrack
+    ) {
+      config.remoteTracks[user.uid].audioTrack.stop();
+    }
+  } catch (error) {
+    console.error(`Error handling user left: ${error}`);
+  }
+};
+
 
   const handleVolumeIndicator = (result) => {
     result.forEach((volume, index) => {
