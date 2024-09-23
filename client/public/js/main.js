@@ -673,87 +673,72 @@ const joinToVideoStage = async (user) => {
 
 
 
-  const joinRTM = async () => {
-    try {
-      const rtmUid = config.uid.toString(); // Convert UID to string for RTM
+const joinRTM = async (rtmToken, retryCount = 0) => {
+  try {
+    const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
 
-      // RTM login
-      await clientRTM.login({ uid: rtmUid });
-      log(`RTM login successful for UID: ${rtmUid}`);
-
-      // Update local user attributes
-      await clientRTM.addOrUpdateLocalUserAttributes({
-        name: config.user.name,
-        avatar: config.user.avatar,
-        role: config.user.role,
-      });
-      log("addOrUpdateLocalUserAttributes: success");
-
-      // Join the RTM channel
-      await channelRTM.join();
-      log("Joined RTM channel successfully");
-
-      // Update participants after joining
-      handleOnUpdateParticipants();
-
-      // Set up RTM event listeners
-      clientRTM.on("MessageFromPeer", async (message, peerId) => {
-        log("messageFromPeer");
-        const data = JSON.parse(message.text);
-        log(data);
-
-        if (data.event === "mic_off") {
-          await toggleMic(true);
-        } else if (data.event === "cam_off") {
-          await toggleCamera(true);
-        } else if (data.event === "remove_participant") {
-          await leave();
-        }
-      });
-
-      channelRTM.on("MemberJoined", async (memberId) => {
-        log(`Member joined: ${memberId}`);
-        handleOnUpdateParticipants();
-      });
-
-      channelRTM.on("MemberLeft", (memberId) => {
-        log(`Member left: ${memberId}`);
-        handleOnUpdateParticipants();
-      });
-
-      channelRTM.on("ChannelMessage", async (message, memberId, props) => {
-        log("on:ChannelMessage ->");
-        const messageObj = JSON.parse(message.text);
-        log(messageObj);
-
-        if (
-          messageObj.type === "broadcast" &&
-          messageObj.event === "change_user_role"
-        ) {
-          if (config.uid === messageObj.targetUid) {
-            config.user.role = messageObj.role; // Update local role
-            log("User role changed:", config.user.role);
-
-            // Update user attributes after role change
-            await clientRTM.addOrUpdateLocalUserAttributes({
-              role: config.user.role,
-            });
-            log("Updated user attributes after role change");
-
-            await client.leave();
-            await leaveFromVideoStage(config.user);
-            await join(); // Re-join the RTC
-          }
-          handleOnUpdateParticipants();
-          config.onRoleChanged(messageObj.targetUid, messageObj.role);
-        } else {
-          config.onMessageReceived(messageObj);
-        }
-      });
-    } catch (error) {
-      log("RTM join process failed:", error);
+    // If the user is already logged in, attempt to log them out first
+    if (clientRTM && clientRTM._logined) {
+      console.log(`User ${rtmUid} is already logged in. Logging out...`);
+      await clientRTM.logout();
+      console.log(`User ${rtmUid} logged out successfully.`);
     }
-  };
+
+    // Log the RTM Token and UID
+    console.log("RTM Token (during login):", rtmToken);
+    console.log("RTM UID (during login):", rtmUid);
+
+    // RTM login with the token
+    await clientRTM.login({ token: rtmToken, uid: rtmUid }).catch((error) => {
+      console.error(
+        "RTM login failed. Full error object:",
+        JSON.stringify(error, null, 2)
+      );
+      throw error; // Rethrow the error so the retry logic kicks in
+    });
+    console.log(`RTM login successful for UID: ${rtmUid}`);
+
+    // Update local user attributes in RTM
+    await clientRTM.addOrUpdateLocalUserAttributes({
+      name: config.user.name, // Set user's name
+      avatar: config.user.avatar, // Set user's avatar
+    });
+    console.log("User attributes (name, avatar) updated in RTM.");
+
+    // Join the RTM channel
+    await channelRTM.join();
+    console.log("Joined RTM channel successfully");
+  } catch (error) {
+    console.error("RTM join process failed:", JSON.stringify(error, null, 2));
+
+    // Check if the error is due to an invalid or expired token (Error Code 5)
+    if (
+      (error.code === 5 || error.message.includes("Invalid token")) &&
+      retryCount < 5
+    ) {
+      console.log(
+        `Invalid RTM token. Attempting to reissue a new token (retry ${
+          retryCount + 1
+        }/5)...`
+      );
+
+      // Fetch new tokens (both RTC and RTM) from your token server
+      const newTokens = await fetchTokens(); // Reuse the fetchTokens function
+
+      // Retry RTM login with the new token, increasing the retry count
+      await joinRTM(newTokens.rtmToken, retryCount + 1);
+    } else if (retryCount >= 5) {
+      console.error("Exceeded maximum retry attempts. Cannot join RTM.");
+      throw new Error("Failed to join RTM after 5 attempts.");
+    } else {
+      console.error(
+        "RTM join failed for a different reason:",
+        JSON.stringify(error, null, 2)
+      );
+      throw error;
+    }
+  }
+};
 
 
   const leave = async () => {
