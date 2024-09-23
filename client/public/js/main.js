@@ -494,6 +494,8 @@ const join = async () => {
   }
 };
 
+
+
 function updateVideoWrapperSize() {
   const videoStage = document.getElementById("video-stage");
 
@@ -1160,16 +1162,24 @@ const handleUserPublished = async (user, mediaType) => {
     // Subscribe to the media (video or audio)
     await config.client.subscribe(user, mediaType);
 
-    // Check if player exists or create it
+    // Retrieve user info from userInfoMap
+    const userInfo = config.userInfoMap[user.uid] || {
+      name: `User ${user.uid}`, // Fallback name
+      avatar: "path/to/default-avatar.png", // Fallback avatar
+    };
+
+    console.log("Publishing for user:", userInfo);
+
+    // Check if the player exists or create it
     let player = document.querySelector(`#video-wrapper-${user.uid}`);
     if (!player) {
       console.log(`Creating video player for user: ${user.uid}`);
 
-      // Generate the player container
+      // Generate the player container using the userInfo
       const remotePlayerContainer = config.participantPlayerContainer
         .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, user.name || `User ${user.uid}`)
-        .replace(/{{avatar}}/g, user.avatar || "default-avatar-url");
+        .replace(/{{name}}/g, userInfo.name)
+        .replace(/{{avatar}}/g, userInfo.avatar);
 
       // Insert the player into the DOM
       document
@@ -1213,30 +1223,28 @@ const handleUserJoined = async (user) => {
     console.log(`User joined with UID: ${user.uid}`);
 
     // Initialize or update the userInfoMap to store user info
-    config.userInfoMap = config.userInfoMap || {}; // Ensure it's initialized as an empty object
+    config.userInfoMap = config.userInfoMap || {}; // Ensure it's initialized
 
-    // Add logging to check if user.name and user.avatar are available
-    console.log("User info received:", user);
+    // Check if the user info (name and avatar) already exists in the map
+    const userInfo = config.userInfoMap[user.uid] || {
+      name: `User ${user.uid}`, // Fallback name if not available
+      avatar: "path/to/default-avatar.png", // Fallback avatar
+    };
 
-    // Check if name and avatar exist, use fallback if not
-    const userName = user.name || `User ${user.uid}`;
-    const userAvatar = user.avatar || "path/to/default-avatar.png";
-
-    console.log("User name:", userName);
-    console.log("User avatar:", userAvatar);
+    console.log("User info from map:", userInfo);
 
     // Store user info in userInfoMap
     config.userInfoMap[user.uid] = {
       id: user.uid,
-      name: userName, // Use the checked or fallback name
-      avatar: userAvatar, // Use the checked or fallback avatar
+      name: userInfo.name, // Use the stored or fallback name
+      avatar: userInfo.avatar, // Use the stored or fallback avatar
     };
 
     // Generate the player's HTML container for the user
     let playerHTML = config.participantPlayerContainer
       .replace(/{{uid}}/g, user.uid) // Use the user ID for the wrapper
-      .replace(/{{name}}/g, config.userInfoMap[user.uid].name) // Insert the user's name from userInfoMap
-      .replace(/{{avatar}}/g, config.userInfoMap[user.uid].avatar); // Insert the user's avatar from userInfoMap
+      .replace(/{{name}}/g, userInfo.name) // Insert the user's name
+      .replace(/{{avatar}}/g, userInfo.avatar); // Insert the user's avatar
 
     console.log("Generated HTML for player:", playerHTML);
 
