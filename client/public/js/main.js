@@ -488,7 +488,6 @@ const join = async () => {
 };
 
 
-
 function updateVideoWrapperSize() {
   const videoStage = document.getElementById("video-stage");
 
@@ -531,8 +530,8 @@ function updateVideoWrapperSize() {
         wrapper.style.width = `${maxWrapperWidth}px`;
         wrapper.style.height = "auto"; // Use auto to dynamically adapt the height
       } else if (count === 2) {
-        wrapper.style.flex = "1 1 48%";
-        wrapper.style.maxWidth = "48%";
+        wrapper.style.flex = "1 1 45%"; // 45% width for two players
+        wrapper.style.maxWidth = "45%";
         wrapper.style.height = "auto"; // No fixed height, use auto
       } else if (count === 3) {
         wrapper.style.flex = "1 1 30%";
@@ -547,25 +546,17 @@ function updateVideoWrapperSize() {
 
     // Ensure video content stays visible and fits inside the wrapper
     const videoPlayer = wrapper.querySelector(".video-player");
-    const avatarDiv = wrapper.querySelector(".user-avatar");
-
-    // Check if the camera is on or off and adjust visibility accordingly
-    if (videoPlayer && avatarDiv) {
-      if (avatarDiv.style.display === "block") {
-        // If the avatar is visible, hide the video player
-        videoPlayer.style.display = "none";
-      } else {
-        // If the avatar is hidden, show the video player
-        videoPlayer.style.display = "flex";
-        videoPlayer.style.justifyContent = "center";
-        videoPlayer.style.alignItems = "center";
-        videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
-        videoPlayer.style.width = "100%"; // Ensure the video uses full width
-        videoPlayer.style.height = "100%"; // Ensure video fills the height
-      }
+    if (videoPlayer) {
+      videoPlayer.style.display = "flex";
+      videoPlayer.style.justifyContent = "center";
+      videoPlayer.style.alignItems = "center";
+      videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
+      videoPlayer.style.width = "100%"; // Ensure the video uses full width
+      videoPlayer.style.height = "100%"; // Ensure video fills the height
     }
   });
 }
+
 
 // Add a resize event listener to update video wrapper sizes dynamically
 window.addEventListener("resize", updateVideoWrapperSize);
