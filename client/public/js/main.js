@@ -612,9 +612,9 @@ const joinToVideoStage = async (user) => {
     const videoPlayer = document.querySelector(`#stream-${user.id}`);
     const avatarDiv = document.querySelector(`#avatar-${user.id}`);
 
-    // Ensure the camera starts off, so the video is hidden and the avatar is visible
-    videoPlayer.style.display = "none";
-    avatarDiv.style.display = "block"; // Show avatar when video is off
+    // Hide the video player and show the avatar
+    videoPlayer.style.display = "none"; // Make sure video player is hidden
+    avatarDiv.style.display = "block"; // Ensure avatar is visible
 
     // Mute the video track by default (camera off) and set the state
     await config.localVideoTrack.setMuted(true);
@@ -641,6 +641,7 @@ const joinToVideoStage = async (user) => {
     }
   }
 };
+
 
 
 
