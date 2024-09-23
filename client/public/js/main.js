@@ -623,8 +623,8 @@ const joinToVideoStage = async (user) => {
     // Generate the player's HTML container using the name, avatar, and role passed from `newMainApp()`
     let localPlayerContainer = config.participantPlayerContainer
       .replaceAll("{{uid}}", user.id)
-      .replaceAll("{{name}}", user.name) // Directly use the passed name
-      .replaceAll("{{avatar}}", user.avatar); // Directly use the passed avatar
+      .replaceAll("{{name}}", user.name || "Unknown User") // Fallback to "Unknown User"
+      .replaceAll("{{avatar}}", user.avatar || "path/to/default-avatar.png"); // Fallback avatar
 
     // Insert the new player container into the video stage
     document
@@ -634,12 +634,10 @@ const joinToVideoStage = async (user) => {
     // Set the video to be off (not played) initially and show the avatar
     const videoPlayer = document.querySelector(`#stream-${user.id}`);
     const avatarDiv = document.querySelector(`#avatar-${user.id}`);
-    const camStatus = document.querySelector(`#cam-status-${user.id}`);
 
-    // Ensure the video player is hidden, and the avatar is visible
-    videoPlayer.style.display = "none"; // Ensure video player is hidden
+    // Hide the video player and show the avatar
+    videoPlayer.style.display = "none"; // Make sure video player is hidden
     avatarDiv.style.display = "block"; // Ensure avatar is visible
-    camStatus.style.display = "block"; // Show camera status icon for 'camera off'
 
     // Mute the video track by default (camera off) and set the state
     await config.localVideoTrack.setMuted(true);
@@ -1214,21 +1212,21 @@ const handleUserJoined = async (user) => {
   try {
     console.log(`User joined with UID: ${user.uid}`);
 
-    // Store the user in the remoteTracks object for tracking
-    config.remoteTracks[user.uid] = user;
+    // Initialize or update the userInfoMap to store user info
+    config.userInfoMap = config.userInfoMap || {}; // Ensure it's initialized as an empty object
 
-    // Use the user information passed during initialization (via newMainApp)
-    const remoteUser = {
+    // Store user info when they join
+    config.userInfoMap[user.uid] = {
       id: user.uid,
-      name: user.name || `User ${user.uid}`, // Use the name from initialization or fallback
-      avatar: user.avatar || "default-avatar-url", // Use the avatar from initialization or fallback
+      name: user.name || `User ${user.uid}`, // Fallback if name is not provided
+      avatar: user.avatar || "path/to/default-avatar.png", // Fallback if avatar is not provided
     };
 
     // Generate the player's HTML container for the user
     let playerHTML = config.participantPlayerContainer
-      .replace(/{{uid}}/g, remoteUser.id) // Use the user ID for the wrapper
-      .replace(/{{name}}/g, remoteUser.name) // Insert the user's name
-      .replace(/{{avatar}}/g, remoteUser.avatar); // Insert the user's avatar
+      .replace(/{{uid}}/g, user.uid) // Use the user ID for the wrapper
+      .replace(/{{name}}/g, config.userInfoMap[user.uid].name) // Insert the user's name from userInfoMap
+      .replace(/{{avatar}}/g, config.userInfoMap[user.uid].avatar); // Insert the user's avatar from userInfoMap
 
     // Insert the new player container into the video stage
     document
@@ -1236,8 +1234,8 @@ const handleUserJoined = async (user) => {
       .insertAdjacentHTML("beforeend", playerHTML);
 
     // Ensure the avatar is displayed and the video player is hidden until video is published
-    const videoPlayer = document.querySelector(`#stream-${remoteUser.id}`);
-    const avatarDiv = document.querySelector(`#avatar-${remoteUser.id}`);
+    const videoPlayer = document.querySelector(`#stream-${user.uid}`);
+    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
     if (videoPlayer && avatarDiv) {
       videoPlayer.style.display = "none"; // Hide the video player (camera off initially)
@@ -1247,7 +1245,7 @@ const handleUserJoined = async (user) => {
     // Call updateVideoWrapperSize to adjust the layout after the new player is added
     updateVideoWrapperSize();
   } catch (error) {
-    console.log("Error during user join:", error);
+    console.error("Error during user join:", error);
     if (config.onError) {
       config.onError(error);
     }
