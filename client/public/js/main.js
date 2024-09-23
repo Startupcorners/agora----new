@@ -1130,28 +1130,20 @@ const toggleScreenShare = async (isEnabled) => {
 const handleUserPublished = async (user, mediaType) => {
   try {
     console.log(`User published: ${user.uid}, mediaType: ${mediaType}`);
-
-    // Subscribe to the user's media
     await config.client.subscribe(user, mediaType);
 
-    // Handle video publishing
     if (mediaType === "video") {
       const videoPlayer = document.querySelector(`#stream-${user.uid}`);
       const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
-      if (videoPlayer && user.videoTrack) {
-        // Play the video track in the correct player
-        user.videoTrack.play(videoPlayer);
-        videoPlayer.style.display = "block"; // Show the video player
-        avatarDiv.style.display = "none"; // Hide the avatar
-      }
+      // Play the video track and hide the avatar
+      user.videoTrack.play(videoPlayer);
+      videoPlayer.style.display = "block";
+      avatarDiv.style.display = "none";
     }
 
-    // Handle audio publishing
     if (mediaType === "audio") {
-      if (user.audioTrack) {
-        user.audioTrack.play(); // Play the audio track automatically
-      }
+      user.audioTrack.play();
     }
   } catch (error) {
     console.error("Error handling user published:", error);
@@ -1160,49 +1152,26 @@ const handleUserPublished = async (user, mediaType) => {
 
 
 const handleUserJoined = async (user) => {
-  log("User joined:", user.uid);
+  console.log(`User joined with UID: ${user.uid}`);
 
-  // Store the user in the remoteTracks object
-  config.remoteTracks[user.uid] = user;
+  // Ensure the player container is created
+  const playerHTML = config.participantPlayerContainer
+    .replace(/{{uid}}/g, user.uid)
+    .replace(/{{name}}/g, user.name || `User ${user.uid}`)
+    .replace(/{{avatar}}/g, user.avatar || "default-avatar-url");
 
-  try {
-    // Use the user information passed during initialization (via newMainApp)
-    const remoteUser = {
-      id: user.uid,
-      name: user.name || `User ${user.uid}`, // Use the name from initialization or fallback to default
-      avatar: user.avatar || "default-avatar-url", // Use the avatar from initialization or fallback to default
-    };
+  document
+    .querySelector(config.callContainerSelector)
+    .insertAdjacentHTML("beforeend", playerHTML);
 
-    // Check if the player for this user already exists
-    let player = document.querySelector(`#video-wrapper-${remoteUser.id}`);
-    if (!player) {
-      // If the player doesn't exist, create it
-      let playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, remoteUser.id) // Integer UID for the video wrapper
-        .replace(/{{name}}/g, remoteUser.name) // Use the name passed during initialization
-        .replace(/{{avatar}}/g, remoteUser.avatar); // Use the avatar passed during initialization
+  const videoPlayer = document.querySelector(`#stream-${user.uid}`);
+  const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
-      // Insert the new player container into the video stage
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
-
-      // Ensure the avatar is displayed and the video player is hidden until video is published
-      const videoPlayer = document.querySelector(`#stream-${remoteUser.id}`);
-      const avatarDiv = document.querySelector(`#avatar-${remoteUser.id}`);
-
-      if (videoPlayer && avatarDiv) {
-        videoPlayer.style.display = "none"; // Hide the video player (camera off initially)
-        avatarDiv.style.display = "block"; // Show the avatar
-      }
-    }
-  } catch (error) {
-    log("Error during user join:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
-  }
+  // Initially hide video and show avatar
+  videoPlayer.style.display = "none";
+  avatarDiv.style.display = "block";
 };
+
 
 const handleUserLeft = async (user, reason) => {
   try {
