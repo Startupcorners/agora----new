@@ -673,7 +673,6 @@ const joinToVideoStage = async (user) => {
 
 
 
-
 const joinRTM = async (rtmToken, retryCount = 0) => {
   try {
     const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
@@ -690,7 +689,13 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     console.log("RTM UID (during login):", rtmUid);
 
     // RTM login with the token
-    await clientRTM.login({ token: rtmToken, uid: rtmUid });
+    await clientRTM.login({ token: rtmToken, uid: rtmUid }).catch((error) => {
+      console.error(
+        "RTM login failed. Full error object:",
+        JSON.stringify(error, null, 2)
+      );
+      throw error; // Rethrow the error so the retry logic kicks in
+    });
     console.log(`RTM login successful for UID: ${rtmUid}`);
 
     // Update local user attributes in RTM
@@ -704,7 +709,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     await channelRTM.join();
     console.log("Joined RTM channel successfully");
   } catch (error) {
-    console.error("RTM join process failed:", error);
+    console.error("RTM join process failed:", JSON.stringify(error, null, 2));
 
     // Check if the error is due to an invalid or expired token (Error Code 5)
     if (
@@ -726,11 +731,15 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       console.error("Exceeded maximum retry attempts. Cannot join RTM.");
       throw new Error("Failed to join RTM after 5 attempts.");
     } else {
-      console.error("RTM join failed for a different reason:", error);
+      console.error(
+        "RTM join failed for a different reason:",
+        JSON.stringify(error, null, 2)
+      );
       throw error;
     }
   }
 };
+
 
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
