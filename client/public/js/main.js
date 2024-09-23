@@ -707,9 +707,8 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
 
     // RTM login with the token
     await clientRTM
-      .login({
-        uid: config.uid.toString(),
-        token: rtmToken,
+      .login({rtmToken,
+        rtmUid
       })
       .catch((error) => {
         console.error(
