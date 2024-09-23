@@ -678,7 +678,7 @@ const joinToVideoStage = async (user) => {
 const joinRTM = async (rtmToken) => {
   try {
     // Convert UID to string for RTM login
-    const rtmUid = config.uid.toString(); // Ensure UID is a string for RTM
+    const rtmUid = config.uid.toString();
 
     // Log the RTM Token and UID
     console.log("RTM Token (during login):", rtmToken);
@@ -686,26 +686,22 @@ const joinRTM = async (rtmToken) => {
 
     // RTM login with the token
     await clientRTM.login({ token: rtmToken, uid: rtmUid });
-    log(`RTM login successful for UID: ${rtmUid}`);
+    console.log(`RTM login successful for UID: ${rtmUid}`);
 
-    // Update local user attributes in RTM (optional, based on your use case)
+    // Update local user attributes in RTM
     await clientRTM.addOrUpdateLocalUserAttributes({
-      name: config.user.name,
-      avatar: config.user.avatar,
-      role: config.user.role,
+      name: config.user.name, // Set user's name
+      avatar: config.user.avatar, // Set user's avatar
     });
-    log("addOrUpdateLocalUserAttributes: success");
+    console.log("User attributes (name, avatar) updated in RTM.");
 
     // Join the RTM channel
     await channelRTM.join();
-    log("Joined RTM channel successfully");
-
-    // Other code follows...
+    console.log("Joined RTM channel successfully");
   } catch (error) {
-    log("RTM join process failed:", error);
+    console.error("RTM join process failed:", error);
   }
 };
-
 
 
 
@@ -1217,33 +1213,29 @@ const handleUserJoined = async (user) => {
   try {
     console.log(`User joined with UID: ${user.uid}`);
 
-    // Initialize or update the userInfoMap to store user info
-    config.userInfoMap = config.userInfoMap || {}; // Ensure it's initialized as an empty object
+    // Fetch user attributes from RTM
+    const userAttributes = await clientRTM.getUserAttributesByUid(
+      user.uid.toString()
+    );
+    const userName = userAttributes.name || `User ${user.uid}`;
+    const userAvatar = userAttributes.avatar || "path/to/default-avatar.png";
 
-    // Add logging to check if user.name and user.avatar are available
-    console.log('User info received:', user);
-
-    // Check if name and avatar exist, use fallback if not
-    const userName = user.name || `User ${user.uid}`;
-    const userAvatar = user.avatar || "path/to/default-avatar.png";
-
-    console.log('User name:', userName);
-    console.log('User avatar:', userAvatar);
+    console.log("User name:", userName);
+    console.log("User avatar:", userAvatar);
 
     // Store user info in userInfoMap
+    config.userInfoMap = config.userInfoMap || {}; // Ensure it's initialized as an empty object
     config.userInfoMap[user.uid] = {
       id: user.uid,
-      name: userName, // Use the checked or fallback name
-      avatar: userAvatar, // Use the checked or fallback avatar
+      name: userName,
+      avatar: userAvatar,
     };
 
     // Generate the player's HTML container for the user
     let playerHTML = config.participantPlayerContainer
-      .replace(/{{uid}}/g, user.uid) // Use the user ID for the wrapper
-      .replace(/{{name}}/g, config.userInfoMap[user.uid].name) // Insert the user's name from userInfoMap
-      .replace(/{{avatar}}/g, config.userInfoMap[user.uid].avatar); // Insert the user's avatar from userInfoMap
-
-    console.log('Generated HTML for player:', playerHTML);
+      .replace(/{{uid}}/g, user.uid)
+      .replace(/{{name}}/g, userName)
+      .replace(/{{avatar}}/g, userAvatar);
 
     // Insert the new player container into the video stage
     document
@@ -1261,12 +1253,8 @@ const handleUserJoined = async (user) => {
 
     // Call updateVideoWrapperSize to adjust the layout after the new player is added
     updateVideoWrapperSize();
-    
   } catch (error) {
     console.error("Error during user join:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
   }
 };
 
