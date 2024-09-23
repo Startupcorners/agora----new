@@ -433,7 +433,15 @@ const fetchTokens = async () => {
   try {
     const res = await fetch(
       config.serverUrl +
-        `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`
+        `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`,
+      {
+        method: "GET", // Ensure method is GET
+        headers: {
+          "Cache-Control": "no-cache", // Prevent caching
+          Pragma: "no-cache", // HTTP 1.0 backward compatibility
+          Expires: "0", // Force immediate expiration
+        },
+      }
     );
     const data = await res.json();
     return {
@@ -445,6 +453,7 @@ const fetchTokens = async () => {
     throw err;
   }
 };
+
 
 
 const join = async () => {

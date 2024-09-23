@@ -4,6 +4,13 @@ const { RtmTokenBuilder } = require("./RtmTokenBuilder2");
 module.exports = async (req, res) => {
   const { channelName, uid, role } = req.query;
 
+  // Set no-cache headers to prevent caching of token responses
+  res.set({
+    "Cache-Control": "no-cache, no-store, must-revalidate", // HTTP 1.1
+    Pragma: "no-cache", // HTTP 1.0
+    Expires: "0", // Force immediate expiration
+  });
+
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
@@ -44,7 +51,7 @@ module.exports = async (req, res) => {
     const rtmToken = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
-      rtmUid.toString(),
+      rtmUid.toString,
       expirationInSeconds
     );
 
