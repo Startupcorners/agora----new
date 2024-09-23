@@ -6,11 +6,10 @@
  * <script src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
  */
 const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
-      flex: 1 1 30%; /* Responsive flex layout for better alignment */
+      flex: 1 1 auto;
       max-width: 30%; 
       min-width: 200px;
       min-height: 220px;
-      display: flex; /* Changed from 'hidden' to 'flex' */
       justify-content: center;
       align-items: center;
       margin: 10px;
@@ -19,6 +18,7 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
       position: relative;
       background-color: #3c4043;
       box-sizing: border-box;
+      display: none; /* Hide player initially when the camera is off */
     " data-uid="{{uid}}">
       <!-- Video Player -->
       <div id="stream-{{uid}}" class="video-player" style="
@@ -29,7 +29,7 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
       
       <!-- User Avatar (shown when video is off) -->
       <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" style="
-        display: none;
+        display: block; /* Avatar is visible when the camera is off */
         width: 100px;
         height: 100px;
         border-radius: 50%;
@@ -502,9 +502,10 @@ function updateVideoWrapperSize() {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
 
+  // Dynamic adjustments based on screen size and participant count
   const maxWrapperWidth =
-    screenWidth > 768 ? screenWidth * 0.3 : screenWidth * 0.9; // Adjust based on screen size
-  const maxWrapperHeight = screenHeight * 0.6; // Limit the height to 60% of screen height
+    screenWidth > 768 ? screenWidth * 0.4 : screenWidth * 0.95; // For desktop and mobile
+  const maxWrapperHeight = screenHeight * 0.7; // Limit height to 70% of screen height
 
   videoWrappers.forEach((wrapper) => {
     wrapper.style.boxSizing = "border-box";
@@ -516,45 +517,40 @@ function updateVideoWrapperSize() {
     wrapper.style.display = "flex";
     wrapper.style.justifyContent = "center";
     wrapper.style.alignItems = "center";
-    wrapper.style.height = "auto";
-    wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Limit height to prevent overflow
-
-    // Ensure video content stays visible and fits inside the wrapper
-    const videoPlayer = wrapper.querySelector(".video-player");
-    if (videoPlayer) {
-      videoPlayer.style.display = "flex";
-      videoPlayer.style.justifyContent = "center";
-      videoPlayer.style.alignItems = "center";
-      videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
-      videoPlayer.style.width = "100%"; // Ensure the video uses full width
-      videoPlayer.style.height = "100%"; // Ensure video fills the height
-    }
+    wrapper.style.height = "auto"; // Adjust height automatically
+    wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Max height to prevent overflow
 
     // Handle small screens (<= 768px)
     if (screenWidth <= 768) {
-      wrapper.style.flex = "1 1 100%"; // Full width for mobile screens
+      wrapper.style.flex = "1 1 100%"; // Full width for mobile
       wrapper.style.maxWidth = "100%";
       wrapper.style.minHeight = "50vh";
     } else {
-      // Adjust height and width based on participant count for larger screens
+      // Adjust for larger screens
       if (count === 1) {
         wrapper.style.flex = "0 1 auto";
         wrapper.style.maxWidth = `${maxWrapperWidth}px`;
         wrapper.style.width = `${maxWrapperWidth}px`;
-        wrapper.style.height = "auto"; // Use auto to dynamically adapt the height
       } else if (count === 2) {
-        wrapper.style.flex = "1 1 45%"; // Adjust to fit two videos side by side
+        wrapper.style.flex = "1 1 45%"; // Two participants side by side
         wrapper.style.maxWidth = "45%";
-        wrapper.style.height = "auto";
       } else if (count === 3) {
-        wrapper.style.flex = "1 1 30%"; // Adjust to fit three videos
+        wrapper.style.flex = "1 1 30%"; // Three participants
         wrapper.style.maxWidth = "30%";
-        wrapper.style.height = "auto";
       } else {
-        wrapper.style.flex = "1 1 23%"; // Adjust to fit four or more videos
+        wrapper.style.flex = "1 1 23%"; // Four or more participants
         wrapper.style.maxWidth = "23%";
-        wrapper.style.height = "auto";
       }
+    }
+
+    const videoPlayer = wrapper.querySelector(".video-player");
+    if (videoPlayer) {
+      videoPlayer.style.display = "none"; // Hide video player initially (until camera is on)
+      videoPlayer.style.justifyContent = "center";
+      videoPlayer.style.alignItems = "center";
+      videoPlayer.style.objectFit = "cover"; // Ensure video maintains aspect ratio
+      videoPlayer.style.width = "100%";
+      videoPlayer.style.height = "100%";
     }
   });
 }
@@ -566,6 +562,7 @@ window.addEventListener("resize", updateVideoWrapperSize);
 document.addEventListener("DOMContentLoaded", () => {
   updateVideoWrapperSize();
 });
+
 
 
 
