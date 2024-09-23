@@ -6,24 +6,26 @@
  * <script src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
  */
 const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
-  flex: 1 1 30%; /* Responsive layout */
-  max-width: 30%; 
+  flex: 1 1 auto;
+  max-width: 100%; 
+  width: calc(100vh * (16 / 9)); /* Dynamic width based on height for 16:9 ratio */
   min-width: 200px;
+  max-height: 90vh; /* Ensure it doesn't overflow vertically */
+  min-height: 220px;
   position: relative;
   margin: 10px;
   border-radius: 10px;
   background-color: #3c4043;
   box-sizing: border-box;
-  padding-bottom: 56.25%; /* 16:9 aspect ratio (9/16 = 0.5625) */
   overflow: hidden;
 " data-uid="{{uid}}">
   <!-- Video Player -->
   <div id="stream-{{uid}}" class="video-player" style="
-    position: absolute; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%; 
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     object-fit: cover;
     display: none; /* Initially hidden as the camera is off */
   "></div>
@@ -32,9 +34,9 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
   <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" style="
     position: absolute;
     top: 50%; 
-    left: 50%; 
+    left: 50%;
     transform: translate(-50%, -50%);
-    display: block; /* Display the avatar initially as the camera is off */
+    display: block; /* Display the avatar initially */
     width: 100px;
     height: 100px;
     border-radius: 50%;
@@ -43,13 +45,13 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
 
   <!-- User Name -->
   <div id="name-{{uid}}" class="user-name" style="
-    position: absolute; 
-    bottom: 10px; 
-    left: 10px; 
-    font-size: 16px; 
-    color: #fff; 
-    background-color: rgba(0, 0, 0, 0.5); 
-    padding: 5px 10px; 
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    font-size: 16px;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
     border-radius: 5px;
   ">
     {{name}}
@@ -57,10 +59,10 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
 
   <!-- Participant Status Indicators -->
   <div class="status-indicators" style="
-    position: absolute; 
-    top: 10px; 
-    right: 10px; 
-    display: flex; 
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
     gap: 5px;
   ">
     <!-- Microphone Status Icon -->
@@ -83,7 +85,8 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
       display: block;
     "></span>
   </div>
-</div>`;
+</div>
+`;
 
 const newMainApp = function (initConfig) {
   let screenClient;
