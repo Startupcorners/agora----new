@@ -35,7 +35,7 @@ module.exports = async (req, res) => {
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
-      rtcUid, // Integer UID for RTC
+      rtcUid,
       rtcRole,
       expirationInSeconds
     );
@@ -44,7 +44,7 @@ module.exports = async (req, res) => {
     const rtmToken = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
-      rtmUid.toString(), // String UID for RTM
+      rtmUid.toString(),
       expirationInSeconds
     );
 
