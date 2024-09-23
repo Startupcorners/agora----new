@@ -750,7 +750,8 @@ const toggleCamera = async (isMuted) => {
       `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
     );
 
-    config.onCamMuted(config.localVideoTrackMuted);
+    // Correctly call onCamMuted with both uid and the muted state
+    config.onCamMuted(uid, config.localVideoTrackMuted);
   } catch (error) {
     console.error("Error in toggleCamera:", error);
     if (config.onError) {
