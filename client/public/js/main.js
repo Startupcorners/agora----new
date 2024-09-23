@@ -1127,47 +1127,40 @@ const toggleScreenShare = async (isEnabled) => {
   /**
    * Callback Handlers
    */
-  const handleUserPublished = async (user, mediaType) => {
-    try {
-      console.log(`User published: ${user.uid}, mediaType: ${mediaType}`);
-      await config.client.subscribe(user, mediaType);
+const handleUserPublished = async (user, mediaType) => {
+  try {
+    console.log(`User published: ${user.uid}, mediaType: ${mediaType}`);
 
-      if (mediaType === "video") {
-        let player = document.querySelector(`#video-wrapper-${user.uid}`);
-        if (player != null) {
-          player.remove();
-        }
-        console.log("Creating video player for user:", user.uid);
+    // Subscribe to the user's media
+    await config.client.subscribe(user, mediaType);
 
-        let remotePlayerContainer = config.participantPlayerContainer
-          .replaceAll("{{uid}}", user.uid)
-          .replaceAll("{{name}}", user.name || "Guest")
-          .replaceAll(
-            "{{avatar}}",
-            user.avatar || "path/to/default-avatar.png"
-          );
+    // Handle video publishing
+    if (mediaType === "video") {
+      const videoPlayer = document.querySelector(`#stream-${user.uid}`);
+      const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
-        document
-          .querySelector(config.callContainerSelector)
-          .insertAdjacentHTML("beforeend", remotePlayerContainer);
-
+      if (videoPlayer && user.videoTrack) {
         // Play the video track in the correct player
-        if (user.videoTrack) {
-          user.videoTrack.play(`stream-${user.uid}`);
-        }
+        user.videoTrack.play(videoPlayer);
+        videoPlayer.style.display = "block"; // Show the video player
+        avatarDiv.style.display = "none"; // Hide the avatar
       }
-
-      if (mediaType === "audio") {
-        user.audioTrack.play();
-      }
-    } catch (error) {
-      console.error("Error handling user published:", error);
     }
-  };
+
+    // Handle audio publishing
+    if (mediaType === "audio") {
+      if (user.audioTrack) {
+        user.audioTrack.play(); // Play the audio track automatically
+      }
+    }
+  } catch (error) {
+    console.error("Error handling user published:", error);
+  }
+};
 
 
 const handleUserJoined = async (user) => {
-  log("handleUserJoined Here");
+  log("User joined:", user.uid);
 
   // Store the user in the remoteTracks object
   config.remoteTracks[user.uid] = user;
@@ -1180,24 +1173,28 @@ const handleUserJoined = async (user) => {
       avatar: user.avatar || "default-avatar-url", // Use the avatar from initialization or fallback to default
     };
 
-    // Generate the player's HTML container for the user
-    let playerHTML = config.participantPlayerContainer
-      .replace(/{{uid}}/g, remoteUser.id) // Integer UID for the video wrapper
-      .replace(/{{name}}/g, remoteUser.name) // Use the name passed during initialization
-      .replace(/{{avatar}}/g, remoteUser.avatar); // Use the avatar passed during initialization
+    // Check if the player for this user already exists
+    let player = document.querySelector(`#video-wrapper-${remoteUser.id}`);
+    if (!player) {
+      // If the player doesn't exist, create it
+      let playerHTML = config.participantPlayerContainer
+        .replace(/{{uid}}/g, remoteUser.id) // Integer UID for the video wrapper
+        .replace(/{{name}}/g, remoteUser.name) // Use the name passed during initialization
+        .replace(/{{avatar}}/g, remoteUser.avatar); // Use the avatar passed during initialization
 
-    // Insert the new player container into the video stage
-    document
-      .querySelector(config.callContainerSelector)
-      .insertAdjacentHTML("beforeend", playerHTML);
+      // Insert the new player container into the video stage
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", playerHTML);
 
-    // Ensure the avatar is displayed and the video player is hidden until video is published
-    const videoPlayer = document.querySelector(`#stream-${remoteUser.id}`);
-    const avatarDiv = document.querySelector(`#avatar-${remoteUser.id}`);
+      // Ensure the avatar is displayed and the video player is hidden until video is published
+      const videoPlayer = document.querySelector(`#stream-${remoteUser.id}`);
+      const avatarDiv = document.querySelector(`#avatar-${remoteUser.id}`);
 
-    if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none"; // Hide the video player (camera off initially)
-      avatarDiv.style.display = "block"; // Show the avatar
+      if (videoPlayer && avatarDiv) {
+        videoPlayer.style.display = "none"; // Hide the video player (camera off initially)
+        avatarDiv.style.display = "block"; // Show the avatar
+      }
     }
   } catch (error) {
     log("Error during user join:", error);
