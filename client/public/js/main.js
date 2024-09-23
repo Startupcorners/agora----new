@@ -707,6 +707,8 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     });
     console.log("User attributes (name, avatar) updated in RTM.");
 
+    clientRTM.login({ token: rtmToken, uid: rtmUid });
+
     // Join the RTM channel
     await channelRTM.join();
     console.log("Joined RTM channel successfully");
