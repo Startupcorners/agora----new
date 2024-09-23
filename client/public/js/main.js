@@ -612,18 +612,27 @@ const joinToVideoStage = async (user) => {
     const videoPlayer = document.querySelector(`#stream-${user.id}`);
     const avatarDiv = document.querySelector(`#avatar-${user.id}`);
 
+    // Ensure the camera starts off, so the video is hidden and the avatar is visible
     videoPlayer.style.display = "none";
-    avatarDiv.style.display = "block";
+    avatarDiv.style.display = "block"; // Show avatar when video is off
 
+    // Mute the video track by default (camera off) and set the state
     await config.localVideoTrack.setMuted(true);
     config.localVideoTrackMuted = true;
 
-    config.onCamMuted(user.id, true);
+    // Trigger the `onCamMuted` event to indicate the camera is off
+    config.onCamMuted(user.id, true); // Camera is off by default
 
     // Publish only the local audio track (video remains off)
     await config.client.publish([config.localAudioTrack]);
 
-    // Adjust the video wrapper size after adding the new user
+    // Handle any user-specific muting requirements (camera/mic)
+    if (config.onNeedMuteCameraAndMic(user)) {
+      toggleCamera(true); // Keep the camera off
+      toggleMic(true); // Optionally mute the microphone
+    }
+
+    // Call updateVideoWrapperSize to ensure proper layout
     updateVideoWrapperSize();
   } catch (error) {
     console.error("Error joining video stage:", error);
