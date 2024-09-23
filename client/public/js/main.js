@@ -674,8 +674,7 @@ const joinToVideoStage = async (user) => {
 
 
 
-
-const joinRTM = async (rtmToken) => {
+const joinRTM = async (rtmToken, retryCount = 0) => {
   try {
     // Convert UID to string for RTM login
     const rtmUid = config.uid.toString();
@@ -684,18 +683,11 @@ const joinRTM = async (rtmToken) => {
     console.log("RTM Token (during login):", rtmToken);
     console.log("RTM UID (during login):", rtmUid);
 
-    // Check if the user is already logged in, and log out if necessary
-    if (clientRTM.connectionState === "CONNECTED") {
-      console.log("User is already logged in, logging out first...");
-      await clientRTM.logout();
-      console.log("User successfully logged out from RTM.");
-    }
-
     // RTM login with the token
     await clientRTM.login({ token: rtmToken, uid: rtmUid });
     console.log(`RTM login successful for UID: ${rtmUid}`);
 
-    // Update local user attributes in RTM (name, avatar)
+    // Update local user attributes in RTM
     await clientRTM.addOrUpdateLocalUserAttributes({
       name: config.user.name, // Set user's name
       avatar: config.user.avatar, // Set user's avatar
@@ -707,9 +699,32 @@ const joinRTM = async (rtmToken) => {
     console.log("Joined RTM channel successfully");
   } catch (error) {
     console.error("RTM join process failed:", error);
+
+    // Check if the error is due to an invalid or expired token (Error Code 5)
+    if (
+      (error.code === 5 || error.message.includes("Invalid token")) &&
+      retryCount < 5
+    ) {
+      console.log(
+        `Invalid RTM token. Attempting to reissue a new token (retry ${
+          retryCount + 1
+        }/5)...`
+      );
+
+      // Fetch new tokens (both RTC and RTM) from your token server
+      const newTokens = await fetchTokens(); // Reuse the fetchTokens function
+
+      // Retry RTM login with the new token, increasing the retry count
+      await joinRTM(newTokens.rtmToken, retryCount + 1);
+    } else if (retryCount >= 5) {
+      console.error("Exceeded maximum retry attempts. Cannot join RTM.");
+      throw new Error("Failed to join RTM after 5 attempts.");
+    } else {
+      console.error("RTM join failed for a different reason:", error);
+      throw error;
+    }
   }
 };
-
 
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
