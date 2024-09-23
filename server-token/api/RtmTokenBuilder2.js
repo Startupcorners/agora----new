@@ -15,13 +15,14 @@ class RtmTokenBuilder {
      * @return The RTM token.
      */
     static buildToken(appId, appCertificate, userId, expire) {
-        let token = new AccessToken(appId, appCertificate, null, expire)
+      let token = new AccessToken(appId, appCertificate, null, expire);
+      const stringUserId = userId.toString(); // Convert UID to string for RTM
 
-        let serviceRtm = new ServiceRtm(userId)
-        serviceRtm.add_privilege(ServiceRtm.kPrivilegeLogin, expire)
-        token.add_service(serviceRtm)
+      let serviceRtm = new ServiceRtm(stringUserId);
+      serviceRtm.add_privilege(ServiceRtm.kPrivilegeLogin, expire);
+      token.add_service(serviceRtm);
 
-        return token.build()
+      return token.build();
     }
 }
 
