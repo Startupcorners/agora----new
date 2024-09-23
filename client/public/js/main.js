@@ -494,7 +494,6 @@ const join = async () => {
   }
 };
 
-
 function updateVideoWrapperSize() {
   const videoStage = document.getElementById("video-stage");
 
@@ -505,12 +504,11 @@ function updateVideoWrapperSize() {
 
   const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
   const count = videoWrappers.length;
-  const screenWidth = window.innerWidth;
-  const screenHeight = window.innerHeight;
+  const stageWidth = videoStage.clientWidth; // Get the width of the video-stage
+  const stageHeight = videoStage.clientHeight; // Get the height of the video-stage
 
-  // Calculate the maximum width while maintaining a 16:9 aspect ratio
-  const maxWrapperWidth = Math.min(800, screenWidth * 0.8); // Max 80% of screen width
-  const maxWrapperHeight = (maxWrapperWidth * 9) / 16; // Calculate height based on width to maintain 16:9 ratio
+  const maxWrapperWidth = Math.min(800, stageWidth * 0.8); // Max 80% of the video-stage width
+  const maxWrapperHeight = (maxWrapperWidth * 9) / 16; // Maintain a 16:9 aspect ratio
 
   videoStage.style.overflowY = "auto"; // Add vertical scroll if needed
 
@@ -524,39 +522,36 @@ function updateVideoWrapperSize() {
     wrapper.style.display = "flex";
     wrapper.style.justifyContent = "center";
     wrapper.style.alignItems = "center";
+    wrapper.style.height = "auto"; // Auto height to prevent overflow
+    wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Limit height to 80% of video-stage height
 
-    // Handle small screens (<= 768px)
-    if (screenWidth <= 768) {
-      wrapper.style.flex = "1 1 100%"; // Full width for mobile screens
+    // Handle small screens (<= 768px) or if the video-stage is narrow
+    if (stageWidth <= 768) {
+      wrapper.style.flex = "1 1 100%"; // Full width for narrow stages
       wrapper.style.maxWidth = "100%";
-      wrapper.style.height = "auto";
-      wrapper.style.aspectRatio = "16 / 9"; // Maintain aspect ratio
+      wrapper.style.minHeight = "50vh";
     } else {
-      // Adjust for larger screens based on participant count
+      // Adjust for larger video-stages based on participant count
       if (count === 1) {
         wrapper.style.flex = "0 1 auto";
         wrapper.style.width = `${maxWrapperWidth}px`;
-        wrapper.style.height = `${maxWrapperHeight}px`;
+        wrapper.style.height = `${maxWrapperHeight}px`; // 16:9 aspect ratio
       } else if (count === 2) {
         wrapper.style.flex = "1 1 45%"; // 45% width for two players
         wrapper.style.maxWidth = "45%";
-        wrapper.style.height = "auto";
-        wrapper.style.aspectRatio = "16 / 9"; // Ensure aspect ratio
+        wrapper.style.height = `${(stageWidth * 0.45 * 9) / 16}px`; // 16:9 aspect ratio
       } else if (count === 3) {
         wrapper.style.flex = "1 1 30%"; // 30% width for three players
         wrapper.style.maxWidth = "30%";
-        wrapper.style.height = "auto";
-        wrapper.style.aspectRatio = "16 / 9"; // Ensure aspect ratio
+        wrapper.style.height = `${(stageWidth * 0.3 * 9) / 16}px`; // 16:9 aspect ratio
       } else if (count >= 4 && count <= 9) {
         wrapper.style.flex = "1 1 23%"; // 23% width for 4-9 players
         wrapper.style.maxWidth = "23%";
-        wrapper.style.height = "auto";
-        wrapper.style.aspectRatio = "16 / 9"; // Ensure aspect ratio
+        wrapper.style.height = `${(stageWidth * 0.23 * 9) / 16}px`; // 16:9 aspect ratio
       } else {
         wrapper.style.flex = "1 1 15%"; // For 10 or more participants
         wrapper.style.maxWidth = "15%";
-        wrapper.style.height = "auto";
-        wrapper.style.aspectRatio = "16 / 9"; // Ensure aspect ratio
+        wrapper.style.height = `${(stageWidth * 0.15 * 9) / 16}px`; // 16:9 aspect ratio
       }
 
       wrapper.style.minWidth = `200px`; // Ensure minimum width
