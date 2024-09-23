@@ -504,8 +504,17 @@ function updateVideoWrapperSize() {
 
   const maxWrapperWidth = 800; // Maximum width of each video wrapper
   const maxWrapperHeight = screenHeight * 0.8; // Ensure the wrapper doesn't overflow the screen height
+  const minWrapperWidth = 200; // Minimum width for smaller screens
 
   videoWrappers.forEach((wrapper) => {
+    const videoPlayer = wrapper.querySelector(".video-player");
+    const avatar = wrapper.querySelector(".user-avatar");
+    const camStatus = wrapper.querySelector(".cam-status");
+
+    // Determine if the camera is off based on the cam-status element
+    const isCameraOff = camStatus && camStatus.style.display !== "none";
+
+    // General styling adjustments for video wrappers
     wrapper.style.boxSizing = "border-box";
     wrapper.style.margin = "10px"; // Adjust margin for better spacing
     wrapper.style.borderRadius = "10px";
@@ -518,45 +527,62 @@ function updateVideoWrapperSize() {
     wrapper.style.height = "auto"; // Auto height to prevent overflow
     wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Limit height to 80% of screen height
 
-    // Handle small screens (<= 768px)
+    // Adjust for small screens (<= 768px)
     if (screenWidth <= 768) {
       wrapper.style.flex = "1 1 100%"; // Full width for mobile screens
       wrapper.style.maxWidth = "100%";
-      wrapper.style.minHeight = "50vh";
+      wrapper.style.minHeight = "50vh"; // Ensure enough height for video or avatar
     } else {
-      // Adjust height and width based on participant count for larger screens
+      // Adjust for larger screens based on participant count
       if (count === 1) {
         wrapper.style.flex = "0 1 auto";
         wrapper.style.maxWidth = `${maxWrapperWidth}px`;
         wrapper.style.width = `${maxWrapperWidth}px`;
-        wrapper.style.height = "auto"; // Use auto to dynamically adapt the height
       } else if (count === 2) {
         wrapper.style.flex = "1 1 45%"; // 45% width for two players
         wrapper.style.maxWidth = "45%";
-        wrapper.style.height = "auto"; // No fixed height, use auto
       } else if (count === 3) {
-        wrapper.style.flex = "1 1 30%";
+        wrapper.style.flex = "1 1 30%"; // 30% width for three players
         wrapper.style.maxWidth = "30%";
-        wrapper.style.height = "auto";
-      } else {
-        wrapper.style.flex = "1 1 23%";
+      } else if (count >= 4 && count <= 9) {
+        wrapper.style.flex = "1 1 23%"; // 23% width for 4-9 players
         wrapper.style.maxWidth = "23%";
-        wrapper.style.height = "auto";
+      } else {
+        wrapper.style.flex = "1 1 15%"; // For 10 or more participants, smaller size
+        wrapper.style.maxWidth = "15%";
       }
+
+      wrapper.style.minWidth = `${minWrapperWidth}px`; // Ensure minimum width
     }
 
-    // Ensure video content stays visible and fits inside the wrapper
-    const videoPlayer = wrapper.querySelector(".video-player");
-    if (videoPlayer) {
-      videoPlayer.style.display = "flex";
-      videoPlayer.style.justifyContent = "center";
-      videoPlayer.style.alignItems = "center";
-      videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
-      videoPlayer.style.width = "100%"; // Ensure the video uses full width
-      videoPlayer.style.height = "100%"; // Ensure video fills the height
+    // Adjust video player and avatar based on whether the camera is on or off
+    if (isCameraOff) {
+      // Camera is off: hide the video player, show the avatar
+      if (videoPlayer) videoPlayer.style.display = "none";
+      if (avatar) avatar.style.display = "block";
+    } else {
+      // Camera is on: show the video player, hide the avatar
+      if (videoPlayer) {
+        videoPlayer.style.display = "flex";
+        videoPlayer.style.justifyContent = "center";
+        videoPlayer.style.alignItems = "center";
+        videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
+        videoPlayer.style.width = "100%"; // Ensure the video uses full width
+        videoPlayer.style.height = "100%"; // Ensure video fills the height
+      }
+      if (avatar) avatar.style.display = "none"; // Hide the avatar when the camera is on
     }
   });
 }
+
+// Add a resize event listener to update video wrapper sizes dynamically
+window.addEventListener("resize", updateVideoWrapperSize);
+
+// Call the function once during initialization to set the initial layout
+document.addEventListener("DOMContentLoaded", () => {
+  updateVideoWrapperSize();
+});
+
 
 
 // Add a resize event listener to update video wrapper sizes dynamically
