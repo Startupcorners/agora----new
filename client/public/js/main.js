@@ -675,6 +675,8 @@ const joinToVideoStage = async (user) => {
 
 const joinRTM = async (rtmToken, retryCount = 0) => {
   try {
+
+    await shutdownRTM();
     const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
 
     // If the user is already logged in, attempt to log them out first
@@ -737,6 +739,33 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       );
       throw error;
     }
+  }
+};
+
+const shutdownRTM = async () => {
+  try {
+    // Check if the RTM client is defined and the user is logged in
+    if (clientRTM && clientRTM._logined) {
+      console.log(`RTM user is currently logged in. Logging out...`);
+
+      // Leave the RTM channel if joined
+      if (channelRTM) {
+        await channelRTM.leave();
+        console.log("Left the RTM channel successfully.");
+      }
+
+      // Log the user out of RTM
+      await clientRTM.logout();
+      console.log("Logged out of RTM successfully.");
+
+      // Optionally destroy the RTM client if needed (depending on your use case)
+      // clientRTM.release();
+      // console.log("RTM client destroyed.");
+    } else {
+      console.log("No active RTM session found. Skipping shutdown.");
+    }
+  } catch (error) {
+    console.error("Error while shutting down RTM:", error);
   }
 };
 
