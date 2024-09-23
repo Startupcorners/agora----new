@@ -51,10 +51,14 @@ module.exports = async (req, res) => {
     const rtmToken = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
-      rtmUid.toString,
+      rtmUid.toString(),
       expirationInSeconds
     );
 
+    console.log("APP ID:", process.env.APP_ID);
+    console.log("APP cetificate:", process.env.APP_CERTIFICATE);
+    console.log("UIDrtm:", rtmUid.toString());
+    console.log("expiration:", expirationInSeconds);
     console.log("Generated RTC Token:", rtcToken);
     console.log("Generated RTM Token:", rtmToken);
 
