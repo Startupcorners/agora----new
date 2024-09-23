@@ -502,19 +502,13 @@ function updateVideoWrapperSize() {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
 
-  const maxWrapperWidth = 800; // Maximum width of each video wrapper
-  const maxWrapperHeight = screenHeight * 0.8; // Ensure the wrapper doesn't overflow the screen height
-  const minWrapperWidth = 200; // Minimum width for smaller screens
+  // Define maximum size for video wrappers based on screen size
+  const maxWrapperWidth = Math.min(800, screenWidth * 0.8); // Max 80% of screen width
+  const maxWrapperHeight = screenHeight * 0.8; // Max 80% of screen height
+
+  videoStage.style.overflowY = "auto"; // Add vertical scroll if needed
 
   videoWrappers.forEach((wrapper) => {
-    const videoPlayer = wrapper.querySelector(".video-player");
-    const avatar = wrapper.querySelector(".user-avatar");
-    const camStatus = wrapper.querySelector(".cam-status");
-
-    // Determine if the camera is off based on the cam-status element
-    const isCameraOff = camStatus && camStatus.style.display !== "none";
-
-    // General styling adjustments for video wrappers
     wrapper.style.boxSizing = "border-box";
     wrapper.style.margin = "10px"; // Adjust margin for better spacing
     wrapper.style.borderRadius = "10px";
@@ -524,14 +518,13 @@ function updateVideoWrapperSize() {
     wrapper.style.display = "flex";
     wrapper.style.justifyContent = "center";
     wrapper.style.alignItems = "center";
-    wrapper.style.height = "auto"; // Auto height to prevent overflow
     wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Limit height to 80% of screen height
 
-    // Adjust for small screens (<= 768px)
+    // Handle small screens (<= 768px)
     if (screenWidth <= 768) {
       wrapper.style.flex = "1 1 100%"; // Full width for mobile screens
       wrapper.style.maxWidth = "100%";
-      wrapper.style.minHeight = "50vh"; // Ensure enough height for video or avatar
+      wrapper.style.minHeight = "50vh";
     } else {
       // Adjust for larger screens based on participant count
       if (count === 1) {
@@ -552,38 +545,25 @@ function updateVideoWrapperSize() {
         wrapper.style.maxWidth = "15%";
       }
 
-      wrapper.style.minWidth = `${minWrapperWidth}px`; // Ensure minimum width
+      wrapper.style.minWidth = `200px`; // Ensure minimum width
     }
 
-    // Adjust video player and avatar based on whether the camera is on or off
-    if (isCameraOff) {
-      // Camera is off: hide the video player, show the avatar
-      if (videoPlayer) videoPlayer.style.display = "none";
-      if (avatar) avatar.style.display = "block";
-    } else {
-      // Camera is on: show the video player, hide the avatar
-      if (videoPlayer) {
-        videoPlayer.style.display = "flex";
-        videoPlayer.style.justifyContent = "center";
-        videoPlayer.style.alignItems = "center";
-        videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
-        videoPlayer.style.width = "100%"; // Ensure the video uses full width
-        videoPlayer.style.height = "100%"; // Ensure video fills the height
-      }
-      if (avatar) avatar.style.display = "none"; // Hide the avatar when the camera is on
+    // Ensure video content stays visible and fits inside the wrapper
+    const videoPlayer = wrapper.querySelector(".video-player");
+    if (videoPlayer) {
+      videoPlayer.style.display = "flex";
+      videoPlayer.style.justifyContent = "center";
+      videoPlayer.style.alignItems = "center";
+      videoPlayer.style.objectFit = "cover";
+      videoPlayer.style.width = "100%"; // Ensure the video uses full width
+      videoPlayer.style.height = "100%"; // Ensure video fills the height
     }
   });
+
+  // Add overflow control for the video-stage to prevent overflow
+  videoStage.style.overflowX = "hidden"; // Prevent horizontal overflow
+  videoStage.style.overflowY = count > 3 ? "auto" : "hidden"; // Scroll vertically if needed
 }
-
-// Add a resize event listener to update video wrapper sizes dynamically
-window.addEventListener("resize", updateVideoWrapperSize);
-
-// Call the function once during initialization to set the initial layout
-document.addEventListener("DOMContentLoaded", () => {
-  updateVideoWrapperSize();
-});
-
-
 
 // Add a resize event listener to update video wrapper sizes dynamically
 window.addEventListener("resize", updateVideoWrapperSize);
