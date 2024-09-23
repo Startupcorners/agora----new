@@ -697,7 +697,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     console.log("RTM UID (during login):", rtmUid);
 
     // RTM login with the token
-    await clientRTM.login({ token: rtmToken, uid: rtmUid }).catch((error) => {
+    await clientRTM.login({ uid: rtmUid, token: rtmToken }).catch((error) => {
       console.error(
         "RTM login failed. Full error object:",
         JSON.stringify(error, null, 2)
