@@ -6,78 +6,78 @@
  * <script src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
  */
 const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
-      display: flex;
-      flex-direction: column;
+      flex: 1 1 30%; /* Responsive flex layout for better alignment */
+      max-width: 30%; 
+      min-width: 200px;
+      min-height: 220px;
+      display: flex; /* Changed from 'hidden' to 'flex' */
       justify-content: center;
       align-items: center;
-      background-color: #3c4043;
+      margin: 10px;
       border-radius: 10px;
       overflow: hidden;
       position: relative;
+      background-color: #3c4043;
       box-sizing: border-box;
-      width: 100%;
-      height: auto;
-      margin: 0; /* Remove margin to fit grid */
     " data-uid="{{uid}}">
-    
-    <!-- Video Player -->
-    <div id="stream-{{uid}}" class="video-player" style="
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    "></div>
-
-    <!-- User Avatar (shown when video is off) -->
-    <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" style="
-      display: none; /* Initially hidden when camera is on */
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      object-fit: cover;
-    " />
-
-    <!-- User Name -->
-    <div id="name-{{uid}}" class="user-name" style="
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      font-size: 16px;
-      color: #fff;
-      background-color: rgba(0, 0, 0, 0.5);
-      padding: 5px 10px;
-      border-radius: 5px;
-    ">
-      {{name}}
-    </div>
-
-    <!-- Participant Status Indicators -->
-    <div class="status-indicators" style="
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      display: flex;
-      gap: 5px;
-    ">
-      <!-- Microphone Status Icon -->
-      <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" style="
-        width: 24px;
-        height: 24px;
-        background-image: url('https://startupcorners-df3e7.web.app/icons/mic-muted.svg');
-        background-size: contain;
-        background-repeat: no-repeat;
+      <!-- Video Player -->
+      <div id="stream-{{uid}}" class="video-player" style="
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      "></div>
+      
+      <!-- User Avatar (shown when video is off) -->
+      <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" style="
         display: none;
-      "></span>
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+      " />
 
-      <!-- Camera Status Icon -->
-      <span id="cam-status-{{uid}}" class="cam-status" title="Camera is off" style="
-        width: 24px;
-        height: 24px;
-        background-image: url('icons/camera-off.svg');
-        background-size: contain;
-        background-repeat: no-repeat;
-        display: none;
-      "></span>
-    </div>
+      <!-- User Name -->
+      <div id="name-{{uid}}" class="user-name" style="
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        font-size: 16px;
+        color: #fff;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
+        border-radius: 5px;
+      ">
+        {{name}}
+      </div>
+
+      <!-- Participant Status Indicators -->
+      <div class="status-indicators" style="
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
+        gap: 5px;
+      ">
+        <!-- Microphone Status Icon -->
+        <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" style="
+          width: 24px;
+          height: 24px;
+          background-image: url('https://startupcorners-df3e7.web.app/icons/mic-muted.svg');
+          background-size: contain;
+          background-repeat: no-repeat;
+          display: none;
+        "></span>
+
+        <!-- Camera Status Icon -->
+        <span id="cam-status-{{uid}}" class="cam-status" title="Camera is off" style="
+          width: 24px;
+          height: 24px;
+          background-image: url('icons/camera-off.svg');
+          background-size: contain;
+          background-repeat: no-repeat;
+          display: none;
+        "></span>
+      </div>
 </div>
 `;
 
@@ -500,43 +500,61 @@ function updateVideoWrapperSize() {
   const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
   const count = videoWrappers.length;
   const screenWidth = window.innerWidth;
+  const screenHeight = window.innerHeight;
 
-  // Determine the number of columns
-  let columns;
+  const maxWrapperWidth = 800; // Maximum width of each video wrapper
+  const maxWrapperHeight = screenHeight * 0.8; // Ensure the wrapper doesn't overflow the screen height
 
-  if (screenWidth <= 768) {
-    // Small screens (e.g., phones)
-    columns = 1; // Always 1 column on phones
-  } else {
-    // For larger screens, adjust based on participant count
-    if (count <= 1) {
-      columns = 1;
-    } else if (count === 2) {
-      columns = 2;
-    } else if (count <= 4) {
-      columns = 2;
-    } else if (count <= 9) {
-      columns = 3;
-    } else {
-      columns = 4;
-    }
-  }
-
-  // Set the grid styles inline
-  videoStage.style.display = "grid";
-  videoStage.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
-  videoStage.style.gridAutoRows = "auto";
-  videoStage.style.gridGap = "10px";
-  videoStage.style.width = "100%";
-  videoStage.style.height = "100%";
-  videoStage.style.overflowY = "auto"; // Enable vertical scrolling for overflow
-
-  // Adjust each video wrapper
   videoWrappers.forEach((wrapper) => {
-    wrapper.style.width = "100%";
-    wrapper.style.height = "auto";
-    wrapper.style.maxWidth = "100%";
-    wrapper.style.maxHeight = "100%";
+    wrapper.style.boxSizing = "border-box";
+    wrapper.style.margin = "10px"; // Adjust margin for better spacing
+    wrapper.style.borderRadius = "10px";
+    wrapper.style.overflow = "hidden";
+    wrapper.style.position = "relative";
+    wrapper.style.backgroundColor = "#3c4043";
+    wrapper.style.display = "flex";
+    wrapper.style.justifyContent = "center";
+    wrapper.style.alignItems = "center";
+    wrapper.style.height = "auto"; // Auto height to prevent overflow
+    wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Limit height to 80% of screen height
+
+    // Handle small screens (<= 768px)
+    if (screenWidth <= 768) {
+      wrapper.style.flex = "1 1 100%"; // Full width for mobile screens
+      wrapper.style.maxWidth = "100%";
+      wrapper.style.minHeight = "50vh";
+    } else {
+      // Adjust height and width based on participant count for larger screens
+      if (count === 1) {
+        wrapper.style.flex = "0 1 auto";
+        wrapper.style.maxWidth = `${maxWrapperWidth}px`;
+        wrapper.style.width = `${maxWrapperWidth}px`;
+        wrapper.style.height = "auto"; // Use auto to dynamically adapt the height
+      } else if (count === 2) {
+        wrapper.style.flex = "1 1 45%"; // 45% width for two players
+        wrapper.style.maxWidth = "45%";
+        wrapper.style.height = "auto"; // No fixed height, use auto
+      } else if (count === 3) {
+        wrapper.style.flex = "1 1 30%";
+        wrapper.style.maxWidth = "30%";
+        wrapper.style.height = "auto";
+      } else {
+        wrapper.style.flex = "1 1 23%";
+        wrapper.style.maxWidth = "23%";
+        wrapper.style.height = "auto";
+      }
+    }
+
+    // Ensure video content stays visible and fits inside the wrapper
+    const videoPlayer = wrapper.querySelector(".video-player");
+    if (videoPlayer) {
+      videoPlayer.style.display = "flex";
+      videoPlayer.style.justifyContent = "center";
+      videoPlayer.style.alignItems = "center";
+      videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
+      videoPlayer.style.width = "100%"; // Ensure the video uses full width
+      videoPlayer.style.height = "100%"; // Ensure video fills the height
+    }
   });
 }
 
@@ -548,8 +566,6 @@ window.addEventListener("resize", updateVideoWrapperSize);
 document.addEventListener("DOMContentLoaded", () => {
   updateVideoWrapperSize();
 });
-
-
 
 
 const handleUserUnpublished = async (user, mediaType) => {
@@ -593,13 +609,13 @@ const joinToVideoStage = async (user) => {
       .querySelector(config.callContainerSelector)
       .insertAdjacentHTML("beforeend", localPlayerContainer);
 
-    // Select the newly inserted video player and avatar elements
+    // Set the video to be off (not played) initially and show the avatar
     const videoPlayer = document.querySelector(`#stream-${user.id}`);
     const avatarDiv = document.querySelector(`#avatar-${user.id}`);
 
-    // Ensure the camera starts off, so video is hidden and avatar is visible
-    videoPlayer.style.display = "none"; // Hide the video player initially (camera off)
-    avatarDiv.style.display = "block"; // Show the avatar initially
+    // Hide the video player and show the avatar
+    videoPlayer.style.display = "none"; // Make sure video player is hidden
+    avatarDiv.style.display = "block"; // Ensure avatar is visible
 
     // Mute the video track by default (camera off) and set the state
     await config.localVideoTrack.setMuted(true);
