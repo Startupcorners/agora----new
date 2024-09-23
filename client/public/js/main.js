@@ -6,34 +6,38 @@
  * <script src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
  */
 const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
-  flex: 1 1 30%; /* 30% width for responsiveness */
+  flex: 1 1 30%; /* Responsive layout */
   max-width: 30%; 
-  min-width: 200px; 
-  min-height: 220px; 
-  display: flex; 
-  justify-content: center; 
-  align-items: center; 
-  margin: 10px; 
-  border-radius: 10px; 
-  overflow: hidden; 
-  position: relative; 
-  background-color: #3c4043; 
+  min-width: 200px;
+  position: relative;
+  margin: 10px;
+  border-radius: 10px;
+  background-color: #3c4043;
   box-sizing: border-box;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio (9/16 = 0.5625) */
+  overflow: hidden;
 " data-uid="{{uid}}">
   <!-- Video Player -->
   <div id="stream-{{uid}}" class="video-player" style="
+    position: absolute; 
+    top: 0; 
+    left: 0; 
     width: 100%; 
     height: 100%; 
-    object-fit: cover; 
+    object-fit: cover;
     display: none; /* Initially hidden as the camera is off */
   "></div>
   
   <!-- User Avatar (shown when video is off) -->
   <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" style="
+    position: absolute;
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%);
     display: block; /* Display the avatar initially as the camera is off */
-    width: 100px; 
-    height: 100px; 
-    border-radius: 50%; 
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
     object-fit: cover;
   " />
 
@@ -61,27 +65,25 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
   ">
     <!-- Microphone Status Icon -->
     <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" style="
-      width: 24px; 
-      height: 24px; 
-      background-image: url('https://startupcorners-df3e7.web.app/icons/mic-muted.svg'); 
-      background-size: contain; 
-      background-repeat: no-repeat; 
+      width: 24px;
+      height: 24px;
+      background-image: url('https://startupcorners-df3e7.web.app/icons/mic-muted.svg');
+      background-size: contain;
+      background-repeat: no-repeat;
       display: none;
     "></span>
 
     <!-- Camera Status Icon -->
     <span id="cam-status-{{uid}}" class="cam-status" title="Camera is off" style="
-      width: 24px; 
-      height: 24px; 
-      background-image: url('icons/camera-off.svg'); 
-      background-size: contain; 
-      background-repeat: no-repeat; 
+      width: 24px;
+      height: 24px;
+      background-image: url('icons/camera-off.svg');
+      background-size: contain;
+      background-repeat: no-repeat;
       display: block;
     "></span>
   </div>
-</div>
-
-`;
+</div>`;
 
 const newMainApp = function (initConfig) {
   let screenClient;
