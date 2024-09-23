@@ -587,41 +587,48 @@ const handleUserUnpublished = async (user, mediaType) => {
 
 const joinToVideoStage = async (user) => {
   try {
-    // Create local audio and video tracks
+    // Create local audio track but don't start the video track immediately
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+
+    // Initialize the video track but don't play it yet
     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
-    // Ensure camera is muted when joining by default
-    await config.localVideoTrack.setMuted(true);
-    config.localVideoTrackMuted = true;
-
-    // Call onCamMuted with the correct UID
-    config.onCamMuted(config.uid, config.localVideoTrackMuted);
-
-    // Remove the existing video wrapper if any
+    // Create the video player container for the user, but don't start the video track
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player != null) {
-      player.remove();
+      player.remove(); // Remove old player if it exists
     }
 
-    // Create the video wrapper for the user
+    // Generate the player's HTML container, including the avatar
     let localPlayerContainer = config.participantPlayerContainer
       .replaceAll("{{uid}}", user.id)
       .replaceAll("{{name}}", user.name)
-      .replaceAll("{{avatar}}", user.avatar);
+      .replaceAll("{{avatar}}", user.avatar); // Ensure avatar is replaced correctly
 
+    // Insert the new player container into the video stage
     document
       .querySelector(config.callContainerSelector)
       .insertAdjacentHTML("beforeend", localPlayerContainer);
 
-    // Play the local video track, if required
-    if (user.id === config.uid) {
-      config.localVideoTrack.play(`stream-${user.id}`);
-      // Publish the audio and muted video tracks
-      await config.client.publish([
-        config.localAudioTrack,
-        config.localVideoTrack,
-      ]);
+    // Make sure the video is not playing (camera off) and the avatar is visible
+    const videoPlayer = document.querySelector(`#stream-${user.id}`);
+    const avatarDiv = document.querySelector(`#avatar-${user.id}`);
+
+    // Set the video to be off (not played) initially and show the avatar
+    videoPlayer.style.display = "none";
+    avatarDiv.style.display = "block";
+
+    // Automatically mute the video track and show the avatar by default
+    await config.localVideoTrack.setMuted(true); // Ensure video is muted (camera off)
+    config.localVideoTrackMuted = true;
+
+    // Publish the local audio track only (video will remain off)
+    await config.client.publish([config.localAudioTrack]);
+
+    // Handle muting if needed (based on user preferences)
+    if (config.onNeedMuteCameraAndMic(user)) {
+      toggleCamera(true); // Keep the camera off
+      toggleMic(true); // Optionally mute the microphone if needed
     }
   } catch (error) {
     config.onError(error);
