@@ -508,8 +508,9 @@ function updateVideoWrapperSize() {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
 
+  // Calculate the maximum width while maintaining a 16:9 aspect ratio
   const maxWrapperWidth = Math.min(800, screenWidth * 0.8); // Max 80% of screen width
-  const maxWrapperHeight = screenHeight * 0.8; // Max 80% of screen height
+  const maxWrapperHeight = (maxWrapperWidth * 9) / 16; // Calculate height based on width to maintain 16:9 ratio
 
   videoStage.style.overflowY = "auto"; // Add vertical scroll if needed
 
@@ -521,34 +522,41 @@ function updateVideoWrapperSize() {
     wrapper.style.position = "relative";
     wrapper.style.backgroundColor = "#3c4043";
     wrapper.style.display = "flex";
-    wrapper.style.justifyContent = "center"; // Ensure centering
-    wrapper.style.alignItems = "center"; // Ensure centering
-    wrapper.style.height = "auto"; // Auto height to prevent overflow
-    wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Limit height to 80% of screen height
+    wrapper.style.justifyContent = "center";
+    wrapper.style.alignItems = "center";
 
     // Handle small screens (<= 768px)
     if (screenWidth <= 768) {
       wrapper.style.flex = "1 1 100%"; // Full width for mobile screens
       wrapper.style.maxWidth = "100%";
-      wrapper.style.minHeight = "50vh";
+      wrapper.style.height = "auto";
+      wrapper.style.aspectRatio = "16 / 9"; // Maintain aspect ratio
     } else {
       // Adjust for larger screens based on participant count
       if (count === 1) {
         wrapper.style.flex = "0 1 auto";
-        wrapper.style.maxWidth = `${maxWrapperWidth}px`;
         wrapper.style.width = `${maxWrapperWidth}px`;
+        wrapper.style.height = `${maxWrapperHeight}px`;
       } else if (count === 2) {
         wrapper.style.flex = "1 1 45%"; // 45% width for two players
         wrapper.style.maxWidth = "45%";
+        wrapper.style.height = "auto";
+        wrapper.style.aspectRatio = "16 / 9"; // Ensure aspect ratio
       } else if (count === 3) {
         wrapper.style.flex = "1 1 30%"; // 30% width for three players
         wrapper.style.maxWidth = "30%";
+        wrapper.style.height = "auto";
+        wrapper.style.aspectRatio = "16 / 9"; // Ensure aspect ratio
       } else if (count >= 4 && count <= 9) {
         wrapper.style.flex = "1 1 23%"; // 23% width for 4-9 players
         wrapper.style.maxWidth = "23%";
+        wrapper.style.height = "auto";
+        wrapper.style.aspectRatio = "16 / 9"; // Ensure aspect ratio
       } else {
-        wrapper.style.flex = "1 1 15%"; // For 10 or more participants, smaller size
+        wrapper.style.flex = "1 1 15%"; // For 10 or more participants
         wrapper.style.maxWidth = "15%";
+        wrapper.style.height = "auto";
+        wrapper.style.aspectRatio = "16 / 9"; // Ensure aspect ratio
       }
 
       wrapper.style.minWidth = `200px`; // Ensure minimum width
@@ -577,7 +585,6 @@ function updateVideoWrapperSize() {
   videoStage.style.overflowX = "hidden"; // Prevent horizontal overflow
   videoStage.style.overflowY = count > 3 ? "auto" : "hidden"; // Scroll vertically if needed
 }
-
 
 // Add a resize event listener to update video wrapper sizes dynamically
 window.addEventListener("resize", updateVideoWrapperSize);
