@@ -1158,52 +1158,10 @@ const handleUserPublished = async (user, mediaType) => {
   try {
     console.log(`User published: ${user.uid}, mediaType: ${mediaType}`);
 
-    // Subscribe to the media (video or audio)
-    await config.client.subscribe(user, mediaType);
-
-    // Check if player exists or create it
-    let player = document.querySelector(`#video-wrapper-${user.uid}`);
-    if (!player) {
-      console.log(`Creating video player for user: ${user.uid}`);
-
-      // Generate the player container
-      const remotePlayerContainer = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, user.name || `User ${user.uid}`)
-        .replace(/{{avatar}}/g, user.avatar || "default-avatar-url");
-
-      // Insert the player into the DOM
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", remotePlayerContainer);
-    }
-
-    // Get the video and avatar elements
-    const videoPlayer = document.querySelector(`#stream-${user.uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-
-    // Handle video track publication
-    if (mediaType === "video") {
-      console.log(`Handling video for user: ${user.uid}`);
-      if (user.videoTrack && videoPlayer) {
-        user.videoTrack.play(videoPlayer); // Play the video track in the correct player
-        videoPlayer.style.display = "block"; // Show the video player
-        avatarDiv.style.display = "none"; // Hide the avatar
-      }
-    }
-
-    // Handle audio track publication
-    if (mediaType === "audio") {
-      console.log(`Handling audio for user: ${user.uid}`);
-      if (user.audioTrack) {
-        user.audioTrack.play(); // Play the audio track
-      }
-    }
+    // Call the subscribe function to handle the media (video/audio)
+    await subscribe(user, mediaType);
   } catch (error) {
     console.error("Error handling user published:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
   }
 };
 
@@ -1341,48 +1299,98 @@ const handleUserLeft = async (user, reason) => {
     }, 1000);
   };
 
-  const handleRenewToken = async () => {
-    config.token = await fetchToken();
-    await client.renewToken(config.token);
-  };
+const handleRenewToken = async () => {
+  try {
+    // Fetch a new token
+    const newToken = await fetchToken();
+    config.token = newToken;
 
-  const subscribe = async (user, mediaType) => {
-    await client.subscribe(user, mediaType);
+    // Renew the Agora token for the RTC client
+    await config.client.renewToken(config.token);
+    console.log("RTC token renewed successfully!");
 
+    // For RTM, log the user out first and then re-login with the new token
+    if (clientRTM && clientRTM.getConnectionState() === "CONNECTED") {
+      await clientRTM.logout();
+      console.log("Logged out from RTM for token renewal.");
+    }
+
+    // Renew RTM Token
+    await clientRTM.login({ token: newToken, uid: config.uid.toString() });
+    console.log("RTM token renewed and re-logged successfully!");
+
+    // Optionally re-join the RTM channel if required
+    await channelRTM.join();
+    console.log("Re-joined RTM channel after token renewal.");
+  } catch (error) {
+    console.error("Error during token renewal process:", error);
+
+    if (error.code === 5) {
+      console.error("RTM login failed: Token invalid or expired.");
+      // Handle token invalid or expired scenario, possibly retry the process
+    } else {
+      console.error("Unexpected error during token renewal:", error);
+    }
+  }
+};
+
+
+const subscribe = async (user, mediaType) => {
+  try {
+    // Subscribe to the user's published media (video or audio)
+    await config.client.subscribe(user, mediaType);
+
+    // Handle video subscription
     if (mediaType === "video") {
       let player = document.querySelector(`#video-wrapper-${user.uid}`);
+
+      // If player doesn't exist, create it
       if (!player) {
-        // Create the player if it doesn't exist
-        const userAttr = await clientRTM.getUserAttributes(user.uid);
+        // Fetch user attributes (name, avatar, etc.) from RTM
+        const userAttr = await clientRTM.getUserAttributes(user.uid.toString()); // Make sure UID is a string
+        console.log(`User attributes for ${user.uid}:`, userAttr);
 
-        // Replace placeholders in the template
+        // Safeguard: Fallback values if name/avatar are not set
+        const userName = userAttr.name || `User ${user.uid}`;
+        const userAvatar = userAttr.avatar || "path/to/default-avatar.png";
+
+        // Replace placeholders in the participant template
         let playerHTML = config.participantPlayerContainer
-          .replace(/{{uid}}/g, user.uid)
-          .replace(/{{name}}/g, userAttr.name)
-          .replace(/{{avatar}}/g, userAttr.avatar);
+          .replace(/{{uid}}/g, user.uid) // Replace UID
+          .replace(/{{name}}/g, userName) // Replace name
+          .replace(/{{avatar}}/g, userAvatar); // Replace avatar
 
+        // Insert the player HTML into the video stage
         document
           .querySelector(config.callContainerSelector)
           .insertAdjacentHTML("beforeend", playerHTML);
 
+        // Select the newly created player
         player = document.querySelector(`#video-wrapper-${user.uid}`);
       }
 
-      // Hide avatar and show video player
+      // Find and hide the avatar, show the video player
       const videoPlayer = player.querySelector(`#stream-${user.uid}`);
       const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
 
-      videoPlayer.style.display = "block"; // Show the video player
-      avatarDiv.style.display = "none"; // Hide the avatar
+      if (videoPlayer && avatarDiv) {
+        videoPlayer.style.display = "block"; // Show the video player
+        avatarDiv.style.display = "none"; // Hide the avatar when video is on
 
-      // Play the video track for the user
-      user.videoTrack.play(`stream-${user.uid}`);
+        // Play the video track
+        user.videoTrack.play(videoPlayer);
+      }
     }
 
+    // Handle audio subscription
     if (mediaType === "audio") {
-      user.audioTrack.play();
+      user.audioTrack.play(); // Play audio track
     }
-  };
+  } catch (error) {
+    console.error("Error during subscription:", error);
+  }
+};
+
 
   const log = (arg) => {
     if (config.debugEnabled) {
