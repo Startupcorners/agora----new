@@ -5,50 +5,46 @@
  * <script src="https://cdn.jsdelivr.net/npm/agora-rtm-sdk@1.3.1/index.js"></script>
  * <script src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
  */
-const templateVideoParticipant = `
-    <div id="video-wrapper-{{uid}}" style="
-      flex: 1 1 320px; 
-      max-width: 800px; 
-      min-height: 220px; 
-      height: 100%; 
-      display: flex; 
-      justify-content: center; 
-      align-items: center; 
-      margin: 5px; 
-      border-radius: 10px; 
-      overflow: hidden; 
-      position: relative; 
+const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
+      flex: 1 1 auto;
+      max-width: 30%; 
+      min-width: 200px;
+      min-height: 220px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px;
+      border-radius: 10px;
+      overflow: hidden;
+      position: relative;
       background-color: #3c4043;
       box-sizing: border-box;
     " data-uid="{{uid}}">
       <!-- Video Player -->
       <div id="stream-{{uid}}" class="video-player" style="
-        width: 100%; 
-        height: 100%; 
-        display: flex; 
-        justify-content: center; 
-        align-items: center;
+        width: 100%;
+        height: 100%;
         object-fit: cover;
       "></div>
       
       <!-- User Avatar (shown when video is off) -->
       <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" style="
-        display: none; 
-        width: 100px; 
-        height: 100px; 
-        border-radius: 50%; 
+        display: none;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
         object-fit: cover;
       " />
 
       <!-- User Name -->
       <div id="name-{{uid}}" class="user-name" style="
-        position: absolute; 
-        bottom: 10px; 
-        left: 10px; 
-        font-size: 16px; 
-        color: #fff; 
-        background-color: rgba(0, 0, 0, 0.5); 
-        padding: 5px 10px; 
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        font-size: 16px;
+        color: #fff;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 5px 10px;
         border-radius: 5px;
       ">
         {{name}}
@@ -56,34 +52,33 @@ const templateVideoParticipant = `
 
       <!-- Participant Status Indicators -->
       <div class="status-indicators" style="
-        position: absolute; 
-        top: 10px; 
-        right: 10px; 
-        display: flex; 
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        display: flex;
         gap: 5px;
       ">
         <!-- Microphone Status Icon -->
         <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" style="
-          width: 24px; 
-          height: 24px; 
-          background-image: url('https://startupcorners-df3e7.web.app/icons/mic-muted.svg'); 
-          background-size: contain; 
-          background-repeat: no-repeat; 
+          width: 24px;
+          height: 24px;
+          background-image: url('https://startupcorners-df3e7.web.app/icons/mic-muted.svg');
+          background-size: contain;
+          background-repeat: no-repeat;
           display: none;
         "></span>
-        
+
         <!-- Camera Status Icon -->
         <span id="cam-status-{{uid}}" class="cam-status" title="Camera is off" style="
-          width: 24px; 
-          height: 24px; 
-          background-image: url('icons/camera-off.svg'); 
-          background-size: contain; 
-          background-repeat: no-repeat; 
+          width: 24px;
+          height: 24px;
+          background-image: url('icons/camera-off.svg');
+          background-size: contain;
+          background-repeat: no-repeat;
           display: none;
         "></span>
       </div>
-    </div>
-  `;
+    </div>`;
 
 const newMainApp = function (initConfig) {
   let screenClient;
@@ -506,12 +501,13 @@ function updateVideoWrapperSize() {
   const count = videoWrappers.length;
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
+
   const maxWrapperWidth = 800; // Maximum width of each video wrapper
   const maxWrapperHeight = screenHeight * 0.8; // Ensure the wrapper doesn't overflow the screen height
 
   videoWrappers.forEach((wrapper) => {
     wrapper.style.boxSizing = "border-box";
-    wrapper.style.margin = "5px";
+    wrapper.style.margin = "10px"; // Adjust margin for better spacing
     wrapper.style.borderRadius = "10px";
     wrapper.style.overflow = "hidden";
     wrapper.style.position = "relative";
@@ -570,6 +566,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateVideoWrapperSize();
 });
 
+
 const handleUserUnpublished = async (user, mediaType) => {
   if (mediaType === "video") {
     const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
@@ -615,25 +612,19 @@ const joinToVideoStage = async (user) => {
     const videoPlayer = document.querySelector(`#stream-${user.id}`);
     const avatarDiv = document.querySelector(`#avatar-${user.id}`);
 
-    // Ensure the camera starts off, so video is hidden and avatar is visible
     videoPlayer.style.display = "none";
     avatarDiv.style.display = "block";
 
-    // Mute the video track by default (camera off) and set the state
     await config.localVideoTrack.setMuted(true);
     config.localVideoTrackMuted = true;
 
-    // Trigger the `onCamMuted` event to indicate the camera is off
-    config.onCamMuted(user.id, true); // Camera is off by default
+    config.onCamMuted(user.id, true);
 
     // Publish only the local audio track (video remains off)
     await config.client.publish([config.localAudioTrack]);
 
-    // Handle any user-specific muting requirements (camera/mic)
-    if (config.onNeedMuteCameraAndMic(user)) {
-      toggleCamera(true); // Keep the camera off
-      toggleMic(true); // Optionally mute the microphone
-    }
+    // Adjust the video wrapper size after adding the new user
+    updateVideoWrapperSize();
   } catch (error) {
     console.error("Error joining video stage:", error);
     if (config.onError) {
@@ -641,6 +632,7 @@ const joinToVideoStage = async (user) => {
     }
   }
 };
+
 
 
 
@@ -1189,30 +1181,35 @@ const handleUserJoined = async (user) => {
     // Store the user in the remoteTracks object for tracking
     config.remoteTracks[user.uid] = user;
 
-    // Check if player already exists, prevent duplicates
-    let player = document.querySelector(`#video-wrapper-${user.uid}`);
-    if (!player) {
-      console.log(`Creating video container for user: ${user.uid}`);
+    // Use the user information passed during initialization (via newMainApp)
+    const remoteUser = {
+      id: user.uid,
+      name: user.name || `User ${user.uid}`, // Use the name from initialization or fallback
+      avatar: user.avatar || "default-avatar-url", // Use the avatar from initialization or fallback
+    };
 
-      // Generate the player's HTML container
-      const playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, user.name || `User ${user.uid}`)
-        .replace(/{{avatar}}/g, user.avatar || "default-avatar-url");
+    // Generate the player's HTML container for the user
+    let playerHTML = config.participantPlayerContainer
+      .replace(/{{uid}}/g, remoteUser.id) // Use the user ID for the wrapper
+      .replace(/{{name}}/g, remoteUser.name) // Insert the user's name
+      .replace(/{{avatar}}/g, remoteUser.avatar); // Insert the user's avatar
 
-      // Insert the player container into the DOM
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
+    // Insert the new player container into the video stage
+    document
+      .querySelector(config.callContainerSelector)
+      .insertAdjacentHTML("beforeend", playerHTML);
 
-      // Ensure avatar is displayed and video is hidden initially
-      const videoPlayer = document.querySelector(`#stream-${user.uid}`);
-      const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-      if (videoPlayer && avatarDiv) {
-        videoPlayer.style.display = "none"; // Hide video player until video is published
-        avatarDiv.style.display = "block"; // Show the avatar initially
-      }
+    // Ensure the avatar is displayed and the video player is hidden until video is published
+    const videoPlayer = document.querySelector(`#stream-${remoteUser.id}`);
+    const avatarDiv = document.querySelector(`#avatar-${remoteUser.id}`);
+
+    if (videoPlayer && avatarDiv) {
+      videoPlayer.style.display = "none"; // Hide the video player (camera off initially)
+      avatarDiv.style.display = "block"; // Show the avatar
     }
+
+    // Call updateVideoWrapperSize to adjust the layout after the new player is added
+    updateVideoWrapperSize();
   } catch (error) {
     console.log("Error during user join:", error);
     if (config.onError) {
@@ -1220,6 +1217,7 @@ const handleUserJoined = async (user) => {
     }
   }
 };
+
 
 
 
@@ -1242,18 +1240,21 @@ const handleUserLeft = async (user, reason) => {
       config.onParticipantLeft(user);
     }
 
-    // If there's any additional cleanup related to user audio tracks, add it here
-    // For example, if you store or manage audio tracks in config.remoteTracks:
+    // Stop and clean up audio tracks if they exist
     if (
       config.remoteTracks[user.uid] &&
       config.remoteTracks[user.uid].audioTrack
     ) {
       config.remoteTracks[user.uid].audioTrack.stop();
     }
+
+    // Call the function to update the layout after a user leaves
+    updateVideoWrapperSize();
   } catch (error) {
     console.error(`Error handling user left: ${error}`);
   }
 };
+
 
 
   const handleVolumeIndicator = (result) => {
