@@ -1214,7 +1214,7 @@ const handleUserJoined = async (user) => {
     console.log(`User joined with UID: ${user.uid}`);
 
     // Fetch user attributes from RTM
-    const userAttributes = await clientRTM.getUserAttributesByUid(
+    const userAttributes = await clientRTM.getUserAttributes(
       user.uid.toString()
     );
     const userName = userAttributes.name || `User ${user.uid}`;
