@@ -493,6 +493,7 @@ const join = async () => {
 };
 
 
+
 function updateVideoWrapperSize() {
   const videoStage = document.getElementById("video-stage");
 
@@ -587,57 +588,59 @@ const handleUserUnpublished = async (user, mediaType) => {
 
 const joinToVideoStage = async (user) => {
   try {
-    // Create local audio track but don't start the video track immediately
+    // Create local audio track
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
-    // Initialize the video track but don't play it yet
+    // Initialize the video track but keep it off initially
     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
-    // Create the video player container for the user, but don't start the video track
+    // Remove any previous instance of the video player container for this user
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player != null) {
       player.remove(); // Remove old player if it exists
     }
 
-    // Generate the player's HTML container, including the avatar
+    // Generate the player's HTML container using the name, avatar, and role passed from `newMainApp()`
     let localPlayerContainer = config.participantPlayerContainer
       .replaceAll("{{uid}}", user.id)
-      .replaceAll("{{name}}", user.name)
-      .replaceAll("{{avatar}}", user.avatar); // Ensure avatar is replaced correctly
+      .replaceAll("{{name}}", user.name) // Directly use the passed name
+      .replaceAll("{{avatar}}", user.avatar); // Directly use the passed avatar
 
     // Insert the new player container into the video stage
     document
       .querySelector(config.callContainerSelector)
       .insertAdjacentHTML("beforeend", localPlayerContainer);
 
-    // Make sure the video is not playing (camera off) and the avatar is visible
+    // Set the video to be off (not played) initially and show the avatar
     const videoPlayer = document.querySelector(`#stream-${user.id}`);
     const avatarDiv = document.querySelector(`#avatar-${user.id}`);
 
-    // Set the video to be off (not played) initially and show the avatar
+    // Ensure the camera starts off, so video is hidden and avatar is visible
     videoPlayer.style.display = "none";
     avatarDiv.style.display = "block";
 
-    // Automatically mute the video track and show the avatar by default
-    await config.localVideoTrack.setMuted(true); // Ensure video is muted (camera off)
+    // Mute the video track by default (camera off) and set the state
+    await config.localVideoTrack.setMuted(true);
     config.localVideoTrackMuted = true;
 
     // Trigger the `onCamMuted` event to indicate the camera is off
-    config.onCamMuted(user.id, true); // Pass `true` to indicate the camera is muted
+    config.onCamMuted(user.id, true); // Camera is off by default
 
-    // Publish the local audio track only (video will remain off)
+    // Publish only the local audio track (video remains off)
     await config.client.publish([config.localAudioTrack]);
 
-    // Handle muting if needed (based on user preferences)
+    // Handle any user-specific muting requirements (camera/mic)
     if (config.onNeedMuteCameraAndMic(user)) {
       toggleCamera(true); // Keep the camera off
-      toggleMic(true); // Optionally mute the microphone if needed
+      toggleMic(true); // Optionally mute the microphone
     }
   } catch (error) {
-    config.onError(error);
+    console.error("Error joining video stage:", error);
+    if (config.onError) {
+      config.onError(error);
+    }
   }
 };
-
 
 
 
@@ -1163,39 +1166,46 @@ const toggleScreenShare = async (isEnabled) => {
   };
 
 
-  const handleUserJoined = async (user) => {
-    log("handleUserJoined Here");
-    config.remoteTracks[user.uid] = user;
+const handleUserJoined = async (user) => {
+  log("handleUserJoined Here");
 
-    const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
+  // Store the user in the remoteTracks object
+  config.remoteTracks[user.uid] = user;
 
-    try {
-      // Fetch user attributes from RTM using the stringified UID
-      const userAttr = await clientRTM.getUserAttributes(rtmUid);
+  try {
+    // Use the user information passed during initialization (via newMainApp)
+    const remoteUser = {
+      id: user.uid,
+      name: user.name || `User ${user.uid}`, // Use the name from initialization or fallback to default
+      avatar: user.avatar || "default-avatar-url", // Use the avatar from initialization or fallback to default
+    };
 
-      // Use the integer UID for the wrapper and player
-      let playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid) // Integer UID for the video wrapper
-        .replace(/{{name}}/g, userAttr.name || "Unknown")
-        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
+    // Generate the player's HTML container for the user
+    let playerHTML = config.participantPlayerContainer
+      .replace(/{{uid}}/g, remoteUser.id) // Integer UID for the video wrapper
+      .replace(/{{name}}/g, remoteUser.name) // Use the name passed during initialization
+      .replace(/{{avatar}}/g, remoteUser.avatar); // Use the avatar passed during initialization
 
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
+    // Insert the new player container into the video stage
+    document
+      .querySelector(config.callContainerSelector)
+      .insertAdjacentHTML("beforeend", playerHTML);
 
-      const player = document.querySelector(`#video-wrapper-${user.uid}`); // Integer UID
+    // Ensure the avatar is displayed and the video player is hidden until video is published
+    const videoPlayer = document.querySelector(`#stream-${remoteUser.id}`);
+    const avatarDiv = document.querySelector(`#avatar-${remoteUser.id}`);
 
-      // Hide the video player and show the avatar since the user hasn't published video
-      const videoPlayer = document.querySelector(`#stream-${user.uid}`); // Integer UID
-      const avatarDiv = document.querySelector(`#avatar-${user.uid}`); // Integer UID
-      if (videoPlayer && avatarDiv) {
-        videoPlayer.style.display = "none"; // Hide the video player
-        avatarDiv.style.display = "block"; // Show the avatar
-      }
-    } catch (error) {
-      log("Failed to fetch user attributes:", error);
+    if (videoPlayer && avatarDiv) {
+      videoPlayer.style.display = "none"; // Hide the video player (camera off initially)
+      avatarDiv.style.display = "block"; // Show the avatar
     }
-  };
+  } catch (error) {
+    log("Error during user join:", error);
+    if (config.onError) {
+      config.onError(error);
+    }
+  }
+};
 
 const handleUserLeft = async (user, reason) => {
   try {
