@@ -684,11 +684,18 @@ const joinRTM = async (rtmToken) => {
     console.log("RTM Token (during login):", rtmToken);
     console.log("RTM UID (during login):", rtmUid);
 
+    // Check if the user is already logged in, and log out if necessary
+    if (clientRTM.connectionState === "CONNECTED") {
+      console.log("User is already logged in, logging out first...");
+      await clientRTM.logout();
+      console.log("User successfully logged out from RTM.");
+    }
+
     // RTM login with the token
     await clientRTM.login({ token: rtmToken, uid: rtmUid });
     console.log(`RTM login successful for UID: ${rtmUid}`);
 
-    // Update local user attributes in RTM
+    // Update local user attributes in RTM (name, avatar)
     await clientRTM.addOrUpdateLocalUserAttributes({
       name: config.user.name, // Set user's name
       avatar: config.user.avatar, // Set user's avatar
@@ -702,8 +709,6 @@ const joinRTM = async (rtmToken) => {
     console.error("RTM join process failed:", error);
   }
 };
-
-
 
 
   const leave = async () => {
