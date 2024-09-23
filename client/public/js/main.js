@@ -170,6 +170,7 @@ const newMainApp = function (initConfig) {
   }
 
   // Call any additional functions related to camera muting, like in Bubble
+  console.log("Run bubble_fn_isCamOff.");
   bubble_fn_isCamOff(isMuted);
 },
     onScreenShareEnabled: (enabled) => {
