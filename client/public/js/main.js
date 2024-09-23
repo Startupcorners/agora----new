@@ -6,11 +6,11 @@
  * <script src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
  */
 const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
-      flex: 1 1 auto;
+      flex: 1 1 30%; /* Responsive flex layout for better alignment */
       max-width: 30%; 
       min-width: 200px;
       min-height: 220px;
-      display: hidden;
+      display: flex; /* Changed from 'hidden' to 'flex' */
       justify-content: center;
       align-items: center;
       margin: 10px;
@@ -78,7 +78,8 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
           display: none;
         "></span>
       </div>
-    </div>`;
+</div>
+`;
 
 const newMainApp = function (initConfig) {
   let screenClient;
@@ -501,12 +502,13 @@ function updateVideoWrapperSize() {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
 
-  const maxWrapperWidth = 800; // Maximum width of each video wrapper
-  const maxWrapperHeight = screenHeight * 0.8; // Ensure the wrapper doesn't overflow the screen height
+  const maxWrapperWidth =
+    screenWidth > 768 ? screenWidth * 0.3 : screenWidth * 0.9; // Adjust based on screen size
+  const maxWrapperHeight = screenHeight * 0.6; // Limit the height to 60% of screen height
 
   videoWrappers.forEach((wrapper) => {
     wrapper.style.boxSizing = "border-box";
-    wrapper.style.margin = "10px"; // Adjust margin for better spacing
+    wrapper.style.margin = "10px";
     wrapper.style.borderRadius = "10px";
     wrapper.style.overflow = "hidden";
     wrapper.style.position = "relative";
@@ -514,8 +516,19 @@ function updateVideoWrapperSize() {
     wrapper.style.display = "flex";
     wrapper.style.justifyContent = "center";
     wrapper.style.alignItems = "center";
-    wrapper.style.height = "auto"; // Auto height to prevent overflow
-    wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Limit height to 80% of screen height
+    wrapper.style.height = "auto";
+    wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Limit height to prevent overflow
+
+    // Ensure video content stays visible and fits inside the wrapper
+    const videoPlayer = wrapper.querySelector(".video-player");
+    if (videoPlayer) {
+      videoPlayer.style.display = "flex";
+      videoPlayer.style.justifyContent = "center";
+      videoPlayer.style.alignItems = "center";
+      videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
+      videoPlayer.style.width = "100%"; // Ensure the video uses full width
+      videoPlayer.style.height = "100%"; // Ensure video fills the height
+    }
 
     // Handle small screens (<= 768px)
     if (screenWidth <= 768) {
@@ -530,33 +543,21 @@ function updateVideoWrapperSize() {
         wrapper.style.width = `${maxWrapperWidth}px`;
         wrapper.style.height = "auto"; // Use auto to dynamically adapt the height
       } else if (count === 2) {
-        wrapper.style.flex = "1 1 45%"; // 45% width for two players
+        wrapper.style.flex = "1 1 45%"; // Adjust to fit two videos side by side
         wrapper.style.maxWidth = "45%";
-        wrapper.style.height = "auto"; // No fixed height, use auto
+        wrapper.style.height = "auto";
       } else if (count === 3) {
-        wrapper.style.flex = "1 1 30%";
+        wrapper.style.flex = "1 1 30%"; // Adjust to fit three videos
         wrapper.style.maxWidth = "30%";
         wrapper.style.height = "auto";
       } else {
-        wrapper.style.flex = "1 1 23%";
+        wrapper.style.flex = "1 1 23%"; // Adjust to fit four or more videos
         wrapper.style.maxWidth = "23%";
         wrapper.style.height = "auto";
       }
     }
-
-    // Ensure video content stays visible and fits inside the wrapper
-    const videoPlayer = wrapper.querySelector(".video-player");
-    if (videoPlayer) {
-      videoPlayer.style.display = "flex";
-      videoPlayer.style.justifyContent = "center";
-      videoPlayer.style.alignItems = "center";
-      videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
-      videoPlayer.style.width = "100%"; // Ensure the video uses full width
-      videoPlayer.style.height = "100%"; // Ensure video fills the height
-    }
   });
 }
-
 
 // Add a resize event listener to update video wrapper sizes dynamically
 window.addEventListener("resize", updateVideoWrapperSize);
@@ -565,6 +566,7 @@ window.addEventListener("resize", updateVideoWrapperSize);
 document.addEventListener("DOMContentLoaded", () => {
   updateVideoWrapperSize();
 });
+
 
 
 const handleUserUnpublished = async (user, mediaType) => {
