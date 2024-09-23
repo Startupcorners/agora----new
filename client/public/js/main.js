@@ -1215,11 +1215,21 @@ const handleUserJoined = async (user) => {
     // Initialize or update the userInfoMap to store user info
     config.userInfoMap = config.userInfoMap || {}; // Ensure it's initialized as an empty object
 
-    // Store user info when they join
+    // Add logging to check if user.name and user.avatar are available
+    console.log("User info received:", user);
+
+    // Check if name and avatar exist, use fallback if not
+    const userName = user.name || `User ${user.uid}`;
+    const userAvatar = user.avatar || "path/to/default-avatar.png";
+
+    console.log("User name:", userName);
+    console.log("User avatar:", userAvatar);
+
+    // Store user info in userInfoMap
     config.userInfoMap[user.uid] = {
       id: user.uid,
-      name: user.name || `User ${user.uid}`, // Fallback if name is not provided
-      avatar: user.avatar || "path/to/default-avatar.png", // Fallback if avatar is not provided
+      name: userName, // Use the checked or fallback name
+      avatar: userAvatar, // Use the checked or fallback avatar
     };
 
     // Generate the player's HTML container for the user
@@ -1227,6 +1237,8 @@ const handleUserJoined = async (user) => {
       .replace(/{{uid}}/g, user.uid) // Use the user ID for the wrapper
       .replace(/{{name}}/g, config.userInfoMap[user.uid].name) // Insert the user's name from userInfoMap
       .replace(/{{avatar}}/g, config.userInfoMap[user.uid].avatar); // Insert the user's avatar from userInfoMap
+
+    console.log("Generated HTML for player:", playerHTML);
 
     // Insert the new player container into the video stage
     document
