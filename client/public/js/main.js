@@ -547,13 +547,22 @@ function updateVideoWrapperSize() {
 
     // Ensure video content stays visible and fits inside the wrapper
     const videoPlayer = wrapper.querySelector(".video-player");
-    if (videoPlayer) {
-      videoPlayer.style.display = "flex";
-      videoPlayer.style.justifyContent = "center";
-      videoPlayer.style.alignItems = "center";
-      videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
-      videoPlayer.style.width = "100%"; // Ensure the video uses full width
-      videoPlayer.style.height = "100%"; // Ensure video fills the height
+    const avatarDiv = wrapper.querySelector(".user-avatar");
+
+    // Check if the camera is on or off and adjust visibility accordingly
+    if (videoPlayer && avatarDiv) {
+      if (avatarDiv.style.display === "block") {
+        // If the avatar is visible, hide the video player
+        videoPlayer.style.display = "none";
+      } else {
+        // If the avatar is hidden, show the video player
+        videoPlayer.style.display = "flex";
+        videoPlayer.style.justifyContent = "center";
+        videoPlayer.style.alignItems = "center";
+        videoPlayer.style.objectFit = "cover"; // Maintain aspect ratio
+        videoPlayer.style.width = "100%"; // Ensure the video uses full width
+        videoPlayer.style.height = "100%"; // Ensure video fills the height
+      }
     }
   });
 }
