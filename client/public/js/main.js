@@ -701,7 +701,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       .login({
         uid: rtmUid,
         token:
-          "007eJxTYLimzigUtj6vt1jriEf1g6VtXrF7Of2yJ6xZ9U9CoPnUbgUFBkvTVEtDSwuDVFMTE5NEi1QLsySTVBPDZPM0A+Mkc0Pj1Mkf0xoCGRnSe78xMjKwMjAyMDGA+AwMADK3HQE=",
+          "007eJxTYGhjcJjiL5H0Plmp3qRsQl5QuPzKf17TjNJdTSZ+u1e0QFyBwdI01dLQ0sIg1dTExCTRItXCLMkk1cQw2TzNwDjJ3ND47eSPaQ2BjAyPG7OZGRlYGRgZmBhAfAYGAPMAHIQ=",
       })
       .catch((error) => {
         console.error(
