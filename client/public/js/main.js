@@ -587,48 +587,47 @@ const handleUserUnpublished = async (user, mediaType) => {
 
 const joinToVideoStage = async (user) => {
   try {
-    // Create audio and video tracks but do not play or publish the video initially
+    // Create local audio and video tracks
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
-    // Ensure the camera is off when joining
-    await config.localVideoTrack.setMuted(true); // Mute the video track (camera off)
+    // Ensure camera is muted when joining by default
+    await config.localVideoTrack.setMuted(true);
     config.localVideoTrackMuted = true;
 
-    config.onCamMuted(config.localVideoTrackMuted);
+    // Call onCamMuted with the correct UID
+    config.onCamMuted(config.uid, config.localVideoTrackMuted);
 
-    // Toggle mic based on whether it should be muted by default
-    if (config.onNeedMuteCameraAndMic(user)) {
-      await toggleMic(true);
-    }
-
-    // Create and insert the video player element for the user
+    // Remove the existing video wrapper if any
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player != null) {
       player.remove();
     }
-    console.log("Avatar URL:", user.avatar);
+
+    // Create the video wrapper for the user
     let localPlayerContainer = config.participantPlayerContainer
       .replaceAll("{{uid}}", user.id)
       .replaceAll("{{name}}", user.name)
-      .replaceAll("{{avatar}}", user.avatar); // Ensure avatar is replaced as well
+      .replaceAll("{{avatar}}", user.avatar);
 
     document
       .querySelector(config.callContainerSelector)
       .insertAdjacentHTML("beforeend", localPlayerContainer);
 
-    // Set up to only play/publish the video track when camera is toggled on later
+    // Play the local video track, if required
     if (user.id === config.uid) {
-      console.log("User joined with camera off.");
-      // Do not play or publish the video track yet
-      // Only publish audio track initially
-      await config.client.publish([config.localAudioTrack]);
+      config.localVideoTrack.play(`stream-${user.id}`);
+      // Publish the audio and muted video tracks
+      await config.client.publish([
+        config.localAudioTrack,
+        config.localVideoTrack,
+      ]);
     }
   } catch (error) {
-    console.error("Error joining video stage:", error);
     config.onError(error);
   }
 };
+
 
 
 
