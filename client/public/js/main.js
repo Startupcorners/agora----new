@@ -697,13 +697,19 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     console.log("RTM UID (during login):", rtmUid);
 
     // RTM login with the token
-    await clientRTM.login({ uid: rtmUid, token: rtmToken }).catch((error) => {
-      console.error(
-        "RTM login failed. Full error object:",
-        JSON.stringify(error, null, 2)
-      );
-      throw error; // Rethrow the error so the retry logic kicks in
-    });
+    await clientRTM
+      .login({
+        uid: rtmUid,
+        token:
+          "007eJxTYLimzigUtj6vt1jriEf1g6VtXrF7Of2yJ6xZ9U9CoPnUbgUFBkvTVEtDSwuDVFMTE5NEi1QLsySTVBPDZPM0A+Mkc0Pj1Mkf0xoCGRnSe78xMjKwMjAyMDGA+AwMADK3HQE=",
+      })
+      .catch((error) => {
+        console.error(
+          "RTM login failed. Full error object:",
+          JSON.stringify(error, null, 2)
+        );
+        throw error; // Rethrow the error so the retry logic kicks in
+      });
     console.log(`RTM login successful for UID: ${rtmUid}`);
 
     // Update local user attributes in RTM
