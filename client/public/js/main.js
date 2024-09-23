@@ -7,36 +7,35 @@
  */
 const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
   flex: 1 1 auto;
-  max-width: 100%; 
-  width: calc(100vh * (16 / 9)); /* Dynamic width based on height for 16:9 ratio */
-  min-width: 200px;
-  max-height: 90vh; /* Ensure it doesn't overflow vertically */
-  min-height: 220px;
-  position: relative;
+  width: 100%; /* Start with full width */
+  height: auto;
+  max-width: 100%;
+  max-height: calc(100vh - 20px); /* Ensure it stays within the screen */
+  aspect-ratio: 16/9; /* Maintain a 16:9 ratio */
+  display: flex;
+  justify-content: center;
+  align-items: center;
   margin: 10px;
   border-radius: 10px;
   background-color: #3c4043;
-  box-sizing: border-box;
   overflow: hidden;
+  position: relative;
+  box-sizing: border-box;
 " data-uid="{{uid}}">
   <!-- Video Player -->
   <div id="stream-{{uid}}" class="video-player" style="
-    position: absolute;
-    top: 0;
-    left: 0;
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: none; /* Initially hidden as the camera is off */
+    display: none; /* Initially hidden because the camera is off */
   "></div>
-  
+
   <!-- User Avatar (shown when video is off) -->
   <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" style="
     position: absolute;
-    top: 50%; 
+    top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    display: block; /* Display the avatar initially */
     width: 100px;
     height: 100px;
     border-radius: 50%;
