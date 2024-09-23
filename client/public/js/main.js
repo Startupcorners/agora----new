@@ -449,14 +449,18 @@ const fetchTokens = async () => {
 
 const join = async () => {
   try {
-    // Initialize the Agora RTC client
-    config.client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
-
-    // Fetch both RTC and RTM tokens
+    // Fetch both RTC and RTM tokens first
     const tokens = await fetchTokens(); // Ensure this returns both rtcToken and rtmToken
     console.log("RTC Token (during join):", tokens.rtcToken);
     console.log("RTM Token (during join):", tokens.rtmToken);
     console.log("RTC UID (during join):", config.uid);
+
+    // Step 1: Join RTM first
+    await joinRTM(tokens.rtmToken); // Ensure RTM is joined successfully before proceeding
+    console.log("RTM joined successfully");
+
+    // Step 2: Initialize the Agora RTC client
+    config.client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
 
     // Set the RTC client role based on the user's role
     await config.client.setClientRole(
@@ -484,9 +488,6 @@ const join = async () => {
       uid
     );
     await config.client.join(appId, channelName, tokens.rtcToken, uid);
-
-    // Call the joinRTM function to handle RTM join
-    await joinRTM(tokens.rtmToken);
 
     // User joins the video stage with camera off
     if (config.onNeedJoinToVideoStage(config.user)) {
@@ -673,103 +674,6 @@ const joinToVideoStage = async (user) => {
 
 
 
-const joinRTM = async (rtmToken, retryCount = 0) => {
-  try {
-
-    await shutdownRTM();
-    const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
-
-    // If the user is already logged in, attempt to log them out first
-    if (clientRTM && clientRTM._logined) {
-      console.log(`User ${rtmUid} is already logged in. Logging out...`);
-      await clientRTM.logout();
-      console.log(`User ${rtmUid} logged out successfully.`);
-    }
-
-    // Log the RTM Token and UID
-    console.log("RTM Token (during login):", rtmToken);
-    console.log("RTM UID (during login):", rtmUid);
-
-    // RTM login with the token
-    await clientRTM.login({ token: rtmToken, uid: rtmUid }).catch((error) => {
-      console.error(
-        "RTM login failed. Full error object:",
-        JSON.stringify(error, null, 2)
-      );
-      throw error; // Rethrow the error so the retry logic kicks in
-    });
-    console.log(`RTM login successful for UID: ${rtmUid}`);
-
-    // Update local user attributes in RTM
-    await clientRTM.addOrUpdateLocalUserAttributes({
-      name: config.user.name, // Set user's name
-      avatar: config.user.avatar, // Set user's avatar
-    });
-    console.log("User attributes (name, avatar) updated in RTM.");
-
-    clientRTM.login({ token: rtmToken, uid: rtmUid });
-
-    // Join the RTM channel
-    await channelRTM.join();
-    console.log("Joined RTM channel successfully");
-  } catch (error) {
-    console.error("RTM join process failed:", JSON.stringify(error, null, 2));
-
-    // Check if the error is due to an invalid or expired token (Error Code 5)
-    if (
-      (error.code === 5 || error.message.includes("Invalid token")) &&
-      retryCount < 5
-    ) {
-      console.log(
-        `Invalid RTM token. Attempting to reissue a new token (retry ${
-          retryCount + 1
-        }/5)...`
-      );
-
-      // Fetch new tokens (both RTC and RTM) from your token server
-      const newTokens = await fetchTokens(); // Reuse the fetchTokens function
-
-      // Retry RTM login with the new token, increasing the retry count
-      await joinRTM(newTokens.rtmToken, retryCount + 1);
-    } else if (retryCount >= 5) {
-      console.error("Exceeded maximum retry attempts. Cannot join RTM.");
-      throw new Error("Failed to join RTM after 5 attempts.");
-    } else {
-      console.error(
-        "RTM join failed for a different reason:",
-        JSON.stringify(error, null, 2)
-      );
-      throw error;
-    }
-  }
-};
-
-const shutdownRTM = async () => {
-  try {
-    // Check if the RTM client is defined and the user is logged in
-    if (clientRTM && clientRTM._logined) {
-      console.log(`RTM user is currently logged in. Logging out...`);
-
-      // Leave the RTM channel if joined
-      if (channelRTM) {
-        await channelRTM.leave();
-        console.log("Left the RTM channel successfully.");
-      }
-
-      // Log the user out of RTM
-      await clientRTM.logout();
-      console.log("Logged out of RTM successfully.");
-
-      // Optionally destroy the RTM client if needed (depending on your use case)
-      // clientRTM.release();
-      // console.log("RTM client destroyed.");
-    } else {
-      console.log("No active RTM session found. Skipping shutdown.");
-    }
-  } catch (error) {
-    console.error("Error while shutting down RTM:", error);
-  }
-};
 
 
   const leave = async () => {
