@@ -500,6 +500,12 @@ const join = async () => {
   }
 };
 
+
+
+
+
+
+
 function updateVideoWrapperSize() {
   const videoStage = document.getElementById("video-stage");
 
@@ -674,7 +680,74 @@ const joinToVideoStage = async (user) => {
 
 
 
+const joinRTM = async (rtmToken, retryCount = 0) => {
+  try {
 
+    const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
+
+    // If the user is already logged in, attempt to log them out first
+    if (clientRTM && clientRTM._logined) {
+      console.log(`User ${rtmUid} is already logged in. Logging out...`);
+      await clientRTM.logout();
+      console.log(`User ${rtmUid} logged out successfully.`);
+    }
+
+    // Log the RTM Token and UID
+    console.log("RTM Token (during login):", rtmToken);
+    console.log("RTM UID (during login):", rtmUid);
+
+    // RTM login with the token
+    await clientRTM.login({ token: rtmToken, uid: rtmUid }).catch((error) => {
+      console.error(
+        "RTM login failed. Full error object:",
+        JSON.stringify(error, null, 2)
+      );
+      throw error; // Rethrow the error so the retry logic kicks in
+    });
+    console.log(`RTM login successful for UID: ${rtmUid}`);
+
+    // Update local user attributes in RTM
+    await clientRTM.addOrUpdateLocalUserAttributes({
+      name: config.user.name, // Set user's name
+      avatar: config.user.avatar, // Set user's avatar
+    });
+    console.log("User attributes (name, avatar) updated in RTM.");
+
+
+    // Join the RTM channel
+    await channelRTM.join();
+    console.log("Joined RTM channel successfully");
+  } catch (error) {
+    console.error("RTM join process failed:", JSON.stringify(error, null, 2));
+
+    // Check if the error is due to an invalid or expired token (Error Code 5)
+    if (
+      (error.code === 5 || error.message.includes("Invalid token")) &&
+      retryCount < 5
+    ) {
+      console.log(
+        `Invalid RTM token. Attempting to reissue a new token (retry ${
+          retryCount + 1
+        }/5)...`
+      );
+
+      // Fetch new tokens (both RTC and RTM) from your token server
+      const newTokens = await fetchTokens(); // Reuse the fetchTokens function
+
+      // Retry RTM login with the new token, increasing the retry count
+      await joinRTM(newTokens.rtmToken, retryCount + 1);
+    } else if (retryCount >= 5) {
+      console.error("Exceeded maximum retry attempts. Cannot join RTM.");
+      throw new Error("Failed to join RTM after 5 attempts.");
+    } else {
+      console.error(
+        "RTM join failed for a different reason:",
+        JSON.stringify(error, null, 2)
+      );
+      throw error;
+    }
+  }
+};
 
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
