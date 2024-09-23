@@ -10,7 +10,7 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
       max-width: 30%; 
       min-width: 200px;
       min-height: 220px;
-      display: flex;
+      display: hidden;
       justify-content: center;
       align-items: center;
       margin: 10px;
