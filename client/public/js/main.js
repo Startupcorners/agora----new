@@ -622,6 +622,9 @@ const joinToVideoStage = async (user) => {
     await config.localVideoTrack.setMuted(true); // Ensure video is muted (camera off)
     config.localVideoTrackMuted = true;
 
+    // Trigger the `onCamMuted` event to indicate the camera is off
+    config.onCamMuted(user.id, true); // Pass `true` to indicate the camera is muted
+
     // Publish the local audio track only (video will remain off)
     await config.client.publish([config.localAudioTrack]);
 
