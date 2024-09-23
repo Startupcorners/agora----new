@@ -502,7 +502,6 @@ function updateVideoWrapperSize() {
   const screenWidth = window.innerWidth;
   const screenHeight = window.innerHeight;
 
-  // Define maximum size for video wrappers based on screen size
   const maxWrapperWidth = Math.min(800, screenWidth * 0.8); // Max 80% of screen width
   const maxWrapperHeight = screenHeight * 0.8; // Max 80% of screen height
 
@@ -516,8 +515,9 @@ function updateVideoWrapperSize() {
     wrapper.style.position = "relative";
     wrapper.style.backgroundColor = "#3c4043";
     wrapper.style.display = "flex";
-    wrapper.style.justifyContent = "center";
-    wrapper.style.alignItems = "center";
+    wrapper.style.justifyContent = "center"; // Ensure centering
+    wrapper.style.alignItems = "center"; // Ensure centering
+    wrapper.style.height = "auto"; // Auto height to prevent overflow
     wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Limit height to 80% of screen height
 
     // Handle small screens (<= 768px)
@@ -550,13 +550,20 @@ function updateVideoWrapperSize() {
 
     // Ensure video content stays visible and fits inside the wrapper
     const videoPlayer = wrapper.querySelector(".video-player");
-    if (videoPlayer) {
-      videoPlayer.style.display = "flex";
-      videoPlayer.style.justifyContent = "center";
-      videoPlayer.style.alignItems = "center";
-      videoPlayer.style.objectFit = "cover";
-      videoPlayer.style.width = "100%"; // Ensure the video uses full width
-      videoPlayer.style.height = "100%"; // Ensure video fills the height
+    const avatar = wrapper.querySelector(".user-avatar");
+
+    // Check if the camera is off, and adjust display accordingly
+    if (videoPlayer && avatar) {
+      if (videoPlayer.style.display === "none") {
+        avatar.style.display = "block"; // Show avatar when the camera is off
+        wrapper.style.justifyContent = "center"; // Center the avatar
+        wrapper.style.alignItems = "center"; // Ensure vertical centering
+      } else {
+        avatar.style.display = "none"; // Hide avatar when the camera is on
+        videoPlayer.style.display = "flex"; // Ensure video player uses flex
+        wrapper.style.justifyContent = "center"; // Center the video player
+        wrapper.style.alignItems = "center"; // Ensure vertical centering
+      }
     }
   });
 
@@ -564,6 +571,7 @@ function updateVideoWrapperSize() {
   videoStage.style.overflowX = "hidden"; // Prevent horizontal overflow
   videoStage.style.overflowY = count > 3 ? "auto" : "hidden"; // Scroll vertically if needed
 }
+
 
 // Add a resize event listener to update video wrapper sizes dynamically
 window.addEventListener("resize", updateVideoWrapperSize);
