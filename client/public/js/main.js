@@ -138,9 +138,28 @@ const newMainApp = function (initConfig) {
       log("onMicMuted");
       log(isMuted);
     },
-    onCamMuted: (isMuted) => {
-      log("onCamMuted");
-      log(isMuted);
+    onCamMuted: (uid, isMuted) => {
+      console.log(
+        `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
+      );
+
+      const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
+      if (videoWrapper) {
+        const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
+        const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
+
+        if (isMuted) {
+          videoPlayer.style.display = "none"; // Hide the video player
+          avatarDiv.style.display = "block"; // Show the avatar
+        } else {
+          videoPlayer.style.display = "block"; // Show the video player
+          avatarDiv.style.display = "none"; // Hide the avatar
+        }
+      }
+
+      // Call any additional functions related to camera muting, like in Bubble
+      console.log("Run bubble_fn_isCamOff.", isMuted);
+      bubble_fn_isCamOff(isMuted);
     },
     onScreenShareEnabled: (enabled) => {
       log("onScreenShareEnabled");
