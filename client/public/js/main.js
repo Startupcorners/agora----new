@@ -255,7 +255,7 @@ const newMainApp = function (initConfig) {
     config.onSpeakerChanged(info);
   };
 
-  
+  console.log("appid:", config.appId);
  const clientRTM = AgoraRTM.createInstance(config.appId, {
    enableLogUpload: false,
    logFilter: AgoraRTM.LOG_FILTER_DEBUG,
