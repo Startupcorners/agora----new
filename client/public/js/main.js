@@ -1,4 +1,3 @@
-
 /**
  * please include agora on your html, since this not use nodejs import module approach
  * <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
@@ -6,99 +5,12 @@
  * <script src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
  */
 
-
-
-const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
-  flex: 1 1 auto;
-  width: 100%; /* Start with full width */
-  height: auto;
-  max-width: 100%;
-  max-height: calc(100vh - 20px); /* Ensure it stays within the screen */
-  aspect-ratio: 16/9; /* Maintain a 16:9 ratio */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 10px;
-  border-radius: 10px;
-  background-color: #3c4043;
-  overflow: hidden;
-  position: relative;
-  box-sizing: border-box;
-" data-uid="{{uid}}">
-  <!-- Video Player -->
-  <div id="stream-{{uid}}" class="video-player" style="
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: none; /* Initially hidden because the camera is off */
-  "></div>
-
-  <!-- User Avatar (shown when video is off) -->
-  <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" style="
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    object-fit: cover;
-  " />
-
-  <!-- User Name -->
-  <div id="name-{{uid}}" class="user-name" style="
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    font-size: 16px;
-    color: #fff;
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 5px 10px;
-    border-radius: 5px;
-  ">
-    {{name}}
-  </div>
-
-  <!-- Participant Status Indicators -->
-  <div class="status-indicators" style="
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    gap: 5px;
-  ">
-    <!-- Microphone Status Icon -->
-    <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" style="
-      width: 24px;
-      height: 24px;
-      background-image: url('https://startupcorners-df3e7.web.app/icons/mic-muted.svg');
-      background-size: contain;
-      background-repeat: no-repeat;
-      display: none;
-    "></span>
-
-    <!-- Camera Status Icon -->
-    <span id="cam-status-{{uid}}" class="cam-status" title="Camera is off" style="
-      width: 24px;
-      height: 24px;
-      background-image: url('icons/camera-off.svg');
-      background-size: contain;
-      background-repeat: no-repeat;
-      display: block;
-    "></span>
-  </div>
-</div>
-`;
-
-const newMainApp = function (initConfig) {
-  let screenClient;
-  let localScreenShareTrack;
-  let wasCameraOnBeforeSharing = false;
+const MainApp = function (initConfig) {
   let config = {
     debugEnabled: true,
-    callContainerSelector: "#video-stage",
-    participantPlayerContainer: templateVideoParticipant,
-    appId: "95e91980e5444a8e86b4e41c7f03b713",
+    callContainerSelector: null,
+    participantPlayerContainer: null,
+    appId: null,
     timestamp: "",
     recordId: null,
     uid: null,
@@ -111,7 +23,7 @@ const newMainApp = function (initConfig) {
       company: "",
       profileLink: "",
     },
-    serverUrl: "https://agora-new.vercel.app",
+    serverUrl: null,
     token: null,
     channelName: null,
     localAudioTrack: null,
@@ -125,12 +37,10 @@ const newMainApp = function (initConfig) {
     onParticipantsChanged: (participantIds) => {
       log("onParticipantsChanged");
       log(participantIds);
-      bubble_fn_participantList(participantIds);
     },
     onParticipantLeft: (user) => {
       log("onParticipantLeft");
       log(user);
-      bubble_fn_participantList(participantIds);
     },
     onVolumeIndicatorChanged: (volume) => {
       log("onVolumeIndicatorChanged");
@@ -142,51 +52,19 @@ const newMainApp = function (initConfig) {
       log(content);
     },
     onMicMuted: (isMuted) => {
-      console.log(
-        `Microphone muted for UID ${config.uid}: ${
-          isMuted ? "Mic Off" : "Mic On"
-        }`
-      );
-      const micStatusIcon = document.querySelector(`#mic-status-${config.uid}`);
-      if (micStatusIcon) {
-        micStatusIcon.style.display = isMuted ? "block" : "none";
-      }
-      bubble_fn_isMicOff(isMuted);
+      log("onMicMuted");
+      log(isMuted);
     },
-
-
-    onCamMuted: (uid, isMuted) => {
-  console.log(
-    `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
-  );
-
-  const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
-  if (videoWrapper) {
-    const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
-    const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
-
-    if (isMuted) {
-      videoPlayer.style.display = "none"; // Hide the video player
-      avatarDiv.style.display = "block"; // Show the avatar
-    } else {
-      videoPlayer.style.display = "block"; // Show the video player
-      avatarDiv.style.display = "none"; // Hide the avatar
-    }
-  }
-
-  // Call any additional functions related to camera muting, like in Bubble
-  console.log("Run bubble_fn_isCamOff.", isMuted);
-  bubble_fn_isCamOff(isMuted);
-},
+    onCamMuted: (isMuted) => {
+      log("onCamMuted");
+      log(isMuted);
+    },
     onScreenShareEnabled: (enabled) => {
-      console.log(
-        `Screen share status: ${enabled ? "Sharing" : "Not sharing"}`
-      );
-      bubble_fn_isScreenOff(enabled);
+      log("onScreenShareEnabled");
+      log(enabled);
     },
     onUserLeave: () => {
       log("onUserLeave");
-      bubble_fn_participantList(participantIds);
     },
     onCameraChanged: (info) => {
       log("camera changed!", info.state, info.device);
@@ -216,8 +94,6 @@ const newMainApp = function (initConfig) {
   };
 
   config = { ...config, ...initConfig };
-
-  
 
   if (config.appId === null) {
     throw new Error("please set the appId first");
@@ -255,12 +131,12 @@ const newMainApp = function (initConfig) {
     config.onSpeakerChanged(info);
   };
 
-  console.log("appid:", config.appId);
- const clientRTM = AgoraRTM.createInstance(config.appId, {
-   enableLogUpload: false,
-   logFilter: AgoraRTM.LOG_FILTER_DEBUG,
- });
-
+  const clientRTM = AgoraRTM.createInstance(config.appId, {
+    enableLogUpload: false,
+    logFilter: config.debugEnabled
+      ? AgoraRTM.LOG_FILTER_INFO
+      : AgoraRTM.LOG_FILTER_OFF,
+  });
   const channelRTM = clientRTM.createChannel(config.channelName);
 
   const extensionVirtualBackground = new VirtualBackgroundExtension();
@@ -432,270 +308,132 @@ const newMainApp = function (initConfig) {
   /**
    * Functions
    */
-const fetchTokens = async () => {
-  try {
-    const res = await fetch(
-      config.serverUrl +
-        `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`,
-      {
-        method: "GET", // Ensure method is GET
-        headers: {
-          "Cache-Control": "no-cache", // Prevent caching
-          Pragma: "no-cache", // HTTP 1.0 backward compatibility
-          Expires: "0", // Force immediate expiration
-        },
+  const fetchToken = async () => {
+    if (config.serverUrl !== "") {
+      try {
+        const res = await fetch(
+          config.serverUrl +
+            `/access-token?channelName=${config.channelName}&uid=${config.uid}`
+        );
+        const data = await res.text();
+        const json = await JSON.parse(data);
+        config.token = json.token;
+
+        return json.token;
+      } catch (err) {
+        log(err);
       }
-    );
-    const data = await res.json();
-    return {
-      rtcToken: data.rtcToken, // Extract the RTC token
-      rtmToken: data.rtmToken, // Extract the RTM token
-    };
-  } catch (err) {
-    console.error("Failed to fetch tokens:", err);
-    throw err;
-  }
-};
+    } else {
+      return config.token;
+    }
+  };
 
+  const join = async () => {
+    // Start by joining the RTM (Real-Time Messaging) channel
+    await joinRTM();
 
-
-const join = async () => {
-  try {
-    // Fetch both RTC and RTM tokens first
-    console.log("agoraversion:",AgoraRTM.VERSION);
-    const tokens = await fetchTokens(); // Ensure this returns both rtcToken and rtmToken
-    console.log("RTC Token (during join):", tokens.rtcToken);
-    console.log("RTM Token (during join):", tokens.rtmToken);
-    console.log("RTC UID (during join):", config.uid);
-
-    // Step 1: Join RTM first
-    await joinRTM(tokens.rtmToken); // Ensure RTM is joined successfully before proceeding
-    console.log("RTM joined successfully");
-
-    // Step 2: Initialize the Agora RTC client
-    config.client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
-
-    // Set the RTC client role based on the user's role
-    await config.client.setClientRole(
+    // Set the client's role based on the user's role
+    await client.setClientRole(
       config.user.role === "audience" ? "audience" : "host"
     );
-    console.log("Client role set to:", config.user.role);
 
-    // Register RTC event listeners
-    config.client.on("user-published", handleUserPublished);
-    config.client.on("user-unpublished", handleUserUnpublished);
-    config.client.on("user-joined", handleUserJoined);
-    config.client.on("user-left", handleUserLeft);
-    config.client.enableAudioVolumeIndicator();
-    config.client.on("volume-indicator", handleVolumeIndicator);
-    config.client.on("token-privilege-will-expire", handleRenewToken);
+    // Register common event listeners for all users
+    client.on("user-published", handleUserPublished);
+    client.on("user-unpublished", handleUserUnpublished); // Add this line to handle avatar toggling
+    client.on("user-joined", handleUserJoined);
+    client.on("user-left", handleUserLeft);
+    client.enableAudioVolumeIndicator();
+    client.on("volume-indicator", handleVolumeIndicator);
 
-    // Join the Agora RTC channel using the fetched RTC token
+    // Join the Agora channel
     const { appId, uid, channelName } = config;
-    console.log(
-      "Joining RTC channel with appId:",
-      appId,
-      ", channelName:",
-      channelName,
-      ", UID:",
-      uid
-    );
-    await config.client.join(appId, channelName, tokens.rtcToken, uid);
+    const token = await fetchToken(config);
+    client.on("token-privilege-will-expire", handleRenewToken);
+    await client.join(appId, channelName, token, uid);
 
-    // User joins the video stage with camera off
+    // If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
     if (config.onNeedJoinToVideoStage(config.user)) {
-      await joinToVideoStage(config.user); // Ensure camera is off initially
+      await joinToVideoStage(config.user);
     }
+    // Audience members do not publish tracks or join the video stage
+  };
 
-    console.log("Joined RTC and RTM successfully!");
-  } catch (error) {
-    console.error("Failed to join the RTC or RTM channel:", error);
-  }
-};
+  const handleUserUnpublished = async (user, mediaType) => {
+    if (mediaType === "video") {
+      const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+      if (videoWrapper) {
+        const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
+        const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
 
-
-
-
-
-
-
-function updateVideoWrapperSize() {
-  const videoStage = document.getElementById("video-stage");
-
-  if (!videoStage) {
-    console.error("Error: #video-stage element not found.");
-    return;
-  }
-
-  const videoWrappers = videoStage.querySelectorAll('[id^="video-wrapper-"]');
-  const count = videoWrappers.length;
-  const stageWidth = videoStage.clientWidth; // Get the width of the video-stage
-  const stageHeight = videoStage.clientHeight; // Get the height of the video-stage
-
-  const maxWrapperWidth = Math.min(800, stageWidth * 0.8); // Max 80% of the video-stage width
-  const maxWrapperHeight = (maxWrapperWidth * 9) / 16; // Maintain a 16:9 aspect ratio
-
-  videoStage.style.overflowY = "auto"; // Add vertical scroll if needed
-
-  videoWrappers.forEach((wrapper) => {
-    wrapper.style.boxSizing = "border-box";
-    wrapper.style.margin = "10px"; // Adjust margin for better spacing
-    wrapper.style.borderRadius = "10px";
-    wrapper.style.overflow = "hidden";
-    wrapper.style.position = "relative";
-    wrapper.style.backgroundColor = "#3c4043";
-    wrapper.style.display = "flex";
-    wrapper.style.justifyContent = "center";
-    wrapper.style.alignItems = "center";
-    wrapper.style.height = "auto"; // Auto height to prevent overflow
-    wrapper.style.maxHeight = `${maxWrapperHeight}px`; // Limit height to 80% of video-stage height
-
-    // Handle small screens (<= 768px) or if the video-stage is narrow
-    if (stageWidth <= 768) {
-      wrapper.style.flex = "1 1 100%"; // Full width for narrow stages
-      wrapper.style.maxWidth = "100%";
-      wrapper.style.minHeight = "50vh";
-    } else {
-      // Adjust for larger video-stages based on participant count
-      if (count === 1) {
-        wrapper.style.flex = "0 1 auto";
-        wrapper.style.width = `${maxWrapperWidth}px`;
-        wrapper.style.height = `${maxWrapperHeight}px`; // 16:9 aspect ratio
-      } else if (count === 2) {
-        wrapper.style.flex = "1 1 45%"; // 45% width for two players
-        wrapper.style.maxWidth = "45%";
-        wrapper.style.height = `${(stageWidth * 0.45 * 9) / 16}px`; // 16:9 aspect ratio
-      } else if (count === 3) {
-        wrapper.style.flex = "1 1 30%"; // 30% width for three players
-        wrapper.style.maxWidth = "30%";
-        wrapper.style.height = `${(stageWidth * 0.3 * 9) / 16}px`; // 16:9 aspect ratio
-      } else if (count >= 4 && count <= 9) {
-        wrapper.style.flex = "1 1 23%"; // 23% width for 4-9 players
-        wrapper.style.maxWidth = "23%";
-        wrapper.style.height = `${(stageWidth * 0.23 * 9) / 16}px`; // 16:9 aspect ratio
-      } else {
-        wrapper.style.flex = "1 1 15%"; // For 10 or more participants
-        wrapper.style.maxWidth = "15%";
-        wrapper.style.height = `${(stageWidth * 0.15 * 9) / 16}px`; // 16:9 aspect ratio
-      }
-
-      wrapper.style.minWidth = `200px`; // Ensure minimum width
-    }
-
-    // Ensure video content stays visible and fits inside the wrapper
-    const videoPlayer = wrapper.querySelector(".video-player");
-    const avatar = wrapper.querySelector(".user-avatar");
-
-    // Check if the camera is off, and adjust display accordingly
-    if (videoPlayer && avatar) {
-      if (videoPlayer.style.display === "none") {
-        avatar.style.display = "block"; // Show avatar when the camera is off
-        wrapper.style.justifyContent = "center"; // Center the avatar
-        wrapper.style.alignItems = "center"; // Ensure vertical centering
-      } else {
-        avatar.style.display = "none"; // Hide avatar when the camera is on
-        videoPlayer.style.display = "flex"; // Ensure video player uses flex
-        wrapper.style.justifyContent = "center"; // Center the video player
-        wrapper.style.alignItems = "center"; // Ensure vertical centering
+        videoPlayer.style.display = "none"; // Hide the video player
+        avatarDiv.style.display = "block"; // Show the avatar
       }
     }
-  });
+  };
 
-  // Add overflow control for the video-stage to prevent overflow
-  videoStage.style.overflowX = "hidden"; // Prevent horizontal overflow
-  videoStage.style.overflowY = count > 3 ? "auto" : "hidden"; // Scroll vertically if needed
-}
+  const joinToVideoStage = async (user) => {
+    try {
+      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
-// Add a resize event listener to update video wrapper sizes dynamically
-window.addEventListener("resize", updateVideoWrapperSize);
+      if (config.onNeedMuteCameraAndMic(user)) {
+        toggleCamera(true);
+        toggleMic(true);
+      }
 
-// Call the function once during initialization to set the initial layout
-document.addEventListener("DOMContentLoaded", () => {
-  updateVideoWrapperSize();
-});
+      let player = document.querySelector(`#video-wrapper-${user.id}`);
+      if (player != null) {
+        player.remove();
+      }
+      console.log("Avatar URL:", user.avatar);
+      let localPlayerContainer = config.participantPlayerContainer
+        .replaceAll("{{uid}}", user.id)
+        .replaceAll("{{name}}", user.name)
+        .replaceAll("{{avatar}}", user.avatar); // Ensure avatar is replaced as well
 
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", localPlayerContainer);
 
-const handleUserUnpublished = async (user, mediaType) => {
-  if (mediaType === "video") {
-    const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-    if (videoWrapper) {
-      // Remove the entire video wrapper from the DOM
-      videoWrapper.remove();
-    }
-  }
+      //need detect remote or not
+      if (user.id === config.uid) {
+        config.localVideoTrack.play(`stream-${user.id}`);
 
-  if (mediaType === "audio") {
-    console.log(`User ${user.uid} has unpublished their audio.`);
-    // Handle any specific audio-related logic here, if necessary
-  }
-};
-
-
-const joinToVideoStage = async (user) => {
-  try {
-    // Create local audio track
-    config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-
-    // Initialize the video track but keep it off initially
-    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-
-    // Remove any previous instance of the video player container for this user
-    let player = document.querySelector(`#video-wrapper-${user.id}`);
-    if (player != null) {
-      player.remove(); // Remove old player if it exists
-    }
-
-    // Generate the player's HTML container using the name, avatar, and role passed from `newMainApp()`
-    let localPlayerContainer = config.participantPlayerContainer
-      .replaceAll("{{uid}}", user.id)
-      .replaceAll("{{name}}", user.name || "Unknown User") // Fallback to "Unknown User"
-      .replaceAll("{{avatar}}", user.avatar || "path/to/default-avatar.png"); // Fallback avatar
-
-    // Insert the new player container into the video stage
-    document
-      .querySelector(config.callContainerSelector)
-      .insertAdjacentHTML("beforeend", localPlayerContainer);
-
-    // Set the video to be off (not played) initially and show the avatar
-    const videoPlayer = document.querySelector(`#stream-${user.id}`);
-    const avatarDiv = document.querySelector(`#avatar-${user.id}`);
-
-    // Hide the video player and show the avatar
-    videoPlayer.style.display = "none"; // Make sure video player is hidden
-    avatarDiv.style.display = "block"; // Ensure avatar is visible
-
-    // Mute the video track by default (camera off) and set the state
-    await config.localVideoTrack.setMuted(true);
-    config.localVideoTrackMuted = true;
-
-    // Trigger the `onCamMuted` event to indicate the camera is off
-    config.onCamMuted(user.id, true); // Camera is off by default
-
-    // Publish only the local audio track (video remains off)
-    await config.client.publish([config.localAudioTrack]);
-
-    // Handle any user-specific muting requirements (camera/mic)
-    if (config.onNeedMuteCameraAndMic(user)) {
-      toggleCamera(true); // Keep the camera off
-      toggleMic(true); // Optionally mute the microphone
-    }
-
-    // Call updateVideoWrapperSize to ensure proper layout
-    updateVideoWrapperSize();
-  } catch (error) {
-    console.error("Error joining video stage:", error);
-    if (config.onError) {
+        await client.publish([config.localAudioTrack, config.localVideoTrack]);
+      }
+    } catch (error) {
       config.onError(error);
     }
-  }
-};
+  };
 
+  const leaveFromVideoStage = async (user) => {
+    let player = document.querySelector(`#video-wrapper-${user.id}`);
+    if (player != null) {
+      player.remove();
+    }
+
+    if (user.id === config.uid) {
+      try {
+        config.localAudioTrack.stop();
+        config.localVideoTrack.stop();
+
+        config.localAudioTrack.close();
+        config.localVideoTrack.close();
+
+        await client.unpublish([
+          config.localAudioTrack,
+          config.localVideoTrack,
+        ]);
+      } catch (error) {
+        //
+      }
+    }
+  };
 
 
 
 const joinRTM = async (rtmToken, retryCount = 0) => {
   try {
-
     const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
 
     // If the user is already logged in, attempt to log them out first
@@ -705,67 +443,98 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       console.log(`User ${rtmUid} logged out successfully.`);
     }
 
-    // Log the RTM Token and UID
     console.log("RTM Token (during login):", rtmToken);
     console.log("RTM UID (during login):", rtmUid);
 
     // RTM login with the token
-    await clientRTM
-      .login({
-        uid: rtmUid,
-        token: rtmToken,
-      })
-      .catch((error) => {
-        console.error(
-          "RTM login failed. Full error object:",
-          JSON.stringify(error, null, 2)
-        );
-        throw error; // Rethrow the error so the retry logic kicks in
-      });
+    await clientRTM.login({ uid: rtmUid, token: rtmToken });
     console.log(`RTM login successful for UID: ${rtmUid}`);
 
-    // Update local user attributes in RTM
-    await clientRTM.addOrUpdateLocalUserAttributes({
-      name: config.user.name, // Set user's name
-      avatar: config.user.avatar, // Set user's avatar
-    });
-    console.log("User attributes (name, avatar) updated in RTM.");
+    // Update participants after joining
+    await handleOnUpdateParticipants();
 
+    // Set up RTM event listeners
+    setupRTMEventListeners();
 
     // Join the RTM channel
     await channelRTM.join();
-    console.log("Joined RTM channel successfully");
+    console.log(`Joined RTM channel successfully`);
   } catch (error) {
-    console.error("RTM join process failed:", JSON.stringify(error, null, 2));
-
-    // Check if the error is due to an invalid or expired token (Error Code 5)
-    if (
-      (error.code === 5 || error.message.includes("Invalid token")) &&
-      retryCount < 5
-    ) {
-      console.log(
-        `Invalid RTM token. Attempting to reissue a new token (retry ${
-          retryCount + 1
-        }/5)...`
-      );
-
-      // Fetch new tokens (both RTC and RTM) from your token server
-      const newTokens = await fetchTokens(); // Reuse the fetchTokens function
-
-      // Retry RTM login with the new token, increasing the retry count
-      await joinRTM(newTokens.rtmToken, retryCount + 1);
-    } else if (retryCount >= 5) {
-      console.error("Exceeded maximum retry attempts. Cannot join RTM.");
-      throw new Error("Failed to join RTM after 5 attempts.");
+    console.error("RTM join process failed:", error);
+    if (retryCount < 3) {
+      console.log(`Retrying RTM join (attempt ${retryCount + 1})...`);
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
+      return joinRTM(rtmToken, retryCount + 1);
     } else {
-      console.error(
-        "RTM join failed for a different reason:",
-        JSON.stringify(error, null, 2)
-      );
-      throw error;
+      throw new Error("Failed to join RTM after multiple attempts");
     }
   }
 };
+
+const setupRTMEventListeners = () => {
+  clientRTM.on("MessageFromPeer", handleMessageFromPeer);
+  channelRTM.on("MemberJoined", handleMemberJoined);
+  channelRTM.on("MemberLeft", handleMemberLeft);
+  channelRTM.on("ChannelMessage", handleChannelMessage);
+};
+
+const handleMessageFromPeer = async (message, peerId) => {
+  console.log("messageFromPeer");
+  const data = JSON.parse(message.text);
+  console.log(data);
+
+  if (data.event === "mic_off") {
+    await toggleMic(true);
+  } else if (data.event === "cam_off") {
+    await toggleCamera(true);
+  } else if (data.event === "remove_participant") {
+    await leave();
+  }
+};
+
+const handleMemberJoined = async (memberId) => {
+  console.log(`Member joined: ${memberId}`);
+  await handleOnUpdateParticipants();
+};
+
+const handleMemberLeft = async (memberId) => {
+  console.log(`Member left: ${memberId}`);
+  await handleOnUpdateParticipants();
+};
+
+const handleChannelMessage = async (message, memberId, props) => {
+  console.log("on:ChannelMessage ->");
+  const messageObj = JSON.parse(message.text);
+  console.log(messageObj);
+
+  if (
+    messageObj.type === "broadcast" &&
+    messageObj.event === "change_user_role"
+  ) {
+    if (config.uid === messageObj.targetUid) {
+      await handleRoleChange(messageObj);
+    }
+    await handleOnUpdateParticipants();
+    config.onRoleChanged(messageObj.targetUid, messageObj.role);
+  } else {
+    config.onMessageReceived(messageObj);
+  }
+};
+
+const handleRoleChange = async (messageObj) => {
+  config.user.role = messageObj.role;
+  console.log("User role changed:", config.user.role);
+
+  await clientRTM.addOrUpdateLocalUserAttributes({
+    role: config.user.role,
+  });
+  console.log("Updated user attributes after role change");
+
+  await client.leave();
+  await leaveFromVideoStage(config.user);
+  await join(); // Re-join the RTC
+};
+
 
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
@@ -787,247 +556,57 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     config.onMicMuted(config.localAudioTrackMuted);
   };
 
-const toggleCamera = async (isMuted) => {
-  try {
-    const uid = config.uid;
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatar = document.querySelector(`#avatar-${uid}`);
-
-    if (!config.client) {
-      console.error("Agora client is not initialized!");
-      return;
-    }
-
-    // Log the current state before toggling the camera
-    console.log(`Camera is about to be ${isMuted ? "muted" : "unmuted"}`);
-    console.log("Video player element:", videoPlayer);
-    console.log("Avatar element:", avatar);
-
-    if (!videoPlayer) {
-      console.error(`Video player with id #stream-${uid} not found`);
-      return;
-    }
-
-    // Check if the video track exists, if not create and initialize it
-    if (!config.localVideoTrack) {
-      console.log("Initializing new camera video track...");
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      await config.client.publish([config.localVideoTrack]); // Publish the video track
-    }
-
-    // Mute or unmute the video track
+  const toggleCamera = async (isMuted) => {
     if (isMuted) {
-      console.log("Muting camera...");
-
-      // Unpublish the video track so other users know the camera is off
-      await config.client.unpublish([config.localVideoTrack]);
-
+      await config.localVideoTrack.setMuted(true);
       config.localVideoTrackMuted = true;
-
-      // Show the avatar and hide the video player
-      videoPlayer.style.display = "none";
-      avatar.style.display = "block";
     } else {
-      console.log("Unmuting camera...");
-
-      // Reattach and play the video track inside the video player
-      if (
-        videoPlayer.childNodes.length === 0 ||
-        !videoPlayer.querySelector("video")
-      ) {
-        console.log("Reattaching video element...");
-        config.localVideoTrack.play(videoPlayer); // Reattach the video track to the player
-      } else {
-        console.log("Video element already exists, playing it.");
-        config.localVideoTrack.play(videoPlayer); // Ensure the track plays
-      }
-
-      // Ensure the track is unmuted
       await config.localVideoTrack.setMuted(false);
       config.localVideoTrackMuted = false;
-
-      // Publish the video track so that others can see the camera
-      await config.client.publish([config.localVideoTrack]);
-
-      // Ensure the video player is visible
-      videoPlayer.style.display = "block";
-      avatar.style.display = "none";
     }
 
-    console.log(
-      `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
-    );
+    config.onCamMuted(config.localVideoTrackMuted);
+  };
 
-    // Correctly call onCamMuted with both uid and the muted state
-    config.onCamMuted(uid, config.localVideoTrackMuted);
-  } catch (error) {
-    console.error("Error in toggleCamera:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
-  }
-};
-
-
-const leaveFromVideoStage = async (user) => {
-  try {
-    // Find and remove the video wrapper element for the user
-    let player = document.querySelector(`#video-wrapper-${user.id}`);
-    if (player != null) {
-      player.remove(); // Remove the user's video element from the DOM
-    }
-
-    // If the leaving user is the current user
-    if (user.id === config.uid) {
-      // Stop and close the local audio and video tracks
-      if (config.localAudioTrack) {
-        config.localAudioTrack.stop();
-        config.localAudioTrack.close();
-      }
-      if (config.localVideoTrack) {
+  const toggleScreenShare = async (isEnabled) => {
+    if (isEnabled) {
+      try {
         config.localVideoTrack.stop();
         config.localVideoTrack.close();
-      }
+        client.unpublish([config.localVideoTrack]);
 
-      // Unpublish the user's tracks
-      await config.client.unpublish([
-        config.localAudioTrack,
-        config.localVideoTrack,
-      ]);
-    }
-
-    console.log(`User ${user.id} left the video stage.`);
-  } catch (error) {
-    console.error("Error leaving video stage:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
-  }
-};
-
-
-const toggleScreenShare = async (isEnabled) => {
-  try {
-    const uid = config.uid;
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatar = document.querySelector(`#avatar-${uid}`);
-
-    if (!config.client) {
-      console.error("Agora client is not initialized!");
-      return;
-    }
-
-    if (config.localScreenShareEnabled && isEnabled) {
-      console.log("Already sharing. Stopping screen share.");
-      isEnabled = false;
-    }
-
-    if (isEnabled) {
-      console.log("Starting screen share");
-      wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
-
-      // Create the screen share track if it doesn't already exist
-      if (!config.localScreenShareTrack) {
-        console.log("Creating screen share track...");
         config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
-      }
+        config.localScreenShareTrack.on("track-ended", handleScreenShareEnded);
 
-      // Stop and unpublish the local video track before screen share
-      if (config.localVideoTrack) {
-        console.log(
-          "Stopping and unpublishing local video track before screen share..."
-        );
-        config.localVideoTrack.stop();
-        await config.client.unpublish([config.localVideoTrack]);
-        videoPlayer.style.display = "none";
-      }
+        client.publish([config.localScreenShareTrack]);
+        config.localScreenShareTrack.play(`stream-${config.uid}`);
 
-      // Play and publish the screen share track
-      config.localScreenShareTrack.on("track-ended", async () => {
-        console.log("Screen share track ended, reverting back to camera");
-        await toggleScreenShare(false); // Revert to camera when screen sharing stops
-      });
-
-      await config.client.publish([config.localScreenShareTrack]);
-      config.localScreenShareTrack.play(videoPlayer);
-      videoPlayer.style.display = "block";
-      avatar.style.display = "none";
-    } else {
-      console.log("Stopping screen share");
-
-      // Stop the screen share and revert to the camera
-      if (config.localScreenShareTrack) {
-        console.log("Stopping and closing the screen share track...");
-        config.localScreenShareTrack.stop();
-        config.localScreenShareTrack.close();
-        await config.client.unpublish([config.localScreenShareTrack]);
+        config.localScreenShareEnabled = true;
+      } catch (e) {
+        config.onError(e);
         config.localScreenShareTrack = null;
-      }
 
-      // Reinitialize the camera track only if it was on before sharing
-      if (wasCameraOnBeforeSharing) {
-        console.log("Restoring camera track after screen share...");
-        if (!config.localVideoTrack) {
-          console.log("Creating new camera video track...");
-          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        }
-
-        console.log("Publishing and playing the camera track...");
-        await config.client.publish([config.localVideoTrack]);
-
-        // Re-attach video track to the video player element
-        if (videoPlayer) {
-          console.log("Playing camera video track in videoPlayer...");
-          config.localVideoTrack.play(videoPlayer);
-          videoPlayer.style.display = "block";
-          avatar.style.display = "none";
-        } else {
-          console.error("Video player not found for camera playback!");
-        }
-      } else {
-        // If the camera was off, show the avatar
-        console.log("Camera was off before sharing, showing avatar...");
-        videoPlayer.style.display = "none";
-        avatar.style.display = "block";
-      }
-    }
-
-    config.localScreenShareEnabled = isEnabled;
-    config.onScreenShareEnabled(isEnabled);
-  } catch (error) {
-    console.error("Error during screen sharing:", error);
-    config.onError(error);
-
-    // Ensure local video is active in case of an error
-    if (!isEnabled && !config.localVideoTrack) {
-      try {
-        console.log("Reinitializing camera track after error...");
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        await config.client.publish([config.localVideoTrack]);
+        client.publish([config.localVideoTrack]);
+        config.localVideoTrack.play(`stream-${config.uid}`);
 
-        if (videoPlayer) {
-          console.log(
-            "Playing camera video track in videoPlayer after error..."
-          );
-          config.localVideoTrack.play(videoPlayer);
-
-          if (wasCameraOnBeforeSharing) {
-            videoPlayer.style.display = "block";
-            avatar.style.display = "none";
-          } else {
-            videoPlayer.style.display = "none";
-            avatar.style.display = "block";
-          }
-        } else {
-          console.error("Video player not found after error!");
-        }
-      } catch (cameraError) {
-        console.error("Error reinitializing camera track:", cameraError);
+        config.localScreenShareEnabled = false;
       }
-    }
-  }
-};
+    } else {
+      config.localScreenShareTrack.stop();
+      config.localScreenShareTrack.close();
+      client.unpublish([config.localScreenShareTrack]);
+      config.localScreenShareTrack = null;
 
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      client.publish([config.localVideoTrack]);
+      config.localVideoTrack.play(`stream-${config.uid}`);
+
+      config.localScreenShareEnabled = false;
+    }
+
+    config.onScreenShareEnabled(config.localScreenShareEnabled);
+  };
 
   const turnOffMic = (...uids) => {
     uids.forEach((uid) => {
@@ -1223,112 +802,53 @@ const toggleScreenShare = async (isEnabled) => {
   /**
    * Callback Handlers
    */
-const handleUserPublished = async (user, mediaType) => {
-  try {
-    console.log(`User published: ${user.uid}, mediaType: ${mediaType}`);
+  const handleUserPublished = async (user, mediaType) => {
+    log("handleUserPublished Here");
+    config.remoteTracks[user.uid] = user;
+    subscribe(user, mediaType);
+  };
 
-    // Call the subscribe function to handle the media (video/audio)
-    await subscribe(user, mediaType);
-  } catch (error) {
-    console.error("Error handling user published:", error);
-  }
-};
+  const handleUserJoined = async (user) => {
+    log("handleUserJoined Here");
+    config.remoteTracks[user.uid] = user;
 
+    const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
 
+    try {
+      // Fetch user attributes from RTM using the stringified UID
+      const userAttr = await clientRTM.getUserAttributes(rtmUid);
 
-const handleUserJoined = async (user) => {
-  try {
-    console.log(`User joined with UID: ${user.uid}`);
+      // Use the integer UID for the wrapper and player
+      let playerHTML = config.participantPlayerContainer
+        .replace(/{{uid}}/g, user.uid) // Integer UID for the video wrapper
+        .replace(/{{name}}/g, userAttr.name || "Unknown")
+        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
 
-    // Fetch user attributes from RTM
-    const userAttributes = await clientRTM.getUserAttributes(
-      user.uid.toString()
-    );
-    const userName = userAttributes.name || `User ${user.uid}`;
-    const userAvatar = userAttributes.avatar || "path/to/default-avatar.png";
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", playerHTML);
 
-    console.log("User name:", userName);
-    console.log("User avatar:", userAvatar);
+      const player = document.querySelector(`#video-wrapper-${user.uid}`); // Integer UID
 
-    // Store user info in userInfoMap
-    config.userInfoMap = config.userInfoMap || {}; // Ensure it's initialized as an empty object
-    config.userInfoMap[user.uid] = {
-      id: user.uid,
-      name: userName,
-      avatar: userAvatar,
-    };
-
-    // Generate the player's HTML container for the user
-    let playerHTML = config.participantPlayerContainer
-      .replace(/{{uid}}/g, user.uid)
-      .replace(/{{name}}/g, userName)
-      .replace(/{{avatar}}/g, userAvatar);
-
-    // Check if the call container exists before inserting the HTML
-    const videoStage = document.querySelector(config.callContainerSelector);
-    if (!videoStage) {
-      console.error("Video stage container not found.");
-      return;
+      // Hide the video player and show the avatar since the user hasn't published video
+      const videoPlayer = document.querySelector(`#stream-${user.uid}`); // Integer UID
+      const avatarDiv = document.querySelector(`#avatar-${user.uid}`); // Integer UID
+      if (videoPlayer && avatarDiv) {
+        videoPlayer.style.display = "none"; // Hide the video player
+        avatarDiv.style.display = "block"; // Show the avatar
+      }
+    } catch (error) {
+      log("Failed to fetch user attributes:", error);
     }
+  };
 
-    // Insert the new player container into the video stage
-    videoStage.insertAdjacentHTML("beforeend", playerHTML);
-
-    // Ensure the avatar is displayed and the video player is hidden until video is published
-    const videoPlayer = document.querySelector(`#stream-${user.uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-
-    if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none"; // Hide the video player (camera off initially)
-      avatarDiv.style.display = "block"; // Show the avatar
-    }
-
-    // Call updateVideoWrapperSize to adjust the layout after the new player is added
-    updateVideoWrapperSize();
-
-    console.log(`Video wrapper for UID ${user.uid} added to video stage.`);
-  } catch (error) {
-    console.error("Error during user join:", error);
-  }
-};
-
-
-
-const handleUserLeft = async (user, reason) => {
-  try {
-    // Log the reason why the user left (if needed)
-    console.log(`User ${user.uid} left due to ${reason}`);
-
-    // Clean up remote tracks
+  const handleUserLeft = async (user, reason) => {
     delete config.remoteTracks[user.uid];
-
-    // Remove the user's video player
-    const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-    if (videoWrapper) {
-      videoWrapper.remove();
+    if (document.querySelector(`#video-wrapper-${user.uid}`)) {
+      document.querySelector(`#video-wrapper-${user.uid}`).remove();
     }
-
-    // Trigger any additional logic (if any)
-    if (typeof config.onParticipantLeft === "function") {
-      config.onParticipantLeft(user);
-    }
-
-    // Stop and clean up audio tracks if they exist
-    if (
-      config.remoteTracks[user.uid] &&
-      config.remoteTracks[user.uid].audioTrack
-    ) {
-      config.remoteTracks[user.uid].audioTrack.stop();
-    }
-
-    // Call the function to update the layout after a user leaves
-    updateVideoWrapperSize();
-  } catch (error) {
-    console.error(`Error handling user left: ${error}`);
-  }
-};
-
-
+    config.onParticipantLeft(user);
+  };
 
   const handleVolumeIndicator = (result) => {
     result.forEach((volume, index) => {
@@ -1374,98 +894,48 @@ const handleUserLeft = async (user, reason) => {
     }, 1000);
   };
 
-const handleRenewToken = async () => {
-  try {
-    // Fetch a new token
-    const newToken = await fetchToken();
-    config.token = newToken;
+  const handleRenewToken = async () => {
+    config.token = await fetchToken();
+    await client.renewToken(config.token);
+  };
 
-    // Renew the Agora token for the RTC client
-    await config.client.renewToken(config.token);
-    console.log("RTC token renewed successfully!");
+  const subscribe = async (user, mediaType) => {
+    await client.subscribe(user, mediaType);
 
-    // For RTM, log the user out first and then re-login with the new token
-    if (clientRTM && clientRTM.getConnectionState() === "CONNECTED") {
-      await clientRTM.logout();
-      console.log("Logged out from RTM for token renewal.");
-    }
-
-    // Renew RTM Token
-    await clientRTM.login({ token: newToken, uid: config.uid.toString() });
-    console.log("RTM token renewed and re-logged successfully!");
-
-    // Optionally re-join the RTM channel if required
-    await channelRTM.join();
-    console.log("Re-joined RTM channel after token renewal.");
-  } catch (error) {
-    console.error("Error during token renewal process:", error);
-
-    if (error.code === 5) {
-      console.error("RTM login failed: Token invalid or expired.");
-      // Handle token invalid or expired scenario, possibly retry the process
-    } else {
-      console.error("Unexpected error during token renewal:", error);
-    }
-  }
-};
-
-
-const subscribe = async (user, mediaType) => {
-  try {
-    // Subscribe to the user's published media (video or audio)
-    await config.client.subscribe(user, mediaType);
-
-    // Handle video subscription
     if (mediaType === "video") {
       let player = document.querySelector(`#video-wrapper-${user.uid}`);
-
-      // If player doesn't exist, create it
       if (!player) {
-        // Fetch user attributes (name, avatar, etc.) from RTM
-        const userAttr = await clientRTM.getUserAttributes(user.uid.toString()); // Make sure UID is a string
-        console.log(`User attributes for ${user.uid}:`, userAttr);
+        // Create the player if it doesn't exist
+        const userAttr = await clientRTM.getUserAttributes(user.uid);
 
-        // Safeguard: Fallback values if name/avatar are not set
-        const userName = userAttr.name || `User ${user.uid}`;
-        const userAvatar = userAttr.avatar || "path/to/default-avatar.png";
-
-        // Replace placeholders in the participant template
+        // Replace placeholders in the template
         let playerHTML = config.participantPlayerContainer
-          .replace(/{{uid}}/g, user.uid) // Replace UID
-          .replace(/{{name}}/g, userName) // Replace name
-          .replace(/{{avatar}}/g, userAvatar); // Replace avatar
+          .replace(/{{uid}}/g, user.uid)
+          .replace(/{{name}}/g, userAttr.name)
+          .replace(/{{avatar}}/g, userAttr.avatar);
 
-        // Insert the player HTML into the video stage
         document
           .querySelector(config.callContainerSelector)
           .insertAdjacentHTML("beforeend", playerHTML);
 
-        // Select the newly created player
         player = document.querySelector(`#video-wrapper-${user.uid}`);
       }
 
-      // Find and hide the avatar, show the video player
+      // Hide avatar and show video player
       const videoPlayer = player.querySelector(`#stream-${user.uid}`);
       const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
 
-      if (videoPlayer && avatarDiv) {
-        videoPlayer.style.display = "block"; // Show the video player
-        avatarDiv.style.display = "none"; // Hide the avatar when video is on
+      videoPlayer.style.display = "block"; // Show the video player
+      avatarDiv.style.display = "none"; // Hide the avatar
 
-        // Play the video track
-        user.videoTrack.play(videoPlayer);
-      }
+      // Play the video track for the user
+      user.videoTrack.play(`stream-${user.uid}`);
     }
 
-    // Handle audio subscription
     if (mediaType === "audio") {
-      user.audioTrack.play(); // Play audio track
+      user.audioTrack.play();
     }
-  } catch (error) {
-    console.error("Error during subscription:", error);
-  }
-};
-
+  };
 
   const log = (arg) => {
     if (config.debugEnabled) {
@@ -1510,5 +980,5 @@ const subscribe = async (user, mediaType) => {
     startRecording: startRecording,
     stopRecording: stopRecording,
   };
-}
-window['newMainApp'] = newMainApp;
+};
+window["MainApp"] = MainApp;
