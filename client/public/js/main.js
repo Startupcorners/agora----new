@@ -812,12 +812,16 @@ const toggleCamera = async (isMuted) => {
     if (!config.localVideoTrack) {
       console.log("Initializing new camera video track...");
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      await config.client.publish([config.localVideoTrack]); // Publish the video track
     }
 
     // Mute or unmute the video track
     if (isMuted) {
       console.log("Muting camera...");
-      await config.localVideoTrack.setMuted(true);
+
+      // Unpublish the video track so other users know the camera is off
+      await config.client.unpublish([config.localVideoTrack]);
+
       config.localVideoTrackMuted = true;
 
       // Show the avatar and hide the video player
@@ -825,10 +829,6 @@ const toggleCamera = async (isMuted) => {
       avatar.style.display = "block";
     } else {
       console.log("Unmuting camera...");
-
-      // Ensure the video player is visible
-      videoPlayer.style.display = "block";
-      avatar.style.display = "none";
 
       // Reattach and play the video track inside the video player
       if (
@@ -845,11 +845,22 @@ const toggleCamera = async (isMuted) => {
       // Ensure the track is unmuted
       await config.localVideoTrack.setMuted(false);
       config.localVideoTrackMuted = false;
+
+      // Publish the video track so that others can see the camera
+      await config.client.publish([config.localVideoTrack]);
+
+      // Ensure the video player is visible
+      videoPlayer.style.display = "block";
+      avatar.style.display = "none";
     }
 
     console.log(
       `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
     );
+  } catch (error) {
+    console.error("Error while toggling camera:", error);
+  }
+};
 
     // Correctly call onCamMuted with both uid and the muted state
     config.onCamMuted(uid, config.localVideoTrackMuted);
