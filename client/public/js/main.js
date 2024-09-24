@@ -459,7 +459,7 @@ const fetchTokens = async () => {
 const join = async () => {
   try {
     // Fetch both RTC and RTM tokens first
-    console.log(AgoraRTM.VERSION);
+    console.log("agoraversion:",AgoraRTM.VERSION);
     const tokens = await fetchTokens(); // Ensure this returns both rtcToken and rtmToken
     console.log("RTC Token (during join):", tokens.rtcToken);
     console.log("RTM Token (during join):", tokens.rtmToken);
