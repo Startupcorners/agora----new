@@ -391,26 +391,30 @@ const newMainApp = function (initConfig) {
   /**
    * Functions
    */
-  const fetchToken = async () => {
-    if (config.serverUrl !== "") {
-      try {
-        const res = await fetch(
-          config.serverUrl +
-            `/access-token?channelName=${config.channelName}&uid=${config.uid}`
-        );
-        const data = await res.text();
-        const json = await JSON.parse(data);
-        config.token = json.token;
-
-        return json.token;
-      } catch (err) {
-        log(err);
+const fetchTokens = async () => {
+  try {
+    const res = await fetch(
+      config.serverUrl +
+        `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`,
+      {
+        method: "GET", // Ensure method is GET
+        headers: {
+          "Cache-Control": "no-cache", // Prevent caching
+          Pragma: "no-cache", // HTTP 1.0 backward compatibility
+          Expires: "0", // Force immediate expiration
+        },
       }
-    } else {
-      return config.token;
-    }
-  };
-
+    );
+    const data = await res.json();
+    return {
+      rtcToken: data.rtcToken, // Extract the RTC token
+      rtmToken: data.rtmToken, // Extract the RTM token
+    };
+  } catch (err) {
+    console.error("Failed to fetch tokens:", err);
+    throw err;
+  }
+};
 const join = async () => {
   try {
     // Fetch the token first
