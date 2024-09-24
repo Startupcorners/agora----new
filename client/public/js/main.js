@@ -1026,14 +1026,17 @@ const subscribe = async (user, mediaType) => {
   try {
     log(`Subscribing to user ${user.uid} for media type: ${mediaType}`);
 
+    // Ensure the uid is a string for RTM purposes
+    const rtmUid = user.uid.toString();
+
     // Create the video wrapper immediately regardless of media type (video/audio)
     let player = document.querySelector(`#video-wrapper-${user.uid}`);
 
     if (!player) {
       log(`Creating video wrapper for user ${user.uid}`);
 
-      // Retrieve user attributes from RTM (name, avatar)
-      const userAttr = await clientRTM.getUserAttributes(user.uid);
+      // Retrieve user attributes from RTM (name, avatar) - ensure uid is passed as a string
+      const userAttr = await clientRTM.getUserAttributes(rtmUid);
 
       // Replace placeholders in the template with actual data
       let playerHTML = config.participantPlayerContainer
