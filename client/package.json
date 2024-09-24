@@ -5,11 +5,11 @@
   "main": "index.js",
   "scripts": {
   "serve": "node index.js",
-  "build": "esbuild ./public/js/main.js --bundle --minify --splitting --format=esm --outdir=dist",
-  "test": "echo \"Error: no test specified\" && exit 1",
-  "dev": "esbuild ./public/js/main.js --bundle --minify --splitting --format=esm --outdir=dist --watch",
+  "build": "esbuild ./public/js/main.js --bundle --minify --splitting --format=esm --outdir=public/dist",
+  "dev": "esbuild ./public/js/main.js --bundle --minify --splitting --format=esm --outdir=public/dist --watch",
   "dev-style": "npx tailwindcss -i ./src/input.css -o ./dist/output.css --watch"
-},
+}
+,
   "author": "andhikayuana",
   "license": "ISC",
   "devDependencies": {
