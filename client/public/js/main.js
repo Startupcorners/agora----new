@@ -415,54 +415,57 @@ const newMainApp = function (initConfig) {
       throw err;
     }
   };
-  const join = async () => {
-    try {
-      // Fetch the tokens first (for both RTC and RTM)
-      const { appId, uid, channelName } = config;
-      const tokens = await fetchTokens(); // Fetch RTC and RTM tokens
-      console.log("RTC Token (during join):", tokens.rtcToken);
-      console.log("RTM Token (during join):", tokens.rtmToken);
-      console.log("RTC UID (during join):", config.uid);
+const join = async () => {
+  try {
+    const { appId, uid, channelName } = config;
+    const tokens = await fetchTokens(); // Fetch RTC and RTM tokens
 
-      if (!tokens) {
-        throw new Error("Failed to fetch token");
-      }
+    console.log("RTC Token (during join):", tokens.rtcToken);
+    console.log("RTM Token (during join):", tokens.rtmToken);
+    console.log("RTC UID (during join):", config.uid);
 
-      console.log("Tokens fetched successfully:", tokens);
-
-      // Step 1: Log in to the RTM (Real-Time Messaging) service
-      await joinRTM(tokens.rtmToken); // Join RTM first
-      console.log(`Joined RTM successfully with UID: ${uid}`);
-
-      // Step 2: Once RTM login is successful, join the RTC (Real-Time Communication) channel
-      await client.join(appId, channelName, tokens.rtcToken, uid);
-      console.log(`Joined Agora RTC channel: ${channelName} with UID: ${uid}`);
-
-      // Step 3: Set up token renewal for RTC
-      client.on("token-privilege-will-expire", handleRenewToken);
-
-      // Step 4: Set the client's role based on the user's role
-      await client.setClientRole(
-        config.user.role === "audience" ? "audience" : "host"
-      );
-      console.log(`Set client role to: ${config.user.role}`);
-
-      // Step 5: Register common event listeners for all users
-      setupEventListeners();
-
-      // Step 6: If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
-      if (config.onNeedJoinToVideoStage(config.user)) {
-        await joinToVideoStage(config.user);
-      } else {
-        console.log(
-          "User is in the audience and will not join the video stage."
-        );
-      }
-    } catch (error) {
-      console.error("Error in join process:", error);
-      // Handle the error appropriately (e.g., show an error message to the user)
+    if (!tokens) {
+      throw new Error("Failed to fetch token");
     }
-  };
+
+    console.log("Tokens fetched successfully:", tokens);
+
+    // Step 1: Log in to the RTM service
+    await joinRTM(tokens.rtmToken);
+    console.log(`Joined RTM successfully with UID: ${uid}`);
+
+    // Step 2: Join the RTC channel
+    console.log(
+      `Attempting to join RTC channel: ${channelName} with UID: ${uid}`
+    );
+    await client.join(appId, channelName, tokens.rtcToken, uid);
+    console.log(
+      `Successfully joined RTC channel: ${channelName} with UID: ${uid}`
+    );
+
+    // Step 3: Set up token renewal for RTC
+    client.on("token-privilege-will-expire", handleRenewToken);
+
+    // Step 4: Set the client's role based on the user's role
+    await client.setClientRole(
+      config.user.role === "audience" ? "audience" : "host"
+    );
+    console.log(`Set client role to: ${config.user.role}`);
+
+    // Step 5: Register common event listeners for all users
+    setupEventListeners();
+    console.log("Event listeners have been set up for user:", uid);
+
+    // Step 6: Join the video stage if necessary
+    if (config.onNeedJoinToVideoStage(config.user)) {
+      await joinToVideoStage(config.user);
+    } else {
+      console.log("User is in the audience and will not join the video stage.");
+    }
+  } catch (error) {
+    console.error("Error in join process:", error);
+  }
+};
 
   const setupEventListeners = () => {
     client.on("user-published", handleUserPublished);
@@ -486,40 +489,40 @@ const newMainApp = function (initConfig) {
     }
   };
 
-  const joinToVideoStage = async (user) => {
-    try {
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+const joinToVideoStage = async (user) => {
+  try {
+    config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
-      if (config.onNeedMuteCameraAndMic(user)) {
-        toggleCamera(true);
-        toggleMic(true);
-      }
-
-      let player = document.querySelector(`#video-wrapper-${user.id}`);
-      if (player != null) {
-        player.remove();
-      }
-      console.log("Avatar URL:", user.avatar);
-      let localPlayerContainer = config.participantPlayerContainer
-        .replaceAll("{{uid}}", user.id)
-        .replaceAll("{{name}}", user.name)
-        .replaceAll("{{avatar}}", user.avatar); // Ensure avatar is replaced as well
-
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", localPlayerContainer);
-
-      //need detect remote or not
-      if (user.id === config.uid) {
-        config.localVideoTrack.play(`stream-${user.id}`);
-
-        await client.publish([config.localAudioTrack, config.localVideoTrack]);
-      }
-    } catch (error) {
-      config.onError(error);
+    if (config.onNeedMuteCameraAndMic(user)) {
+      toggleCamera(true);
+      toggleMic(true);
     }
-  };
+
+    let player = document.querySelector(`#video-wrapper-${user.id}`);
+    if (player != null) {
+      player.remove();
+    }
+    console.log("Avatar URL:", user.avatar);
+
+    let localPlayerContainer = config.participantPlayerContainer
+      .replaceAll("{{uid}}", user.id)
+      .replaceAll("{{name}}", user.name)
+      .replaceAll("{{avatar}}", user.avatar);
+
+    document
+      .querySelector(config.callContainerSelector)
+      .insertAdjacentHTML("beforeend", localPlayerContainer);
+
+    if (user.id === config.uid) {
+      config.localVideoTrack.play(`stream-${user.id}`);
+      await client.publish([config.localAudioTrack, config.localVideoTrack]);
+      console.log("Published local audio and video tracks for user:", user.id);
+    }
+  } catch (error) {
+    config.onError(error);
+  }
+};
 
   const leaveFromVideoStage = async (user) => {
     let player = document.querySelector(`#video-wrapper-${user.id}`);
