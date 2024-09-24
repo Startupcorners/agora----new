@@ -27,6 +27,8 @@ module.exports = async (req, res) => {
   try {
     // Set token expiration to 1 hour (3600 seconds)
     const expirationInSeconds = 3600;
+    const currentTimestamp = Math.floor(Date.now() / 1000); // Get current time in seconds
+    const privilegeExpiredTs = currentTimestamp + expirationInSeconds; // Set expiration time
 
     // Convert UID to integer for RTC and string for RTM
     const rtcUid = parseInt(uid); // RTC requires integer UID
@@ -34,6 +36,8 @@ module.exports = async (req, res) => {
 
     console.log("RTC UID (Integer):", rtcUid);
     console.log("RTM UID (String):", rtmUid);
+    console.log("Current Timestamp:", currentTimestamp);
+    console.log("Privilege Expiration Timestamp:", privilegeExpiredTs);
 
     // Generate RTC token
     const rtcRole =
@@ -44,7 +48,7 @@ module.exports = async (req, res) => {
       channelName,
       rtcUid,
       rtcRole,
-      expirationInSeconds
+      privilegeExpiredTs
     );
 
     // Generate RTM token
@@ -52,13 +56,13 @@ module.exports = async (req, res) => {
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       rtmUid.toString(),
-      expirationInSeconds
+      privilegeExpiredTs
     );
 
     console.log("APP ID:", process.env.APP_ID);
-    console.log("APP cetificate:", process.env.APP_CERTIFICATE);
-    console.log("UIDrtm:", rtmUid.toString());
-    console.log("expiration:", expirationInSeconds);
+    console.log("APP Certificate:", process.env.APP_CERTIFICATE);
+    console.log("UID for RTM:", rtmUid.toString());
+    console.log("Expiration Time:", privilegeExpiredTs);
     console.log("Generated RTC Token:", rtcToken);
     console.log("Generated RTM Token:", rtmToken);
 
