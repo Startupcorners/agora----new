@@ -1039,12 +1039,27 @@ const subscribe = async (user, mediaType) => {
     if (!player) {
       log(`Creating video wrapper for user ${user.uid}`);
 
+      // Ensure RTM login before attempting to fetch attributes
+      if (!clientRTM._logined) {
+        log(`RTM client is not logged in. Logging in for user ${rtmUid}.`);
+        await clientRTM.login({ uid: rtmUid, token: config.token });
+        log(`Successfully logged in RTM client for user ${rtmUid}`);
+      }
+
       // Retrieve user attributes from RTM (name, avatar)
       let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
       try {
         // Fetch user attributes from RTM
         userAttr = await clientRTM.getUserAttributes(rtmUid);
         log(`Fetched attributes for user ${user.uid}:`, userAttr);
+
+        // If the attributes are not set (empty), try fetching again after a delay
+        if (!userAttr.name || !userAttr.avatar) {
+          log(`Attributes missing for user ${user.uid}, retrying...`);
+          await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
+          userAttr = await clientRTM.getUserAttributes(rtmUid); // Re-fetch attributes
+          log(`Re-fetched attributes for user ${user.uid}:`, userAttr);
+        }
       } catch (err) {
         log(
           `Failed to fetch attributes for user ${user.uid}, using defaults:`,
@@ -1111,6 +1126,7 @@ const subscribe = async (user, mediaType) => {
     log(`Error subscribing to user ${user.uid}: ${error.message}`);
   }
 };
+
 
 
 
