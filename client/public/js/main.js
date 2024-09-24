@@ -1028,36 +1028,17 @@ const newMainApp = function (initConfig) {
   };
 
   // A flag to track if the RTM client is already logged in
-  let rtmLoginInProgress = false;
-
   const subscribe = async (user, mediaType) => {
     try {
       log(`Subscribing to user ${user.uid} for media type: ${mediaType}`);
 
-      // Ensure the uid is a string for RTM purposes
-      const rtmUid = user.uid.toString();
-
-      // Check if RTM login is in progress or completed to avoid repeated logins
-      if (!clientRTM._logined && !rtmLoginInProgress) {
-        log(`RTM client is not logged in. Logging in for user ${rtmUid}.`);
-        rtmLoginInProgress = true; // Set the login in progress flag
-        try {
-          await clientRTM.login({ uid: rtmUid, token: config.token });
-          log(`Successfully logged in RTM client for user ${rtmUid}`);
-        } catch (loginError) {
-          log(`RTM login failed: ${loginError.message}`);
-          return; // Exit the function if login failed
-        } finally {
-          rtmLoginInProgress = false; // Reset the flag
-        }
-      } else {
-        log(`RTM client already logged in or login in progress.`);
-      }
+      // Use the participant's UID for fetching attributes
+      const rtmUid = user.uid.toString(); // Ensure UID is a string
 
       // Fetch user attributes (name, avatar)
       let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
       try {
-        // Fetch user attributes from RTM
+        // Fetch user attributes from RTM for the participant
         userAttr = await clientRTM.getUserAttributes(rtmUid);
         log(`Fetched attributes for user ${user.uid}:`, userAttr);
 
