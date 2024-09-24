@@ -692,7 +692,7 @@ const joinToVideoStage = async (user) => {
 const joinRTM = async (rtmToken, retryCount = 0) => {
   try {
 
-    const rtmUid = "testuser123"; // Convert UID to string for RTM login
+    const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
 
     // If the user is already logged in, attempt to log them out first
     if (clientRTM && clientRTM._logined) {
