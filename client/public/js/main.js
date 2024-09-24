@@ -419,7 +419,7 @@ const join = async () => {
   try {
     // Fetch the token first
     const { appId, uid, channelName } = config;
-    const token = await fetchToken(config);
+    const token = await fetchTokens(config);
 
     if (!token) {
       throw new Error("Failed to fetch token");
