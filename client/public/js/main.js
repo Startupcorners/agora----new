@@ -415,6 +415,9 @@ const newMainApp = function (initConfig) {
       throw err;
     }
   };
+
+
+
 const join = async () => {
   try {
     const { appId, uid, channelName } = config;
@@ -430,6 +433,12 @@ const join = async () => {
 
     console.log("Tokens fetched successfully:", tokens);
 
+    // Ensure the Agora client is initialized
+    if (!config.client) {
+      config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+      console.log("Agora client initialized");
+    }
+
     // Step 1: Log in to the RTM service
     await joinRTM(tokens.rtmToken);
     console.log(`Joined RTM successfully with UID: ${uid}`);
@@ -438,16 +447,17 @@ const join = async () => {
     console.log(
       `Attempting to join RTC channel: ${channelName} with UID: ${uid}`
     );
-    await client.join(appId, channelName, tokens.rtcToken, uid);
+    await config.client.join(appId, channelName, tokens.rtcToken, uid);
     console.log(
       `Successfully joined RTC channel: ${channelName} with UID: ${uid}`
     );
 
     // Step 3: Set up token renewal for RTC
-    client.on("token-privilege-will-expire", handleRenewToken);
+    config.client.on("token-privilege-will-expire", handleRenewToken);
+    console.log("Token renewal event listener set");
 
     // Step 4: Set the client's role based on the user's role
-    await client.setClientRole(
+    await config.client.setClientRole(
       config.user.role === "audience" ? "audience" : "host"
     );
     console.log(`Set client role to: ${config.user.role}`);
@@ -466,6 +476,7 @@ const join = async () => {
     console.error("Error in join process:", error);
   }
 };
+
 
   const setupEventListeners = () => {
     client.on("user-published", handleUserPublished);
