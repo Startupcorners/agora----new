@@ -89,6 +89,9 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
 
 
 const newMainApp = function (initConfig) {
+    let screenClient;
+    let localScreenShareTrack;
+    let wasCameraOnBeforeSharing = false;
   let config = {
     debugEnabled: true,
     callContainerSelector: "#video-stage",
