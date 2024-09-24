@@ -1031,96 +1031,102 @@ const joinToVideoStage = async (user) => {
   };
 
   // A flag to track if the RTM client is already logged in
-  const subscribe = async (user, mediaType) => {
+const subscribe = async (user, mediaType) => {
+  try {
+    log(`Subscribing to user ${user.uid} for media type: ${mediaType}`);
+
+    // Use the participant's UID for fetching attributes
+    const rtmUid = user.uid.toString(); // Ensure UID is a string
+
+    // Fetch user attributes (name, avatar)
+    let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
     try {
-      log(`Subscribing to user ${user.uid} for media type: ${mediaType}`);
+      // Fetch user attributes from RTM for the participant
+      log(`Attempting to fetch attributes for user ${rtmUid}`);
+      userAttr = await clientRTM.getUserAttributes(rtmUid);
 
-      // Use the participant's UID for fetching attributes
-      const rtmUid = user.uid.toString(); // Ensure UID is a string
+      // Ensure at least default values for missing name or avatar
+      userAttr.name = userAttr.name || "Unknown";
+      userAttr.avatar = userAttr.avatar || "default-avatar-url";
 
-      // Fetch user attributes (name, avatar)
-      let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
-      try {
-        // Fetch user attributes from RTM for the participant
-        userAttr = await clientRTM.getUserAttributes(rtmUid);
-        log(`Fetched attributes for user ${user.uid}:`, userAttr);
-
-        // Ensure at least default values for missing name or avatar
-        userAttr.name = userAttr.name || "Unknown";
-        userAttr.avatar = userAttr.avatar || "default-avatar-url";
-      } catch (err) {
-        log(
-          `Failed to fetch attributes for user ${user.uid}, using defaults:`,
-          err
-        );
-      }
-
-      // Check if the wrapper already exists to avoid duplicates
-      let player = document.querySelector(`#video-wrapper-${user.uid}`);
-
-      if (!player) {
-        log(`Creating video wrapper for user ${user.uid}`);
-
-        // Replace placeholders in the template with actual data
-        let playerHTML = config.participantPlayerContainer
-          .replace(/{{uid}}/g, user.uid)
-          .replace(/{{name}}/g, userAttr.name)
-          .replace(/{{avatar}}/g, userAttr.avatar);
-
-        // Insert the player HTML into the stage
-        document
-          .querySelector(config.callContainerSelector)
-          .insertAdjacentHTML("beforeend", playerHTML);
-
-        // Get the newly inserted player
-        player = document.querySelector(`#video-wrapper-${user.uid}`);
-      } else {
-        log(`Wrapper already exists for user ${user.uid}, skipping creation.`);
-      }
-
-      // Handle the video stream if mediaType is "video"
-      const videoPlayer = player.querySelector(`#stream-${user.uid}`);
-      const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
-
-      if (mediaType === "video") {
-        log(`Handling video track for user ${user.uid}`);
-
-        if (user.videoTrack) {
-          // If user has a video track, display the video and hide the avatar
-          videoPlayer.style.display = "block";
-          avatarDiv.style.display = "none"; // Hide avatar
-          user.videoTrack.play(`stream-${user.uid}`);
-          log(`Playing video for user ${user.uid}`);
-        } else {
-          // If no video track, show the avatar and hide the video player
-          videoPlayer.style.display = "none";
-          avatarDiv.style.display = "block"; // Show avatar
-          log(`No video track for user ${user.uid}, displaying avatar.`);
-        }
-      }
-
-      // Handle the audio stream if mediaType is "audio"
-      if (mediaType === "audio") {
-        log(`Handling audio track for user ${user.uid}`);
-
-        if (user.audioTrack) {
-          user.audioTrack.play();
-          log(`Playing audio for user ${user.uid}`);
-        } else {
-          log(`No audio track for user ${user.uid}`);
-        }
-      }
-
-      // Ensure the wrapper is visible at all times
-      player.style.display = "flex"; // Ensure wrapper is always shown
-
-      // Verify if the number of wrappers matches the number of participants
-      checkAndAddMissingWrappers();
-    } catch (error) {
-      console.error(`Error subscribing to user ${user.uid}:`, error);
-      log(`Error subscribing to user ${user.uid}: ${error.message}`);
+      // Log the fetched name and avatar
+      log(
+        `Fetched attributes for user ${user.uid}: Name = ${userAttr.name}, Avatar = ${userAttr.avatar}`
+      );
+    } catch (err) {
+      log(
+        `Failed to fetch attributes for user ${user.uid}, using defaults:`,
+        err
+      );
     }
-  };
+
+    // Check if the wrapper already exists to avoid duplicates
+    let player = document.querySelector(`#video-wrapper-${user.uid}`);
+
+    if (!player) {
+      log(`Creating video wrapper for user ${user.uid}`);
+
+      // Replace placeholders in the template with actual data
+      let playerHTML = config.participantPlayerContainer
+        .replace(/{{uid}}/g, user.uid)
+        .replace(/{{name}}/g, userAttr.name)
+        .replace(/{{avatar}}/g, userAttr.avatar);
+
+      // Insert the player HTML into the stage
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", playerHTML);
+
+      // Get the newly inserted player
+      player = document.querySelector(`#video-wrapper-${user.uid}`);
+    } else {
+      log(`Wrapper already exists for user ${user.uid}, skipping creation.`);
+    }
+
+    // Handle the video stream if mediaType is "video"
+    const videoPlayer = player.querySelector(`#stream-${user.uid}`);
+    const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
+
+    if (mediaType === "video") {
+      log(`Handling video track for user ${user.uid}`);
+
+      if (user.videoTrack) {
+        // If user has a video track, display the video and hide the avatar
+        videoPlayer.style.display = "block";
+        avatarDiv.style.display = "none"; // Hide avatar
+        user.videoTrack.play(`stream-${user.uid}`);
+        log(`Playing video for user ${user.uid}`);
+      } else {
+        // If no video track, show the avatar and hide the video player
+        videoPlayer.style.display = "none";
+        avatarDiv.style.display = "block"; // Show avatar
+        log(`No video track for user ${user.uid}, displaying avatar.`);
+      }
+    }
+
+    // Handle the audio stream if mediaType is "audio"
+    if (mediaType === "audio") {
+      log(`Handling audio track for user ${user.uid}`);
+
+      if (user.audioTrack) {
+        user.audioTrack.play();
+        log(`Playing audio for user ${user.uid}`);
+      } else {
+        log(`No audio track for user ${user.uid}`);
+      }
+    }
+
+    // Ensure the wrapper is visible at all times
+    player.style.display = "flex"; // Ensure wrapper is always shown
+
+    // Verify if the number of wrappers matches the number of participants
+    checkAndAddMissingWrappers();
+  } catch (error) {
+    console.error(`Error subscribing to user ${user.uid}:`, error);
+    log(`Error subscribing to user ${user.uid}: ${error.message}`);
+  }
+};
+
 
   // Function to check if any wrappers are missing and add them if needed
   const checkAndAddMissingWrappers = () => {
