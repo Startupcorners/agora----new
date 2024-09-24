@@ -548,60 +548,69 @@ const joinToVideoStage = async (user) => {
     }
   };
 
-  const joinRTM = async (rtmToken, retryCount = 0) => {
-    try {
-      const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
+const joinRTM = async (rtmToken, retryCount = 0) => {
+  try {
+    const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
 
-      // If the user is already logged in, attempt to log them out first
-      if (clientRTM && clientRTM._logined) {
-        console.log(`User ${rtmUid} is already logged in. Logging out...`);
-        await clientRTM.logout();
-        console.log(`User ${rtmUid} logged out successfully.`);
-      }
-
-      console.log("RTM Token (during login):", rtmToken);
-      console.log("RTM UID (during login):", rtmUid);
-
-      // RTM login with the token
-      await clientRTM.login({ uid: rtmUid, token: rtmToken });
-      console.log(`RTM login successful for UID: ${rtmUid}`);
-
-      // Update participants after joining
-      await handleOnUpdateParticipants();
-
-      // Set up RTM event listeners
-      setupRTMEventListeners();
-
-      // Join the RTM channel
-      await channelRTM.join();
-      console.log(`Joined RTM channel successfully`);
-    } catch (error) {
-      console.error("RTM join process failed. Error details:", error);
-      console.error("Error name:", error.name);
-      console.error("Error message:", error.message);
-      console.error("Error code:", error.code);
-
-      if (error.code === 5) {
-        console.error(
-          "Token error detected. Please check your token generation process and Agora project settings."
-        );
-        console.error(
-          "Make sure you're using a dynamic token, not a static key."
-        );
-        console.error(
-          "Verify that your Agora project is configured for token authentication."
-        );
-      }
-
-      if (retryCount < 3) {
-        console.log(`Retrying RTM join (attempt ${retryCount + 1})...`);
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
-        return joinRTM(rtmToken, retryCount + 1);
-      } else {
-        throw new Error("Failed to join RTM after multiple attempts");
-      }
+    // If the user is already logged in, attempt to log them out first
+    if (clientRTM && clientRTM._logined) {
+      console.log(`User ${rtmUid} is already logged in. Logging out...`);
+      await clientRTM.logout();
+      console.log(`User ${rtmUid} logged out successfully.`);
     }
-  };
+
+    console.log("RTM Token (during login):", rtmToken);
+    console.log("RTM UID (during login):", rtmUid);
+
+    // RTM login with the token
+    await clientRTM.login({ uid: rtmUid, token: rtmToken });
+    console.log(`RTM login successful for UID: ${rtmUid}`);
+
+    // Set the user's attributes (name and avatar) after login
+    const attributes = {
+      name: config.user.name || "Unknown", // Ensure default value if name is missing
+      avatar: config.user.avatar || "default-avatar-url", // Ensure default avatar
+    };
+
+    await clientRTM.setLocalUserAttributes(attributes);
+    console.log(`User attributes set for UID: ${rtmUid}:`, attributes);
+
+    // Update participants after joining
+    await handleOnUpdateParticipants();
+
+    // Set up RTM event listeners
+    setupRTMEventListeners();
+
+    // Join the RTM channel
+    await channelRTM.join();
+    console.log(`Joined RTM channel successfully`);
+  } catch (error) {
+    console.error("RTM join process failed. Error details:", error);
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error code:", error.code);
+
+    if (error.code === 5) {
+      console.error(
+        "Token error detected. Please check your token generation process and Agora project settings."
+      );
+      console.error(
+        "Make sure you're using a dynamic token, not a static key."
+      );
+      console.error(
+        "Verify that your Agora project is configured for token authentication."
+      );
+    }
+
+    if (retryCount < 3) {
+      console.log(`Retrying RTM join (attempt ${retryCount + 1})...`);
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
+      return joinRTM(rtmToken, retryCount + 1);
+    } else {
+      throw new Error("Failed to join RTM after multiple attempts");
+    }
+  }
+};
 
   const setupRTMEventListeners = () => {
     clientRTM.on("MessageFromPeer", handleMessageFromPeer);
