@@ -557,6 +557,7 @@ const joinToVideoStage = async (user) => {
         avatarDiv.style.display = "block"; // Show the avatar
       }
     }
+    config.onCamMuted(config.uid, config.localVideoTrackMuted);
   } catch (error) {
     config.onError(error);
   }
