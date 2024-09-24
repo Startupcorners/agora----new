@@ -8,7 +8,7 @@
 const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
   flex: 1 1 calc(25% - 20px); /* Ensure wrappers resize flexibly */
   width: 100%;
-  min-width: 200px;
+  min-width: 280px; /* Updated min-width */
   max-width: 800px;
   aspect-ratio: 16/9;
   display: flex;
