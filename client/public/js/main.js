@@ -419,7 +419,10 @@ const join = async () => {
   try {
     // Fetch the token first
     const { appId, uid, channelName } = config;
-    const token = await fetchTokens(config);
+    const token = await fetchTokens();
+    console.log("RTC Token (during join):", tokens.rtcToken);
+    console.log("RTM Token (during join):", tokens.rtmToken);
+    console.log("RTC UID (during join):", config.uid);
 
     if (!token) {
       throw new Error("Failed to fetch token");
@@ -428,7 +431,7 @@ const join = async () => {
     console.log("Token fetched successfully:", token);
 
     // Join the Agora channel
-    await client.join(appId, channelName, token, uid);
+    await client.join(appId, channelName, tokens.rtcToken, uid);
     console.log(`Joined Agora channel: ${channelName} with UID: ${uid}`);
 
     // Set up token renewal
@@ -444,7 +447,7 @@ const join = async () => {
     setupEventListeners();
 
     // Join the RTM (Real-Time Messaging) channel
-    await joinRTM(token); // Pass the token to joinRTM
+    await joinRTM(tokens.rtmToken); // Pass the token to joinRTM
 
     // If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
     if (config.onNeedJoinToVideoStage(config.user)) {
