@@ -15,41 +15,13 @@ class RtmTokenBuilder {
    * @return The RTM token.
    */
   static buildToken(appId, appCertificate, userId, expire) {
-    // Log the input parameters for debugging
-    console.log("Building RTM Token with parameters:", {
-      appId,
-      appCertificate,
-      userId,
-      expire,
-    });
-
-    // Create AccessToken and convert UID to string for RTM
     let token = new AccessToken(appId, appCertificate, null, expire);
-    const stringUserId = userId.toString(); // Convert UID to string for RTM
 
-    // Log the converted userId
-    console.log("Converted userId to string:", stringUserId);
-
-    // Create and add RTM service privilege
-    let serviceRtm = new ServiceRtm(stringUserId);
+    let serviceRtm = new ServiceRtm(userId);
     serviceRtm.add_privilege(ServiceRtm.kPrivilegeLogin, expire);
-
-    // Log the added privilege for RTM
-    console.log("Added privilege for RTM login with expiry:", expire);
-
-    // Add the RTM service to the token
     token.add_service(serviceRtm);
 
-    // Log the final token structure before building
-    console.log("Final token structure:", JSON.stringify(token, null, 2));
-
-    // Return the built token
-    const generatedToken = token.build();
-
-    // Log the generated token
-    console.log("Generated RTM Token:", generatedToken);
-
-    return generatedToken;
+    return token.build();
   }
 }
 
