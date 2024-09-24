@@ -1033,45 +1033,41 @@ const subscribe = async (user, mediaType) => {
     // Ensure the uid is a string for RTM purposes
     const rtmUid = user.uid.toString();
 
-    // First, check if the wrapper already exists to avoid duplicates
+    // Ensure RTM login before attempting to fetch attributes
+    if (!clientRTM._logined) {
+      log(`RTM client is not logged in. Logging in for user ${rtmUid}.`);
+      await clientRTM.login({ uid: rtmUid, token: config.token });
+      log(`Successfully logged in RTM client for user ${rtmUid}`);
+    }
+
+    // Fetch user attributes (name, avatar)
+    let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
+    try {
+      // Fetch user attributes from RTM
+      userAttr = await clientRTM.getUserAttributes(rtmUid);
+      log(`Fetched attributes for user ${user.uid}:`, userAttr);
+
+      // Ensure at least default values for missing name or avatar
+      userAttr.name = userAttr.name || "Unknown";
+      userAttr.avatar = userAttr.avatar || "default-avatar-url";
+    } catch (err) {
+      log(
+        `Failed to fetch attributes for user ${user.uid}, using defaults:`,
+        err
+      );
+    }
+
+    // Check if the wrapper already exists to avoid duplicates
     let player = document.querySelector(`#video-wrapper-${user.uid}`);
 
     if (!player) {
       log(`Creating video wrapper for user ${user.uid}`);
 
-      // Ensure RTM login before attempting to fetch attributes
-      if (!clientRTM._logined) {
-        log(`RTM client is not logged in. Logging in for user ${rtmUid}.`);
-        await clientRTM.login({ uid: rtmUid, token: config.token });
-        log(`Successfully logged in RTM client for user ${rtmUid}`);
-      }
-
-      // Retrieve user attributes from RTM (name, avatar)
-      let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
-      try {
-        // Fetch user attributes from RTM
-        userAttr = await clientRTM.getUserAttributes(rtmUid);
-        log(`Fetched attributes for user ${user.uid}:`, userAttr);
-
-        // If the attributes are not set (empty), try fetching again after a delay
-        if (!userAttr.name || !userAttr.avatar) {
-          log(`Attributes missing for user ${user.uid}, retrying...`);
-          await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second before retrying
-          userAttr = await clientRTM.getUserAttributes(rtmUid); // Re-fetch attributes
-          log(`Re-fetched attributes for user ${user.uid}:`, userAttr);
-        }
-      } catch (err) {
-        log(
-          `Failed to fetch attributes for user ${user.uid}, using defaults:`,
-          err
-        );
-      }
-
       // Replace placeholders in the template with actual data
       let playerHTML = config.participantPlayerContainer
         .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, userAttr.name || "Unknown")
-        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
+        .replace(/{{name}}/g, userAttr.name)
+        .replace(/{{avatar}}/g, userAttr.avatar);
 
       // Insert the player HTML into the stage
       document
@@ -1083,8 +1079,6 @@ const subscribe = async (user, mediaType) => {
     } else {
       log(`Wrapper already exists for user ${user.uid}, skipping creation.`);
     }
-
-    // At this point, the wrapper is created (or already exists)
 
     // Handle the video stream if mediaType is "video"
     const videoPlayer = player.querySelector(`#stream-${user.uid}`);
@@ -1121,10 +1115,31 @@ const subscribe = async (user, mediaType) => {
 
     // Ensure the wrapper is visible at all times
     player.style.display = "flex"; // Ensure wrapper is always shown
+
+    // Verify if the number of wrappers matches the number of participants
+    checkAndAddMissingWrappers();
   } catch (error) {
     console.error(`Error subscribing to user ${user.uid}:`, error);
     log(`Error subscribing to user ${user.uid}: ${error.message}`);
   }
+};
+
+// Function to check if any wrappers are missing and add them if needed
+const checkAndAddMissingWrappers = () => {
+  const participants = client.remoteUsers || [];
+  const existingWrappers = document.querySelectorAll('[id^="video-wrapper-"]');
+
+  log(
+    `Checking for missing wrappers: ${existingWrappers.length} wrappers for ${participants.length} participants`
+  );
+
+  participants.forEach((user) => {
+    const player = document.querySelector(`#video-wrapper-${user.uid}`);
+    if (!player) {
+      log(`Missing wrapper detected for user ${user.uid}, creating wrapper.`);
+      subscribe(user, "video"); // Add the missing wrapper
+    }
+  });
 };
 
 
