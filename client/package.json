@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "serve": "node index.js",
-    "build": "esbuild ./client/public/js/main.js --bundle --minify --splitting --format=esm --outdir=dist",
+    "build": "esbuild ./public/js/main.js --bundle --minify --splitting --format=esm --outdir=dist",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "esbuild ./src/main.js --bundle --minify --splitting --format=esm --outdir=dist --watch",
     "dev-style": "npx tailwindcss -i ./src/input.css -o ./dist/output.css --watch"
