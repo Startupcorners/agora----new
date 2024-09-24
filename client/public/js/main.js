@@ -1024,23 +1024,22 @@ const handleRoleChange = async (messageObj) => {
 
 const subscribe = async (user, mediaType) => {
   try {
-    // Subscribe to the user for the specified media type
-    await client.subscribe(user, mediaType);
-    log(`Subscribed to user ${user.uid} for ${mediaType}`);
+    log(`Subscribing to user ${user.uid} for media type: ${mediaType}`);
 
-    // Check if the wrapper exists for this user
+    // Create the video wrapper immediately regardless of media type (video/audio)
     let player = document.querySelector(`#video-wrapper-${user.uid}`);
 
     if (!player) {
       log(`Creating video wrapper for user ${user.uid}`);
-      // Retrieve the user's attributes via RTM (name, avatar)
+
+      // Retrieve user attributes from RTM (name, avatar)
       const userAttr = await clientRTM.getUserAttributes(user.uid);
 
-      // Create the video wrapper regardless of video availability
+      // Replace placeholders in the template with actual data
       let playerHTML = config.participantPlayerContainer
         .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, userAttr.name || "Unknown") // Fallback to "Unknown"
-        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url"); // Fallback to default avatar
+        .replace(/{{name}}/g, userAttr.name || "Unknown")
+        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
 
       document
         .querySelector(config.callContainerSelector)
@@ -1049,27 +1048,33 @@ const subscribe = async (user, mediaType) => {
       player = document.querySelector(`#video-wrapper-${user.uid}`);
     }
 
-    // Handle video stream
+    // At this point, the wrapper is created for the user, regardless of media type
+
+    // Handle the video stream if mediaType is "video"
     const videoPlayer = player.querySelector(`#stream-${user.uid}`);
     const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
 
     if (mediaType === "video") {
+      log(`Handling video track for user ${user.uid}`);
+
       if (user.videoTrack) {
-        // If the user has a video track, play the video and hide the avatar
+        // If user has a video track, display the video and hide the avatar
         videoPlayer.style.display = "block";
         avatarDiv.style.display = "none"; // Hide avatar
         user.videoTrack.play(`stream-${user.uid}`);
         log(`Playing video for user ${user.uid}`);
       } else {
-        // If the user turned off the camera, display the avatar
+        // If no video track, show the avatar and hide the video player
         videoPlayer.style.display = "none";
         avatarDiv.style.display = "block"; // Show avatar
-        log(`User ${user.uid} has no video track, showing avatar.`);
+        log(`No video track for user ${user.uid}, displaying avatar.`);
       }
     }
 
-    // Handle audio stream
+    // Handle the audio stream if mediaType is "audio"
     if (mediaType === "audio") {
+      log(`Handling audio track for user ${user.uid}`);
+
       if (user.audioTrack) {
         user.audioTrack.play();
         log(`Playing audio for user ${user.uid}`);
@@ -1078,11 +1083,11 @@ const subscribe = async (user, mediaType) => {
       }
     }
 
-    // Ensure that even if the video is turned off, the wrapper is always visible
-    player.style.display = "flex"; // Make sure the wrapper is visible in any case
+    // Ensure the wrapper is visible at all times
+    player.style.display = "flex"; // Ensure wrapper is always shown
   } catch (error) {
     console.error(`Error subscribing to user ${user.uid}:`, error);
-    log(`Error during subscription for user ${user.uid}: ${error.message}`);
+    log(`Error subscribing to user ${user.uid}: ${error.message}`);
   }
 };
 
