@@ -1082,6 +1082,13 @@ const subscribe = async (user, mediaType) => {
   }
 };
 
+
+  const log = (arg) => {
+    if (config.debugEnabled) {
+      console.log(arg);
+    }
+  };
+
   let timer;
   const debounce = (fn, delay) => {
     if (timer) {
