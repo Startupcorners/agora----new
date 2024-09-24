@@ -696,17 +696,80 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     config.onMicMuted(config.localAudioTrackMuted);
   };
 
-  const toggleCamera = async (isMuted) => {
+const toggleCamera = async (isMuted) => {
+  try {
+    const uid = config.uid;
+    const videoPlayer = document.querySelector(`#stream-${uid}`);
+    const avatar = document.querySelector(`#avatar-${uid}`);
+
+    if (!config.client) {
+      console.error("Agora client is not initialized!");
+      return;
+    }
+
+    // Log the current state before toggling the camera
+    console.log(`Camera is about to be ${isMuted ? "muted" : "unmuted"}`);
+    console.log("Video player element:", videoPlayer);
+    console.log("Avatar element:", avatar);
+
+    if (!videoPlayer) {
+      console.error(`Video player with id #stream-${uid} not found`);
+      return;
+    }
+
+    // Check if the video track exists, if not create and initialize it
+    if (!config.localVideoTrack) {
+      console.log("Initializing new camera video track...");
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+    }
+
+    // Mute or unmute the video track
     if (isMuted) {
+      console.log("Muting camera...");
       await config.localVideoTrack.setMuted(true);
       config.localVideoTrackMuted = true;
+
+      // Show the avatar and hide the video player
+      videoPlayer.style.display = "none";
+      avatar.style.display = "block";
     } else {
+      console.log("Unmuting camera...");
+
+      // Ensure the video player is visible
+      videoPlayer.style.display = "block";
+      avatar.style.display = "none";
+
+      // Reattach and play the video track inside the video player
+      if (
+        videoPlayer.childNodes.length === 0 ||
+        !videoPlayer.querySelector("video")
+      ) {
+        console.log("Reattaching video element...");
+        config.localVideoTrack.play(videoPlayer); // Reattach the video track to the player
+      } else {
+        console.log("Video element already exists, playing it.");
+        config.localVideoTrack.play(videoPlayer); // Ensure the track plays
+      }
+
+      // Ensure the track is unmuted
       await config.localVideoTrack.setMuted(false);
       config.localVideoTrackMuted = false;
     }
 
-    config.onCamMuted(config.localVideoTrackMuted);
-  };
+    console.log(
+      `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
+    );
+
+    // Correctly call onCamMuted with both uid and the muted state
+    config.onCamMuted(uid, config.localVideoTrackMuted);
+  } catch (error) {
+    console.error("Error in toggleCamera:", error);
+    if (config.onError) {
+      config.onError(error);
+    }
+  }
+};
+  
 
   const toggleScreenShare = async (isEnabled) => {
     if (isEnabled) {
