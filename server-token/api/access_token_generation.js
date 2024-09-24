@@ -51,7 +51,7 @@ module.exports = async (req, res) => {
     const rtmToken = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
-      '19283374465',
+      "testuser123",
       expirationInSeconds
     );
 
