@@ -419,16 +419,16 @@ const join = async () => {
   try {
     // Fetch the token first
     const { appId, uid, channelName } = config;
-    const token = await fetchTokens();
+    const tokens = await fetchTokens();
     console.log("RTC Token (during join):", tokens.rtcToken);
     console.log("RTM Token (during join):", tokens.rtmToken);
     console.log("RTC UID (during join):", config.uid);
 
-    if (!token) {
+    if (!tokens) {
       throw new Error("Failed to fetch token");
     }
 
-    console.log("Token fetched successfully:", token);
+    console.log("Token fetched successfully:", tokens);
 
     // Join the Agora channel
     await client.join(appId, channelName, tokens.rtcToken, uid);
