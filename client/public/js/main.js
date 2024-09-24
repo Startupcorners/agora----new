@@ -417,9 +417,9 @@ const fetchTokens = async () => {
 };
 const join = async () => {
   try {
-    // Fetch the token first
+    // Fetch the tokens first (for both RTC and RTM)
     const { appId, uid, channelName } = config;
-    const tokens = await fetchTokens();
+    const tokens = await fetchTokens(); // Fetch RTC and RTM tokens
     console.log("RTC Token (during join):", tokens.rtcToken);
     console.log("RTM Token (during join):", tokens.rtmToken);
     console.log("RTC UID (during join):", config.uid);
@@ -428,37 +428,41 @@ const join = async () => {
       throw new Error("Failed to fetch token");
     }
 
-    console.log("Token fetched successfully:", tokens);
+    console.log("Tokens fetched successfully:", tokens);
 
-    // Join the Agora channel
+    // Step 1: Log in to the RTM (Real-Time Messaging) service
+    await joinRTM(tokens.rtmToken); // Join RTM first
+    console.log(`Joined RTM successfully with UID: ${uid}`);
+
+    // Step 2: Once RTM login is successful, join the RTC (Real-Time Communication) channel
     await client.join(appId, channelName, tokens.rtcToken, uid);
-    console.log(`Joined Agora channel: ${channelName} with UID: ${uid}`);
+    console.log(`Joined Agora RTC channel: ${channelName} with UID: ${uid}`);
 
-    // Set up token renewal
+    // Step 3: Set up token renewal for RTC
     client.on("token-privilege-will-expire", handleRenewToken);
 
-    // Set the client's role based on the user's role
+    // Step 4: Set the client's role based on the user's role
     await client.setClientRole(
       config.user.role === "audience" ? "audience" : "host"
     );
     console.log(`Set client role to: ${config.user.role}`);
 
-    // Register common event listeners for all users
+    // Step 5: Register common event listeners for all users
     setupEventListeners();
 
-    // Join the RTM (Real-Time Messaging) channel
-    await joinRTM(tokens.rtmToken); // Pass the token to joinRTM
-
-    // If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
+    // Step 6: If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
+    } else {
+      console.log("User is in the audience and will not join the video stage.");
     }
-    // Audience members do not publish tracks or join the video stage
   } catch (error) {
     console.error("Error in join process:", error);
     // Handle the error appropriately (e.g., show an error message to the user)
   }
 };
+
+
 
 const setupEventListeners = () => {
   client.on("user-published", handleUserPublished);
