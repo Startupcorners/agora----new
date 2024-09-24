@@ -411,48 +411,70 @@ const newMainApp = function (initConfig) {
     }
   };
 
-  const join = async () => {
-    // Start by joining the RTM (Real-Time Messaging) channel
-    await joinRTM();
+const join = async () => {
+  try {
+    // Fetch the token first
+    const { appId, uid, channelName } = config;
+    const token = await fetchToken(config);
+
+    if (!token) {
+      throw new Error("Failed to fetch token");
+    }
+
+    console.log("Token fetched successfully:", token);
+
+    // Join the Agora channel
+    await client.join(appId, channelName, token, uid);
+    console.log(`Joined Agora channel: ${channelName} with UID: ${uid}`);
+
+    // Set up token renewal
+    client.on("token-privilege-will-expire", handleRenewToken);
 
     // Set the client's role based on the user's role
     await client.setClientRole(
       config.user.role === "audience" ? "audience" : "host"
     );
+    console.log(`Set client role to: ${config.user.role}`);
 
     // Register common event listeners for all users
-    client.on("user-published", handleUserPublished);
-    client.on("user-unpublished", handleUserUnpublished); // Add this line to handle avatar toggling
-    client.on("user-joined", handleUserJoined);
-    client.on("user-left", handleUserLeft);
-    client.enableAudioVolumeIndicator();
-    client.on("volume-indicator", handleVolumeIndicator);
+    setupEventListeners();
 
-    // Join the Agora channel
-    const { appId, uid, channelName } = config;
-    const token = await fetchToken(config);
-    client.on("token-privilege-will-expire", handleRenewToken);
-    await client.join(appId, channelName, token, uid);
+    // Join the RTM (Real-Time Messaging) channel
+    await joinRTM(token); // Pass the token to joinRTM
 
     // If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     }
     // Audience members do not publish tracks or join the video stage
-  };
+  } catch (error) {
+    console.error("Error in join process:", error);
+    // Handle the error appropriately (e.g., show an error message to the user)
+  }
+};
 
-  const handleUserUnpublished = async (user, mediaType) => {
-    if (mediaType === "video") {
-      const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-      if (videoWrapper) {
-        const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
-        const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
+const setupEventListeners = () => {
+  client.on("user-published", handleUserPublished);
+  client.on("user-unpublished", handleUserUnpublished);
+  client.on("user-joined", handleUserJoined);
+  client.on("user-left", handleUserLeft);
+  client.enableAudioVolumeIndicator();
+  client.on("volume-indicator", handleVolumeIndicator);
+};
 
-        videoPlayer.style.display = "none"; // Hide the video player
-        avatarDiv.style.display = "block"; // Show the avatar
-      }
+const handleUserUnpublished = async (user, mediaType) => {
+  if (mediaType === "video") {
+    const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+    if (videoWrapper) {
+      const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
+      const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
+
+      videoPlayer.style.display = "none"; // Hide the video player
+      avatarDiv.style.display = "block"; // Show the avatar
     }
-  };
+  }
+};
+
 
   const joinToVideoStage = async (user) => {
     try {
@@ -542,27 +564,22 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     // Join the RTM channel
     await channelRTM.join();
     console.log(`Joined RTM channel successfully`);
+
   } catch (error) {
     console.error("RTM join process failed. Error details:", error);
     console.error("Error name:", error.name);
     console.error("Error message:", error.message);
     console.error("Error code:", error.code);
-
+    
     if (error.code === 5) {
-      console.error(
-        "Token error detected. Please check your token generation process and Agora project settings."
-      );
-      console.error(
-        "Make sure you're using a dynamic token, not a static key."
-      );
-      console.error(
-        "Verify that your Agora project is configured for token authentication."
-      );
+      console.error("Token error detected. Please check your token generation process and Agora project settings.");
+      console.error("Make sure you're using a dynamic token, not a static key.");
+      console.error("Verify that your Agora project is configured for token authentication.");
     }
 
     if (retryCount < 3) {
       console.log(`Retrying RTM join (attempt ${retryCount + 1})...`);
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
       return joinRTM(rtmToken, retryCount + 1);
     } else {
       throw new Error("Failed to join RTM after multiple attempts");
