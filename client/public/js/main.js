@@ -256,10 +256,13 @@ const newMainApp = function (initConfig) {
   };
 
   console.log("agoraversion:", AgoraRTM.VERSION);
- const clientRTM = AgoraRTM.createInstance(config.appId, {
-   enableLogUpload: false,
-   logFilter: AgoraRTM.LOG_FILTER_DEBUG,
- });
+ if (AgoraRTM && typeof AgoraRTM.createInstance === "function") {
+   const clientRTM = AgoraRTM.createInstance(config.appId);
+   console.log("Agora RTM client instance created:", clientRTM);
+ } else {
+   console.error("AgoraRTM.createInstance is not available or invalid.");
+ }
+
 
   const channelRTM = clientRTM.createChannel(config.channelName);
 
