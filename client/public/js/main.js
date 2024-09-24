@@ -91,6 +91,7 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
 `;
 
 const newMainApp = function (initConfig) {
+  removeOldAgoraRTMScript();
   let screenClient;
   let localScreenShareTrack;
   let wasCameraOnBeforeSharing = false;
@@ -400,6 +401,21 @@ const newMainApp = function (initConfig) {
       throw error;
     }
   };
+
+  function removeOldAgoraRTMScript() {
+    // Get all script tags in the document
+    const scripts = document.getElementsByTagName("script");
+
+    // Loop through them and find the one from cdn.jsdelivr.net
+    for (let i = 0; i < scripts.length; i++) {
+      const scriptSrc = scripts[i].getAttribute("src");
+      if (scriptSrc && scriptSrc.includes("agora-rtm-sdk@1.3.1")) {
+        // Remove the script if it matches
+        scripts[i].parentNode.removeChild(scripts[i]);
+        console.log("Removed agora-rtm-sdk@1.3.1");
+      }
+    }
+  }
 
   // Stop recording function without polling
   const stopRecording = async () => {
