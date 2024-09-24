@@ -543,7 +543,23 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     await channelRTM.join();
     console.log(`Joined RTM channel successfully`);
   } catch (error) {
-    console.error("RTM join process failed:", error);
+    console.error("RTM join process failed. Error details:", error);
+    console.error("Error name:", error.name);
+    console.error("Error message:", error.message);
+    console.error("Error code:", error.code);
+
+    if (error.code === 5) {
+      console.error(
+        "Token error detected. Please check your token generation process and Agora project settings."
+      );
+      console.error(
+        "Make sure you're using a dynamic token, not a static key."
+      );
+      console.error(
+        "Verify that your Agora project is configured for token authentication."
+      );
+    }
+
     if (retryCount < 3) {
       console.log(`Retrying RTM join (attempt ${retryCount + 1})...`);
       await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
