@@ -1022,49 +1022,65 @@ const handleRoleChange = async (messageObj) => {
     await client.renewToken(config.token);
   };
 
-  const subscribe = async (user, mediaType) => {
+const subscribe = async (user, mediaType) => {
+  try {
     await client.subscribe(user, mediaType);
+    log(`Subscribed to user ${user.uid} for ${mediaType}`);
+
+    // Check if the video wrapper already exists
+    let player = document.querySelector(`#video-wrapper-${user.uid}`);
+
+    if (!player) {
+      // Create the player if it doesn't exist
+      log(`Creating video wrapper for user ${user.uid}`);
+      const userAttr = await clientRTM.getUserAttributes(user.uid);
+
+      // Replace placeholders in the template, ensuring we handle missing attributes
+      let playerHTML = config.participantPlayerContainer
+        .replace(/{{uid}}/g, user.uid)
+        .replace(/{{name}}/g, userAttr.name || "Unknown")
+        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
+
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", playerHTML);
+
+      player = document.querySelector(`#video-wrapper-${user.uid}`);
+    }
+
+    // Handle video stream
+    const videoPlayer = player.querySelector(`#stream-${user.uid}`);
+    const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
 
     if (mediaType === "video") {
-      let player = document.querySelector(`#video-wrapper-${user.uid}`);
-      if (!player) {
-        // Create the player if it doesn't exist
-        const userAttr = await clientRTM.getUserAttributes(user.uid);
-
-        // Replace placeholders in the template
-        let playerHTML = config.participantPlayerContainer
-          .replace(/{{uid}}/g, user.uid)
-          .replace(/{{name}}/g, userAttr.name)
-          .replace(/{{avatar}}/g, userAttr.avatar);
-
-        document
-          .querySelector(config.callContainerSelector)
-          .insertAdjacentHTML("beforeend", playerHTML);
-
-        player = document.querySelector(`#video-wrapper-${user.uid}`);
+      if (user.videoTrack) {
+        // If the user has a video track, display the video
+        videoPlayer.style.display = "block";
+        avatarDiv.style.display = "none"; // Hide avatar
+        user.videoTrack.play(`stream-${user.uid}`);
+        log(`Playing video for user ${user.uid}`);
+      } else {
+        // If the user turned off their camera, show the avatar
+        videoPlayer.style.display = "none";
+        avatarDiv.style.display = "block"; // Show avatar
+        log(`User ${user.uid} has no video, showing avatar`);
       }
-
-      // Hide avatar and show video player
-      const videoPlayer = player.querySelector(`#stream-${user.uid}`);
-      const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
-
-      videoPlayer.style.display = "block"; // Show the video player
-      avatarDiv.style.display = "none"; // Hide the avatar
-
-      // Play the video track for the user
-      user.videoTrack.play(`stream-${user.uid}`);
     }
 
+    // Handle audio stream
     if (mediaType === "audio") {
-      user.audioTrack.play();
+      if (user.audioTrack) {
+        user.audioTrack.play();
+        log(`Playing audio for user ${user.uid}`);
+      } else {
+        log(`No audio track for user ${user.uid}`);
+      }
     }
-  };
-
-  const log = (arg) => {
-    if (config.debugEnabled) {
-      console.log(arg);
-    }
-  };
+  } catch (error) {
+    console.error(`Error subscribing to user ${user.uid}:`, error);
+    log(`Error during subscription for user ${user.uid}: ${error.message}`);
+  }
+};
 
   let timer;
   const debounce = (fn, delay) => {
