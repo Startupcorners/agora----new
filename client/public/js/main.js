@@ -1033,16 +1033,16 @@ const subscribe = async (user, mediaType) => {
     // Ensure the uid is a string for RTM purposes
     const rtmUid = user.uid.toString();
 
-    // Create the video wrapper immediately regardless of media type (video/audio)
+    // First, check if the wrapper already exists to avoid duplicates
     let player = document.querySelector(`#video-wrapper-${user.uid}`);
 
     if (!player) {
       log(`Creating video wrapper for user ${user.uid}`);
 
-      // Retrieve user attributes from RTM (name, avatar) - ensure uid is passed as a string
+      // Retrieve user attributes from RTM (name, avatar)
       let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
       try {
-        // Fetch user attributes from RTM (name, avatar)
+        // Fetch user attributes from RTM
         userAttr = await clientRTM.getUserAttributes(rtmUid);
         log(`Fetched attributes for user ${user.uid}:`, userAttr);
       } catch (err) {
@@ -1058,14 +1058,18 @@ const subscribe = async (user, mediaType) => {
         .replace(/{{name}}/g, userAttr.name || "Unknown")
         .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
 
+      // Insert the player HTML into the stage
       document
         .querySelector(config.callContainerSelector)
         .insertAdjacentHTML("beforeend", playerHTML);
 
+      // Get the newly inserted player
       player = document.querySelector(`#video-wrapper-${user.uid}`);
+    } else {
+      log(`Wrapper already exists for user ${user.uid}, skipping creation.`);
     }
 
-    // At this point, the wrapper is created for the user, regardless of media type
+    // At this point, the wrapper is created (or already exists)
 
     // Handle the video stream if mediaType is "video"
     const videoPlayer = player.querySelector(`#stream-${user.uid}`);
@@ -1107,6 +1111,7 @@ const subscribe = async (user, mediaType) => {
     log(`Error subscribing to user ${user.uid}: ${error.message}`);
   }
 };
+
 
 
 
