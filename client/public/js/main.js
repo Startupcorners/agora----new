@@ -1264,10 +1264,15 @@ const handleUserJoined = async (user) => {
       .replace(/{{name}}/g, userName)
       .replace(/{{avatar}}/g, userAvatar);
 
+    // Check if the call container exists before inserting the HTML
+    const videoStage = document.querySelector(config.callContainerSelector);
+    if (!videoStage) {
+      console.error("Video stage container not found.");
+      return;
+    }
+
     // Insert the new player container into the video stage
-    document
-      .querySelector(config.callContainerSelector)
-      .insertAdjacentHTML("beforeend", playerHTML);
+    videoStage.insertAdjacentHTML("beforeend", playerHTML);
 
     // Ensure the avatar is displayed and the video player is hidden until video is published
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);
@@ -1280,11 +1285,12 @@ const handleUserJoined = async (user) => {
 
     // Call updateVideoWrapperSize to adjust the layout after the new player is added
     updateVideoWrapperSize();
+
+    console.log(`Video wrapper for UID ${user.uid} added to video stage.`);
   } catch (error) {
     console.error("Error during user join:", error);
   }
 };
-
 
 
 
