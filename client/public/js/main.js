@@ -6,12 +6,11 @@
  */
 
 const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
-  flex: 1 1 auto;
-  width: 100%; /* Start with full width */
-  height: auto;
-  max-width: 100%;
-  max-height: calc(100vh - 20px); /* Ensure it stays within the screen */
-  aspect-ratio: 16/9; /* Maintain a 16:9 ratio */
+  flex: 1 1 calc(25% - 20px); /* Ensure wrappers resize flexibly */
+  width: 100%;
+  min-width: 200px;
+  max-width: 800px;
+  aspect-ratio: 16/9;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -21,6 +20,7 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
   overflow: hidden;
   position: relative;
   box-sizing: border-box;
+  transition: all 0.3s ease; /* Smooth transitions on resizing */
 " data-uid="{{uid}}">
   <!-- Video Player -->
   <div id="stream-{{uid}}" class="video-player" style="
