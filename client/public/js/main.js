@@ -1024,22 +1024,23 @@ const handleRoleChange = async (messageObj) => {
 
 const subscribe = async (user, mediaType) => {
   try {
+    // Subscribe to the user for the specified media type
     await client.subscribe(user, mediaType);
     log(`Subscribed to user ${user.uid} for ${mediaType}`);
 
-    // Check if the video wrapper already exists
+    // Check if the wrapper exists for this user
     let player = document.querySelector(`#video-wrapper-${user.uid}`);
 
     if (!player) {
-      // Create the player if it doesn't exist
       log(`Creating video wrapper for user ${user.uid}`);
+      // Retrieve the user's attributes via RTM (name, avatar)
       const userAttr = await clientRTM.getUserAttributes(user.uid);
 
-      // Replace placeholders in the template, ensuring we handle missing attributes
+      // Create the video wrapper regardless of video availability
       let playerHTML = config.participantPlayerContainer
         .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, userAttr.name || "Unknown")
-        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
+        .replace(/{{name}}/g, userAttr.name || "Unknown") // Fallback to "Unknown"
+        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url"); // Fallback to default avatar
 
       document
         .querySelector(config.callContainerSelector)
@@ -1054,16 +1055,16 @@ const subscribe = async (user, mediaType) => {
 
     if (mediaType === "video") {
       if (user.videoTrack) {
-        // If the user has a video track, display the video
+        // If the user has a video track, play the video and hide the avatar
         videoPlayer.style.display = "block";
         avatarDiv.style.display = "none"; // Hide avatar
         user.videoTrack.play(`stream-${user.uid}`);
         log(`Playing video for user ${user.uid}`);
       } else {
-        // If the user turned off their camera, show the avatar
+        // If the user turned off the camera, display the avatar
         videoPlayer.style.display = "none";
         avatarDiv.style.display = "block"; // Show avatar
-        log(`User ${user.uid} has no video, showing avatar`);
+        log(`User ${user.uid} has no video track, showing avatar.`);
       }
     }
 
@@ -1076,6 +1077,9 @@ const subscribe = async (user, mediaType) => {
         log(`No audio track for user ${user.uid}`);
       }
     }
+
+    // Ensure that even if the video is turned off, the wrapper is always visible
+    player.style.display = "flex"; // Make sure the wrapper is visible in any case
   } catch (error) {
     console.error(`Error subscribing to user ${user.uid}:`, error);
     log(`Error during subscription for user ${user.uid}: ${error.message}`);
