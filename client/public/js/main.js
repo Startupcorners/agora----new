@@ -456,17 +456,11 @@ const join = async () => {
     config.client.on("token-privilege-will-expire", handleRenewToken);
     console.log("Token renewal event listener set");
 
-    // Step 4: Set the client's role based on the user's role
-    await config.client.setClientRole(
-      config.user.role === "audience" ? "audience" : "host"
-    );
-    console.log(`Set client role to: ${config.user.role}`);
-
-    // Step 5: Register common event listeners for all users
+    // Step 4: Register common event listeners for all users
     setupEventListeners();
     console.log("Event listeners have been set up for user:", uid);
 
-    // Step 6: Join the video stage if necessary
+    // Step 5: Join the video stage if necessary
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config.user);
     } else {
@@ -476,6 +470,7 @@ const join = async () => {
     console.error("Error in join process:", error);
   }
 };
+
 
 
   const setupEventListeners = () => {
