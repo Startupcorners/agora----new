@@ -1064,4 +1064,5 @@ const handleRoleChange = async (messageObj) => {
     stopRecording: stopRecording,
   };
 };
-window["MainApp"] = MainApp;
+window["newMainApp"] = newMainApp;
+
