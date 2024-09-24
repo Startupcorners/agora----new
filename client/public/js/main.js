@@ -519,10 +519,9 @@ const joinToVideoStage = async (user) => {
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
-    if (config.onNeedMuteCameraAndMic(user)) {
-      toggleCamera(true);
-      toggleMic(true);
-    }
+    // Mute camera by default when joining the stage
+    await config.localVideoTrack.setMuted(true);
+    config.localVideoTrackMuted = true; // Ensure the camera is marked as muted initially
 
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player != null) {
@@ -539,10 +538,24 @@ const joinToVideoStage = async (user) => {
       .querySelector(config.callContainerSelector)
       .insertAdjacentHTML("beforeend", localPlayerContainer);
 
+    // Ensure the local video is not playing initially (because camera is muted)
     if (user.id === config.uid) {
       config.localVideoTrack.play(`stream-${user.id}`);
-      await client.publish([config.localAudioTrack, config.localVideoTrack]);
+
+      await config.client.publish([
+        config.localAudioTrack,
+        config.localVideoTrack,
+      ]);
       console.log("Published local audio and video tracks for user:", user.id);
+
+      // Show the avatar and hide the video player initially
+      const videoPlayer = document.querySelector(`#stream-${user.id}`);
+      const avatarDiv = document.querySelector(`#avatar-${user.id}`);
+
+      if (videoPlayer && avatarDiv) {
+        videoPlayer.style.display = "none"; // Initially hide the video player
+        avatarDiv.style.display = "block"; // Show the avatar
+      }
     }
   } catch (error) {
     config.onError(error);
@@ -752,7 +765,7 @@ const toggleCamera = async (isMuted) => {
     if (isMuted) {
       console.log("Muting camera...");
       await config.localVideoTrack.setMuted(true);
-      config.localVideoTrackMuted = true;
+      config.localVideoTrackMuted = true; // Update the muted state
 
       // Show the avatar and hide the video player
       videoPlayer.style.display = "none";
@@ -778,7 +791,7 @@ const toggleCamera = async (isMuted) => {
 
       // Ensure the track is unmuted
       await config.localVideoTrack.setMuted(false);
-      config.localVideoTrackMuted = false;
+      config.localVideoTrackMuted = false; // Update the unmuted state
     }
 
     console.log(
