@@ -857,10 +857,6 @@ const toggleCamera = async (isMuted) => {
     console.log(
       `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
     );
-  } catch (error) {
-    console.error("Error while toggling camera:", error);
-  }
-};
 
     // Correctly call onCamMuted with both uid and the muted state
     config.onCamMuted(uid, config.localVideoTrackMuted);
@@ -871,6 +867,7 @@ const toggleCamera = async (isMuted) => {
     }
   }
 };
+
 
 const leaveFromVideoStage = async (user) => {
   try {
