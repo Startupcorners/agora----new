@@ -6,8 +6,6 @@
  * <script src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
  */
 
-const AgoraRTM = require("agora-rtm-sdk");
-
 const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
   flex: 1 1 auto;
   width: 100%; /* Start with full width */
