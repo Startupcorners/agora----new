@@ -391,101 +391,100 @@ const newMainApp = function (initConfig) {
   /**
    * Functions
    */
-const fetchTokens = async () => {
-  try {
-    const res = await fetch(
-      config.serverUrl +
-        `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`,
-      {
-        method: "GET", // Ensure method is GET
-        headers: {
-          "Cache-Control": "no-cache", // Prevent caching
-          Pragma: "no-cache", // HTTP 1.0 backward compatibility
-          Expires: "0", // Force immediate expiration
-        },
+  const fetchTokens = async () => {
+    try {
+      const res = await fetch(
+        config.serverUrl +
+          `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`,
+        {
+          method: "GET", // Ensure method is GET
+          headers: {
+            "Cache-Control": "no-cache", // Prevent caching
+            Pragma: "no-cache", // HTTP 1.0 backward compatibility
+            Expires: "0", // Force immediate expiration
+          },
+        }
+      );
+      const data = await res.json();
+      return {
+        rtcToken: data.rtcToken, // Extract the RTC token
+        rtmToken: data.rtmToken, // Extract the RTM token
+      };
+    } catch (err) {
+      console.error("Failed to fetch tokens:", err);
+      throw err;
+    }
+  };
+  const join = async () => {
+    try {
+      // Fetch the tokens first (for both RTC and RTM)
+      const { appId, uid, channelName } = config;
+      const tokens = await fetchTokens(); // Fetch RTC and RTM tokens
+      console.log("RTC Token (during join):", tokens.rtcToken);
+      console.log("RTM Token (during join):", tokens.rtmToken);
+      console.log("RTC UID (during join):", config.uid);
+
+      if (!tokens) {
+        throw new Error("Failed to fetch token");
       }
-    );
-    const data = await res.json();
-    return {
-      rtcToken: data.rtcToken, // Extract the RTC token
-      rtmToken: data.rtmToken, // Extract the RTM token
-    };
-  } catch (err) {
-    console.error("Failed to fetch tokens:", err);
-    throw err;
-  }
-};
-const join = async () => {
-  try {
-    // Fetch the tokens first (for both RTC and RTM)
-    const { appId, uid, channelName } = config;
-    const tokens = await fetchTokens(); // Fetch RTC and RTM tokens
-    console.log("RTC Token (during join):", tokens.rtcToken);
-    console.log("RTM Token (during join):", tokens.rtmToken);
-    console.log("RTC UID (during join):", config.uid);
 
-    if (!tokens) {
-      throw new Error("Failed to fetch token");
+      console.log("Tokens fetched successfully:", tokens);
+
+      // Step 1: Log in to the RTM (Real-Time Messaging) service
+      await joinRTM(tokens.rtmToken); // Join RTM first
+      console.log(`Joined RTM successfully with UID: ${uid}`);
+
+      // Step 2: Once RTM login is successful, join the RTC (Real-Time Communication) channel
+      await client.join(appId, channelName, tokens.rtcToken, uid);
+      console.log(`Joined Agora RTC channel: ${channelName} with UID: ${uid}`);
+
+      // Step 3: Set up token renewal for RTC
+      client.on("token-privilege-will-expire", handleRenewToken);
+
+      // Step 4: Set the client's role based on the user's role
+      await client.setClientRole(
+        config.user.role === "audience" ? "audience" : "host"
+      );
+      console.log(`Set client role to: ${config.user.role}`);
+
+      // Step 5: Register common event listeners for all users
+      setupEventListeners();
+
+      // Step 6: If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
+      if (config.onNeedJoinToVideoStage(config.user)) {
+        await joinToVideoStage(config.user);
+      } else {
+        console.log(
+          "User is in the audience and will not join the video stage."
+        );
+      }
+    } catch (error) {
+      console.error("Error in join process:", error);
+      // Handle the error appropriately (e.g., show an error message to the user)
     }
+  };
 
-    console.log("Tokens fetched successfully:", tokens);
+  const setupEventListeners = () => {
+    client.on("user-published", handleUserPublished);
+    client.on("user-unpublished", handleUserUnpublished);
+    client.on("user-joined", handleUserJoined);
+    client.on("user-left", handleUserLeft);
+    client.enableAudioVolumeIndicator();
+    client.on("volume-indicator", handleVolumeIndicator);
+  };
 
-    // Step 1: Log in to the RTM (Real-Time Messaging) service
-    await joinRTM(tokens.rtmToken); // Join RTM first
-    console.log(`Joined RTM successfully with UID: ${uid}`);
+  const handleUserUnpublished = async (user, mediaType) => {
+    if (mediaType === "video") {
+      const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+      if (videoWrapper) {
+        const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
+        const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
 
-    // Step 2: Once RTM login is successful, join the RTC (Real-Time Communication) channel
-    await client.join(appId, channelName, tokens.rtcToken, uid);
-    console.log(`Joined Agora RTC channel: ${channelName} with UID: ${uid}`);
-
-    // Step 3: Set up token renewal for RTC
-    client.on("token-privilege-will-expire", handleRenewToken);
-
-    // Step 4: Set the client's role based on the user's role
-    await client.setClientRole(
-      config.user.role === "audience" ? "audience" : "host"
-    );
-    console.log(`Set client role to: ${config.user.role}`);
-
-    // Step 5: Register common event listeners for all users
-    setupEventListeners();
-
-    // Step 6: If the user needs to join the video stage (e.g., host or speaker), proceed to publish tracks
-    if (config.onNeedJoinToVideoStage(config.user)) {
-      await joinToVideoStage(config.user);
-    } else {
-      console.log("User is in the audience and will not join the video stage.");
+        videoPlayer.style.display = "none"; // Hide the video player
+        avatarDiv.style.display = "block"; // Show the avatar
+      }
     }
-  } catch (error) {
-    console.error("Error in join process:", error);
-    // Handle the error appropriately (e.g., show an error message to the user)
-  }
-};
-
-
-
-const setupEventListeners = () => {
-  client.on("user-published", handleUserPublished);
-  client.on("user-unpublished", handleUserUnpublished);
-  client.on("user-joined", handleUserJoined);
-  client.on("user-left", handleUserLeft);
-  client.enableAudioVolumeIndicator();
-  client.on("volume-indicator", handleVolumeIndicator);
-};
-
-const handleUserUnpublished = async (user, mediaType) => {
-  if (mediaType === "video") {
-    const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-    if (videoWrapper) {
-      const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
-      const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
-
-      videoPlayer.style.display = "none"; // Hide the video player
-      avatarDiv.style.display = "block"; // Show the avatar
-    }
-  }
-};
-
+  };
 
   const joinToVideoStage = async (user) => {
     try {
@@ -546,122 +545,124 @@ const handleUserUnpublished = async (user, mediaType) => {
     }
   };
 
+  const joinRTM = async (rtmToken, retryCount = 0) => {
+    try {
+      const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
 
+      // If the user is already logged in, attempt to log them out first
+      if (clientRTM && clientRTM._logined) {
+        console.log(`User ${rtmUid} is already logged in. Logging out...`);
+        await clientRTM.logout();
+        console.log(`User ${rtmUid} logged out successfully.`);
+      }
 
-const joinRTM = async (rtmToken, retryCount = 0) => {
-  try {
-    const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
+      console.log("RTM Token (during login):", rtmToken);
+      console.log("RTM UID (during login):", rtmUid);
 
-    // If the user is already logged in, attempt to log them out first
-    if (clientRTM && clientRTM._logined) {
-      console.log(`User ${rtmUid} is already logged in. Logging out...`);
-      await clientRTM.logout();
-      console.log(`User ${rtmUid} logged out successfully.`);
+      // RTM login with the token
+      await clientRTM.login({ uid: rtmUid, token: rtmToken });
+      console.log(`RTM login successful for UID: ${rtmUid}`);
+
+      // Update participants after joining
+      await handleOnUpdateParticipants();
+
+      // Set up RTM event listeners
+      setupRTMEventListeners();
+
+      // Join the RTM channel
+      await channelRTM.join();
+      console.log(`Joined RTM channel successfully`);
+    } catch (error) {
+      console.error("RTM join process failed. Error details:", error);
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error code:", error.code);
+
+      if (error.code === 5) {
+        console.error(
+          "Token error detected. Please check your token generation process and Agora project settings."
+        );
+        console.error(
+          "Make sure you're using a dynamic token, not a static key."
+        );
+        console.error(
+          "Verify that your Agora project is configured for token authentication."
+        );
+      }
+
+      if (retryCount < 3) {
+        console.log(`Retrying RTM join (attempt ${retryCount + 1})...`);
+        await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
+        return joinRTM(rtmToken, retryCount + 1);
+      } else {
+        throw new Error("Failed to join RTM after multiple attempts");
+      }
     }
+  };
 
-    console.log("RTM Token (during login):", rtmToken);
-    console.log("RTM UID (during login):", rtmUid);
+  const setupRTMEventListeners = () => {
+    clientRTM.on("MessageFromPeer", handleMessageFromPeer);
+    channelRTM.on("MemberJoined", handleMemberJoined);
+    channelRTM.on("MemberLeft", handleMemberLeft);
+    channelRTM.on("ChannelMessage", handleChannelMessage);
+  };
 
-    // RTM login with the token
-    await clientRTM.login({ uid: rtmUid, token: rtmToken });
-    console.log(`RTM login successful for UID: ${rtmUid}`);
+  const handleMessageFromPeer = async (message, peerId) => {
+    console.log("messageFromPeer");
+    const data = JSON.parse(message.text);
+    console.log(data);
 
-    // Update participants after joining
+    if (data.event === "mic_off") {
+      await toggleMic(true);
+    } else if (data.event === "cam_off") {
+      await toggleCamera(true);
+    } else if (data.event === "remove_participant") {
+      await leave();
+    }
+  };
+
+  const handleMemberJoined = async (memberId) => {
+    console.log(`Member joined: ${memberId}`);
     await handleOnUpdateParticipants();
+  };
 
-    // Set up RTM event listeners
-    setupRTMEventListeners();
+  const handleMemberLeft = async (memberId) => {
+    console.log(`Member left: ${memberId}`);
+    await handleOnUpdateParticipants();
+  };
 
-    // Join the RTM channel
-    await channelRTM.join();
-    console.log(`Joined RTM channel successfully`);
+  const handleChannelMessage = async (message, memberId, props) => {
+    console.log("on:ChannelMessage ->");
+    const messageObj = JSON.parse(message.text);
+    console.log(messageObj);
 
-  } catch (error) {
-    console.error("RTM join process failed. Error details:", error);
-    console.error("Error name:", error.name);
-    console.error("Error message:", error.message);
-    console.error("Error code:", error.code);
-    
-    if (error.code === 5) {
-      console.error("Token error detected. Please check your token generation process and Agora project settings.");
-      console.error("Make sure you're using a dynamic token, not a static key.");
-      console.error("Verify that your Agora project is configured for token authentication.");
-    }
-
-    if (retryCount < 3) {
-      console.log(`Retrying RTM join (attempt ${retryCount + 1})...`);
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
-      return joinRTM(rtmToken, retryCount + 1);
+    if (
+      messageObj.type === "broadcast" &&
+      messageObj.event === "change_user_role"
+    ) {
+      if (config.uid === messageObj.targetUid) {
+        await handleRoleChange(messageObj);
+      }
+      await handleOnUpdateParticipants();
+      config.onRoleChanged(messageObj.targetUid, messageObj.role);
     } else {
-      throw new Error("Failed to join RTM after multiple attempts");
+      config.onMessageReceived(messageObj);
     }
-  }
-};
+  };
 
-const setupRTMEventListeners = () => {
-  clientRTM.on("MessageFromPeer", handleMessageFromPeer);
-  channelRTM.on("MemberJoined", handleMemberJoined);
-  channelRTM.on("MemberLeft", handleMemberLeft);
-  channelRTM.on("ChannelMessage", handleChannelMessage);
-};
+  const handleRoleChange = async (messageObj) => {
+    config.user.role = messageObj.role;
+    console.log("User role changed:", config.user.role);
 
-const handleMessageFromPeer = async (message, peerId) => {
-  console.log("messageFromPeer");
-  const data = JSON.parse(message.text);
-  console.log(data);
+    await clientRTM.addOrUpdateLocalUserAttributes({
+      role: config.user.role,
+    });
+    console.log("Updated user attributes after role change");
 
-  if (data.event === "mic_off") {
-    await toggleMic(true);
-  } else if (data.event === "cam_off") {
-    await toggleCamera(true);
-  } else if (data.event === "remove_participant") {
-    await leave();
-  }
-};
-
-const handleMemberJoined = async (memberId) => {
-  console.log(`Member joined: ${memberId}`);
-  await handleOnUpdateParticipants();
-};
-
-const handleMemberLeft = async (memberId) => {
-  console.log(`Member left: ${memberId}`);
-  await handleOnUpdateParticipants();
-};
-
-const handleChannelMessage = async (message, memberId, props) => {
-  console.log("on:ChannelMessage ->");
-  const messageObj = JSON.parse(message.text);
-  console.log(messageObj);
-
-  if (
-    messageObj.type === "broadcast" &&
-    messageObj.event === "change_user_role"
-  ) {
-    if (config.uid === messageObj.targetUid) {
-      await handleRoleChange(messageObj);
-    }
-    await handleOnUpdateParticipants();
-    config.onRoleChanged(messageObj.targetUid, messageObj.role);
-  } else {
-    config.onMessageReceived(messageObj);
-  }
-};
-
-const handleRoleChange = async (messageObj) => {
-  config.user.role = messageObj.role;
-  console.log("User role changed:", config.user.role);
-
-  await clientRTM.addOrUpdateLocalUserAttributes({
-    role: config.user.role,
-  });
-  console.log("Updated user attributes after role change");
-
-  await client.leave();
-  await leaveFromVideoStage(config.user);
-  await join(); // Re-join the RTC
-};
-
+    await client.leave();
+    await leaveFromVideoStage(config.user);
+    await join(); // Re-join the RTC
+  };
 
   const leave = async () => {
     document.querySelector(config.callContainerSelector).innerHTML = "";
@@ -1026,125 +1027,136 @@ const handleRoleChange = async (messageObj) => {
     await client.renewToken(config.token);
   };
 
-const subscribe = async (user, mediaType) => {
-  try {
-    log(`Subscribing to user ${user.uid} for media type: ${mediaType}`);
+  // A flag to track if the RTM client is already logged in
+  let rtmLoginInProgress = false;
 
-    // Ensure the uid is a string for RTM purposes
-    const rtmUid = user.uid.toString();
-
-    // Ensure RTM login before attempting to fetch attributes
-    if (!clientRTM._logined) {
-      log(`RTM client is not logged in. Logging in for user ${rtmUid}.`);
-      await clientRTM.login({ uid: rtmUid, token: config.token });
-      log(`Successfully logged in RTM client for user ${rtmUid}`);
-    }
-
-    // Fetch user attributes (name, avatar)
-    let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
+  const subscribe = async (user, mediaType) => {
     try {
-      // Fetch user attributes from RTM
-      userAttr = await clientRTM.getUserAttributes(rtmUid);
-      log(`Fetched attributes for user ${user.uid}:`, userAttr);
+      log(`Subscribing to user ${user.uid} for media type: ${mediaType}`);
 
-      // Ensure at least default values for missing name or avatar
-      userAttr.name = userAttr.name || "Unknown";
-      userAttr.avatar = userAttr.avatar || "default-avatar-url";
-    } catch (err) {
-      log(
-        `Failed to fetch attributes for user ${user.uid}, using defaults:`,
-        err
-      );
-    }
+      // Ensure the uid is a string for RTM purposes
+      const rtmUid = user.uid.toString();
 
-    // Check if the wrapper already exists to avoid duplicates
-    let player = document.querySelector(`#video-wrapper-${user.uid}`);
-
-    if (!player) {
-      log(`Creating video wrapper for user ${user.uid}`);
-
-      // Replace placeholders in the template with actual data
-      let playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, userAttr.name)
-        .replace(/{{avatar}}/g, userAttr.avatar);
-
-      // Insert the player HTML into the stage
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
-
-      // Get the newly inserted player
-      player = document.querySelector(`#video-wrapper-${user.uid}`);
-    } else {
-      log(`Wrapper already exists for user ${user.uid}, skipping creation.`);
-    }
-
-    // Handle the video stream if mediaType is "video"
-    const videoPlayer = player.querySelector(`#stream-${user.uid}`);
-    const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
-
-    if (mediaType === "video") {
-      log(`Handling video track for user ${user.uid}`);
-
-      if (user.videoTrack) {
-        // If user has a video track, display the video and hide the avatar
-        videoPlayer.style.display = "block";
-        avatarDiv.style.display = "none"; // Hide avatar
-        user.videoTrack.play(`stream-${user.uid}`);
-        log(`Playing video for user ${user.uid}`);
+      // Check if RTM login is in progress or completed to avoid repeated logins
+      if (!clientRTM._logined && !rtmLoginInProgress) {
+        log(`RTM client is not logged in. Logging in for user ${rtmUid}.`);
+        rtmLoginInProgress = true; // Set the login in progress flag
+        try {
+          await clientRTM.login({ uid: rtmUid, token: config.token });
+          log(`Successfully logged in RTM client for user ${rtmUid}`);
+        } catch (loginError) {
+          log(`RTM login failed: ${loginError.message}`);
+          return; // Exit the function if login failed
+        } finally {
+          rtmLoginInProgress = false; // Reset the flag
+        }
       } else {
-        // If no video track, show the avatar and hide the video player
-        videoPlayer.style.display = "none";
-        avatarDiv.style.display = "block"; // Show avatar
-        log(`No video track for user ${user.uid}, displaying avatar.`);
+        log(`RTM client already logged in or login in progress.`);
       }
-    }
 
-    // Handle the audio stream if mediaType is "audio"
-    if (mediaType === "audio") {
-      log(`Handling audio track for user ${user.uid}`);
+      // Fetch user attributes (name, avatar)
+      let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
+      try {
+        // Fetch user attributes from RTM
+        userAttr = await clientRTM.getUserAttributes(rtmUid);
+        log(`Fetched attributes for user ${user.uid}:`, userAttr);
 
-      if (user.audioTrack) {
-        user.audioTrack.play();
-        log(`Playing audio for user ${user.uid}`);
+        // Ensure at least default values for missing name or avatar
+        userAttr.name = userAttr.name || "Unknown";
+        userAttr.avatar = userAttr.avatar || "default-avatar-url";
+      } catch (err) {
+        log(
+          `Failed to fetch attributes for user ${user.uid}, using defaults:`,
+          err
+        );
+      }
+
+      // Check if the wrapper already exists to avoid duplicates
+      let player = document.querySelector(`#video-wrapper-${user.uid}`);
+
+      if (!player) {
+        log(`Creating video wrapper for user ${user.uid}`);
+
+        // Replace placeholders in the template with actual data
+        let playerHTML = config.participantPlayerContainer
+          .replace(/{{uid}}/g, user.uid)
+          .replace(/{{name}}/g, userAttr.name)
+          .replace(/{{avatar}}/g, userAttr.avatar);
+
+        // Insert the player HTML into the stage
+        document
+          .querySelector(config.callContainerSelector)
+          .insertAdjacentHTML("beforeend", playerHTML);
+
+        // Get the newly inserted player
+        player = document.querySelector(`#video-wrapper-${user.uid}`);
       } else {
-        log(`No audio track for user ${user.uid}`);
+        log(`Wrapper already exists for user ${user.uid}, skipping creation.`);
       }
+
+      // Handle the video stream if mediaType is "video"
+      const videoPlayer = player.querySelector(`#stream-${user.uid}`);
+      const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
+
+      if (mediaType === "video") {
+        log(`Handling video track for user ${user.uid}`);
+
+        if (user.videoTrack) {
+          // If user has a video track, display the video and hide the avatar
+          videoPlayer.style.display = "block";
+          avatarDiv.style.display = "none"; // Hide avatar
+          user.videoTrack.play(`stream-${user.uid}`);
+          log(`Playing video for user ${user.uid}`);
+        } else {
+          // If no video track, show the avatar and hide the video player
+          videoPlayer.style.display = "none";
+          avatarDiv.style.display = "block"; // Show avatar
+          log(`No video track for user ${user.uid}, displaying avatar.`);
+        }
+      }
+
+      // Handle the audio stream if mediaType is "audio"
+      if (mediaType === "audio") {
+        log(`Handling audio track for user ${user.uid}`);
+
+        if (user.audioTrack) {
+          user.audioTrack.play();
+          log(`Playing audio for user ${user.uid}`);
+        } else {
+          log(`No audio track for user ${user.uid}`);
+        }
+      }
+
+      // Ensure the wrapper is visible at all times
+      player.style.display = "flex"; // Ensure wrapper is always shown
+
+      // Verify if the number of wrappers matches the number of participants
+      checkAndAddMissingWrappers();
+    } catch (error) {
+      console.error(`Error subscribing to user ${user.uid}:`, error);
+      log(`Error subscribing to user ${user.uid}: ${error.message}`);
     }
+  };
 
-    // Ensure the wrapper is visible at all times
-    player.style.display = "flex"; // Ensure wrapper is always shown
+  // Function to check if any wrappers are missing and add them if needed
+  const checkAndAddMissingWrappers = () => {
+    const participants = client.remoteUsers || [];
+    const existingWrappers = document.querySelectorAll(
+      '[id^="video-wrapper-"]'
+    );
 
-    // Verify if the number of wrappers matches the number of participants
-    checkAndAddMissingWrappers();
-  } catch (error) {
-    console.error(`Error subscribing to user ${user.uid}:`, error);
-    log(`Error subscribing to user ${user.uid}: ${error.message}`);
-  }
-};
+    log(
+      `Checking for missing wrappers: ${existingWrappers.length} wrappers for ${participants.length} participants`
+    );
 
-// Function to check if any wrappers are missing and add them if needed
-const checkAndAddMissingWrappers = () => {
-  const participants = client.remoteUsers || [];
-  const existingWrappers = document.querySelectorAll('[id^="video-wrapper-"]');
-
-  log(
-    `Checking for missing wrappers: ${existingWrappers.length} wrappers for ${participants.length} participants`
-  );
-
-  participants.forEach((user) => {
-    const player = document.querySelector(`#video-wrapper-${user.uid}`);
-    if (!player) {
-      log(`Missing wrapper detected for user ${user.uid}, creating wrapper.`);
-      subscribe(user, "video"); // Add the missing wrapper
-    }
-  });
-};
-
-
-
-
+    participants.forEach((user) => {
+      const player = document.querySelector(`#video-wrapper-${user.uid}`);
+      if (!player) {
+        log(`Missing wrapper detected for user ${user.uid}, creating wrapper.`);
+        subscribe(user, "video"); // Add the missing wrapper
+      }
+    });
+  };
 
   const log = (arg) => {
     if (config.debugEnabled) {
