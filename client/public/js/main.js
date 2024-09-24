@@ -1040,7 +1040,17 @@ const subscribe = async (user, mediaType) => {
       log(`Creating video wrapper for user ${user.uid}`);
 
       // Retrieve user attributes from RTM (name, avatar) - ensure uid is passed as a string
-      const userAttr = await clientRTM.getUserAttributes(rtmUid);
+      let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
+      try {
+        // Fetch user attributes from RTM (name, avatar)
+        userAttr = await clientRTM.getUserAttributes(rtmUid);
+        log(`Fetched attributes for user ${user.uid}:`, userAttr);
+      } catch (err) {
+        log(
+          `Failed to fetch attributes for user ${user.uid}, using defaults:`,
+          err
+        );
+      }
 
       // Replace placeholders in the template with actual data
       let playerHTML = config.participantPlayerContainer
@@ -1097,6 +1107,7 @@ const subscribe = async (user, mediaType) => {
     log(`Error subscribing to user ${user.uid}: ${error.message}`);
   }
 };
+
 
 
   const log = (arg) => {
