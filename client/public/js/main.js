@@ -582,6 +582,29 @@ const joinToVideoStage = async (user) => {
   }
 };
 
+
+const updateParticipantList = async () => {
+  try {
+    const uids = await clientRTM.getMembers(); // Fetch the list of users in the call
+    const participants = await Promise.all(
+      uids.map(async (uid) => {
+        const userAttr = await clientRTM.getUserAttributes(uid);
+        return {
+          id: uid,
+          ...userAttr,
+        };
+      })
+    );
+    console.log("Participants List:", participants);
+
+    // Call bubble function with the list of participants
+    if (typeof bubble_fn_participantList === "function") {
+      bubble_fn_participantList(participants); // Send the participant list to Bubble
+    }
+  } catch (error) {
+    console.error("Error fetching participant list:", error);
+  }
+};
   const leaveFromVideoStage = async (user) => {
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player != null) {
@@ -1199,16 +1222,24 @@ const toggleScreenShare = async (isEnabled) => {
         videoPlayer.style.display = "none"; // Hide the video player
         avatarDiv.style.display = "block"; // Show the avatar
       }
+
+      // Update the participant list after the user joins
+      await updateParticipantList();
     } catch (error) {
       log("Failed to fetch user attributes:", error);
     }
   };
 
+  // Updated handleUserLeft
   const handleUserLeft = async (user, reason) => {
     delete config.remoteTracks[user.uid];
     if (document.querySelector(`#video-wrapper-${user.uid}`)) {
       document.querySelector(`#video-wrapper-${user.uid}`).remove();
     }
+
+    // Update the participant list after the user leaves
+    await updateParticipantList();
+
     config.onParticipantLeft(user);
   };
 
