@@ -123,6 +123,7 @@ const newMainApp = function (initConfig) {
     onParticipantsChanged: (participantIds) => {
       log("onParticipantsChanged");
       log(participantIds);
+      bubble_fn_participantList(participantIds);
     },
     onParticipantLeft: (user) => {
       log("onParticipantLeft");
@@ -585,37 +586,26 @@ const joinToVideoStage = async (user) => {
 
 const updateParticipantList = async () => {
   try {
-    console.log("Fetching participants list...");
-    const uids = await channelRTM.getMembers(); // Fetch the list of users in the call
-    console.log("UIDs fetched:", uids); // Log the fetched UIDs
-
+    const uids = await clientRTM.getMembers(); // Fetch the list of users in the call
     const participants = await Promise.all(
       uids.map(async (uid) => {
         const userAttr = await clientRTM.getUserAttributes(uid);
-        console.log(`Fetched attributes for UID ${uid}:`, userAttr); // Log user attributes
         return {
           id: uid,
           ...userAttr,
         };
       })
     );
-
     console.log("Participants List:", participants);
 
     // Call bubble function with the list of participants
     if (typeof bubble_fn_participantList === "function") {
-      console.log(
-        "Calling bubble_fn_participantList with participants list..."
-      );
       bubble_fn_participantList(participants); // Send the participant list to Bubble
-    } else {
-      console.warn("bubble_fn_participantList is not defined");
     }
   } catch (error) {
     console.error("Error fetching participant list:", error);
   }
 };
-
   const leaveFromVideoStage = async (user) => {
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player != null) {
@@ -1204,8 +1194,7 @@ const toggleScreenShare = async (isEnabled) => {
    subscribe(user, mediaType);
  };
 
-
-const handleUserJoined = async (user) => {
+  const handleUserJoined = async (user) => {
   log("handleUserJoined Here");
   config.remoteTracks[user.uid] = user;
 
@@ -1236,7 +1225,6 @@ const handleUserJoined = async (user) => {
     }
 
     // Update the participant list after the user joins
-    console.log("User joined. Updating participant list...");
     await updateParticipantList();
   } catch (error) {
     log("Failed to fetch user attributes:", error);
@@ -1251,7 +1239,6 @@ const handleUserLeft = async (user, reason) => {
   }
 
   // Update the participant list after the user leaves
-  console.log("User left. Updating participant list...");
   await updateParticipantList();
 
   config.onParticipantLeft(user);
