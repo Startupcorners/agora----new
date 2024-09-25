@@ -120,24 +120,86 @@ const newMainApp = function (initConfig) {
     localVideoTrackMuted: false,
     isVirtualBackGroundEnabled: false,
     remoteTracks: {},
-    onParticipantsChanged: (participantIds) => {
+    onParticipantJoined: async (user) => {
+      log("onParticipantJoined");
+      log(user);
+
+      const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
+
+      try {
+        // Fetch user attributes (name, avatar) from RTM immediately
+        const userAttr = await clientRTM.getUserAttributes(rtmUid);
+
+        // Use the participant's UID, name, and avatar to update the participant list
+        const uids = [user.uid];
+        const names = [userAttr.name || "Unknown"];
+        const avatars = [userAttr.avatar || "default-avatar-url"];
+
+        // Log the new participant info
+        log("Participant UID:", uids);
+        log("Participant Name:", names);
+        log("Participant Avatar:", avatars);
+
+        // Call the Bubble function with the new participant's data
+        if (typeof bubble_fn_participantList === "function") {
+          console.log(
+            "Calling bubble_fn_participantList for the new participant..."
+          );
+          bubble_fn_participantList({
+            output1: uids,
+            output2: names,
+            output3: avatars,
+          });
+        } else {
+          console.warn("bubble_fn_participantList is not defined");
+        }
+      } catch (error) {
+        log(`Failed to fetch attributes for user ${rtmUid}`, error);
+      }
+    },
+    onParticipantsChanged: async (participantIds) => {
       log("onParticipantsChanged");
       log(participantIds);
 
-      // Extracting the `id` from each participant object and creating an array of IDs
-      const participantIdsList = participantIds.map(
-        (participant) => participant.id
-      );
+      // Initialize arrays for storing participant data
+      const uids = [];
+      const names = [];
+      const avatars = [];
 
-      // Log the list of participant IDs
-      log("Participant IDs List:", participantIdsList);
+      // Loop through each participant and fetch their attributes
+      for (const participant of participantIds) {
+        const rtmUid = participant.id.toString(); // Ensure UID is a string
+        try {
+          // Fetch user attributes (name, avatar) from RTM
+          const userAttr = await clientRTM.getUserAttributes(rtmUid);
 
-      // Call the Bubble function with the list of participant IDs
+          // Push the data into the respective arrays
+          uids.push(participant.id);
+          names.push(userAttr.name || "Unknown");
+          avatars.push(userAttr.avatar || "default-avatar-url");
+        } catch (error) {
+          log(`Failed to fetch attributes for user ${rtmUid}`, error);
+          uids.push(participant.id); // Add the participant UID anyway
+          names.push("Unknown"); // Use default name if fetching failed
+          avatars.push("default-avatar-url"); // Use default avatar if fetching failed
+        }
+      }
+
+      // Log the result
+      log("Participants UIDs:", uids);
+      log("Participants Names:", names);
+      log("Participants Avatars:", avatars);
+
+      // Call the Bubble function with the collected data
       if (typeof bubble_fn_participantList === "function") {
         console.log(
-          "Calling bubble_fn_participantList with participant IDs..."
+          "Calling bubble_fn_participantList with participant data..."
         );
-        bubble_fn_participantList(participantIdsList); // Send the IDs to Bubble
+        bubble_fn_participantList({
+          output1: uids,
+          output2: names,
+          output3: avatars,
+        });
       } else {
         console.warn("bubble_fn_participantList is not defined");
       }
@@ -146,6 +208,27 @@ const newMainApp = function (initConfig) {
     onParticipantLeft: (user) => {
       log("onParticipantLeft");
       log(user);
+
+      // Get all current participants
+      const participants = Object.values(config.remoteTracks).map((track) => {
+        return {
+          uid: track.uid,
+          name: track.name || "Unknown", // Ensure there's a name
+          avatar: track.avatar || "default-avatar-url", // Ensure default avatar
+        };
+      });
+
+      // Prepare the output format for bubble_fn_participantList
+      const output1 = participants.map((participant) => participant.uid);
+      const output2 = participants.map((participant) => participant.name);
+      const output3 = participants.map((participant) => participant.avatar);
+
+      // Call the Bubble function with the updated participants list
+      bubble_fn_participantList({
+        output1: output1,
+        output2: output2,
+        output3: output3,
+      });
     },
     onVolumeIndicatorChanged: (volume) => {
       log("onVolumeIndicatorChanged");
@@ -524,14 +607,24 @@ const join = async () => {
 
 
 
-  const setupEventListeners = () => {
-    client.on("user-published", handleUserPublished);
-    client.on("user-unpublished", handleUserUnpublished);
-    client.on("user-joined", handleUserJoined);
-    client.on("user-left", handleUserLeft);
-    client.enableAudioVolumeIndicator();
-    client.on("volume-indicator", handleVolumeIndicator);
-  };
+ const setupEventListeners = () => {
+   client.on("user-published", handleUserPublished);
+   client.on("user-unpublished", handleUserUnpublished);
+
+   // Modify the user-joined handler to trigger both immediate and full updates
+   client.on("user-joined", async (user) => {
+     // Call the immediate join handler
+     await config.onParticipantJoined(user);
+
+     // Continue with the existing handleUserJoined to fully update the participant list
+     await handleUserJoined(user);
+   });
+
+   client.on("user-left", handleUserLeft);
+   client.enableAudioVolumeIndicator();
+   client.on("volume-indicator", handleVolumeIndicator);
+ };
+
 
 const handleUserUnpublished = async (user, mediaType) => {
   // Handle when video is unpublished (i.e., camera off)
