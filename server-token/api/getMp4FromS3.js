@@ -1,9 +1,11 @@
-const AWS = require("aws-sdk");
+const { S3Client, ListObjectsV2Command } = require("@aws-sdk/client-s3");
 
-const s3 = new AWS.S3({
-  accessKeyId: process.env.S3_ACCESS_KEY,
-  secretAccessKey: process.env.S3_SECRET_KEY,
+const s3Client = new S3Client({
   region: "us-east-1",
+  credentials: {
+    accessKeyId: process.env.S3_ACCESS_KEY,
+    secretAccessKey: process.env.S3_SECRET_KEY,
+  },
 });
 
 // Function to get MP4 files from S3
@@ -21,9 +23,12 @@ const getMp4FromS3 = async (channelName, timestamp) => {
       Prefix: prefix,
     };
 
-    const data = await s3.listObjectsV2(params).promise();
+    const command = new ListObjectsV2Command(params);
+    const data = await s3Client.send(command);
 
-    const mp4Files = data.Contents.filter((file) => file.Key.endsWith(".mp4"));
+    const mp4Files = (data.Contents || []).filter((file) =>
+      file.Key.endsWith(".mp4")
+    );
 
     if (mp4Files.length === 0) {
       throw new Error("No MP4 files found");

@@ -160,7 +160,6 @@ const newMainApp = function (initConfig) {
       updateParticipantList(participants);
     },
 
-
     onParticipantLeft: (user) => {
       log("onParticipantLeft");
       log(user);
@@ -297,7 +296,6 @@ const newMainApp = function (initConfig) {
   AgoraRTC.onPlaybackDeviceChanged = (info) => {
     config.onSpeakerChanged(info);
   };
-
 
   const extensionVirtualBackground = new VirtualBackgroundExtension();
   if (!extensionVirtualBackground.checkCompatibility()) {
@@ -516,29 +514,29 @@ const newMainApp = function (initConfig) {
   /**
    * Functions
    */
- const fetchTokens = async () => {
-   try {
-     const res = await fetch(
-       config.serverUrl +
-         `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`,
-       {
-         method: "GET", // Ensure method is GET
-         headers: {
-           "Cache-Control": "no-cache", // Prevent caching
-           Pragma: "no-cache", // HTTP 1.0 backward compatibility
-           Expires: "0", // Force immediate expiration
-         },
-       }
-     );
-     const data = await res.json();
-     return {
-       rtcToken: data.rtcToken, // Extract the RTC token only
-     };
-   } catch (err) {
-     console.error("Failed to fetch tokens:", err);
-     throw err;
-   }
- };
+  const fetchTokens = async () => {
+    try {
+      const res = await fetch(
+        config.serverUrl +
+          `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`,
+        {
+          method: "GET", // Ensure method is GET
+          headers: {
+            "Cache-Control": "no-cache", // Prevent caching
+            Pragma: "no-cache", // HTTP 1.0 backward compatibility
+            Expires: "0", // Force immediate expiration
+          },
+        }
+      );
+      const data = await res.json();
+      return {
+        rtcToken: data.rtcToken, // Extract the RTC token only
+      };
+    } catch (err) {
+      console.error("Failed to fetch tokens:", err);
+      throw err;
+    }
+  };
 
   const join = async () => {
     try {
@@ -744,7 +742,9 @@ const newMainApp = function (initConfig) {
     }
   };
 
-  const ws = new WebSocket("wss://your-signaling-server.com");
+  const ws = new WebSocket(
+    "wss://agora-signaling-server-new.ap-southeast-1.elasticbeanstalk.com"
+  ); // Replace with your Elastic Beanstalk URL
 
   // Handle incoming messages from WebSocket
   ws.onmessage = (message) => {
@@ -1361,11 +1361,9 @@ const newMainApp = function (initConfig) {
     await client.renewToken(config.token);
   };
 
-
   const subscribe = async (user, mediaType) => {
     try {
       log(`Subscribing to user ${user.uid} for media type: ${mediaType}`);
-
 
       let userAttr = {
         name: user.name || "Unknown", // Use name from user object or default to "Unknown"
