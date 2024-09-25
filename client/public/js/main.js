@@ -339,10 +339,10 @@ const updateParticipantList = (participants) => {
     (participant) => participant.avatar || "default-avatar-url"
   );
   const companies = participants.map(
-    (participant) => participant.company || "Unknown"
+    (participant) => participant.comp || "Unknown" // Updated to match renamed field
   );
   const designations = participants.map(
-    (participant) => participant.designation || "Unknown"
+    (participant) => participant.desg || "Unknown" // Updated to match renamed field
   );
 
   // Log the result
