@@ -1,7 +1,6 @@
 /**
  * please include agora on your html, since this not use nodejs import module approach
  * <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
- * <script src="https://cdn.jsdelivr.net/npm/agora-rtm-sdk@1.3.1/index.js"></script>
  * <script src="https://unpkg.com/agora-extension-virtual-background@1.2.0/agora-extension-virtual-background.js"></script>
  */
 
@@ -89,9 +88,9 @@ const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
 
 
 const newMainApp = function (initConfig) {
-    let screenClient;
-    let localScreenShareTrack;
-    let wasCameraOnBeforeSharing = false;
+  let screenClient;
+  let localScreenShareTrack;
+  let wasCameraOnBeforeSharing = false;
   let config = {
     debugEnabled: true,
     callContainerSelector: "#video-stage",
@@ -107,7 +106,7 @@ const newMainApp = function (initConfig) {
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
       role: "", //host, speaker, audience, etc
       company: "",
-      designation:"",
+      designation: "",
       profileLink: "",
     },
     serverUrl: "https://agora-new.vercel.app",
@@ -125,77 +124,62 @@ const newMainApp = function (initConfig) {
       log("onParticipantJoined");
       log(user);
 
-      const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
-
       try {
-        // Fetch user attributes (name, avatar) from RTM immediately
-        const userAttr = await clientRTM.getUserAttributes(rtmUid);
-
-        // Use the participant's UID, name, and avatar to update the participant list
+        // Use the participant's UID, name, and avatar directly from the user object
         const participants = [
           {
             uid: user.uid,
-            name: userAttr.name || "Unknown",
-            avatar: userAttr.avatar || "default-avatar-url",
+            name: user.name || "Unknown", // Use name from user object or default to "Unknown"
+            avatar: user.avatar || "default-avatar-url", // Use avatar from user object or default
           },
         ];
 
-        // Call the helper function
+        // Call the helper function to update the participant list
         updateParticipantList(participants);
       } catch (error) {
-        log(`Failed to fetch attributes for user ${rtmUid}`, error);
+        log(`Error handling participant ${user.uid}`, error);
       }
     },
-onParticipantsChanged: async (participantIds) => {
-  log("onParticipantsChanged");
-  log(participantIds);
 
-  const participants = [];
+    onParticipantsChanged: async (participantIds) => {
+      log("onParticipantsChanged");
+      log(participantIds);
 
-  // Loop through each participant and fetch their attributes
-  for (const participant of participantIds) {
-    const rtmUid = participant.id.toString(); // Ensure UID is a string
-    try {
-      // Fetch user attributes (name, avatar) from RTM
-      const userAttr = await clientRTM.getUserAttributes(rtmUid);
+      const participants = [];
 
-      participants.push({
-        uid: participant.id,
-        name: userAttr.name || "Unknown",
-        avatar: userAttr.avatar || "default-avatar-url",
+      // Loop through each participant and directly use their attributes
+      for (const participant of participantIds) {
+        participants.push({
+          uid: participant.id, // Use participant ID directly
+          name: participant.name || "Unknown", // Use the participant's name or default to "Unknown"
+          avatar: participant.avatar || "default-avatar-url", // Use the participant's avatar or default
+        });
+      }
+
+      // Call the helper function to update the participant list
+      updateParticipantList(participants);
+    },
+
+
+    onParticipantLeft: (user) => {
+      log("onParticipantLeft");
+      log(user);
+
+      // Get all current participants
+      const participants = Object.values(config.remoteTracks).map((track) => {
+        return {
+          uid: track.uid,
+          name: track.name || "Unknown",
+          avatar: track.avatar || "default-avatar-url",
+        };
       });
-    } catch (error) {
-      log(`Failed to fetch attributes for user ${rtmUid}`, error);
-      participants.push({
-        uid: participant.id,
-        name: "Unknown",
-        avatar: "default-avatar-url",
+
+      // Call the helper function
+      updateParticipantList(participants);
+      participants.forEach((track) => {
+        bubble_fn_left(track.uid);
       });
-    }
-  }
-
-  // Call the helper function
-  updateParticipantList(participants);
-},
-onParticipantLeft: (user) => {
-  log("onParticipantLeft");
-  log(user);
-
-  // Get all current participants
-  const participants = Object.values(config.remoteTracks).map((track) => {
-    return {
-      uid: track.uid,
-      name: track.name || "Unknown",
-      avatar: track.avatar || "default-avatar-url",
-    };
-  });
-
-  // Call the helper function
-  updateParticipantList(participants);
-  participants.forEach((track) => {
-    bubble_fn_left(track.uid);
-  });
-},
+    },
     onVolumeIndicatorChanged: (volume) => {
       log("onVolumeIndicatorChanged");
       log(volume);
@@ -314,13 +298,6 @@ onParticipantLeft: (user) => {
     config.onSpeakerChanged(info);
   };
 
-  const clientRTM = AgoraRTM.createInstance(config.appId, {
-    enableLogUpload: false,
-    logFilter: config.debugEnabled
-      ? AgoraRTM.LOG_FILTER_INFO
-      : AgoraRTM.LOG_FILTER_OFF,
-  });
-  const channelRTM = clientRTM.createChannel(config.channelName);
 
   const extensionVirtualBackground = new VirtualBackgroundExtension();
   if (!extensionVirtualBackground.checkCompatibility()) {
@@ -329,54 +306,53 @@ onParticipantLeft: (user) => {
   AgoraRTC.registerExtensions([extensionVirtualBackground]);
   let processor = null;
 
+  const updateParticipantList = (participants) => {
+    const uids = participants.map((participant) => participant.uid);
+    const names = participants.map(
+      (participant) => participant.name || "Unknown"
+    );
+    const avatars = participants.map(
+      (participant) => participant.avatar || "default-avatar-url"
+    );
+    const companies = participants.map(
+      (participant) => participant.comp || "Unknown" // Correctly using `comp`
+    );
+    const designations = participants.map(
+      (participant) => participant.desg || "Unknown" // Correctly using `desg`
+    );
 
-const updateParticipantList = (participants) => {
-  const uids = participants.map((participant) => participant.uid);
-  const names = participants.map(
-    (participant) => participant.name || "Unknown"
-  );
-  const avatars = participants.map(
-    (participant) => participant.avatar || "default-avatar-url"
-  );
-  const companies = participants.map(
-    (participant) => participant.comp || "Unknown" // Correctly using `comp`
-  );
-  const designations = participants.map(
-    (participant) => participant.desg || "Unknown" // Correctly using `desg`
-  );
+    // Log the result
+    log("Participants UIDs:", uids);
+    log("Participants Names:", names);
+    log("Participants Avatars:", avatars);
+    log("Participants Companies:", companies);
+    log("Participants Designations:", designations);
 
-  // Log the result
-  log("Participants UIDs:", uids);
-  log("Participants Names:", names);
-  log("Participants Avatars:", avatars);
-  log("Participants Companies:", companies);
-  log("Participants Designations:", designations);
+    // Call the Bubble function with the main participant data
+    if (typeof bubble_fn_participantList === "function") {
+      console.log("Calling bubble_fn_participantList with participant data...");
+      bubble_fn_participantList({
+        outputlist1: uids,
+        outputlist2: names,
+        outputlist3: avatars,
+        outputlist4: companies, // Now correctly passing company list
+      });
+    } else {
+      console.warn("bubble_fn_participantList is not defined");
+    }
 
-  // Call the Bubble function with the main participant data
-  if (typeof bubble_fn_participantList === "function") {
-    console.log("Calling bubble_fn_participantList with participant data...");
-    bubble_fn_participantList({
-      outputlist1: uids,
-      outputlist2: names,
-      outputlist3: avatars,
-      outputlist4: companies, // Now correctly passing company list
-    });
-  } else {
-    console.warn("bubble_fn_participantList is not defined");
-  }
-
-  // Call the separate Bubble function for designations
-  if (typeof bubble_fn_participantListOther === "function") {
-    console.log("Calling bubble_fn_participantListOther with designations...");
-    bubble_fn_participantListOther({
-      outputlist1: designations, // Now correctly passing designation list
-    });
-  } else {
-    console.warn("bubble_fn_participantListOther is not defined");
-  }
-};
-
-
+    // Call the separate Bubble function for designations
+    if (typeof bubble_fn_participantListOther === "function") {
+      console.log(
+        "Calling bubble_fn_participantListOther with designations..."
+      );
+      bubble_fn_participantListOther({
+        outputlist1: designations, // Now correctly passing designation list
+      });
+    } else {
+      console.warn("bubble_fn_participantListOther is not defined");
+    }
+  };
 
   const acquireResource = async () => {
     config.recordId = Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit recordId
@@ -540,522 +516,589 @@ const updateParticipantList = (participants) => {
   /**
    * Functions
    */
-  const fetchTokens = async () => {
+ const fetchTokens = async () => {
+   try {
+     const res = await fetch(
+       config.serverUrl +
+         `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`,
+       {
+         method: "GET", // Ensure method is GET
+         headers: {
+           "Cache-Control": "no-cache", // Prevent caching
+           Pragma: "no-cache", // HTTP 1.0 backward compatibility
+           Expires: "0", // Force immediate expiration
+         },
+       }
+     );
+     const data = await res.json();
+     return {
+       rtcToken: data.rtcToken, // Extract the RTC token only
+     };
+   } catch (err) {
+     console.error("Failed to fetch tokens:", err);
+     throw err;
+   }
+ };
+
+  const join = async () => {
     try {
-      const res = await fetch(
-        config.serverUrl +
-          `/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`,
-        {
-          method: "GET", // Ensure method is GET
-          headers: {
-            "Cache-Control": "no-cache", // Prevent caching
-            Pragma: "no-cache", // HTTP 1.0 backward compatibility
-            Expires: "0", // Force immediate expiration
-          },
-        }
-      );
-      const data = await res.json();
-      return {
-        rtcToken: data.rtcToken, // Extract the RTC token
-        rtmToken: data.rtmToken, // Extract the RTM token
+      const { appId, uid, channelName } = config;
+      const tokens = await fetchTokens(); // Fetch RTC tokens
+
+      console.log("RTC Token (during join):", tokens.rtcToken);
+      console.log("RTC UID (during join):", config.uid);
+
+      if (!tokens) {
+        throw new Error("Failed to fetch RTC token");
+      }
+
+      console.log("Tokens fetched successfully:", tokens);
+
+      // Ensure the Agora RTC client is initialized
+      if (!config.client) {
+        config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+        console.log("Agora client initialized");
+      }
+
+      // Step 1: Connect to WebSocket signaling server
+      ws.onopen = () => {
+        // Notify signaling server that user has joined
+        ws.send(
+          JSON.stringify({
+            event: "user-joined",
+            uid: config.uid,
+            name: config.user.name,
+            avatar: config.user.avatar,
+            channelName: channelName,
+          })
+        );
+        console.log(`User ${config.uid} joined via WebSocket`);
       };
-    } catch (err) {
-      console.error("Failed to fetch tokens:", err);
-      throw err;
+
+      // Step 2: Join the RTC channel
+      console.log(
+        `Attempting to join RTC channel: ${channelName} with UID: ${uid}`
+      );
+      await config.client.join(appId, channelName, tokens.rtcToken, uid);
+      console.log(
+        `Successfully joined RTC channel: ${channelName} with UID: ${uid}`
+      );
+
+      // Step 3: Set up token renewal for RTC
+      config.client.on("token-privilege-will-expire", handleRenewToken);
+      console.log("Token renewal event listener set");
+
+      // Step 4: Register common event listeners for all users
+      setupEventListeners();
+      console.log("Event listeners have been set up for user:", uid);
+
+      // Step 5: Join the video stage if necessary
+      if (config.onNeedJoinToVideoStage(config.user)) {
+        await joinToVideoStage(config.user);
+      } else {
+        console.log(
+          "User is in the audience and will not join the video stage."
+        );
+      }
+
+      // Notify that the user successfully joined
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Joined");
+      } else {
+        console.warn("bubble_fn_joining is not defined");
+      }
+    } catch (error) {
+      console.error("Error in join process:", error);
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Error");
+      } else {
+        console.warn("bubble_fn_joining is not defined");
+      }
     }
   };
 
+  const setupEventListeners = () => {
+    client.on("user-published", handleUserPublished);
+    client.on("user-unpublished", handleUserUnpublished);
 
+    // Modify the user-joined handler to trigger both immediate and full updates
+    client.on("user-joined", async (user) => {
+      // Call the immediate join handler
+      await config.onParticipantJoined(user);
 
-const join = async () => {
-  try {
-    const { appId, uid, channelName } = config;
-    const tokens = await fetchTokens(); // Fetch RTC tokens
+      // Continue with the existing handleUserJoined to fully update the participant list
+      await handleUserJoined(user);
+    });
 
-    console.log("RTC Token (during join):", tokens.rtcToken);
-    console.log("RTC UID (during join):", config.uid);
+    client.on("user-left", handleUserLeft);
+    client.enableAudioVolumeIndicator();
+    client.on("volume-indicator", handleVolumeIndicator);
+  };
 
-    if (!tokens) {
-      throw new Error("Failed to fetch RTC token");
-    }
+  const handleUserUnpublished = async (user, mediaType) => {
+    // Handle when video is unpublished (i.e., camera off)
+    if (mediaType === "video") {
+      const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+      if (videoWrapper) {
+        const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
+        const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
 
-    console.log("Tokens fetched successfully:", tokens);
-
-    // Ensure the Agora RTC client is initialized
-    if (!config.client) {
-      config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-      console.log("Agora client initialized");
-    }
-
-    // Step 1: Connect to WebSocket signaling server
-    ws.onopen = () => {
-      // Notify signaling server that user has joined
-      ws.send(
-        JSON.stringify({
-          event: "user-joined",
-          uid: config.uid,
-          name: config.user.name,
-          avatar: config.user.avatar,
-          channelName: channelName,
-        })
-      );
-      console.log(`User ${config.uid} joined via WebSocket`);
-    };
-
-    // Step 2: Join the RTC channel
-    console.log(
-      `Attempting to join RTC channel: ${channelName} with UID: ${uid}`
-    );
-    await config.client.join(appId, channelName, tokens.rtcToken, uid);
-    console.log(
-      `Successfully joined RTC channel: ${channelName} with UID: ${uid}`
-    );
-
-    // Step 3: Set up token renewal for RTC
-    config.client.on("token-privilege-will-expire", handleRenewToken);
-    console.log("Token renewal event listener set");
-
-    // Step 4: Register common event listeners for all users
-    setupEventListeners();
-    console.log("Event listeners have been set up for user:", uid);
-
-    // Step 5: Join the video stage if necessary
-    if (config.onNeedJoinToVideoStage(config.user)) {
-      await joinToVideoStage(config.user);
-    } else {
-      console.log("User is in the audience and will not join the video stage.");
-    }
-
-    // Notify that the user successfully joined
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Joined");
-    } else {
-      console.warn("bubble_fn_joining is not defined");
-    }
-  } catch (error) {
-    console.error("Error in join process:", error);
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Error");
-    } else {
-      console.warn("bubble_fn_joining is not defined");
-    }
-  }
-};
-
-
-
-
-
- const setupEventListeners = () => {
-   client.on("user-published", handleUserPublished);
-   client.on("user-unpublished", handleUserUnpublished);
-
-   // Modify the user-joined handler to trigger both immediate and full updates
-   client.on("user-joined", async (user) => {
-     // Call the immediate join handler
-     await config.onParticipantJoined(user);
-
-     // Continue with the existing handleUserJoined to fully update the participant list
-     await handleUserJoined(user);
-   });
-
-   client.on("user-left", handleUserLeft);
-   client.enableAudioVolumeIndicator();
-   client.on("volume-indicator", handleVolumeIndicator);
- };
-
-
-const handleUserUnpublished = async (user, mediaType) => {
-  // Handle when video is unpublished (i.e., camera off)
-  if (mediaType === "video") {
-    const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-    if (videoWrapper) {
-      const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
-      const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
-
-      videoPlayer.style.display = "none"; // Hide the video player
-      avatarDiv.style.display = "block"; // Show the avatar
-    }
-  }
-
-  // Handle when audio is unpublished (i.e., mic is muted)
-  if (mediaType === "audio") {
-    log(`User ${user.uid} has muted their mic`);
-    updateMicIcon(user.uid, true); // Mic is muted
-  }
-};
-const joinToVideoStage = async (user) => {
-  try {
-    config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-
-    // Mute camera by default when joining the stage
-    await config.localVideoTrack.setMuted(true);
-    config.localVideoTrackMuted = true; // Ensure the camera is marked as muted initially
-
-    let player = document.querySelector(`#video-wrapper-${user.id}`);
-    if (player != null) {
-      player.remove();
-    }
-    console.log("Avatar URL:", user.avatar);
-
-    let localPlayerContainer = config.participantPlayerContainer
-      .replaceAll("{{uid}}", user.id)
-      .replaceAll("{{name}}", user.name)
-      .replaceAll("{{avatar}}", user.avatar);
-
-    document
-      .querySelector(config.callContainerSelector)
-      .insertAdjacentHTML("beforeend", localPlayerContainer);
-
-    // Ensure the local video is not playing initially (because camera is muted)
-    if (user.id === config.uid) {
-      config.localVideoTrack.play(`stream-${user.id}`);
-
-      await config.client.publish([
-        config.localAudioTrack,
-        config.localVideoTrack,
-      ]);
-      console.log("Published local audio and video tracks for user:", user.id);
-
-      // Show the avatar and hide the video player initially
-      const videoPlayer = document.querySelector(`#stream-${user.id}`);
-      const avatarDiv = document.querySelector(`#avatar-${user.id}`);
-
-      if (videoPlayer && avatarDiv) {
-        videoPlayer.style.display = "none"; // Initially hide the video player
+        videoPlayer.style.display = "none"; // Hide the video player
         avatarDiv.style.display = "block"; // Show the avatar
       }
     }
-    config.onCamMuted(config.uid, config.localVideoTrackMuted);
-  } catch (error) {
-    config.onError(error);
-  }
-};
+
+    // Handle when audio is unpublished (i.e., mic is muted)
+    if (mediaType === "audio") {
+      log(`User ${user.uid} has muted their mic`);
+      updateMicIcon(user.uid, true); // Mic is muted
+    }
+  };
+  const joinToVideoStage = async (user) => {
+    try {
+      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+
+      // Mute camera by default when joining the stage
+      await config.localVideoTrack.setMuted(true);
+      config.localVideoTrackMuted = true; // Ensure the camera is marked as muted initially
+
+      let player = document.querySelector(`#video-wrapper-${user.id}`);
+      if (player != null) {
+        player.remove();
+      }
+      console.log("Avatar URL:", user.avatar);
+
+      let localPlayerContainer = config.participantPlayerContainer
+        .replaceAll("{{uid}}", user.id)
+        .replaceAll("{{name}}", user.name)
+        .replaceAll("{{avatar}}", user.avatar);
+
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", localPlayerContainer);
+
+      // Ensure the local video is not playing initially (because camera is muted)
+      if (user.id === config.uid) {
+        config.localVideoTrack.play(`stream-${user.id}`);
+
+        await config.client.publish([
+          config.localAudioTrack,
+          config.localVideoTrack,
+        ]);
+        console.log(
+          "Published local audio and video tracks for user:",
+          user.id
+        );
+
+        // Show the avatar and hide the video player initially
+        const videoPlayer = document.querySelector(`#stream-${user.id}`);
+        const avatarDiv = document.querySelector(`#avatar-${user.id}`);
+
+        if (videoPlayer && avatarDiv) {
+          videoPlayer.style.display = "none"; // Initially hide the video player
+          avatarDiv.style.display = "block"; // Show the avatar
+        }
+      }
+      config.onCamMuted(config.uid, config.localVideoTrackMuted);
+    } catch (error) {
+      config.onError(error);
+    }
+  };
 
   const leaveFromVideoStage = async (user) => {
+    // Remove the video wrapper from the DOM
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player != null) {
       player.remove();
     }
 
+    // If the user leaving the video stage is the current user
     if (user.id === config.uid) {
       try {
+        // Stop and close local audio and video tracks
         config.localAudioTrack.stop();
         config.localVideoTrack.stop();
 
         config.localAudioTrack.close();
         config.localVideoTrack.close();
 
-        await client.unpublish([
+        // Unpublish the audio and video tracks from the Agora client
+        await config.client.unpublish([
           config.localAudioTrack,
           config.localVideoTrack,
         ]);
+
+        // Notify other participants via WebSocket
+        ws.send(
+          JSON.stringify({
+            event: "user-left-video-stage",
+            uid: config.uid,
+          })
+        );
+
+        console.log(`User ${config.uid} left the video stage.`);
       } catch (error) {
-        //
+        console.error("Error leaving video stage:", error);
       }
     }
   };
 
-const ws = new WebSocket("wss://your-signaling-server.com");
+  const ws = new WebSocket("wss://your-signaling-server.com");
 
-// Handle incoming messages from WebSocket
-ws.onmessage = (message) => {
-  const data = JSON.parse(message.data);
-  switch (data.event) {
-    case "user-joined":
-      handleUserJoined(data);
-      break;
-    case "user-left":
-      handleUserLeft(data);
-      break;
-    case "mic-off":
-      toggleMic(true);
-      break;
-    case "mic-on":
-      toggleMic(false);
-      break;
-    case "camera-off":
-      toggleCamera(true);
-      break;
-    case "camera-on":
-      toggleCamera(false);
-      break;
-    case "remove-participant":
-      leave();
-      break;
-    case "role-change":
-      handleRoleChange(data);
-      break;
-    default:
-      console.log("Unknown event received", data);
-  }
-};
+  // Handle incoming messages from WebSocket
+  ws.onmessage = (message) => {
+    const data = JSON.parse(message.data);
+    switch (data.event) {
+      case "user-joined":
+        handleUserJoined(data);
+        break;
+      case "user-left":
+        handleUserLeft(data);
+        break;
+      case "mic-off":
+        toggleMic(true);
+        break;
+      case "mic-on":
+        toggleMic(false);
+        break;
+      case "camera-off":
+        toggleCamera(true);
+        break;
+      case "camera-on":
+        toggleCamera(false);
+        break;
+      case "remove-participant":
+        leave();
+        break;
+      case "role-change":
+        handleRoleChange(data);
+        break;
+      default:
+        console.log("Unknown event received", data);
+    }
+  };
 
   const handleRoleChange = async (messageObj) => {
+    // Update the user's role locally
     config.user.role = messageObj.role;
     console.log("User role changed:", config.user.role);
 
-    await clientRTM.addOrUpdateLocalUserAttributes({
-      role: config.user.role,
-    });
-    console.log("Updated user attributes after role change");
+    // Send the updated role to other participants via WebSocket
+    ws.send(
+      JSON.stringify({
+        event: "role-changed",
+        uid: config.uid,
+        role: config.user.role,
+      })
+    );
 
-    await client.leave();
+    // Leave the current RTC session
+    await config.client.leave();
+
+    // Leave from the video stage if applicable
     await leaveFromVideoStage(config.user);
-    await join(); // Re-join the RTC
-  };
 
+    // Re-join the RTC channel with the new role
+    await join();
+  };
   const leave = async () => {
+    // Clear the UI container for the video call
     document.querySelector(config.callContainerSelector).innerHTML = "";
 
-    await Promise.all([client.leave(), clientRTM.logout()]);
+    // Leave the RTC channel
+    await config.client.leave();
 
+    // Notify other participants via WebSocket that the user has left
+    ws.send(
+      JSON.stringify({
+        event: "user-left",
+        uid: config.uid,
+      })
+    );
+
+    // Trigger the onUserLeave callback
     config.onUserLeave();
   };
 
   const toggleMic = async (isMuted) => {
-    if (isMuted) {
-      await config.localAudioTrack.setMuted(true);
-      config.localAudioTrackMuted = true;
-    } else {
-      await config.localAudioTrack.setMuted(false);
-      config.localAudioTrackMuted = false;
-    }
+    try {
+      if (isMuted) {
+        await config.localAudioTrack.setMuted(true);
+        config.localAudioTrackMuted = true;
+      } else {
+        await config.localAudioTrack.setMuted(false);
+        config.localAudioTrackMuted = false;
+      }
 
-    config.onMicMuted(config.localAudioTrackMuted);
+      // Notify other participants via WebSocket
+      ws.send(
+        JSON.stringify({
+          event: isMuted ? "mic-off" : "mic-on",
+          uid: config.uid,
+        })
+      );
+
+      // Notify the local UI
+      config.onMicMuted(config.localAudioTrackMuted);
+    } catch (error) {
+      console.error("Error toggling microphone:", error);
+      if (config.onError) {
+        config.onError(error);
+      }
+    }
   };
 
-const toggleCamera = async (isMuted) => {
-  try {
-    const uid = config.uid;
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatar = document.querySelector(`#avatar-${uid}`);
+  const toggleCamera = async (isMuted) => {
+    try {
+      const uid = config.uid;
+      const videoPlayer = document.querySelector(`#stream-${uid}`);
+      const avatar = document.querySelector(`#avatar-${uid}`);
 
-    if (!config.client) {
-      console.error("Agora client is not initialized!");
-      return;
-    }
-
-    // Log the current state before toggling the camera
-    console.log(`Camera is about to be ${isMuted ? "muted" : "unmuted"}`);
-    console.log("Video player element:", videoPlayer);
-    console.log("Avatar element:", avatar);
-
-    if (!videoPlayer) {
-      console.error(`Video player with id #stream-${uid} not found`);
-      return;
-    }
-
-    // Check if the video track exists, if not create and initialize it
-    if (!config.localVideoTrack) {
-      console.log("Initializing new camera video track...");
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-    }
-
-    // Mute or unmute the video track
-    if (isMuted) {
-      console.log("Muting camera...");
-      await config.localVideoTrack.setMuted(true);
-      config.localVideoTrackMuted = true; // Update the muted state
-
-      // Show the avatar and hide the video player
-      videoPlayer.style.display = "none";
-      avatar.style.display = "block";
-    } else {
-      console.log("Unmuting camera...");
-
-      // Ensure the video player is visible
-      videoPlayer.style.display = "block";
-      avatar.style.display = "none";
-
-      // Reattach and play the video track inside the video player
-      if (
-        videoPlayer.childNodes.length === 0 ||
-        !videoPlayer.querySelector("video")
-      ) {
-        console.log("Reattaching video element...");
-        config.localVideoTrack.play(videoPlayer); // Reattach the video track to the player
-      } else {
-        console.log("Video element already exists, playing it.");
-        config.localVideoTrack.play(videoPlayer); // Ensure the track plays
+      if (!config.client) {
+        console.error("Agora client is not initialized!");
+        return;
       }
 
-      // Ensure the track is unmuted
-      await config.localVideoTrack.setMuted(false);
-      config.localVideoTrackMuted = false; // Update the unmuted state
-    }
+      // Log the current state before toggling the camera
+      console.log(`Camera is about to be ${isMuted ? "muted" : "unmuted"}`);
+      console.log("Video player element:", videoPlayer);
+      console.log("Avatar element:", avatar);
 
-    console.log(
-      `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
-    );
-
-    // Correctly call onCamMuted with both uid and the muted state
-    config.onCamMuted(uid, config.localVideoTrackMuted);
-  } catch (error) {
-    console.error("Error in toggleCamera:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
-  }
-};
-  
-
-const toggleScreenShare = async (isEnabled) => {
-  try {
-    const uid = config.uid;
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatar = document.querySelector(`#avatar-${uid}`);
-
-    if (!config.client) {
-      console.error("Agora client is not initialized!");
-      return;
-    }
-
-    if (config.localScreenShareEnabled && isEnabled) {
-      console.log("Already sharing. Stopping screen share.");
-      isEnabled = false;
-    }
-
-    if (isEnabled) {
-      console.log("Starting screen share");
-      wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
-
-      // Create the screen share track if it doesn't already exist
-      if (!config.localScreenShareTrack) {
-        console.log("Creating screen share track...");
-        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+      if (!videoPlayer) {
+        console.error(`Video player with id #stream-${uid} not found`);
+        return;
       }
 
-      // Stop and unpublish the local video track before screen share
-      if (config.localVideoTrack) {
-        console.log(
-          "Stopping and unpublishing local video track before screen share..."
-        );
-        config.localVideoTrack.stop();
-        await config.client.unpublish([config.localVideoTrack]);
-        videoPlayer.style.display = "none";
+      // Check if the video track exists, if not create and initialize it
+      if (!config.localVideoTrack) {
+        console.log("Initializing new camera video track...");
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
       }
 
-      // Play and publish the screen share track
-      config.localScreenShareTrack.on("track-ended", async () => {
-        console.log("Screen share track ended, reverting back to camera");
-        await toggleScreenShare(false); // Revert to camera when screen sharing stops
-      });
+      // Mute or unmute the video track
+      if (isMuted) {
+        console.log("Muting camera...");
+        await config.localVideoTrack.setMuted(true);
+        config.localVideoTrackMuted = true; // Update the muted state
 
-      await config.client.publish([config.localScreenShareTrack]);
-      config.localScreenShareTrack.play(videoPlayer);
-      videoPlayer.style.display = "block";
-      avatar.style.display = "none";
-    } else {
-      console.log("Stopping screen share");
-
-      // Stop the screen share and revert to the camera
-      if (config.localScreenShareTrack) {
-        console.log("Stopping and closing the screen share track...");
-        config.localScreenShareTrack.stop();
-        config.localScreenShareTrack.close();
-        await config.client.unpublish([config.localScreenShareTrack]);
-        config.localScreenShareTrack = null;
-      }
-
-      // Reinitialize the camera track only if it was on before sharing
-      if (wasCameraOnBeforeSharing) {
-        console.log("Restoring camera track after screen share...");
-        if (!config.localVideoTrack) {
-          console.log("Creating new camera video track...");
-          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        }
-
-        console.log("Publishing and playing the camera track...");
-        await config.client.publish([config.localVideoTrack]);
-
-        // Re-attach video track to the video player element
-        if (videoPlayer) {
-          console.log("Playing camera video track in videoPlayer...");
-          config.localVideoTrack.play(videoPlayer);
-          videoPlayer.style.display = "block";
-          avatar.style.display = "none";
-        } else {
-          console.error("Video player not found for camera playback!");
-        }
-      } else {
-        // If the camera was off, show the avatar
-        console.log("Camera was off before sharing, showing avatar...");
+        // Show the avatar and hide the video player
         videoPlayer.style.display = "none";
         avatar.style.display = "block";
+      } else {
+        console.log("Unmuting camera...");
+
+        // Ensure the video player is visible
+        videoPlayer.style.display = "block";
+        avatar.style.display = "none";
+
+        // Reattach and play the video track inside the video player
+        if (
+          videoPlayer.childNodes.length === 0 ||
+          !videoPlayer.querySelector("video")
+        ) {
+          console.log("Reattaching video element...");
+          config.localVideoTrack.play(videoPlayer); // Reattach the video track to the player
+        } else {
+          console.log("Video element already exists, playing it.");
+          config.localVideoTrack.play(videoPlayer); // Ensure the track plays
+        }
+
+        // Ensure the track is unmuted
+        await config.localVideoTrack.setMuted(false);
+        config.localVideoTrackMuted = false; // Update the unmuted state
+      }
+
+      console.log(
+        `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
+      );
+
+      // Notify other participants via WebSocket
+      ws.send(
+        JSON.stringify({
+          event: isMuted ? "camera-off" : "camera-on",
+          uid: config.uid,
+        })
+      );
+
+      // Notify the local UI
+      config.onCamMuted(uid, config.localVideoTrackMuted);
+    } catch (error) {
+      console.error("Error in toggleCamera:", error);
+      if (config.onError) {
+        config.onError(error);
       }
     }
+  };
 
-    config.localScreenShareEnabled = isEnabled;
-    config.onScreenShareEnabled(isEnabled);
-  } catch (error) {
-    console.error("Error during screen sharing:", error);
-    config.onError(error);
+  const toggleScreenShare = async (isEnabled) => {
+    try {
+      const uid = config.uid;
+      const videoPlayer = document.querySelector(`#stream-${uid}`);
+      const avatar = document.querySelector(`#avatar-${uid}`);
 
-    // Ensure local video is active in case of an error
-    if (!isEnabled && !config.localVideoTrack) {
-      try {
-        console.log("Reinitializing camera track after error...");
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        await config.client.publish([config.localVideoTrack]);
+      if (!config.client) {
+        console.error("Agora client is not initialized!");
+        return;
+      }
 
-        if (videoPlayer) {
+      if (config.localScreenShareEnabled && isEnabled) {
+        console.log("Already sharing. Stopping screen share.");
+        isEnabled = false;
+      }
+
+      if (isEnabled) {
+        console.log("Starting screen share");
+        wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
+
+        // Create the screen share track if it doesn't already exist
+        if (!config.localScreenShareTrack) {
+          console.log("Creating screen share track...");
+          config.localScreenShareTrack =
+            await AgoraRTC.createScreenVideoTrack();
+        }
+
+        // Stop and unpublish the local video track before screen share
+        if (config.localVideoTrack) {
           console.log(
-            "Playing camera video track in videoPlayer after error..."
+            "Stopping and unpublishing local video track before screen share..."
           );
-          config.localVideoTrack.play(videoPlayer);
+          config.localVideoTrack.stop();
+          await config.client.unpublish([config.localVideoTrack]);
+          videoPlayer.style.display = "none";
+        }
 
-          if (wasCameraOnBeforeSharing) {
+        // Play and publish the screen share track
+        config.localScreenShareTrack.on("track-ended", async () => {
+          console.log("Screen share track ended, reverting back to camera");
+          await toggleScreenShare(false); // Revert to camera when screen sharing stops
+        });
+
+        await config.client.publish([config.localScreenShareTrack]);
+        config.localScreenShareTrack.play(videoPlayer);
+        videoPlayer.style.display = "block";
+        avatar.style.display = "none";
+
+        // Notify other participants via WebSocket
+        ws.send(
+          JSON.stringify({
+            event: "screen-share-started",
+            uid: config.uid,
+          })
+        );
+      } else {
+        console.log("Stopping screen share");
+
+        // Stop the screen share and revert to the camera
+        if (config.localScreenShareTrack) {
+          console.log("Stopping and closing the screen share track...");
+          config.localScreenShareTrack.stop();
+          config.localScreenShareTrack.close();
+          await config.client.unpublish([config.localScreenShareTrack]);
+          config.localScreenShareTrack = null;
+        }
+
+        // Reinitialize the camera track only if it was on before sharing
+        if (wasCameraOnBeforeSharing) {
+          console.log("Restoring camera track after screen share...");
+          if (!config.localVideoTrack) {
+            console.log("Creating new camera video track...");
+            config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+          }
+
+          console.log("Publishing and playing the camera track...");
+          await config.client.publish([config.localVideoTrack]);
+
+          // Re-attach video track to the video player element
+          if (videoPlayer) {
+            console.log("Playing camera video track in videoPlayer...");
+            config.localVideoTrack.play(videoPlayer);
             videoPlayer.style.display = "block";
             avatar.style.display = "none";
           } else {
-            videoPlayer.style.display = "none";
-            avatar.style.display = "block";
+            console.error("Video player not found for camera playback!");
           }
         } else {
-          console.error("Video player not found after error!");
+          // If the camera was off, show the avatar
+          console.log("Camera was off before sharing, showing avatar...");
+          videoPlayer.style.display = "none";
+          avatar.style.display = "block";
         }
-      } catch (cameraError) {
-        console.error("Error reinitializing camera track:", cameraError);
+
+        // Notify other participants via WebSocket
+        ws.send(
+          JSON.stringify({
+            event: "screen-share-stopped",
+            uid: config.uid,
+          })
+        );
+      }
+
+      config.localScreenShareEnabled = isEnabled;
+      config.onScreenShareEnabled(isEnabled);
+    } catch (error) {
+      console.error("Error during screen sharing:", error);
+      config.onError(error);
+
+      // Ensure local video is active in case of an error
+      if (!isEnabled && !config.localVideoTrack) {
+        try {
+          console.log("Reinitializing camera track after error...");
+          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+          await config.client.publish([config.localVideoTrack]);
+
+          if (videoPlayer) {
+            console.log(
+              "Playing camera video track in videoPlayer after error..."
+            );
+            config.localVideoTrack.play(videoPlayer);
+
+            if (wasCameraOnBeforeSharing) {
+              videoPlayer.style.display = "block";
+              avatar.style.display = "none";
+            } else {
+              videoPlayer.style.display = "none";
+              avatar.style.display = "block";
+            }
+          } else {
+            console.error("Video player not found after error!");
+          }
+        } catch (cameraError) {
+          console.error("Error reinitializing camera track:", cameraError);
+        }
       }
     }
-  }
-};
-
+  };
 
   const turnOffMic = (...uids) => {
     uids.forEach((uid) => {
-      sendMessageToPeer(
-        {
-          content: "",
+      ws.send(
+        JSON.stringify({
           event: "mic_off",
-        },
-        `${uid}`
+          uid: uid,
+        })
       );
     });
   };
 
   const turnOffCamera = (...uids) => {
     uids.forEach((uid) => {
-      sendMessageToPeer(
-        {
-          content: "",
-          event: "cam_off",
-        },
-        `${uid}`
+      ws.send(
+        JSON.stringify({
+          event: "camera_off",
+          uid: uid,
+        })
       );
     });
   };
 
   const removeParticipant = (...uids) => {
     uids.forEach((uid) => {
-      sendMessageToPeer(
-        {
-          content: "",
+      ws.send(
+        JSON.stringify({
           event: "remove_participant",
-        },
-        `${uid}`
+          uid: uid,
+        })
       );
     });
   };
@@ -1066,42 +1109,45 @@ const toggleScreenShare = async (isEnabled) => {
       targetUid: uid,
       role: role,
     };
-    sendBroadcast(messageObj);
+    // Send the role change event via WebSocket
+    ws.send(JSON.stringify(messageObj));
+
+    // Optionally update the participant list or handle any local UI changes
     handleOnUpdateParticipants();
     config.onRoleChanged(uid, role);
   };
 
   const getCameras = async () => {
-    return await AgoraRTC.getCameras();
+    return await AgoraRTC.getCameras(); // Still necessary for device selection
   };
 
   const getMicrophones = async () => {
-    return await AgoraRTC.getMicrophones();
+    return await AgoraRTC.getMicrophones(); // Still necessary for device selection
   };
 
   const switchCamera = async (deviceId) => {
-    //todo
+    // Switching camera remains the same
     config.localVideoTrack.stop();
     config.localVideoTrack.close();
-    client.unpublish([config.localVideoTrack]);
+    await config.client.unpublish([config.localVideoTrack]);
 
     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack({
       cameraId: deviceId,
     });
-    client.publish([config.localVideoTrack]);
+    await config.client.publish([config.localVideoTrack]);
     config.localVideoTrack.play(`stream-${config.uid}`);
   };
 
   const switchMicrophone = async (deviceId) => {
-    //todo
+    // Switching microphone remains the same
     config.localAudioTrack.stop();
     config.localAudioTrack.close();
-    client.unpublish([config.localAudioTrack]);
+    await config.client.unpublish([config.localAudioTrack]);
 
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
       microphoneId: deviceId,
     });
-    client.publish([config.localAudioTrack]);
+    await config.client.publish([config.localAudioTrack]);
   };
 
   async function getProcessorInstance() {
@@ -1166,21 +1212,23 @@ const toggleScreenShare = async (isEnabled) => {
     config.isVirtualBackGroundEnabled = false;
   };
 
-
   const updateMicIcon = (uid, isMuted) => {
     const micStatusIcon = document.querySelector(`#mic-status-${uid}`);
     if (micStatusIcon) {
       micStatusIcon.style.display = isMuted ? "block" : "none";
     }
   };
-
   const sendChat = (data) => {
     const messageObj = {
       ...data,
       type: "chat",
       sender: config.user,
     };
-    sendMessage(messageObj);
+
+    // Send chat message through WebSocket
+    ws.send(JSON.stringify(messageObj));
+
+    // Handle locally
     config.onMessageReceived(messageObj);
   };
 
@@ -1190,102 +1238,97 @@ const toggleScreenShare = async (isEnabled) => {
       type: "broadcast",
       sender: config.user,
     };
-    sendMessage(messageObj);
+
+    // Send broadcast message through WebSocket
+    ws.send(JSON.stringify(messageObj));
+
+    // Handle locally
     config.onMessageReceived(messageObj);
   };
 
-  const sendMessageToPeer = (data, uid) => {
-    clientRTM
-      .sendMessageToPeer(
-        {
-          text: JSON.stringify(data),
-        },
-        `${uid}` // Ensuring uid is passed as a string
-      )
-      .then(() => {
-        console.log("Message sent successfully");
-      })
-      .catch((error) => {
-        console.error("Failed to send message:", error);
-      });
-  };
-
   const sendMessage = (data) => {
-    channelRTM
-      .sendMessage({
-        text: JSON.stringify(data),
-      })
-      .then(() => {
-        //success
-      })
-      .catch((error) => {
-        log(error);
-      });
+    // Send message through WebSocket
+    ws.send(JSON.stringify(data));
+
+    // Optionally handle locally if needed
+    log("Message sent:", data);
   };
 
   /**
    * Callback Handlers
    */
- const handleUserPublished = async (user, mediaType) => {
-   log("handleUserPublished Here");
+  const handleUserPublished = async (user, mediaType) => {
+    log("handleUserPublished Here");
 
-   // Store the user's remote tracks
-   config.remoteTracks[user.uid] = user;
+    // Store the user's remote tracks
+    config.remoteTracks[user.uid] = user;
 
-   // If the published media is audio, update the mic icon to "unmuted"
-   if (mediaType === "audio") {
-     log(`User ${user.uid} has unmuted their mic`);
-     updateMicIcon(user.uid, false); // Mic is unmuted
-   }
-
-   // If the media type is video or audio, subscribe to the track
-   subscribe(user, mediaType);
- };
-
-  const handleUserJoined = async (user) => {
-  log("handleUserJoined Here");
-  config.remoteTracks[user.uid] = user;
-
-  const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
-
-  try {
-    // Fetch user attributes from RTM using the stringified UID
-    const userAttr = await clientRTM.getUserAttributes(rtmUid);
-
-    // Use the integer UID for the wrapper and player
-    let playerHTML = config.participantPlayerContainer
-      .replace(/{{uid}}/g, user.uid) // Integer UID for the video wrapper
-      .replace(/{{name}}/g, userAttr.name || "Unknown")
-      .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
-
-    document
-      .querySelector(config.callContainerSelector)
-      .insertAdjacentHTML("beforeend", playerHTML);
-
-    const player = document.querySelector(`#video-wrapper-${user.uid}`); // Integer UID
-
-    // Hide the video player and show the avatar since the user hasn't published video
-    const videoPlayer = document.querySelector(`#stream-${user.uid}`); // Integer UID
-    const avatarDiv = document.querySelector(`#avatar-${user.uid}`); // Integer UID
-    if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none"; // Hide the video player
-      avatarDiv.style.display = "block"; // Show the avatar
+    // If the published media is audio, update the mic icon to "unmuted"
+    if (mediaType === "audio") {
+      log(`User ${user.uid} has unmuted their mic`);
+      updateMicIcon(user.uid, false); // Mic is unmuted
     }
 
-  } catch (error) {
-    log("Failed to fetch user attributes:", error);
-  }
-};
+    // If the media type is video or audio, subscribe to the track
+    subscribe(user, mediaType);
+  };
 
-// Updated handleUserLeft
-const handleUserLeft = async (user, reason) => {
-  delete config.remoteTracks[user.uid];
-  if (document.querySelector(`#video-wrapper-${user.uid}`)) {
-    document.querySelector(`#video-wrapper-${user.uid}`).remove();
-  }
+  const handleUserJoined = async (user) => {
+    log("handleUserJoined Here");
 
-   config.onParticipantLeft(user);
-};
+    // Add the user to remoteTracks for tracking
+    config.remoteTracks[user.uid] = user;
+
+    // Since user attributes (name, avatar) are sent through WebSocket, we directly use the received data
+    try {
+      // Use the WebSocket message to access user details (assuming user object contains uid, name, and avatar)
+      let playerHTML = config.participantPlayerContainer
+        .replace(/{{uid}}/g, user.uid) // Use integer UID for the video wrapper
+        .replace(/{{name}}/g, user.name || "Unknown") // Use name from WebSocket message
+        .replace(/{{avatar}}/g, user.avatar || "default-avatar-url"); // Use avatar from WebSocket message
+
+      // Insert the player's HTML into the call container
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", playerHTML);
+
+      // Select the player's container based on UID
+      const player = document.querySelector(`#video-wrapper-${user.uid}`);
+
+      // Handle video and avatar display logic
+      const videoPlayer = document.querySelector(`#stream-${user.uid}`);
+      const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+
+      // Initially, hide the video player and show the avatar since the user may not have published video yet
+      if (videoPlayer && avatarDiv) {
+        videoPlayer.style.display = "none"; // Hide video player by default
+        avatarDiv.style.display = "block"; // Show avatar by default
+      }
+    } catch (error) {
+      log("Failed to handle user join:", error);
+    }
+  };
+
+  // Updated handleUserLeft for WebSocket signaling
+  const handleUserLeft = async (user) => {
+    // Remove the user from remoteTracks
+    delete config.remoteTracks[user.uid];
+
+    // Remove the user's video wrapper from the UI if it exists
+    const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+    if (videoWrapper) {
+      videoWrapper.remove();
+    }
+
+    // Trigger any additional actions required when a participant leaves
+    if (typeof config.onParticipantLeft === "function") {
+      config.onParticipantLeft(user);
+    } else {
+      console.warn("config.onParticipantLeft is not defined");
+    }
+
+    console.log(`User ${user.uid} has left the call.`);
+  };
 
   const handleVolumeIndicator = (result) => {
     result.forEach((volume, index) => {
@@ -1293,42 +1336,24 @@ const handleUserLeft = async (user, reason) => {
     });
   };
 
-  const handleScreenShareEnded = async () => {
-    config.localScreenShareTrack.stop();
-    config.localScreenShareTrack.close();
-    client.unpublish([config.localScreenShareTrack]);
-    config.localScreenShareTrack = null;
-
-    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-    client.publish([config.localVideoTrack]);
-    config.localVideoTrack.play(`stream-${config.uid}`);
-
-    config.localScreenShareEnabled = false;
-
-    config.onScreenShareEnabled(config.localScreenShareEnabled);
-  };
-
   const handleOnUpdateParticipants = () => {
+    // Debounce to avoid frequent calls
     debounce(() => {
-      channelRTM
-        .getMembers()
-        .then(async (uids) => {
-          const participants = await Promise.all(
-            uids.map(async (uid) => {
-              const userAttr = await clientRTM.getUserAttributes(uid);
-              return {
-                id: uid,
-                ...userAttr,
-              };
-            })
-          );
+      // Get the list of participants from the local remoteTracks object
+      const participants = Object.values(config.remoteTracks);
 
-          config.onParticipantsChanged(participants);
-        })
-        .catch((error) => {
-          log(error);
-        });
-    }, 1000);
+      // Map through the participants to get the required data for updateParticipantList
+      const participantData = participants.map((user) => ({
+        uid: user.uid,
+        name: user.name || "Unknown", // Assuming name is received or defaulting to "Unknown"
+        avatar: user.avatar || "default-avatar-url", // Assuming avatar or defaulting
+        comp: user.comp || "Unknown", // Assuming company (comp) or defaulting to "Unknown"
+        desg: user.desg || "Unknown", // Assuming designation (desg) or defaulting to "Unknown"
+      }));
+
+      // Call the updateParticipantList function to handle the UI updates and Bubble function calls
+      updateParticipantList(participantData);
+    }, 1000); // Debounce delay of 1000 ms to avoid frequent updates
   };
 
   const handleRenewToken = async () => {
@@ -1336,103 +1361,83 @@ const handleUserLeft = async (user, reason) => {
     await client.renewToken(config.token);
   };
 
-  // A flag to track if the RTM client is already logged in
-const subscribe = async (user, mediaType) => {
-  try {
-    log(`Subscribing to user ${user.uid} for media type: ${mediaType}`);
 
-    // Use the participant's UID for fetching attributes
-    const rtmUid = user.uid.toString(); // Ensure UID is a string
-
-    // Fetch user attributes (name, avatar)
-    let userAttr = { name: "Unknown", avatar: "default-avatar-url" }; // Default values
+  const subscribe = async (user, mediaType) => {
     try {
-      // Fetch user attributes from RTM for the participant
-      log(`Attempting to fetch attributes for user ${rtmUid}`);
-      userAttr = await clientRTM.getUserAttributes(rtmUid);
+      log(`Subscribing to user ${user.uid} for media type: ${mediaType}`);
 
-      // Ensure at least default values for missing name or avatar
-      userAttr.name = userAttr.name || "Unknown";
-      userAttr.avatar = userAttr.avatar || "default-avatar-url";
 
-      // Log the fetched name and avatar
-      log(
-        `Fetched attributes for user ${user.uid}: Name = ${userAttr.name}, Avatar = ${userAttr.avatar}`
-      );
-    } catch (err) {
-      log(
-        `Failed to fetch attributes for user ${user.uid}, using defaults:`,
-        err
-      );
-    }
+      let userAttr = {
+        name: user.name || "Unknown", // Use name from user object or default to "Unknown"
+        avatar: user.avatar || "default-avatar-url", // Use avatar from user object or default
+      };
 
-    // Check if the wrapper already exists to avoid duplicates
-    let player = document.querySelector(`#video-wrapper-${user.uid}`);
+      // Check if the wrapper already exists to avoid duplicates
+      let player = document.querySelector(`#video-wrapper-${user.uid}`);
 
-    if (!player) {
-      log(`Creating video wrapper for user ${user.uid}`);
+      if (!player) {
+        log(`Creating video wrapper for user ${user.uid}`);
 
-      // Replace placeholders in the template with actual data
-      let playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, userAttr.name)
-        .replace(/{{avatar}}/g, userAttr.avatar);
+        // Replace placeholders in the template with actual data
+        let playerHTML = config.participantPlayerContainer
+          .replace(/{{uid}}/g, user.uid)
+          .replace(/{{name}}/g, userAttr.name)
+          .replace(/{{avatar}}/g, userAttr.avatar);
 
-      // Insert the player HTML into the stage
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
+        // Insert the player HTML into the stage
+        document
+          .querySelector(config.callContainerSelector)
+          .insertAdjacentHTML("beforeend", playerHTML);
 
-      // Get the newly inserted player
-      player = document.querySelector(`#video-wrapper-${user.uid}`);
-    } else {
-      log(`Wrapper already exists for user ${user.uid}, skipping creation.`);
-    }
-
-    // Handle the video stream if mediaType is "video"
-    const videoPlayer = player.querySelector(`#stream-${user.uid}`);
-    const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
-
-    if (mediaType === "video") {
-      log(`Handling video track for user ${user.uid}`);
-
-      if (user.videoTrack) {
-        // If user has a video track, display the video and hide the avatar
-        videoPlayer.style.display = "block";
-        avatarDiv.style.display = "none"; // Hide avatar
-        user.videoTrack.play(`stream-${user.uid}`);
-        log(`Playing video for user ${user.uid}`);
+        // Get the newly inserted player
+        player = document.querySelector(`#video-wrapper-${user.uid}`);
       } else {
-        // If no video track, show the avatar and hide the video player
-        videoPlayer.style.display = "none";
-        avatarDiv.style.display = "block"; // Show avatar
-        log(`No video track for user ${user.uid}, displaying avatar.`);
+        log(`Wrapper already exists for user ${user.uid}, skipping creation.`);
       }
-    }
 
-    // Handle the audio stream if mediaType is "audio"
-    if (mediaType === "audio") {
-      log(`Handling audio track for user ${user.uid}`);
+      // Handle the video stream if mediaType is "video"
+      const videoPlayer = player.querySelector(`#stream-${user.uid}`);
+      const avatarDiv = player.querySelector(`#avatar-${user.uid}`);
 
-      if (user.audioTrack) {
-        user.audioTrack.play();
-        log(`Playing audio for user ${user.uid}`);
-      } else {
-        log(`No audio track for user ${user.uid}`);
+      if (mediaType === "video") {
+        log(`Handling video track for user ${user.uid}`);
+
+        if (user.videoTrack) {
+          // If user has a video track, display the video and hide the avatar
+          videoPlayer.style.display = "block";
+          avatarDiv.style.display = "none"; // Hide avatar
+          user.videoTrack.play(`stream-${user.uid}`);
+          log(`Playing video for user ${user.uid}`);
+        } else {
+          // If no video track, show the avatar and hide the video player
+          videoPlayer.style.display = "none";
+          avatarDiv.style.display = "block"; // Show avatar
+          log(`No video track for user ${user.uid}, displaying avatar.`);
+        }
       }
+
+      // Handle the audio stream if mediaType is "audio"
+      if (mediaType === "audio") {
+        log(`Handling audio track for user ${user.uid}`);
+
+        if (user.audioTrack) {
+          user.audioTrack.play();
+          log(`Playing audio for user ${user.uid}`);
+        } else {
+          log(`No audio track for user ${user.uid}`);
+        }
+      }
+
+      // Ensure the wrapper is visible at all times
+      player.style.display = "flex"; // Ensure wrapper is always shown
+
+      // Verify if the number of wrappers matches the number of participants
+      checkAndAddMissingWrappers();
+    } catch (error) {
+      console.error(`Error subscribing to user ${user.uid}:`, error);
+      log(`Error subscribing to user ${user.uid}: ${error.message}`);
     }
-
-    // Ensure the wrapper is visible at all times
-    player.style.display = "flex"; // Ensure wrapper is always shown
-
-    // Verify if the number of wrappers matches the number of participants
-    checkAndAddMissingWrappers();
-  } catch (error) {
-    console.error(`Error subscribing to user ${user.uid}:`, error);
-    log(`Error subscribing to user ${user.uid}: ${error.message}`);
-  }
-};
-
+  };
 
   // Function to check if any wrappers are missing and add them if needed
   const checkAndAddMissingWrappers = () => {
@@ -1470,7 +1475,6 @@ const subscribe = async (user, mediaType) => {
 
   return {
     config: config,
-    clientRTM: clientRTM,
     client: client,
     debounce: debounce,
     join: join,
