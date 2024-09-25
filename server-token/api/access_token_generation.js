@@ -1,5 +1,4 @@
 const { RtcTokenBuilder, Role: RtcRole } = require("./RtcTokenBuilder2");
-const { RtmTokenBuilder } = require("./RtmTokenBuilder2");
 
 module.exports = async (req, res) => {
   const { channelName, uid, role } = req.query;
@@ -30,12 +29,10 @@ module.exports = async (req, res) => {
     const currentTimestamp = Math.floor(Date.now() / 1000); // Get current time in seconds
     const privilegeExpiredTs = currentTimestamp + expirationInSeconds; // Set expiration time
 
-    // Convert UID to integer for RTC and string for RTM
+    // Convert UID to integer for RTC
     const rtcUid = parseInt(uid); // RTC requires integer UID
-    const rtmUid = uid.toString(); // RTM requires string UID
 
     console.log("RTC UID (Integer):", rtcUid);
-    console.log("RTM UID (String):", rtmUid);
     console.log("Current Timestamp:", currentTimestamp);
     console.log("Privilege Expiration Timestamp:", privilegeExpiredTs);
 
@@ -51,25 +48,14 @@ module.exports = async (req, res) => {
       privilegeExpiredTs
     );
 
-    // Generate RTM token
-    const rtmToken = RtmTokenBuilder.buildToken(
-      process.env.APP_ID,
-      process.env.APP_CERTIFICATE,
-      rtmUid.toString(),
-      privilegeExpiredTs
-    );
-
     console.log("APP ID:", process.env.APP_ID);
     console.log("APP Certificate:", process.env.APP_CERTIFICATE);
-    console.log("UID for RTM:", rtmUid.toString());
     console.log("Expiration Time:", privilegeExpiredTs);
     console.log("Generated RTC Token:", rtcToken);
-    console.log("Generated RTM Token:", rtmToken);
 
-    // Return both tokens in the response
+    // Return only the RTC token in the response
     return res.json({
       rtcToken: rtcToken,
-      rtmToken: rtmToken,
     });
   } catch (error) {
     console.error("Token generation failed:", error);

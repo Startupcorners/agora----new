@@ -570,27 +570,37 @@ const updateParticipantList = (participants) => {
 const join = async () => {
   try {
     const { appId, uid, channelName } = config;
-    const tokens = await fetchTokens(); // Fetch RTC and RTM tokens
+    const tokens = await fetchTokens(); // Fetch RTC tokens
 
     console.log("RTC Token (during join):", tokens.rtcToken);
-    console.log("RTM Token (during join):", tokens.rtmToken);
     console.log("RTC UID (during join):", config.uid);
 
     if (!tokens) {
-      throw new Error("Failed to fetch token");
+      throw new Error("Failed to fetch RTC token");
     }
 
     console.log("Tokens fetched successfully:", tokens);
 
-    // Ensure the Agora client is initialized
+    // Ensure the Agora RTC client is initialized
     if (!config.client) {
       config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
       console.log("Agora client initialized");
     }
 
-    // Step 1: Log in to the RTM service
-    await joinRTM(tokens.rtmToken);
-    console.log(`Joined RTM successfully with UID: ${uid}`);
+    // Step 1: Connect to WebSocket signaling server
+    ws.onopen = () => {
+      // Notify signaling server that user has joined
+      ws.send(
+        JSON.stringify({
+          event: "user-joined",
+          uid: config.uid,
+          name: config.user.name,
+          avatar: config.user.avatar,
+          channelName: channelName,
+        })
+      );
+      console.log(`User ${config.uid} joined via WebSocket`);
+    };
 
     // Step 2: Join the RTC channel
     console.log(
@@ -616,7 +626,7 @@ const join = async () => {
       console.log("User is in the audience and will not join the video stage.");
     }
 
-    // If everything is successful, call bubble_fn_joining("Joined")
+    // Notify that the user successfully joined
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Joined");
     } else {
@@ -624,8 +634,6 @@ const join = async () => {
     }
   } catch (error) {
     console.error("Error in join process:", error);
-
-    // Call bubble_fn_joining("Error") if an error occurs
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Error");
     } else {
@@ -633,6 +641,7 @@ const join = async () => {
     }
   }
 };
+
 
 
 
@@ -748,123 +757,40 @@ const joinToVideoStage = async (user) => {
     }
   };
 
-const joinRTM = async (rtmToken, retryCount = 0) => {
-  try {
-    const rtmUid = config.uid.toString(); // Convert UID to string for RTM login
+const ws = new WebSocket("wss://your-signaling-server.com");
 
-    // If the user is already logged in, attempt to log them out first
-    if (clientRTM && clientRTM._logined) {
-      console.log(`User ${rtmUid} is already logged in. Logging out...`);
-      await clientRTM.logout();
-      console.log(`User ${rtmUid} logged out successfully.`);
-    }
-
-    console.log("RTM Token (during login):", rtmToken);
-    console.log("RTM UID (during login):", rtmUid);
-
-    // RTM login with the token
-    await clientRTM.login({ uid: rtmUid, token: rtmToken });
-    console.log(`RTM login successful for UID: ${rtmUid}`);
-
-    // Set the user's attributes (name, avatar, company, designation) after login
-    const attributes = {
-      name: config.user.name || "Unknown", // Ensure default value if name is missing
-      avatar: config.user.avatar || "default-avatar-url", // Ensure default avatar
-      comp: config.user.company || "", // Shortened key for company
-      desg: config.user.designation || "", // Shortened key for designation
-    };
-
-    // Ensure that attribute names are short and the values are within limits
-    await clientRTM.setLocalUserAttributes(attributes);
-    console.log(`User attributes set for UID: ${rtmUid}:`, attributes);
-
-    // Update participants after joining
-    await handleOnUpdateParticipants();
-
-    // Set up RTM event listeners
-    setupRTMEventListeners();
-
-    // Join the RTM channel
-    await channelRTM.join();
-    console.log(`Joined RTM channel successfully`);
-  } catch (error) {
-    console.error("RTM join process failed. Error details:", error);
-    console.error("Error name:", error.name);
-    console.error("Error message:", error.message);
-    console.error("Error code:", error.code);
-
-    if (error.code === 5) {
-      console.error(
-        "Token error detected. Please check your token generation process and Agora project settings."
-      );
-      console.error(
-        "Make sure you're using a dynamic token, not a static key."
-      );
-      console.error(
-        "Verify that your Agora project is configured for token authentication."
-      );
-    }
-
-    if (retryCount < 3) {
-      console.log(`Retrying RTM join (attempt ${retryCount + 1})...`);
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait for 2 seconds before retrying
-      return joinRTM(rtmToken, retryCount + 1);
-    } else {
-      throw new Error("Failed to join RTM after multiple attempts");
-    }
+// Handle incoming messages from WebSocket
+ws.onmessage = (message) => {
+  const data = JSON.parse(message.data);
+  switch (data.event) {
+    case "user-joined":
+      handleUserJoined(data);
+      break;
+    case "user-left":
+      handleUserLeft(data);
+      break;
+    case "mic-off":
+      toggleMic(true);
+      break;
+    case "mic-on":
+      toggleMic(false);
+      break;
+    case "camera-off":
+      toggleCamera(true);
+      break;
+    case "camera-on":
+      toggleCamera(false);
+      break;
+    case "remove-participant":
+      leave();
+      break;
+    case "role-change":
+      handleRoleChange(data);
+      break;
+    default:
+      console.log("Unknown event received", data);
   }
 };
-
-
-  const setupRTMEventListeners = () => {
-    clientRTM.on("MessageFromPeer", handleMessageFromPeer);
-    channelRTM.on("MemberJoined", handleMemberJoined);
-    channelRTM.on("MemberLeft", handleMemberLeft);
-    channelRTM.on("ChannelMessage", handleChannelMessage);
-  };
-
-  const handleMessageFromPeer = async (message, peerId) => {
-    console.log("messageFromPeer");
-    const data = JSON.parse(message.text);
-    console.log(data);
-
-    if (data.event === "mic_off") {
-      await toggleMic(true);
-    } else if (data.event === "cam_off") {
-      await toggleCamera(true);
-    } else if (data.event === "remove_participant") {
-      await leave();
-    }
-  };
-
-  const handleMemberJoined = async (memberId) => {
-    console.log(`Member joined: ${memberId}`);
-    await handleOnUpdateParticipants();
-  };
-
-  const handleMemberLeft = async (memberId) => {
-    console.log(`Member left: ${memberId}`);
-    await handleOnUpdateParticipants();
-  };
-
-  const handleChannelMessage = async (message, memberId, props) => {
-    console.log("on:ChannelMessage ->");
-    const messageObj = JSON.parse(message.text);
-    console.log(messageObj);
-
-    if (
-      messageObj.type === "broadcast" &&
-      messageObj.event === "change_user_role"
-    ) {
-      if (config.uid === messageObj.targetUid) {
-        await handleRoleChange(messageObj);
-      }
-      await handleOnUpdateParticipants();
-      config.onRoleChanged(messageObj.targetUid, messageObj.role);
-    } else {
-      config.onMessageReceived(messageObj);
-    }
-  };
 
   const handleRoleChange = async (messageObj) => {
     config.user.role = messageObj.role;
