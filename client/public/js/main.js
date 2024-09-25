@@ -123,8 +123,26 @@ const newMainApp = function (initConfig) {
     onParticipantsChanged: (participantIds) => {
       log("onParticipantsChanged");
       log(participantIds);
-      bubble_fn_participantList(participantIds);
+
+      // Extracting the `id` from each participant object and creating an array of IDs
+      const participantIdsList = participantIds.map(
+        (participant) => participant.id
+      );
+
+      // Log the list of participant IDs
+      log("Participant IDs List:", participantIdsList);
+
+      // Call the Bubble function with the list of participant IDs
+      if (typeof bubble_fn_participantList === "function") {
+        console.log(
+          "Calling bubble_fn_participantList with participant IDs..."
+        );
+        bubble_fn_participantList(participantIdsList); // Send the IDs to Bubble
+      } else {
+        console.warn("bubble_fn_participantList is not defined");
+      }
     },
+
     onParticipantLeft: (user) => {
       log("onParticipantLeft");
       log(user);
