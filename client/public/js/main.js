@@ -131,105 +131,70 @@ const newMainApp = function (initConfig) {
         const userAttr = await clientRTM.getUserAttributes(rtmUid);
 
         // Use the participant's UID, name, and avatar to update the participant list
-        const uids = [user.uid];
-        const names = [userAttr.name || "Unknown"];
-        const avatars = [userAttr.avatar || "default-avatar-url"];
+        const participants = [
+          {
+            uid: user.uid,
+            name: userAttr.name || "Unknown",
+            avatar: userAttr.avatar || "default-avatar-url",
+          },
+        ];
 
-        // Log the new participant info
-        log("Participant UID:", uids);
-        log("Participant Name:", names);
-        log("Participant Avatar:", avatars);
-
-        // Call the Bubble function with the new participant's data
-        if (typeof bubble_fn_participantList === "function") {
-          console.log(
-            "Calling bubble_fn_participantList for the new participant..."
-          );
-          bubble_fn_participantList({
-            output1: uids,
-            output2: names,
-            output3: avatars,
-          });
-        } else {
-          console.warn("bubble_fn_participantList is not defined");
-        }
+        // Call the helper function
+        updateParticipantList(participants);
       } catch (error) {
         log(`Failed to fetch attributes for user ${rtmUid}`, error);
       }
     },
-    onParticipantsChanged: async (participantIds) => {
-      log("onParticipantsChanged");
-      log(participantIds);
+onParticipantsChanged: async (participantIds) => {
+  log("onParticipantsChanged");
+  log(participantIds);
 
-      // Initialize arrays for storing participant data
-      const uids = [];
-      const names = [];
-      const avatars = [];
+  const participants = [];
 
-      // Loop through each participant and fetch their attributes
-      for (const participant of participantIds) {
-        const rtmUid = participant.id.toString(); // Ensure UID is a string
-        try {
-          // Fetch user attributes (name, avatar) from RTM
-          const userAttr = await clientRTM.getUserAttributes(rtmUid);
+  // Loop through each participant and fetch their attributes
+  for (const participant of participantIds) {
+    const rtmUid = participant.id.toString(); // Ensure UID is a string
+    try {
+      // Fetch user attributes (name, avatar) from RTM
+      const userAttr = await clientRTM.getUserAttributes(rtmUid);
 
-          // Push the data into the respective arrays
-          uids.push(participant.id);
-          names.push(userAttr.name || "Unknown");
-          avatars.push(userAttr.avatar || "default-avatar-url");
-        } catch (error) {
-          log(`Failed to fetch attributes for user ${rtmUid}`, error);
-          uids.push(participant.id); // Add the participant UID anyway
-          names.push("Unknown"); // Use default name if fetching failed
-          avatars.push("default-avatar-url"); // Use default avatar if fetching failed
-        }
-      }
-
-      // Log the result
-      log("Participants UIDs:", uids);
-      log("Participants Names:", names);
-      log("Participants Avatars:", avatars);
-
-      // Call the Bubble function with the collected data
-      if (typeof bubble_fn_participantList === "function") {
-        console.log(
-          "Calling bubble_fn_participantList with participant data..."
-        );
-        bubble_fn_participantList({
-          output1: uids,
-          output2: names,
-          output3: avatars,
-        });
-      } else {
-        console.warn("bubble_fn_participantList is not defined");
-      }
-    },
-
-    onParticipantLeft: (user) => {
-      log("onParticipantLeft");
-      log(user);
-
-      // Get all current participants
-      const participants = Object.values(config.remoteTracks).map((track) => {
-        return {
-          uid: track.uid,
-          name: track.name || "Unknown", // Ensure there's a name
-          avatar: track.avatar || "default-avatar-url", // Ensure default avatar
-        };
+      participants.push({
+        uid: participant.id,
+        name: userAttr.name || "Unknown",
+        avatar: userAttr.avatar || "default-avatar-url",
       });
-
-      // Prepare the output format for bubble_fn_participantList
-      const output1 = participants.map((participant) => participant.uid);
-      const output2 = participants.map((participant) => participant.name);
-      const output3 = participants.map((participant) => participant.avatar);
-
-      // Call the Bubble function with the updated participants list
-      bubble_fn_participantList({
-        output1: output1,
-        output2: output2,
-        output3: output3,
+    } catch (error) {
+      log(`Failed to fetch attributes for user ${rtmUid}`, error);
+      participants.push({
+        uid: participant.id,
+        name: "Unknown",
+        avatar: "default-avatar-url",
       });
-    },
+    }
+  }
+
+  // Call the helper function
+  updateParticipantList(participants);
+},
+onParticipantLeft: (user) => {
+  log("onParticipantLeft");
+  log(user);
+
+  // Get all current participants
+  const participants = Object.values(config.remoteTracks).map((track) => {
+    return {
+      uid: track.uid,
+      name: track.name || "Unknown",
+      avatar: track.avatar || "default-avatar-url",
+    };
+  });
+
+  // Call the helper function
+  updateParticipantList(participants);
+  participants.forEach((track) => {
+    bubble_fn_left(track.uid);
+  });
+},
     onVolumeIndicatorChanged: (volume) => {
       log("onVolumeIndicatorChanged");
       log(volume);
@@ -362,6 +327,35 @@ const newMainApp = function (initConfig) {
   }
   AgoraRTC.registerExtensions([extensionVirtualBackground]);
   let processor = null;
+
+
+  const updateParticipantList = (participants) => {
+    const uids = participants.map((participant) => participant.uid);
+    const names = participants.map(
+      (participant) => participant.name || "Unknown"
+    );
+    const avatars = participants.map(
+      (participant) => participant.avatar || "default-avatar-url"
+    );
+
+    // Log the result
+    log("Participants UIDs:", uids);
+    log("Participants Names:", names);
+    log("Participants Avatars:", avatars);
+
+    // Call the Bubble function with the collected data
+    if (typeof bubble_fn_participantList === "function") {
+      console.log("Calling bubble_fn_participantList with participant data...");
+      bubble_fn_participantList({
+        outputlist1: uids,
+        outputlist2: names,
+        outputlist3: avatars,
+      });
+    } else {
+      console.warn("bubble_fn_participantList is not defined");
+    }
+  };
+
 
   const acquireResource = async () => {
     config.recordId = Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit recordId
@@ -600,10 +594,25 @@ const join = async () => {
     } else {
       console.log("User is in the audience and will not join the video stage.");
     }
+
+    // If everything is successful, call bubble_fn_joining("Joined")
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Joined");
+    } else {
+      console.warn("bubble_fn_joining is not defined");
+    }
   } catch (error) {
     console.error("Error in join process:", error);
+
+    // Call bubble_fn_joining("Error") if an error occurs
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Error");
+    } else {
+      console.warn("bubble_fn_joining is not defined");
+    }
   }
 };
+
 
 
 
@@ -694,29 +703,6 @@ const joinToVideoStage = async (user) => {
   }
 };
 
-
-const updateParticipantList = async () => {
-  try {
-    const uids = await clientRTM.getMembers(); // Fetch the list of users in the call
-    const participants = await Promise.all(
-      uids.map(async (uid) => {
-        const userAttr = await clientRTM.getUserAttributes(uid);
-        return {
-          id: uid,
-          ...userAttr,
-        };
-      })
-    );
-    console.log("Participants List:", participants);
-
-    // Call bubble function with the list of participants
-    if (typeof bubble_fn_participantList === "function") {
-      bubble_fn_participantList(participants); // Send the participant list to Bubble
-    }
-  } catch (error) {
-    console.error("Error fetching participant list:", error);
-  }
-};
   const leaveFromVideoStage = async (user) => {
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player != null) {
@@ -1335,8 +1321,6 @@ const toggleScreenShare = async (isEnabled) => {
       avatarDiv.style.display = "block"; // Show the avatar
     }
 
-    // Update the participant list after the user joins
-    await updateParticipantList();
   } catch (error) {
     log("Failed to fetch user attributes:", error);
   }
@@ -1349,10 +1333,7 @@ const handleUserLeft = async (user, reason) => {
     document.querySelector(`#video-wrapper-${user.uid}`).remove();
   }
 
-  // Update the participant list after the user leaves
-  await updateParticipantList();
-
-  config.onParticipantLeft(user);
+   config.onParticipantLeft(user);
 };
 
   const handleVolumeIndicator = (result) => {
