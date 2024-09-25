@@ -339,10 +339,10 @@ const updateParticipantList = (participants) => {
     (participant) => participant.avatar || "default-avatar-url"
   );
   const companies = participants.map(
-    (participant) => participant.comp || "Unknown" // Updated to match renamed field
+    (participant) => participant.comp || "Unknown" // Correctly using `comp`
   );
   const designations = participants.map(
-    (participant) => participant.desg || "Unknown" // Updated to match renamed field
+    (participant) => participant.desg || "Unknown" // Correctly using `desg`
   );
 
   // Log the result
@@ -359,7 +359,7 @@ const updateParticipantList = (participants) => {
       outputlist1: uids,
       outputlist2: names,
       outputlist3: avatars,
-      outputlist4: companies, // New addition: company list
+      outputlist4: companies, // Now correctly passing company list
     });
   } else {
     console.warn("bubble_fn_participantList is not defined");
@@ -369,7 +369,7 @@ const updateParticipantList = (participants) => {
   if (typeof bubble_fn_participantListOther === "function") {
     console.log("Calling bubble_fn_participantListOther with designations...");
     bubble_fn_participantListOther({
-      outputlist1: designations, // New addition: designation list
+      outputlist1: designations, // Now correctly passing designation list
     });
   } else {
     console.warn("bubble_fn_participantListOther is not defined");
