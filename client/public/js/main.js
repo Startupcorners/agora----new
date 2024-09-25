@@ -330,32 +330,52 @@ onParticipantLeft: (user) => {
   let processor = null;
 
 
-  const updateParticipantList = (participants) => {
-    const uids = participants.map((participant) => participant.uid);
-    const names = participants.map(
-      (participant) => participant.name || "Unknown"
-    );
-    const avatars = participants.map(
-      (participant) => participant.avatar || "default-avatar-url"
-    );
+const updateParticipantList = (participants) => {
+  const uids = participants.map((participant) => participant.uid);
+  const names = participants.map(
+    (participant) => participant.name || "Unknown"
+  );
+  const avatars = participants.map(
+    (participant) => participant.avatar || "default-avatar-url"
+  );
+  const companies = participants.map(
+    (participant) => participant.company || "Unknown"
+  );
+  const designations = participants.map(
+    (participant) => participant.designation || "Unknown"
+  );
 
-    // Log the result
-    log("Participants UIDs:", uids);
-    log("Participants Names:", names);
-    log("Participants Avatars:", avatars);
+  // Log the result
+  log("Participants UIDs:", uids);
+  log("Participants Names:", names);
+  log("Participants Avatars:", avatars);
+  log("Participants Companies:", companies);
+  log("Participants Designations:", designations);
 
-    // Call the Bubble function with the collected data
-    if (typeof bubble_fn_participantList === "function") {
-      console.log("Calling bubble_fn_participantList with participant data...");
-      bubble_fn_participantList({
-        outputlist1: uids,
-        outputlist2: names,
-        outputlist3: avatars,
-      });
-    } else {
-      console.warn("bubble_fn_participantList is not defined");
-    }
-  };
+  // Call the Bubble function with the main participant data
+  if (typeof bubble_fn_participantList === "function") {
+    console.log("Calling bubble_fn_participantList with participant data...");
+    bubble_fn_participantList({
+      outputlist1: uids,
+      outputlist2: names,
+      outputlist3: avatars,
+      outputlist4: companies, // New addition: company list
+    });
+  } else {
+    console.warn("bubble_fn_participantList is not defined");
+  }
+
+  // Call the separate Bubble function for designations
+  if (typeof bubble_fn_participantListOther === "function") {
+    console.log("Calling bubble_fn_participantListOther with designations...");
+    bubble_fn_participantListOther({
+      outputlist1: designations, // New addition: designation list
+    });
+  } else {
+    console.warn("bubble_fn_participantListOther is not defined");
+  }
+};
+
 
 
   const acquireResource = async () => {
@@ -746,14 +766,15 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     await clientRTM.login({ uid: rtmUid, token: rtmToken });
     console.log(`RTM login successful for UID: ${rtmUid}`);
 
-    // Set the user's attributes (name and avatar) after login
+    // Set the user's attributes (name, avatar, company, designation) after login
     const attributes = {
       name: config.user.name || "Unknown", // Ensure default value if name is missing
       avatar: config.user.avatar || "default-avatar-url", // Ensure default avatar
-      company: config.user.company || "", // Company field
-      designation: config.user.designation || "", // Designation field
+      comp: config.user.company || "", // Shortened key for company
+      desg: config.user.designation || "", // Shortened key for designation
     };
 
+    // Ensure that attribute names are short and the values are within limits
     await clientRTM.setLocalUserAttributes(attributes);
     console.log(`User attributes set for UID: ${rtmUid}:`, attributes);
 
@@ -793,6 +814,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     }
   }
 };
+
 
   const setupRTMEventListeners = () => {
     clientRTM.on("MessageFromPeer", handleMessageFromPeer);
