@@ -107,6 +107,7 @@ const newMainApp = function (initConfig) {
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
       role: "", //host, speaker, audience, etc
       company: "",
+      designation:"",
       profileLink: "",
     },
     serverUrl: "https://agora-new.vercel.app",
@@ -749,6 +750,8 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     const attributes = {
       name: config.user.name || "Unknown", // Ensure default value if name is missing
       avatar: config.user.avatar || "default-avatar-url", // Ensure default avatar
+      company: config.user.company || "", // Company field
+      designation: config.user.designation || "", // Designation field
     };
 
     await clientRTM.setLocalUserAttributes(attributes);
