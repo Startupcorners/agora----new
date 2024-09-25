@@ -514,19 +514,25 @@ const join = async () => {
     client.on("volume-indicator", handleVolumeIndicator);
   };
 
-  const handleUserUnpublished = async (user, mediaType) => {
-    if (mediaType === "video") {
-      const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-      if (videoWrapper) {
-        const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
-        const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
+const handleUserUnpublished = async (user, mediaType) => {
+  // Handle when video is unpublished (i.e., camera off)
+  if (mediaType === "video") {
+    const videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+    if (videoWrapper) {
+      const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
+      const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
 
-        videoPlayer.style.display = "none"; // Hide the video player
-        avatarDiv.style.display = "block"; // Show the avatar
-      }
+      videoPlayer.style.display = "none"; // Hide the video player
+      avatarDiv.style.display = "block"; // Show the avatar
     }
-  };
+  }
 
+  // Handle when audio is unpublished (i.e., mic is muted)
+  if (mediaType === "audio") {
+    log(`User ${user.uid} has muted their mic`);
+    updateMicIcon(user.uid, true); // Mic is muted
+  }
+};
 const joinToVideoStage = async (user) => {
   try {
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -1088,6 +1094,14 @@ const toggleScreenShare = async (isEnabled) => {
     config.isVirtualBackGroundEnabled = false;
   };
 
+
+  const updateMicIcon = (uid, isMuted) => {
+    const micStatusIcon = document.querySelector(`#mic-status-${uid}`);
+    if (micStatusIcon) {
+      micStatusIcon.style.display = isMuted ? "block" : "none";
+    }
+  };
+
   const sendChat = (data) => {
     const messageObj = {
       ...data,
@@ -1140,11 +1154,21 @@ const toggleScreenShare = async (isEnabled) => {
   /**
    * Callback Handlers
    */
-  const handleUserPublished = async (user, mediaType) => {
-    log("handleUserPublished Here");
-    config.remoteTracks[user.uid] = user;
-    subscribe(user, mediaType);
-  };
+ const handleUserPublished = async (user, mediaType) => {
+   log("handleUserPublished Here");
+
+   // Store the user's remote tracks
+   config.remoteTracks[user.uid] = user;
+
+   // If the published media is audio, update the mic icon to "unmuted"
+   if (mediaType === "audio") {
+     log(`User ${user.uid} has unmuted their mic`);
+     updateMicIcon(user.uid, false); // Mic is unmuted
+   }
+
+   // If the media type is video or audio, subscribe to the track
+   subscribe(user, mediaType);
+ };
 
   const handleUserJoined = async (user) => {
     log("handleUserJoined Here");
