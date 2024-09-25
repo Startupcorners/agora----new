@@ -585,26 +585,37 @@ const joinToVideoStage = async (user) => {
 
 const updateParticipantList = async () => {
   try {
-    const uids = await clientRTM.getMembers(); // Fetch the list of users in the call
+    console.log("Fetching participants list...");
+    const uids = await channelRTM.getMembers(); // Fetch the list of users in the call
+    console.log("UIDs fetched:", uids); // Log the fetched UIDs
+
     const participants = await Promise.all(
       uids.map(async (uid) => {
         const userAttr = await clientRTM.getUserAttributes(uid);
+        console.log(`Fetched attributes for UID ${uid}:`, userAttr); // Log user attributes
         return {
           id: uid,
           ...userAttr,
         };
       })
     );
+
     console.log("Participants List:", participants);
 
     // Call bubble function with the list of participants
     if (typeof bubble_fn_participantList === "function") {
+      console.log(
+        "Calling bubble_fn_participantList with participants list..."
+      );
       bubble_fn_participantList(participants); // Send the participant list to Bubble
+    } else {
+      console.warn("bubble_fn_participantList is not defined");
     }
   } catch (error) {
     console.error("Error fetching participant list:", error);
   }
 };
+
   const leaveFromVideoStage = async (user) => {
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player != null) {
@@ -1193,55 +1204,58 @@ const toggleScreenShare = async (isEnabled) => {
    subscribe(user, mediaType);
  };
 
-  const handleUserJoined = async (user) => {
-    log("handleUserJoined Here");
-    config.remoteTracks[user.uid] = user;
 
-    const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
+const handleUserJoined = async (user) => {
+  log("handleUserJoined Here");
+  config.remoteTracks[user.uid] = user;
 
-    try {
-      // Fetch user attributes from RTM using the stringified UID
-      const userAttr = await clientRTM.getUserAttributes(rtmUid);
+  const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
 
-      // Use the integer UID for the wrapper and player
-      let playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid) // Integer UID for the video wrapper
-        .replace(/{{name}}/g, userAttr.name || "Unknown")
-        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
+  try {
+    // Fetch user attributes from RTM using the stringified UID
+    const userAttr = await clientRTM.getUserAttributes(rtmUid);
 
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
+    // Use the integer UID for the wrapper and player
+    let playerHTML = config.participantPlayerContainer
+      .replace(/{{uid}}/g, user.uid) // Integer UID for the video wrapper
+      .replace(/{{name}}/g, userAttr.name || "Unknown")
+      .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
 
-      const player = document.querySelector(`#video-wrapper-${user.uid}`); // Integer UID
+    document
+      .querySelector(config.callContainerSelector)
+      .insertAdjacentHTML("beforeend", playerHTML);
 
-      // Hide the video player and show the avatar since the user hasn't published video
-      const videoPlayer = document.querySelector(`#stream-${user.uid}`); // Integer UID
-      const avatarDiv = document.querySelector(`#avatar-${user.uid}`); // Integer UID
-      if (videoPlayer && avatarDiv) {
-        videoPlayer.style.display = "none"; // Hide the video player
-        avatarDiv.style.display = "block"; // Show the avatar
-      }
+    const player = document.querySelector(`#video-wrapper-${user.uid}`); // Integer UID
 
-      // Update the participant list after the user joins
-      await updateParticipantList();
-    } catch (error) {
-      log("Failed to fetch user attributes:", error);
-    }
-  };
-
-  // Updated handleUserLeft
-  const handleUserLeft = async (user, reason) => {
-    delete config.remoteTracks[user.uid];
-    if (document.querySelector(`#video-wrapper-${user.uid}`)) {
-      document.querySelector(`#video-wrapper-${user.uid}`).remove();
+    // Hide the video player and show the avatar since the user hasn't published video
+    const videoPlayer = document.querySelector(`#stream-${user.uid}`); // Integer UID
+    const avatarDiv = document.querySelector(`#avatar-${user.uid}`); // Integer UID
+    if (videoPlayer && avatarDiv) {
+      videoPlayer.style.display = "none"; // Hide the video player
+      avatarDiv.style.display = "block"; // Show the avatar
     }
 
-    // Update the participant list after the user leaves
+    // Update the participant list after the user joins
+    console.log("User joined. Updating participant list...");
     await updateParticipantList();
+  } catch (error) {
+    log("Failed to fetch user attributes:", error);
+  }
+};
 
-    config.onParticipantLeft(user);
-  };
+// Updated handleUserLeft
+const handleUserLeft = async (user, reason) => {
+  delete config.remoteTracks[user.uid];
+  if (document.querySelector(`#video-wrapper-${user.uid}`)) {
+    document.querySelector(`#video-wrapper-${user.uid}`).remove();
+  }
+
+  // Update the participant list after the user leaves
+  console.log("User left. Updating participant list...");
+  await updateParticipantList();
+
+  config.onParticipantLeft(user);
+};
 
   const handleVolumeIndicator = (result) => {
     result.forEach((volume, index) => {
