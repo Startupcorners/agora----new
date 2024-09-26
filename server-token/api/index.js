@@ -12,32 +12,27 @@ const s3 = new AWS.S3({
   region: "us-east-1",
 });
 
-// Dynamic CORS setup - Allowed Origins
+// Define allowed origins
 const allowedOrigins = [
   "https://startupcorners.com",
   "https://www.startupcorners.com",
 ];
 
-// CORS Middleware
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Requested-With"
-    );
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-  }
-
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    return res.status(200).send(); // Send a 200 response to OPTIONS preflight requests
-  }
-
-  next();
-});
+// CORS configuration using cors middleware
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true); // Allow the request if origin is allowed
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
 
 // JSON parser middleware
 app.use(express.json());
