@@ -29,14 +29,26 @@ console.log("APP_ID:", process.env.APP_ID || "Not Defined");
 console.log("APP_CERTIFICATE:", process.env.APP_CERTIFICATE || "Not Defined");
 console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
 
-// CORS setup for Bubble
+// CORS setup for Bubble and WebSocket connections
 app.use(
   cors({
-    origin: "https://sccopy-38403.bubbleapps.io", // Modify this to match your frontend URL if needed
+    origin: [
+      "https://sccopy-38403.bubbleapps.io",
+      "https://www.startupcorners.com",
+    ],
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
   })
 );
+
+// Update Content-Security-Policy to allow WebSocket and HTTPS
+app.use((req, res, next) => {
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; connect-src 'self' wss://api-a.ap-southeast-1.elasticbeanstalk.com https://sccopy-38403.bubbleapps.io https://www.startupcorners.com;"
+  );
+  next();
+});
 
 // JSON parser middleware
 app.use(express.json());
