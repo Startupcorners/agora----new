@@ -2,7 +2,7 @@
   "name": "startupcorners-agora",
   "version": "1.0.0",
   "description": "Server Token for Startup Corners Video Chat Implementation using Agora",
-  "main": "index.js",
+  "main": "api/index.js",
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
