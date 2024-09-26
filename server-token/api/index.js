@@ -11,7 +11,6 @@ const nocache = (req, res, next) => {
   next();
 };
 
-
 const app = express();
 
 // AWS S3 setups
@@ -21,28 +20,38 @@ const s3 = new AWS.S3({
   region: "us-east-1",
 });
 
-
-
 // Log environment variables for debugging
 console.log("APP_ID:", process.env.APP_ID || "Not Defined");
 console.log("APP_CERTIFICATE:", process.env.APP_CERTIFICATE || "Not Defined");
 console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
 
-// CORS setup for Bubble
+// CORS setup for Bubble, allowing all subdomains of startupcorners.com
 app.use(
   cors({
-    origin: ["https://startupcorners.com", "https://www.startupcorners.com"],
+    origin: /\.startupcorners\.com$/, // This allows all subdomains of startupcorners.com
     credentials: true,
   })
 );
+
+// Handle preflight requests for CORS
+app.options("*", cors());
+
+// Middleware to redirect non-www to www (optional, for consistency)
+app.use((req, res, next) => {
+  if (req.headers.host === "startupcorners.com") {
+    return res.redirect(
+      301,
+      `https://www.startupcorners.com${req.originalUrl}`
+    );
+  }
+  next();
+});
 
 // JSON parser middleware
 app.use(express.json());
 
 // Handle preflight requests
 app.options("*", cors());
-
-
 
 // Importing route files
 const accessTokenGeneration = require("./access_token_generation");
