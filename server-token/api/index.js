@@ -12,13 +12,13 @@ const s3 = new AWS.S3({
   region: "us-east-1",
 });
 
-// Dynamic CORS handling
+// Dynamic CORS setup - Allowed Origins
 const allowedOrigins = [
   "https://startupcorners.com",
   "https://www.startupcorners.com",
 ];
 
-// Handle CORS dynamically
+// CORS Middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -31,9 +31,9 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
 
-  // Preflight requests
+  // Handle preflight requests
   if (req.method === "OPTIONS") {
-    return res.status(200).send(); // Respond with 200 OK for preflight
+    return res.status(200).send(); // Send a 200 response to OPTIONS preflight requests
   }
 
   next();
@@ -42,13 +42,14 @@ app.use((req, res, next) => {
 // JSON parser middleware
 app.use(express.json());
 
-// Routes
+// Importing route files
 const accessTokenGeneration = require("./access_token_generation");
 const acquire = require("./acquire");
 const generateRecordingToken = require("./generate_recording_token");
 const startRecording = require("./startRecording");
 const stopRecording = require("./stopRecording");
 
+// Using routes
 app.use("/generateTokens", accessTokenGeneration);
 app.use("/acquire", acquire);
 app.use("/generate_recording_token", generateRecordingToken);
