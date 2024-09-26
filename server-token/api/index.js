@@ -25,16 +25,30 @@ console.log("APP_ID:", process.env.APP_ID || "Not Defined");
 console.log("APP_CERTIFICATE:", process.env.APP_CERTIFICATE || "Not Defined");
 console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
 
-// CORS setup for Bubble, allowing all subdomains of startupcorners.com
-app.use(
-  cors({
-    origin: /\.startupcorners\.com$/, // This allows all subdomains of startupcorners.com
-    credentials: true,
-  })
-);
+// Dynamic CORS setup, allowing both startupcorners.com and www.startupcorners.com
+const allowedOrigins = [
+  "https://startupcorners.com",
+  "https://www.startupcorners.com",
+];
 
-// Handle preflight requests for CORS
-app.options("*", cors());
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+  next();
+});
 
 // Middleware to redirect non-www to www (optional, for consistency)
 app.use((req, res, next) => {
@@ -49,9 +63,6 @@ app.use((req, res, next) => {
 
 // JSON parser middleware
 app.use(express.json());
-
-// Handle preflight requests
-app.options("*", cors());
 
 // Importing route files
 const accessTokenGeneration = require("./access_token_generation");
