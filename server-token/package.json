@@ -1,13 +1,22 @@
 {
-  "name": "your-app",
+  "name": "startupcorners-agora",
   "version": "1.0.0",
+  "description": "Server Token for Startup Corners Video Chat Implementation using Agora",
   "main": "api/index.js",
-  "dependencies": {
-    "express": "^4.17.1",
-    "cors": "^2.8.5",
-    "aws-sdk": "^2.814.0"
-  },
   "scripts": {
-    "start": "node api/index.js"
+    "start": "node api/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "andhikayuana",
+  "license": "ISC",
+  "dependencies": {
+    "@google-cloud/speech": "^6.7.0",
+    "agora-access-token": "^2.0.4",
+    "aws-sdk": "^2.1691.0",
+    "axios": "^0.21.1",
+    "cors": "2.8.5",
+    "dotenv": "16.4.5",
+    "express": "4.19.2",
+    "openai": "^4.62.0"
   }
 }
