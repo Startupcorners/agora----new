@@ -1,9 +1,32 @@
 const express = require("express");
 const cors = require("cors");
+const axios = require("axios");
 const AWS = require("aws-sdk");
 require("dotenv").config();
 
+const allowedOrigins = [
+  "https://startupcorners.com",
+  "https://www.startupcorners.com",
+];
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
+
+
+const nocache = (req, res, next) => {
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+};
+
 const app = express();
+
+// Apply nocache middleware if needed
+app.use(nocache);
+
 
 // AWS S3 setup
 const s3 = new AWS.S3({
@@ -12,30 +35,25 @@ const s3 = new AWS.S3({
   region: "us-east-1",
 });
 
-// Define allowed origins
-const allowedOrigins = [
-  "https://startupcorners.com",
-  "https://www.startupcorners.com",
-];
+// Log environment variables for debugging
+console.log("APP_ID:", process.env.APP_ID || "Not Defined");
+console.log("APP_CERTIFICATE:", process.env.APP_CERTIFICATE || "Not Defined");
+console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
 
-// CORS configuration
+// CORS setup for Bubble
 app.use(
   cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: allowedOrigins,
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
 
 // JSON parser middleware
 app.use(express.json());
+
+// Handle preflight requests
+app.options("*", cors());
 
 // Importing route files
 const accessTokenGeneration = require("./access_token_generation");
@@ -51,10 +69,14 @@ app.use("/generate_recording_token", generateRecordingToken);
 app.use("/start", startRecording);
 app.use("/stop", stopRecording);
 
-// Error handling for undefined routes
-app.use((req, res, next) => {
-  res.status(404).json({ message: "Route not found" });
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).send("Something broke!");
 });
 
-// Export the app for Vercel deployment
+
+// Export the app
 module.exports = app;
+
+// Define allowed origins
+
