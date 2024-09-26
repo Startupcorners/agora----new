@@ -1,15 +1,7 @@
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios");
 const AWS = require("aws-sdk");
 require("dotenv").config();
-
-const nocache = (req, res, next) => {
-  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-  res.header("Expires", "-1");
-  res.header("Pragma", "no-cache");
-  next();
-};
 
 const app = express();
 
@@ -20,17 +12,13 @@ const s3 = new AWS.S3({
   region: "us-east-1",
 });
 
-// Log environment variables for debugging
-console.log("APP_ID:", process.env.APP_ID || "Not Defined");
-console.log("APP_CERTIFICATE:", process.env.APP_CERTIFICATE || "Not Defined");
-console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
-
-// Dynamic CORS setup, allowing both startupcorners.com and www.startupcorners.com
+// Dynamic CORS handling
 const allowedOrigins = [
   "https://startupcorners.com",
   "https://www.startupcorners.com",
 ];
 
+// Handle CORS dynamically
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (allowedOrigins.includes(origin)) {
@@ -38,40 +26,29 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "Content-Type, Authorization"
+      "Content-Type, Authorization, X-Requested-With"
     );
     res.setHeader("Access-Control-Allow-Credentials", "true");
   }
 
-  // Handle preflight requests
+  // Preflight requests
   if (req.method === "OPTIONS") {
-    return res.status(200).end();
+    return res.status(200).send(); // Respond with 200 OK for preflight
   }
-  next();
-});
 
-// Middleware to redirect non-www to www (optional, for consistency)
-app.use((req, res, next) => {
-  if (req.headers.host === "startupcorners.com") {
-    return res.redirect(
-      301,
-      `https://www.startupcorners.com${req.originalUrl}`
-    );
-  }
   next();
 });
 
 // JSON parser middleware
 app.use(express.json());
 
-// Importing route files
+// Routes
 const accessTokenGeneration = require("./access_token_generation");
 const acquire = require("./acquire");
 const generateRecordingToken = require("./generate_recording_token");
 const startRecording = require("./startRecording");
 const stopRecording = require("./stopRecording");
 
-// Using routes
 app.use("/generateTokens", accessTokenGeneration);
 app.use("/acquire", acquire);
 app.use("/generate_recording_token", generateRecordingToken);
