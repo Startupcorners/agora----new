@@ -16,25 +16,20 @@ const allowedOrigins = [
 ];
 
 // CORS Middleware
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, X-Requested-With"
-    );
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-  }
-
-  // Preflight request handling
-  if (req.method === "OPTIONS") {
-    return res.status(200).end(); // Respond with 200 OK for preflight
-  }
-
-  next();
-});
+// CORS Middleware
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 204
+}));
 
 // JSON parser middleware
 app.use(express.json());
