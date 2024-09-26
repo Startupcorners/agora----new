@@ -34,6 +34,16 @@ app.use(
   })
 );
 
+
+app.use(
+  cors({
+    origin: ["https://startupcorners.com", "https://www.startupcorners.com"],
+    credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
+
 // JSON parser middleware
 app.use(express.json());
 
