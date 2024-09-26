@@ -13,7 +13,9 @@ const nocache = (req, res, next) => {
 };
 
 const app = express();
-const port = process.env.PORT || 8080;
+
+// Use port 443 for WebSocket over wss://
+const port = 443;
 
 // AWS S3 setup
 const s3Client = new S3Client({
@@ -41,14 +43,16 @@ app.use(
   })
 );
 
-// Update Content-Security-Policy to allow WebSocket and HTTPS
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; connect-src 'self' wss://api-a.ap-southeast-1.elasticbeanstalk.com https://sccopy-38403.bubbleapps.io https://www.startupcorners.com;"
+    "default-src * 'unsafe-inline' 'unsafe-eval'; connect-src * wss://* https://*;"
   );
   next();
 });
+
+
+
 
 // JSON parser middleware
 app.use(express.json());
@@ -75,7 +79,7 @@ app.use("/generate_recording_token", generateRecordingToken);
 app.use("/start", startRecording);
 app.use("/stop", stopRecording);
 
-// Start the HTTP server and listen on all interfaces (0.0.0.0)
+// Start the HTTP server and listen on port 443 for secure WebSocket connections
 const server = app.listen(port, "0.0.0.0", () => {
   console.log(`Server running on port ${port}`);
 });

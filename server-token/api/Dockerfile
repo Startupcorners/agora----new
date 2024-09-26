@@ -1,5 +1,5 @@
 # Use the official Node.js image.
-FROM node:14
+FROM node:16
 
 # Create and set the working directory inside the container
 WORKDIR /usr/src/app
@@ -16,8 +16,8 @@ COPY . .
 # Copy the .env file into the container
 COPY .env .env
 
-# Expose the WebSocket server's port (8080)
-EXPOSE 8080
+# Expose the WebSocket server's port (443 for WSS)
+EXPOSE 443
 
 # Start the server
 CMD ["node", "index.js"]
