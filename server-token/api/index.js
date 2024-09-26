@@ -14,7 +14,7 @@ const nocache = (req, res, next) => {
 
 const app = express();
 
-// AWS S3 setup
+// AWS S3 setups
 const s3 = new AWS.S3({
   accessKeyId: process.env.S3_ACCESS_KEY,
   secretAccessKey: process.env.S3_SECRET_KEY,
