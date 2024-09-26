@@ -743,7 +743,7 @@ const newMainApp = function (initConfig) {
   };
 
   const ws = new WebSocket(
-    "wss://agora-signaling-server-new.ap-southeast-1.elasticbeanstalk.com"
+    "wss://new-restart-agora-signaling-server.ap-southeast-1.elasticbeanstalk.com"
   ); // Replace with your Elastic Beanstalk URL
 
   // Handle incoming messages from WebSocket

@@ -32,7 +32,7 @@ console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
 // CORS setup for Bubble
 app.use(
   cors({
-    origin: "https://sccopy-38403.bubbleapps.io",
+    origin: "https://sccopy-38403.bubbleapps.io", // Modify this to match your frontend URL if needed
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
   })
@@ -43,6 +43,11 @@ app.use(express.json());
 
 // Handle preflight requests
 app.options("*", cors());
+
+// Health check route for Elastic Beanstalk to check if the app is running
+app.get("/", (req, res) => {
+  res.status(200).send("Health check passed");
+});
 
 // Importing route files
 const accessTokenGeneration = require("./access_token_generation");
@@ -58,8 +63,8 @@ app.use("/generate_recording_token", generateRecordingToken);
 app.use("/start", startRecording);
 app.use("/stop", stopRecording);
 
-// Start the HTTP server
-const server = app.listen(port, () => {
+// Start the HTTP server and listen on all interfaces (0.0.0.0)
+const server = app.listen(port, "0.0.0.0", () => {
   console.log(`Server running on port ${port}`);
 });
 
