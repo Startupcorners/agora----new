@@ -4,6 +4,11 @@ require("dotenv").config();
 
 const app = express();
 
+app.use((req, res, next) => {
+  console.log(`${req.method} request for ${req.url}`);
+  next();
+});
+
 // Configure allowed origins
 const allowedOrigins = [
   "https://startupcorners.com",
