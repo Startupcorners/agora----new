@@ -4,15 +4,13 @@ const axios = require("axios");
 const AWS = require("aws-sdk");
 require("dotenv").config();
 
+const app = express();
+
 const allowedOrigins = [
   "https://startupcorners.com",
   "https://www.startupcorners.com",
 ];
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
 
 
 const nocache = (req, res, next) => {
@@ -21,8 +19,6 @@ const nocache = (req, res, next) => {
   res.header("Pragma", "no-cache");
   next();
 };
-
-const app = express();
 
 // Apply nocache middleware if needed
 app.use(nocache);
