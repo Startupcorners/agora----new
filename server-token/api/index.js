@@ -31,7 +31,7 @@ console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
 // CORS setup for Bubble
 app.use(
   cors({
-    origin: "https://sccopy-38403.bubbleapps.io",
+    origin: "https://startupcorners.com",
     methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
     credentials: true,
   })
