@@ -3,26 +3,8 @@ import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging an
 
 export const toggleMic = async (isMuted, config) => {
   try {
-    const uid = config.uid; // Ensure uid is accessed from config
-
-    if (!uid) {
-      console.error("UID is not set in config");
-      return;
-    }
-
-    if (isMuted) {
-      await config.localAudioTrack.setMuted(true);
-      config.localAudioTrackMuted = true;
-    } else {
-      await config.localAudioTrack.setMuted(false);
-      config.localAudioTrackMuted = false;
-    }
-
-    console.log(
-      `Microphone muted for UID ${uid}: ${isMuted ? "Mic Off" : "Mic On"}`
-    );
-
-    config.onMicMuted(config.localAudioTrackMuted);
+    config.localAudioTrackMuted = isMuted;
+    await config.onMicMuted(isMuted);
   } catch (error) {
     console.error("Error in toggleMic:", error);
     if (config.onError) {
@@ -31,61 +13,10 @@ export const toggleMic = async (isMuted, config) => {
   }
 };
 
-
 export const toggleCamera = async (isMuted, config) => {
   try {
-    const uid = config.uid;
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatar = document.querySelector(`#avatar-${uid}`);
-
-    if (!config.client) {
-      console.error("Agora client is not initialized!");
-      return;
-    }
-
-    log(config, `Camera is about to be ${isMuted ? "muted" : "unmuted"}`);
-
-    if (!videoPlayer) {
-      console.error(`Video player with id #stream-${uid} not found`);
-      return;
-    }
-
-    // Check if the video track exists, if not create and initialize it
-    if (!config.localVideoTrack) {
-      log(config, "Initializing new camera video track...");
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-    }
-
-    // Mute or unmute the video track
-    if (isMuted) {
-      log(config, "Muting camera...");
-      await config.localVideoTrack.setMuted(true);
-      config.localVideoTrackMuted = true;
-
-      // Show the avatar and hide the video player
-      videoPlayer.style.display = "none";
-      avatar.style.display = "block";
-    } else {
-      log(config, "Unmuting camera...");
-      videoPlayer.style.display = "block";
-      avatar.style.display = "none";
-
-      if (
-        videoPlayer.childNodes.length === 0 ||
-        !videoPlayer.querySelector("video")
-      ) {
-        log(config, "Reattaching video element...");
-        config.localVideoTrack.play(videoPlayer);
-      } else {
-        log(config, "Video element already exists, playing it.");
-        config.localVideoTrack.play(videoPlayer);
-      }
-
-      await config.localVideoTrack.setMuted(false);
-      config.localVideoTrackMuted = false;
-    }
-
-    config.onCamMuted(uid, config.localVideoTrackMuted);
+    config.localVideoTrackMuted = isMuted;
+    await config.onCamMuted(config.uid, isMuted);
   } catch (error) {
     console.error("Error in toggleCamera:", error);
     if (config.onError) {
@@ -94,12 +25,6 @@ export const toggleCamera = async (isMuted, config) => {
   }
 };
 
-export const updateMicIcon = (uid, isMuted) => {
-  const micStatusIcon = document.querySelector(`#mic-status-${uid}`);
-  if (micStatusIcon) {
-    micStatusIcon.style.display = isMuted ? "block" : "none";
-  }
-};
 
 // toggleScreenShare Function
 export const toggleScreenShare = async (

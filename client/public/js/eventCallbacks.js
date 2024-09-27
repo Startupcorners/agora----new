@@ -75,24 +75,40 @@ export const eventCallbacks = (config) => ({
     console.log("onMessageReceived", messageObj);
   },
 
-  onMicMuted: (isMuted) => {
+  onMicMuted: async (isMuted) => {
     console.log(
       `Microphone muted for UID ${config.uid}: ${
         isMuted ? "Mic Off" : "Mic On"
       }`
     );
 
+    if (isMuted) {
+      // Stop and release the microphone audio track when muted
+      if (config.localAudioTrack) {
+        config.localAudioTrack.stop();
+        config.localAudioTrack.close();
+        config.localAudioTrack = null; // Ensure the track is removed
+      }
+    } else {
+      // Reinitialize the microphone track when unmuted
+      if (!config.localAudioTrack) {
+        config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      }
+    }
+
+    // Update the UI for mic status (optional)
     const micStatusIcon = document.querySelector(`#mic-status-${config.uid}`);
     if (micStatusIcon) {
       micStatusIcon.style.display = isMuted ? "block" : "none";
     }
 
+    // Call any external function if needed
     if (typeof bubble_fn_isMicOff === "function") {
       bubble_fn_isMicOff(isMuted);
     }
   },
 
-  onCamMuted: (uid, isMuted) => {
+  onCamMuted: async (uid, isMuted) => {
     console.log(
       `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
     );
@@ -102,15 +118,34 @@ export const eventCallbacks = (config) => ({
       const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
       const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
 
-      videoPlayer.style.display = isMuted ? "none" : "block";
-      avatarDiv.style.display = isMuted ? "block" : "none";
+      if (isMuted) {
+        // Stop and release the camera video track completely when muted
+        if (config.localVideoTrack) {
+          config.localVideoTrack.stop();
+          config.localVideoTrack.close();
+          config.localVideoTrack = null; // Ensure the track is removed
+        }
+
+        // Show the avatar and hide the video player
+        videoPlayer.style.display = "none";
+        avatarDiv.style.display = "block";
+      } else {
+        // Reinitialize the camera track and play the video
+        if (!config.localVideoTrack) {
+          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        }
+
+        // Play the video and hide the avatar
+        videoPlayer.style.display = "block";
+        avatarDiv.style.display = "none";
+        config.localVideoTrack.play(videoPlayer);
+      }
     }
 
     if (typeof bubble_fn_isCamOff === "function") {
       bubble_fn_isCamOff(isMuted);
     }
   },
-
   onScreenShareEnabled: (enabled) => {
     console.log(`Screen share status: ${enabled ? "Sharing" : "Not sharing"}`);
 
