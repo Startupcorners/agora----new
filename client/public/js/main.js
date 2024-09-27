@@ -205,7 +205,7 @@ const join = async () => {
 return {
   config,
   clientRTM,
-  client,
+  client: config.client,
   join,
   joinToVideoStage,
   leaveFromVideoStage,
