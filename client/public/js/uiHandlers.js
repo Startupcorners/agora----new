@@ -3,6 +3,13 @@ import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging an
 
 export const toggleMic = async (isMuted, config) => {
   try {
+    const uid = config.uid; // Ensure uid is accessed from config
+
+    if (!uid) {
+      console.error("UID is not set in config");
+      return;
+    }
+
     if (isMuted) {
       await config.localAudioTrack.setMuted(true);
       config.localAudioTrackMuted = true;
@@ -10,6 +17,10 @@ export const toggleMic = async (isMuted, config) => {
       await config.localAudioTrack.setMuted(false);
       config.localAudioTrackMuted = false;
     }
+
+    console.log(
+      `Microphone muted for UID ${uid}: ${isMuted ? "Mic Off" : "Mic On"}`
+    );
 
     config.onMicMuted(config.localAudioTrackMuted);
   } catch (error) {
@@ -19,6 +30,7 @@ export const toggleMic = async (isMuted, config) => {
     }
   }
 };
+
 
 export const toggleCamera = async (isMuted, config) => {
   try {
