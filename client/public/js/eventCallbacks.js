@@ -82,29 +82,44 @@ export const eventCallbacks = (config) => ({
       }`
     );
 
-    if (isMuted) {
-      // Stop and release the microphone audio track when muted
-      if (config.localAudioTrack) {
-        config.localAudioTrack.stop();
-        config.localAudioTrack.close();
-        config.localAudioTrack = null; // Ensure the track is removed
-      }
-    } else {
-      // Reinitialize the microphone track when unmuted
-      if (!config.localAudioTrack) {
-        config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      }
-    }
+    try {
+      if (isMuted) {
+        // Stop and release the microphone audio track when muted
+        if (config.localAudioTrack) {
+          // Unpublish the audio track before stopping
+          await config.client.unpublish([config.localAudioTrack]);
+          console.log("Microphone track unpublished");
 
-    // Update the UI for mic status (optional)
-    const micStatusIcon = document.querySelector(`#mic-status-${config.uid}`);
-    if (micStatusIcon) {
-      micStatusIcon.style.display = isMuted ? "block" : "none";
-    }
+          // Stop the microphone input
+          config.localAudioTrack.stop();
+          config.localAudioTrack.close(); // Release the microphone hardware
+          config.localAudioTrack = null; // Remove the track reference
+          console.log("Microphone track stopped and removed");
+        }
+      } else {
+        // Reinitialize the microphone track when unmuted
+        if (!config.localAudioTrack) {
+          config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          await config.client.publish([config.localAudioTrack]); // Publish the microphone track
+          console.log("Microphone track re-initialized and published");
+        }
+      }
 
-    // Call any external function if needed
-    if (typeof bubble_fn_isMicOff === "function") {
-      bubble_fn_isMicOff(isMuted);
+      // Update the UI for mic status (optional)
+      const micStatusIcon = document.querySelector(`#mic-status-${config.uid}`);
+      if (micStatusIcon) {
+        micStatusIcon.style.display = isMuted ? "block" : "none";
+      }
+
+      // Call any external function if needed
+      if (typeof bubble_fn_isMicOff === "function") {
+        bubble_fn_isMicOff(isMuted);
+      }
+    } catch (error) {
+      console.error("Error in onMicMuted:", error);
+      if (config.onError) {
+        config.onError(error);
+      }
     }
   },
 
