@@ -153,15 +153,17 @@ export const handleRoleChange = async (
 // Joins user to the video stage
 export const joinToVideoStage = async (user, config, client) => {
   try {
-    // Initialize only the audio track for now
+    // Initialize only the audio track
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
-    // Do not create or initialize the video track until it is explicitly turned on
+    // Video track is not created until toggled on, set to muted initially
     config.localVideoTrackMuted = true;
 
+    // Check if the video player wrapper exists for the user, and remove if needed
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player) player.remove();
 
+    // Insert the local player container for the video (and audio)
     let localPlayerContainer = config.participantPlayerContainer
       .replaceAll("{{uid}}", user.id)
       .replaceAll("{{name}}", user.name)
@@ -172,9 +174,10 @@ export const joinToVideoStage = async (user, config, client) => {
       .insertAdjacentHTML("beforeend", localPlayerContainer);
 
     if (user.id === config.uid) {
-      // Publish only the audio track initially
+      // Publish the audio track only
       await client.publish([config.localAudioTrack]);
 
+      // Set the video player display logic: hide the video, show the avatar initially
       const videoPlayer = document.querySelector(`#stream-${user.id}`);
       const avatarDiv = document.querySelector(`#avatar-${user.id}`);
       if (videoPlayer && avatarDiv) {
@@ -183,12 +186,16 @@ export const joinToVideoStage = async (user, config, client) => {
       }
     }
 
-    // Notify the app that the camera is off
+    // Notify that the camera is off
     config.onCamMuted(config.uid, config.localVideoTrackMuted);
   } catch (error) {
-    config.onError(error);
+    console.error("Error in joinToVideoStage:", error);
+    if (config.onError) {
+      config.onError(error);
+    }
   }
 };
+
 
 
 

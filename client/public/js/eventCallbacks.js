@@ -120,15 +120,16 @@ onCamMuted: async (uid, isMuted) => {
       const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
 
       if (isMuted) {
-        // Camera is off, stop and close the track
+        // Camera is off, stop and close the track to fully release the camera
         if (config.localVideoTrack) {
-          config.localVideoTrack.stop();  // Stop the track
+          config.localVideoTrack.stop();  // Stop the track (stop camera feed)
+          config.localVideoTrack.close(); // Close the track (release hardware)
           await config.client.unpublish([config.localVideoTrack]); // Unpublish the track
-          config.localVideoTrack.close(); // Close the track to release the camera
+          config.localVideoTrack = null;  // Set the track to null to fully release it
         }
 
-        videoPlayer.style.display = "none"; // Hide video
-        avatarDiv.style.display = "block";  // Show avatar
+        if (videoPlayer) videoPlayer.style.display = "none"; // Hide video
+        if (avatarDiv) avatarDiv.style.display = "block";    // Show avatar
       } else {
         // Camera is on, start or resume the track
         if (!config.localVideoTrack) {
@@ -136,8 +137,8 @@ onCamMuted: async (uid, isMuted) => {
           await config.client.publish([config.localVideoTrack]); // Publish it
         }
 
-        videoPlayer.style.display = "block"; // Show video
-        avatarDiv.style.display = "none";    // Hide avatar
+        if (videoPlayer) videoPlayer.style.display = "block"; // Show video
+        if (avatarDiv) avatarDiv.style.display = "none";    // Hide avatar
         config.localVideoTrack.play(videoPlayer); // Play video
       }
     }
@@ -153,6 +154,9 @@ onCamMuted: async (uid, isMuted) => {
     }
   }
 },
+
+
+
   onScreenShareEnabled: (enabled) => {
     console.log(`Screen share status: ${enabled ? "Sharing" : "Not sharing"}`);
 
