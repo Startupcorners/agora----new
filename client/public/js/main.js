@@ -17,13 +17,7 @@ import {
   handleRenewToken,
 } from "./rtcEventHandlers.js"; // New RTC Event Handler imports
 
-import {
-  toggleMic,
-  toggleCamera,
-  toggleScreenShare,
-  turnOffMic,
-  turnOffCamera,
-} from "./uiHandlers.js";
+import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js"; 
 
 import {
   log,
