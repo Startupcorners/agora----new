@@ -147,7 +147,7 @@ const join = async () => {
       await config.client.setClientRole("audience"); // Set as audience for non-hosts
     }
 
-
+    // Join RTM and RTC
     await joinRTM(tokens.rtmToken);
     await config.client.join(
       config.appId,
@@ -156,18 +156,32 @@ const join = async () => {
       config.uid
     );
 
+    // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
-    setupEventListeners(config); // Pass client and config to event listeners
 
-    // Pass config and client when calling joinToVideoStage
+    // Setup event listeners for client (user-published, user-unpublished, etc.)
+    setupEventListeners(config);
+
+    // Subscribe to existing remote users (in case there are already participants in the room)
+    const remoteUsers = config.client.remoteUsers || [];
+    remoteUsers.forEach(async (user) => {
+      // Subscribe to the existing users
+      await handleUserJoined(user, config, config.clientRTM); // Add wrapper
+      await subscribe(user, "video", config, config.client); // Subscribe to video
+      await subscribe(user, "audio", config, config.client); // Subscribe to audio
+    });
+
+    // Check if the current user should join the video stage
     if (config.onNeedJoinToVideoStage(config.user)) {
       await joinToVideoStage(config);
     }
 
+    // Notify Bubble or external callbacks
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Joined");
     }
   } catch (error) {
+    // Handle error and notify Bubble or external callbacks
     if (typeof bubble_fn_joining === "function") {
       console.log("Error before joining", error);
       bubble_fn_joining("Error");
@@ -175,39 +189,60 @@ const join = async () => {
   }
 };
 
+const joinRTM = async (rtmToken, retryCount = 0) => {
+  try {
+    const rtmUid = config.uid.toString();
 
-  const joinRTM = async (rtmToken, retryCount = 0) => {
-    try {
-      const rtmUid = config.uid.toString();
-
-      if (clientRTM && clientRTM._logined) {
-        await clientRTM.logout();
-      }
-
-      await clientRTM.login({ uid: rtmUid, token: rtmToken });
-
-      const attributes = {
-        name: config.user.name || "Unknown",
-        avatar: config.user.avatar || "default-avatar-url",
-        comp: config.user.company || "",
-        desg: config.user.designation || "",
-      };
-
-      await clientRTM.setLocalUserAttributes(attributes);
-      await handleOnUpdateParticipants();
-
-      setupRTMEventListeners(clientRTM, channelRTM); // Pass RTM instances to event listeners
-
-      await channelRTM.join();
-    } catch (error) {
-      if (error.code === 5 && retryCount < 3) {
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // Retry after 2 seconds
-        return joinRTM(rtmToken, retryCount + 1);
-      } else {
-        throw new Error("Failed to join RTM after multiple attempts");
-      }
+    // Initialize clientRTM if it's not already initialized
+    if (!config.clientRTM) {
+      config.clientRTM = AgoraRTM.createInstance(config.appId, {
+        enableLogUpload: false,
+        logFilter: config.debugEnabled
+          ? AgoraRTM.LOG_FILTER_INFO
+          : AgoraRTM.LOG_FILTER_OFF,
+      });
     }
-  };
+
+    // Initialize channelRTM if it's not already initialized
+    if (!config.channelRTM) {
+      config.channelRTM = config.clientRTM.createChannel(config.channelName);
+    }
+
+    // Log out if already logged in
+    if (config.clientRTM._logined) {
+      await config.clientRTM.logout();
+    }
+
+    // Login to RTM
+    await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
+
+    // Set user attributes
+    const attributes = {
+      name: config.user.name || "Unknown",
+      avatar: config.user.avatar || "default-avatar-url",
+      comp: config.user.company || "",
+      desg: config.user.designation || "",
+    };
+    await config.clientRTM.setLocalUserAttributes(attributes);
+
+    // Update participants
+    await handleOnUpdateParticipants(config, config.clientRTM);
+
+    // Set up RTM event listeners
+    setupRTMEventListeners(config.clientRTM, config.channelRTM, config);
+
+    // Join the RTM channel
+    await config.channelRTM.join();
+  } catch (error) {
+    if (error.code === 5 && retryCount < 3) {
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Retry after 2 seconds
+      return joinRTM(rtmToken, retryCount + 1);
+    } else {
+      throw new Error("Failed to join RTM after multiple attempts");
+    }
+  }
+};
+
 
 return {
   config,
