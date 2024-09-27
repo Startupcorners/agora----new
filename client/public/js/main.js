@@ -21,7 +21,6 @@ import {
   subscribe,
   setupEventListeners,
   removeParticipant,
-  handleOnUpdateParticipants,
 } from "./setupEventListeners.js";
 
 import {
@@ -210,12 +209,7 @@ const newMainApp = function (initConfig) {
         comp: config.user.company || "",
         desg: config.user.designation || "",
       };
-      await config.clientRTM.setLocalUserAttributes(attributes);
-
-      // Update participants
-      await handleOnUpdateParticipants(config, config.clientRTM);
-
-  
+      await config.clientRTM.setLocalUserAttributes(attributes);  
 
       // Join the RTM channel
       await config.channelRTM.join();
