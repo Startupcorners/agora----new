@@ -97,6 +97,7 @@ const newMainApp = function (initConfig) {
 
   // Apply event callbacks
   config = { ...config, ...initConfig };
+  config.client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
 
   // Ensure config is fully initialized before passing to eventCallbacks
   const callbacks = eventCallbacks(config);
@@ -139,10 +140,6 @@ const join = async () => {
   try {
     const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
     if (!tokens) throw new Error("Failed to fetch token");
-
-    if (!config.client) {
-      config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-    }
 
     await joinRTM(tokens.rtmToken);
     await config.client.join(
