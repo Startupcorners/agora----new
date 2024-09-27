@@ -7,7 +7,6 @@ import {
 } from "./recordingHandlers.js";
 
 import {
-  changeRole,
   handleUserPublished,
   handleUserJoined,
   handleUserLeft,
@@ -271,7 +270,6 @@ const newMainApp = function (initConfig) {
     turnOffMic: (...uids) => turnOffMic(clientRTM, ...uids),
     turnOffCamera: (...uids) => turnOffCamera(clientRTM, ...uids),
     removeParticipant: (...uids) => removeParticipant(clientRTM, ...uids),
-    changeRole: (uid, role) => changeRole(uid, role, config),
     getCameras,
     getMicrophones,
     switchCamera: (deviceId) => switchCamera(deviceId, config, client),
