@@ -148,6 +148,7 @@ onCamMuted: async (uid, isMuted) => {
       bubble_fn_isCamOff(isMuted);
     }
   } catch (error) {
+    console.log(config.client)
     console.error("Error in onCamMuted:", error);
     if (config.onError) {
       config.onError(error);
