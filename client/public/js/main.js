@@ -159,7 +159,7 @@ const newMainApp = function (initConfig) {
       }
     } catch (error) {
       if (typeof bubble_fn_joining === "function") {
-        console.log(error)
+        console.log("Error before joining",error)
         bubble_fn_joining("Error");
       }
     }
