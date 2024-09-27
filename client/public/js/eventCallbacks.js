@@ -108,7 +108,8 @@ export const eventCallbacks = (config) => ({
     }
   },
 
-  onCamMuted: async (uid, isMuted) => {
+onCamMuted: async (uid, isMuted) => {
+  try {
     console.log(
       `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
     );
@@ -119,33 +120,39 @@ export const eventCallbacks = (config) => ({
       const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
 
       if (isMuted) {
-        // Stop and release the camera video track completely when muted
+        // Camera is off, stop and close the track
         if (config.localVideoTrack) {
-          config.localVideoTrack.stop();
-          config.localVideoTrack.close();
-          config.localVideoTrack = null; // Ensure the track is removed
+          config.localVideoTrack.stop();  // Stop the track
+          await config.client.unpublish([config.localVideoTrack]); // Unpublish the track
+          config.localVideoTrack.close(); // Close the track to release the camera
         }
 
-        // Show the avatar and hide the video player
-        videoPlayer.style.display = "none";
-        avatarDiv.style.display = "block";
+        videoPlayer.style.display = "none"; // Hide video
+        avatarDiv.style.display = "block";  // Show avatar
       } else {
-        // Reinitialize the camera track and play the video
+        // Camera is on, start or resume the track
         if (!config.localVideoTrack) {
-          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Recreate the track
+          await config.client.publish([config.localVideoTrack]); // Publish it
         }
 
-        // Play the video and hide the avatar
-        videoPlayer.style.display = "block";
-        avatarDiv.style.display = "none";
-        config.localVideoTrack.play(videoPlayer);
+        videoPlayer.style.display = "block"; // Show video
+        avatarDiv.style.display = "none";    // Hide avatar
+        config.localVideoTrack.play(videoPlayer); // Play video
       }
     }
 
+    // Update Bubble function or any other necessary callbacks
     if (typeof bubble_fn_isCamOff === "function") {
       bubble_fn_isCamOff(isMuted);
     }
-  },
+  } catch (error) {
+    console.error("Error in onCamMuted:", error);
+    if (config.onError) {
+      config.onError(error);
+    }
+  }
+},
   onScreenShareEnabled: (enabled) => {
     console.log(`Screen share status: ${enabled ? "Sharing" : "Not sharing"}`);
 
