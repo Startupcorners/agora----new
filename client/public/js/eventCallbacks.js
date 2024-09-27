@@ -84,23 +84,34 @@ export const eventCallbacks = (config) => ({
 
     try {
       if (isMuted) {
-        // Stop and release the microphone audio track when muted
+        // Unpublish and stop the audio track
         if (config.localAudioTrack) {
-          // Unpublish the audio track before stopping
+          // Unpublish the audio track first
           await config.client.unpublish([config.localAudioTrack]);
           console.log("Microphone track unpublished");
 
-          // Stop the microphone input
+          // Stop and close the track (releases the hardware)
           config.localAudioTrack.stop();
-          config.localAudioTrack.close(); // Release the microphone hardware
-          config.localAudioTrack = null; // Remove the track reference
-          console.log("Microphone track stopped and removed");
+          config.localAudioTrack.close();
+          console.log("Microphone track stopped and closed");
+
+          // Deactivate the media stream by setting the audio track to null
+          config.localAudioTrack = null;
+
+          // Ensure the audio input is fully released by rechecking the media devices
+          const audioTracks = await AgoraRTC.getDevices().then((devices) =>
+            devices.filter((device) => device.kind === "audioinput")
+          );
+          console.log(
+            "Available audio input devices after stopping:",
+            audioTracks
+          );
         }
       } else {
         // Reinitialize the microphone track when unmuted
         if (!config.localAudioTrack) {
           config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-          await config.client.publish([config.localAudioTrack]); // Publish the microphone track
+          await config.client.publish([config.localAudioTrack]);
           console.log("Microphone track re-initialized and published");
         }
       }
