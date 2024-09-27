@@ -1,12 +1,12 @@
-export const eventCallbacks = (config) => ({
+export const eventCallbacks = (config, clientRTM) => ({
   onParticipantJoined: async (user) => {
     console.log("onParticipantJoined", user);
 
     const rtmUid = user.uid.toString(); // Convert UID to string
 
     try {
-      // Fetch user attributes (name, avatar) from RTM
-      const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
+      // Fetch user attributes (name, avatar) from RTM using clientRTM
+      const userAttr = await clientRTM.getUserAttributes(rtmUid);
 
       const participants = [
         {
@@ -30,7 +30,7 @@ export const eventCallbacks = (config) => ({
     for (const participant of participantIds) {
       const rtmUid = participant.id.toString(); // Convert UID to string
       try {
-        const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
+        const userAttr = await clientRTM.getUserAttributes(rtmUid);
         participants.push({
           uid: participant.id,
           name: userAttr.name || "Unknown",
@@ -86,50 +86,29 @@ export const eventCallbacks = (config) => ({
       if (isMuted) {
         // Unpublish and stop the audio track
         if (config.localAudioTrack) {
-          // Unpublish the audio track first
           await config.client.unpublish([config.localAudioTrack]);
-          console.log("Microphone track unpublished");
-
-          // Stop and close the track (releases the hardware)
           config.localAudioTrack.stop();
           config.localAudioTrack.close();
-          console.log("Microphone track stopped and closed");
-
-          // Set local audio track to null
           config.localAudioTrack = null;
 
-          // Destroy the Agora client to fully release the resources (optional step)
           if (config.client) {
             console.log("Destroying Agora client to release resources.");
             config.client.leave();
             config.client = null;
           }
-
-          // Check if the media stream is fully deactivated
-          const audioTracks = await AgoraRTC.getDevices().then((devices) =>
-            devices.filter((device) => device.kind === "audioinput")
-          );
-          console.log(
-            "Available audio input devices after stopping:",
-            audioTracks
-          );
         }
       } else {
-        // Reinitialize the microphone track when unmuted
         if (!config.localAudioTrack) {
           config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
           await config.client.publish([config.localAudioTrack]);
-          console.log("Microphone track re-initialized and published");
         }
       }
 
-      // Update the UI for mic status (optional)
       const micStatusIcon = document.querySelector(`#mic-status-${config.uid}`);
       if (micStatusIcon) {
         micStatusIcon.style.display = isMuted ? "block" : "none";
       }
 
-      // Call any external function if needed
       if (typeof bubble_fn_isMicOff === "function") {
         bubble_fn_isMicOff(isMuted);
       }
@@ -148,43 +127,36 @@ export const eventCallbacks = (config) => ({
       );
 
       const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
-
       if (videoWrapper) {
         const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
         const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
 
         if (isMuted) {
-          // Camera is off, stop and close the track to fully release the camera
           if (config.localVideoTrack) {
-            config.localVideoTrack.stop(); // Stop the track (stop camera feed)
-            config.localVideoTrack.close(); // Close the track (release hardware)
-            await config.client.unpublish([config.localVideoTrack]); // Unpublish the track
-            config.localVideoTrack = null; // Set the track to null to fully release it
+            config.localVideoTrack.stop();
+            config.localVideoTrack.close();
+            await config.client.unpublish([config.localVideoTrack]);
+            config.localVideoTrack = null;
           }
 
-          if (videoPlayer) videoPlayer.style.display = "none"; // Hide video
-          if (avatarDiv) avatarDiv.style.display = "block"; // Show avatar
+          if (videoPlayer) videoPlayer.style.display = "none";
+          if (avatarDiv) avatarDiv.style.display = "block";
         } else {
-          // Camera is on, start or resume the track
           if (!config.localVideoTrack) {
-            config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Recreate the track
-            await config.client.publish([config.localVideoTrack]); // Publish it
+            config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+            await config.client.publish([config.localVideoTrack]);
           }
 
           if (videoPlayer) {
-            videoPlayer.style.display = "block"; // Show video
-            config.localVideoTrack.play(videoPlayer); // Play video
-          } else {
-            console.error("Video player element not found. Cannot play video.");
+            videoPlayer.style.display = "block";
+            config.localVideoTrack.play(videoPlayer);
           }
-
-          if (avatarDiv) avatarDiv.style.display = "none"; // Hide avatar
+          if (avatarDiv) avatarDiv.style.display = "none";
         }
       } else {
         console.error("Video wrapper element not found.");
       }
 
-      // Update Bubble function or any other necessary callbacks
       if (typeof bubble_fn_isCamOff === "function") {
         bubble_fn_isCamOff(isMuted);
       }

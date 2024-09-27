@@ -12,6 +12,11 @@ import {
 export const handleUserPublished = async (user, mediaType, config, client) => {
   log("handleUserPublished Here");
 
+  // Ensure remoteTracks is initialized
+  if (!config.remoteTracks) {
+    config.remoteTracks = {};
+  }
+
   // Store the user's remote tracks
   config.remoteTracks[user.uid] = user;
 
@@ -22,8 +27,9 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
   }
 
   // Subscribe to the track
-  subscribe(user, mediaType, config, client);
+  await subscribe(user, mediaType, config, client);
 };
+
 
 // Handles user joined event
 export const handleUserJoined = async (user, config, clientRTM) => {
@@ -241,12 +247,15 @@ export const subscribe = async (user, mediaType, config, client) => {
 
     let userAttr = { name: "Unknown", avatar: "default-avatar-url" };
     try {
-      userAttr = await clientRTM.getUserAttributes(rtmUid);
-      userAttr.name = userAttr.name || "Unknown";
-      userAttr.avatar = userAttr.avatar || "default-avatar-url";
-      log(
-        `Fetched attributes for user ${user.uid}: ${userAttr.name}, ${userAttr.avatar}`
-      );
+      // Ensure `clientRTM` is passed or available globally
+      if (config.clientRTM) {
+        userAttr = await config.clientRTM.getUserAttributes(rtmUid);
+        userAttr.name = userAttr.name || "Unknown";
+        userAttr.avatar = userAttr.avatar || "default-avatar-url";
+        log(
+          `Fetched attributes for user ${user.uid}: ${userAttr.name}, ${userAttr.avatar}`
+        );
+      }
     } catch (err) {
       log(
         `Failed to fetch attributes for user ${user.uid}, using defaults:`,
@@ -295,14 +304,14 @@ export const subscribe = async (user, mediaType, config, client) => {
   }
 };
 
+
 // Checks and adds missing video wrappers for participants
 export const checkAndAddMissingWrappers = (config, client) => {
   const participants = client.remoteUsers || [];
-  const existingWrappers = document.querySelectorAll('[id^="video-wrapper-"]');
-
   participants.forEach((user) => {
     const player = document.querySelector(`#video-wrapper-${user.uid}`);
     if (!player) {
+      // Check and subscribe only to video tracks if necessary
       subscribe(user, "video", config, client);
     }
   });
