@@ -97,7 +97,7 @@ const newMainApp = function (initConfig) {
   };
 
   // Apply event callbacks
-  config = { ...config, ...initConfig, ...eventCallbacks(config, clientRTM) };
+  config = { ...config, ...initConfig, ...eventCallbacks(config) };
 
   if (
     !config.appId ||
