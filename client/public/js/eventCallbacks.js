@@ -148,28 +148,40 @@ export const eventCallbacks = (config) => ({
       );
 
       const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
+
       if (videoWrapper) {
         const videoPlayer = videoWrapper.querySelector(`#stream-${uid}`);
         const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
 
         if (isMuted) {
-          // Soft mute the camera (do not release hardware or destroy the track)
+          // Camera is off, stop and close the track to fully release the camera
           if (config.localVideoTrack) {
-            await config.localVideoTrack.setMuted(true); // Mute the track
+            config.localVideoTrack.stop(); // Stop the track (stop camera feed)
+            config.localVideoTrack.close(); // Close the track (release hardware)
+            await config.client.unpublish([config.localVideoTrack]); // Unpublish the track
+            config.localVideoTrack = null; // Set the track to null to fully release it
           }
 
           if (videoPlayer) videoPlayer.style.display = "none"; // Hide video
           if (avatarDiv) avatarDiv.style.display = "block"; // Show avatar
         } else {
-          // Unmute the camera without recreating the track
-          if (config.localVideoTrack) {
-            await config.localVideoTrack.setMuted(false); // Unmute the track
+          // Camera is on, start or resume the track
+          if (!config.localVideoTrack) {
+            config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Recreate the track
+            await config.client.publish([config.localVideoTrack]); // Publish it
           }
 
-          if (videoPlayer) videoPlayer.style.display = "block"; // Show video
+          if (videoPlayer) {
+            videoPlayer.style.display = "block"; // Show video
+            config.localVideoTrack.play(videoPlayer); // Play video
+          } else {
+            console.error("Video player element not found. Cannot play video.");
+          }
+
           if (avatarDiv) avatarDiv.style.display = "none"; // Hide avatar
-          config.localVideoTrack.play(videoPlayer); // Play video
         }
+      } else {
+        console.error("Video wrapper element not found.");
       }
 
       // Update Bubble function or any other necessary callbacks
@@ -177,7 +189,6 @@ export const eventCallbacks = (config) => ({
         bubble_fn_isCamOff(isMuted);
       }
     } catch (error) {
-      console.log(config.client);
       console.error("Error in onCamMuted:", error);
       if (config.onError) {
         config.onError(error);
