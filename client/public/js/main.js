@@ -26,6 +26,7 @@ import {
   handleMemberJoined,
   handleMemberLeft,
   setupRTMEventListeners,
+  setupEventListeners,
   removeParticipant,
   handleOnUpdateParticipants,
 } from "./eventHandlers.js";
