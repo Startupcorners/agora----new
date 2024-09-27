@@ -3,27 +3,45 @@ import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging an
 
 export const toggleMic = async (isMuted, config) => {
   try {
-    config.localAudioTrackMuted = isMuted;
-    await config.onMicMuted(isMuted);
+    if (isMuted) {
+      if (config.localAudioTrack) {
+        await config.client.unpublish([config.localAudioTrack]);
+        config.localAudioTrack.stop();
+        config.localAudioTrack.close();
+        config.localAudioTrack = null;
+        log("Microphone muted and unpublished");
+      }
+    } else {
+      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      await config.client.publish([config.localAudioTrack]);
+      log("Microphone unmuted and published");
+    }
   } catch (error) {
     console.error("Error in toggleMic:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
   }
 };
 
+
 export const toggleCamera = async (isMuted, config) => {
   try {
-    config.localVideoTrackMuted = isMuted;
-    await config.onCamMuted(config.uid, isMuted);
+    if (isMuted) {
+      if (config.localVideoTrack) {
+        await config.client.unpublish([config.localVideoTrack]);
+        config.localVideoTrack.stop();
+        config.localVideoTrack.close();
+        config.localVideoTrack = null;
+        log("Camera turned off and unpublished");
+      }
+    } else {
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      await config.client.publish([config.localVideoTrack]);
+      log("Camera turned on and published");
+    }
   } catch (error) {
     console.error("Error in toggleCamera:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
   }
 };
+
 
 
 // toggleScreenShare Function
@@ -157,28 +175,3 @@ export const toggleScreenShare = async (
   }
 };
 
-
-
-export const turnOffMic = (...uids) => {
-  uids.forEach((uid) => {
-    sendMessageToPeer(
-      {
-        content: "",
-        event: "mic_off",
-      },
-      `${uid}` // Corrected to use backticks for string interpolation
-    );
-  });
-};
-
-export const turnOffCamera = (...uids) => {
-  uids.forEach((uid) => {
-    sendMessageToPeer(
-      {
-        content: "",
-        event: "cam_off",
-      },
-      `${uid}` // Corrected to use backticks for string interpolation
-    );
-  });
-};

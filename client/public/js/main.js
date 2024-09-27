@@ -29,7 +29,7 @@ import {
   setupEventListeners,
   removeParticipant,
   handleOnUpdateParticipants,
-} from "./eventHandlers.js";
+} from "./setupEventListeners.js";
 
 import {
   toggleMic,
@@ -51,6 +51,9 @@ import {
   switchMicrophone,
   sendChat,
 } from "./helperFunctions.js";
+
+import { setupEventListeners } from "./setupEventListeners.js"; // Import combined event listeners
+
 
 import {
   getProcessorInstance,
@@ -162,11 +165,13 @@ const newMainApp = function (initConfig) {
         config.uid
       );
 
+
+      setupEventListeners(config); // RTC listeners
+
       // Handle token renewal
       config.client.on("token-privilege-will-expire", handleRenewToken);
 
-      // Setup event listeners for client (user-published, user-unpublished, etc.)
-      setupEventListeners(config);
+  
 
       // Subscribe to existing remote users (in case there are already participants in the room)
       const remoteUsers = config.client.remoteUsers || [];
@@ -219,8 +224,7 @@ const newMainApp = function (initConfig) {
       // Update participants
       await handleOnUpdateParticipants(config, config.clientRTM);
 
-      // Set up RTM event listeners
-      setupRTMEventListeners(config.clientRTM, config.channelRTM, config);
+  
 
       // Join the RTM channel
       await config.channelRTM.join();
@@ -233,6 +237,27 @@ const newMainApp = function (initConfig) {
       }
     }
   };
+
+  const joinToVideoStage = async (config) => {
+    try {
+      const { user, client } = config; // Access user and client directly from config
+
+      // Initialize the audio track if it's not already created
+      if (!config.localAudioTrack) {
+        config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      }
+
+      // Publish only the audio track initially (video will be handled separately)
+      if (user.id === config.uid) {
+        await client.publish([config.localAudioTrack]);
+      }
+    } catch (error) {
+      if (config.onError) {
+        config.onError(error);
+      }
+    }
+  };
+
 
   return {
     config,
