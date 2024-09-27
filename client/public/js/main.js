@@ -52,8 +52,6 @@ import {
   sendChat,
 } from "./helperFunctions.js";
 
-import { setupEventListeners } from "./setupEventListeners.js"; // Import combined event listeners
-
 
 import {
   getProcessorInstance,
