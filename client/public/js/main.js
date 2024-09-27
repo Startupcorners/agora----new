@@ -7,6 +7,7 @@ import {
 } from "./recordingHandlers.js";
 
 import {
+  changeRole,
   handleUserPublished,
   handleUserJoined,
   handleUserLeft,
@@ -25,6 +26,7 @@ import {
   handleMemberJoined,
   handleMemberLeft,
   setupRTMEventListeners,
+  removeParticipant,
   handleOnUpdateParticipants,
 } from "./eventHandlers.js";
 
@@ -33,6 +35,8 @@ import {
   toggleCamera,
   toggleScreenShare,
   updateMicIcon,
+  turnOffMic,
+  turnOffCamera,
 } from "./uiHandlers.js";
 
 import {
@@ -193,34 +197,37 @@ const newMainApp = function (initConfig) {
     }
   };
 
-  return {
-    config,
-    clientRTM,
-    client,
-    join,
-    joinToVideoStage,
-    leaveFromVideoStage,
-    leave,
-    toggleMic,
-    toggleCamera,
-    toggleScreenShare,
-    turnOffMic,
-    turnOffCamera,
-    changeRole,
-    getCameras,
-    getMicrophones,
-    switchCamera,
-    switchMicrophone,
-    removeParticipant,
-    sendChat,
-    sendBroadcast,
-    enableVirtualBackgroundBlur,
-    enableVirtualBackgroundImage,
-    disableVirtualBackground,
-    acquireResource,
-    startRecording,
-    stopRecording,
-  };
+return {
+  config,
+  clientRTM,
+  client,
+  join,
+  joinToVideoStage,
+  leaveFromVideoStage,
+  leave,
+  toggleMic,
+  toggleCamera,
+  toggleScreenShare,
+  turnOffMic: (...uids) => turnOffMic(clientRTM, ...uids),
+  turnOffCamera: (...uids) => turnOffCamera(clientRTM, ...uids),
+  removeParticipant: (...uids) => removeParticipant(clientRTM, ...uids),
+  changeRole: (uid, role) => changeRole(uid, role, config),
+  getCameras,
+  getMicrophones,
+  switchCamera: (deviceId) => switchCamera(deviceId, config, client),
+  switchMicrophone: (deviceId) => switchMicrophone(deviceId, config, client),
+  sendChat: (data) => sendChat(config, data),
+  sendBroadcast: (data) => sendBroadcast(config, data),
+  enableVirtualBackgroundBlur: () => enableVirtualBackgroundBlur(config),
+  enableVirtualBackgroundImage: (imageSrc) =>
+    enableVirtualBackgroundImage(config, imageSrc),
+  disableVirtualBackground: () => disableVirtualBackground(config),
+  acquireResource,
+  startRecording,
+  stopRecording,
+};
+
+
 };
 
 window["newMainApp"] = newMainApp;

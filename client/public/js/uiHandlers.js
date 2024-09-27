@@ -206,3 +206,28 @@ export const toggleScreenShare = async (
     }
   }
 };
+
+
+export const turnOffMic = (...uids) => {
+  uids.forEach((uid) => {
+    sendMessageToPeer(
+      {
+        content: "",
+        event: "mic_off",
+      },
+      `${uid}` // Corrected to use backticks for string interpolation
+    );
+  });
+};
+
+export const turnOffCamera = (...uids) => {
+  uids.forEach((uid) => {
+    sendMessageToPeer(
+      {
+        content: "",
+        event: "cam_off",
+      },
+      `${uid}` // Corrected to use backticks for string interpolation
+    );
+  });
+};

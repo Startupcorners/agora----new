@@ -22,7 +22,7 @@ export const eventCallbacks = (config, clientRTM) => ({
       console.error(`Failed to fetch attributes for user ${rtmUid}`, error);
     }
   },
-
+  
   onParticipantsChanged: async (participantIds) => {
     console.log("onParticipantsChanged", participantIds);
 
@@ -65,7 +65,7 @@ export const eventCallbacks = (config, clientRTM) => ({
 
     // Update the participant list
     updateParticipantList(config, participants);
-
+    
     // Handle participant left using Bubble function
     participants.forEach((track) => {
       if (typeof bubble_fn_left === "function") {
@@ -83,12 +83,8 @@ export const eventCallbacks = (config, clientRTM) => ({
   },
 
   onMicMuted: (isMuted) => {
-    console.log(
-      `Microphone muted for UID ${config.uid}: ${
-        isMuted ? "Mic Off" : "Mic On"
-      }`
-    );
-
+    console.log(`Microphone muted for UID ${config.uid}: ${isMuted ? "Mic Off" : "Mic On"}`);
+    
     const micStatusIcon = document.querySelector(`#mic-status-${config.uid}`);
     if (micStatusIcon) {
       micStatusIcon.style.display = isMuted ? "block" : "none";
@@ -100,9 +96,7 @@ export const eventCallbacks = (config, clientRTM) => ({
   },
 
   onCamMuted: (uid, isMuted) => {
-    console.log(
-      `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
-    );
+    console.log(`Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`);
 
     const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
     if (videoWrapper) {
@@ -120,7 +114,7 @@ export const eventCallbacks = (config, clientRTM) => ({
 
   onScreenShareEnabled: (enabled) => {
     console.log(`Screen share status: ${enabled ? "Sharing" : "Not sharing"}`);
-
+    
     if (typeof bubble_fn_isScreenOff === "function") {
       bubble_fn_isScreenOff(enabled);
     }
@@ -163,26 +157,12 @@ export const eventCallbacks = (config, clientRTM) => ({
 
 const updateParticipantList = (config, participants) => {
   const uids = participants.map((participant) => participant.uid);
-  const names = participants.map(
-    (participant) => participant.name || "Unknown"
-  );
-  const avatars = participants.map(
-    (participant) => participant.avatar || "default-avatar-url"
-  );
-  const companies = participants.map(
-    (participant) => participant.comp || "Unknown"
-  );
-  const designations = participants.map(
-    (participant) => participant.desg || "Unknown"
-  );
+  const names = participants.map((participant) => participant.name || "Unknown");
+  const avatars = participants.map((participant) => participant.avatar || "default-avatar-url");
+  const companies = participants.map((participant) => participant.comp || "Unknown");
+  const designations = participants.map((participant) => participant.desg || "Unknown");
 
-  console.log("Updating participant list", {
-    uids,
-    names,
-    avatars,
-    companies,
-    designations,
-  });
+  console.log("Updating participant list", { uids, names, avatars, companies, designations });
 
   if (typeof bubble_fn_participantList === "function") {
     console.log("Calling bubble_fn_participantList with participant data...");

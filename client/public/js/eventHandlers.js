@@ -378,3 +378,34 @@ export const leave = async (config, client, clientRTM) => {
 
   config.onUserLeave();
 };
+
+export const changeRole = (uid, role, config) => {
+  const messageObj = {
+    event: "change_user_role",
+    targetUid: uid,
+    role: role,
+  };
+
+  // Broadcast the role change to all participants
+  sendBroadcast(config, messageObj);
+
+  // Update the participant list to reflect the new role
+  handleOnUpdateParticipants();
+
+  // Call the callback to update the UI or handle role change logic
+  config.onRoleChanged(uid, role);
+};
+
+
+export const removeParticipant = (clientRTM, ...uids) => {
+  uids.forEach((uid) => {
+    sendMessageToPeer(
+      clientRTM, // Pass the correct clientRTM instance here
+      {
+        content: "",
+        event: "remove_participant",
+      },
+      `${uid}` // Corrected to use backticks for string interpolation
+    );
+  });
+};
