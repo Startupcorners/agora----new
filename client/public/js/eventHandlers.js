@@ -1,6 +1,5 @@
 // eventHandlers.js
 import { toggleMic, toggleCamera } from "./uiHandlers.js";
-import { updateMicIcon } from "./uiHandlers.js";
 import {
   log,
   debounce,

@@ -35,7 +35,6 @@ import {
   toggleMic,
   toggleCamera,
   toggleScreenShare,
-  updateMicIcon,
   turnOffMic,
   turnOffCamera,
 } from "./uiHandlers.js";
