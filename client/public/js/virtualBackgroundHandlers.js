@@ -1,5 +1,3 @@
-import { getProcessorInstance, imageUrlToBase64 } from './helperFunctions.js'; // Assuming `getProcessorInstance` and `imageUrlToBase64` are in `helperFunctions.js`
-
 export const enableVirtualBackgroundBlur = async (config) => {
   if (config.localVideoTrack) {
     let processor = await getProcessorInstance(config);
