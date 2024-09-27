@@ -45,10 +45,15 @@ import {
   switchCamera,
   switchMicrophone,
   sendChat,
+} from "./helperFunctions.js";
+
+import {
+  getProcessorInstance,
+  imageUrlToBase64,
   enableVirtualBackgroundBlur,
   enableVirtualBackgroundImage,
   disableVirtualBackground,
-} from "./helperFunctions.js";
+} from "./virtualBackgroundHandlers.js"; // Moved to a dedicated virtual background handler file
 
 const newMainApp = function (initConfig) {
   let screenClient;
