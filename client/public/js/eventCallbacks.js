@@ -95,10 +95,17 @@ export const eventCallbacks = (config) => ({
           config.localAudioTrack.close();
           console.log("Microphone track stopped and closed");
 
-          // Deactivate the media stream by setting the audio track to null
+          // Set local audio track to null
           config.localAudioTrack = null;
 
-          // Ensure the audio input is fully released by rechecking the media devices
+          // Destroy the Agora client to fully release the resources (optional step)
+          if (config.client) {
+            console.log("Destroying Agora client to release resources.");
+            config.client.leave();
+            config.client = null;
+          }
+
+          // Check if the media stream is fully deactivated
           const audioTracks = await AgoraRTC.getDevices().then((devices) =>
             devices.filter((device) => device.kind === "audioinput")
           );
