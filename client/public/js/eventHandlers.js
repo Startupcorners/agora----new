@@ -360,12 +360,12 @@ export const setupEventListeners = (client, config) => {
   client.on("volume-indicator", handleVolumeIndicator);
 };
 
-const handleMemberJoined = async (memberId) => {
-  console.log(`Member joined: ${memberId}`); // Fixed syntax
-  await handleOnUpdateParticipants(); // Ensure handleOnUpdateParticipants is awaited
+export const handleMemberJoined = async (memberId) => {
+  console.log(`Member joined: ${memberId}`);
+  await handleOnUpdateParticipants();
 };
 
-const handleMemberLeft = async (memberId) => {
-  console.log(`Member left: ${memberId}`); // Fixed syntax
-  await handleOnUpdateParticipants(); // Ensure handleOnUpdateParticipants is awaited
+export const handleMemberLeft = async (memberId) => {
+  console.log(`Member left: ${memberId}`);
+  await handleOnUpdateParticipants();
 };
