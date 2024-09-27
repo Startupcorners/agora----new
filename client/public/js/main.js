@@ -141,6 +141,13 @@ const join = async () => {
     const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
     if (!tokens) throw new Error("Failed to fetch token");
 
+    if (config.user.role === "host") {
+      await config.client.setClientRole("host"); // Set the role to host for the client
+    } else {
+      await config.client.setClientRole("audience"); // Set as audience for non-hosts
+    }
+
+
     await joinRTM(tokens.rtmToken);
     await config.client.join(
       config.appId,
