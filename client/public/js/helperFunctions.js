@@ -121,34 +121,3 @@ export const switchMicrophone = async (config, client, deviceId) => {
     await client.publish([config.localAudioTrack]);
   }
 };
-
-export const getProcessorInstance = async (config) => {
-  if (!config.processor && config.localVideoTrack) {
-    config.processor = config.extensionVirtualBackground.createProcessor();
-
-    try {
-      await config.processor.init();
-    } catch (e) {
-      console.error("Fail to load WASM resource!");
-      return null;
-    }
-    config.localVideoTrack
-      .pipe(config.processor)
-      .pipe(config.localVideoTrack.processorDestination);
-  }
-  return config.processor;
-};
-
-export const imageUrlToBase64 = async (url) => {
-  const data = await fetch(url);
-  const blob = await data.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(blob);
-    reader.onloadend = () => {
-      const base64data = reader.result;
-      resolve(base64data);
-    };
-    reader.onerror = reject;
-  });
-};
