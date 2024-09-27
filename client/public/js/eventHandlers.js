@@ -34,36 +34,44 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
 // Handles user joined event
 export const handleUserJoined = async (user, config, clientRTM) => {
   log("handleUserJoined Here");
+
+  // Store user information in remoteTracks
   config.remoteTracks[user.uid] = user;
 
-  const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
-
-  try {
+  // Check if a video wrapper already exists for the user
+  let player = document.querySelector(`#video-wrapper-${user.uid}`);
+  if (!player) {
     // Fetch user attributes from RTM using the stringified UID
-    const userAttr = await clientRTM.getUserAttributes(rtmUid);
+    try {
+      const rtmUid = user.uid.toString();
+      const userAttr = await clientRTM.getUserAttributes(rtmUid);
 
-    // Create the player HTML
-    let playerHTML = config.participantPlayerContainer
-      .replace(/{{uid}}/g, user.uid)
-      .replace(/{{name}}/g, userAttr.name || "Unknown")
-      .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
+      // Create the player HTML
+      let playerHTML = config.participantPlayerContainer
+        .replace(/{{uid}}/g, user.uid)
+        .replace(/{{name}}/g, userAttr.name || "Unknown")
+        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
 
-    // Insert the player HTML into the DOM
-    document
-      .querySelector(config.callContainerSelector)
-      .insertAdjacentHTML("beforeend", playerHTML);
+      // Insert the player HTML into the DOM
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", playerHTML);
+
+      console.log(`Added player for user: ${user.uid}`);
+    } catch (error) {
+      log("Failed to fetch user attributes:", error);
+    }
 
     // Hide the video player and show the avatar initially
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
     if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none";
-      avatarDiv.style.display = "block";
+      videoPlayer.style.display = "none"; // Hide video initially
+      avatarDiv.style.display = "block"; // Show avatar
     }
-  } catch (error) {
-    log("Failed to fetch user attributes:", error);
   }
 };
+
 
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
