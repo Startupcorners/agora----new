@@ -1,12 +1,12 @@
-export const eventCallbacks = (config, clientRTM) => ({
+export const eventCallbacks = (config) => ({
   onParticipantJoined: async (user) => {
     console.log("onParticipantJoined", user);
 
-    const rtmUid = user.uid.toString(); // Convert UID to string for RTM operations
+    const rtmUid = user.uid.toString(); // Convert UID to string
 
     try {
-      // Fetch user attributes (name, avatar) from RTM immediately
-      const userAttr = await clientRTM.getUserAttributes(rtmUid);
+      // Fetch user attributes (name, avatar) from RTM
+      const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
 
       const participants = [
         {
@@ -16,25 +16,21 @@ export const eventCallbacks = (config, clientRTM) => ({
         },
       ];
 
-      // Update the participant list
       updateParticipantList(config, participants);
     } catch (error) {
       console.error(`Failed to fetch attributes for user ${rtmUid}`, error);
     }
   },
-  
+
   onParticipantsChanged: async (participantIds) => {
     console.log("onParticipantsChanged", participantIds);
 
     const participants = [];
 
-    // Loop through each participant and fetch their attributes
     for (const participant of participantIds) {
-      const rtmUid = participant.id.toString();
+      const rtmUid = participant.id.toString(); // Convert UID to string
       try {
-        // Fetch user attributes (name, avatar) from RTM
-        const userAttr = await clientRTM.getUserAttributes(rtmUid);
-
+        const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
         participants.push({
           uid: participant.id,
           name: userAttr.name || "Unknown",
@@ -50,7 +46,6 @@ export const eventCallbacks = (config, clientRTM) => ({
       }
     }
 
-    // Update the participant list
     updateParticipantList(config, participants);
   },
 
@@ -63,10 +58,8 @@ export const eventCallbacks = (config, clientRTM) => ({
       avatar: track.avatar || "default-avatar-url",
     }));
 
-    // Update the participant list
     updateParticipantList(config, participants);
-    
-    // Handle participant left using Bubble function
+
     participants.forEach((track) => {
       if (typeof bubble_fn_left === "function") {
         bubble_fn_left(track.uid);
@@ -83,8 +76,12 @@ export const eventCallbacks = (config, clientRTM) => ({
   },
 
   onMicMuted: (isMuted) => {
-    console.log(`Microphone muted for UID ${config.uid}: ${isMuted ? "Mic Off" : "Mic On"}`);
-    
+    console.log(
+      `Microphone muted for UID ${config.uid}: ${
+        isMuted ? "Mic Off" : "Mic On"
+      }`
+    );
+
     const micStatusIcon = document.querySelector(`#mic-status-${config.uid}`);
     if (micStatusIcon) {
       micStatusIcon.style.display = isMuted ? "block" : "none";
@@ -96,7 +93,9 @@ export const eventCallbacks = (config, clientRTM) => ({
   },
 
   onCamMuted: (uid, isMuted) => {
-    console.log(`Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`);
+    console.log(
+      `Camera muted for UID ${uid}: ${isMuted ? "Camera Off" : "Camera On"}`
+    );
 
     const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
     if (videoWrapper) {
@@ -114,7 +113,7 @@ export const eventCallbacks = (config, clientRTM) => ({
 
   onScreenShareEnabled: (enabled) => {
     console.log(`Screen share status: ${enabled ? "Sharing" : "Not sharing"}`);
-    
+
     if (typeof bubble_fn_isScreenOff === "function") {
       bubble_fn_isScreenOff(enabled);
     }
@@ -157,31 +156,33 @@ export const eventCallbacks = (config, clientRTM) => ({
 
 const updateParticipantList = (config, participants) => {
   const uids = participants.map((participant) => participant.uid);
-  const names = participants.map((participant) => participant.name || "Unknown");
-  const avatars = participants.map((participant) => participant.avatar || "default-avatar-url");
-  const companies = participants.map((participant) => participant.comp || "Unknown");
-  const designations = participants.map((participant) => participant.desg || "Unknown");
+  const names = participants.map(
+    (participant) => participant.name || "Unknown"
+  );
+  const avatars = participants.map(
+    (participant) => participant.avatar || "default-avatar-url"
+  );
 
-  console.log("Updating participant list", { uids, names, avatars, companies, designations });
+  console.log("Updating participant list", { uids, names, avatars });
 
   if (typeof bubble_fn_participantList === "function") {
-    console.log("Calling bubble_fn_participantList with participant data...");
     bubble_fn_participantList({
       outputlist1: uids,
       outputlist2: names,
       outputlist3: avatars,
-      outputlist4: companies,
     });
-  } else {
-    console.warn("bubble_fn_participantList is not defined");
   }
 
   if (typeof bubble_fn_participantListOther === "function") {
-    console.log("Calling bubble_fn_participantListOther with designations...");
+    const companies = participants.map(
+      (participant) => participant.comp || "Unknown"
+    );
+    const designations = participants.map(
+      (participant) => participant.desg || "Unknown"
+    );
+
     bubble_fn_participantListOther({
       outputlist1: designations,
     });
-  } else {
-    console.warn("bubble_fn_participantListOther is not defined");
   }
 };
