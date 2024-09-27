@@ -21,7 +21,6 @@ import {
   leaveFromVideoStage,
   handleUserUnpublished,
   subscribe,
-  checkAndAddMissingWrappers,
   handleMemberJoined,
   handleMemberLeft,
   setupRTMEventListeners,
