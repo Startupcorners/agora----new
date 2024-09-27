@@ -369,3 +369,12 @@ export const handleMemberLeft = async (memberId) => {
   console.log(`Member left: ${memberId}`);
   await handleOnUpdateParticipants();
 };
+
+
+export const leave = async (config, client, clientRTM) => {
+  document.querySelector(config.callContainerSelector).innerHTML = "";
+
+  await Promise.all([client.leave(), clientRTM.logout()]);
+
+  config.onUserLeave();
+};
