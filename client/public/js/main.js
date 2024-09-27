@@ -99,11 +99,6 @@ const newMainApp = function (initConfig) {
   config = { ...config, ...initConfig };
   config.client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
 
-  // Ensure config is fully initialized before passing to eventCallbacks
-  const callbacks = eventCallbacks(config);
-
-  // Now spread the callbacks into the config
-  config = { ...config, ...callbacks };
 
   if (
     !config.appId ||
@@ -128,6 +123,10 @@ const newMainApp = function (initConfig) {
   });
 
   const channelRTM = clientRTM.createChannel(config.channelName);
+
+  const callbacks = eventCallbacks(config);
+
+  config = { ...config, ...callbacks };
 
   const extensionVirtualBackground = new VirtualBackgroundExtension();
   if (!extensionVirtualBackground.checkCompatibility()) {
