@@ -109,6 +109,13 @@ export const toggleScreenShare = async (
 ) => {
   try {
     const uid = config.uid;
+
+    // Ensure UID is set
+    if (!uid) {
+      console.error("UID is not set in config.");
+      return;
+    }
+
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatar = document.querySelector(`#avatar-${uid}`);
 
@@ -117,9 +124,14 @@ export const toggleScreenShare = async (
       return;
     }
 
+    if (!videoPlayer) {
+      console.error(`Video player with id #stream-${uid} not found`);
+      return;
+    }
+
     if (config.localScreenShareEnabled && isEnabled) {
       log(config, "Already sharing. Stopping screen share.");
-      isEnabled = false;
+      isEnabled = false; // This will stop the current screen share
     }
 
     if (isEnabled) {
@@ -192,6 +204,7 @@ export const toggleScreenShare = async (
       config.onError(error);
     }
 
+    // Ensure local video is active in case of an error
     if (!isEnabled && !config.localVideoTrack) {
       try {
         log(config, "Reinitializing camera track after error...");
@@ -218,6 +231,7 @@ export const toggleScreenShare = async (
     }
   }
 };
+
 
 
 export const turnOffMic = (...uids) => {
