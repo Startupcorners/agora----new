@@ -114,7 +114,6 @@ const newMainApp = function (initConfig) {
     throw new Error("Required config parameters are missing.");
   }
 
-  const client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
   AgoraRTC.setLogLevel(config.debugEnabled ? 0 : 4); // 0 for debug, 4 for none
   AgoraRTC.onCameraChanged = (info) => config.onCameraChanged(info);
   AgoraRTC.onMicrophoneChanged = (info) => config.onMicrophoneChanged(info);
@@ -154,11 +153,11 @@ const join = async () => {
     );
 
     config.client.on("token-privilege-will-expire", handleRenewToken);
-    setupEventListeners(config.client, config); // Pass client and config to event listeners
+    setupEventListeners(config); // Pass client and config to event listeners
 
     // Pass config and client when calling joinToVideoStage
     if (config.onNeedJoinToVideoStage(config.user)) {
-      await joinToVideoStage(config.user, config, config.client);
+      await joinToVideoStage(config);
     }
 
     if (typeof bubble_fn_joining === "function") {

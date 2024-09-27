@@ -151,19 +151,19 @@ export const handleRoleChange = async (
 };
 
 // Joins user to the video stage
-export const joinToVideoStage = async (user, config, client) => {
+export const joinToVideoStage = async (config) => {
   try {
-    // Initialize only the audio track
+    const { user, client } = config; // Access user and client directly from config
+
+    // Initialize only the audio track for now
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
-    // Video track is not created until toggled on, set to muted initially
+    // Do not create or initialize the video track until it is explicitly turned on
     config.localVideoTrackMuted = true;
 
-    // Check if the video player wrapper exists for the user, and remove if needed
     let player = document.querySelector(`#video-wrapper-${user.id}`);
     if (player) player.remove();
 
-    // Insert the local player container for the video (and audio)
     let localPlayerContainer = config.participantPlayerContainer
       .replaceAll("{{uid}}", user.id)
       .replaceAll("{{name}}", user.name)
@@ -174,10 +174,9 @@ export const joinToVideoStage = async (user, config, client) => {
       .insertAdjacentHTML("beforeend", localPlayerContainer);
 
     if (user.id === config.uid) {
-      // Publish the audio track only
+      // Publish only the audio track initially
       await client.publish([config.localAudioTrack]);
 
-      // Set the video player display logic: hide the video, show the avatar initially
       const videoPlayer = document.querySelector(`#stream-${user.id}`);
       const avatarDiv = document.querySelector(`#avatar-${user.id}`);
       if (videoPlayer && avatarDiv) {
@@ -186,13 +185,10 @@ export const joinToVideoStage = async (user, config, client) => {
       }
     }
 
-    // Notify that the camera is off
+    // Notify the app that the camera is off
     config.onCamMuted(config.uid, config.localVideoTrackMuted);
   } catch (error) {
-    console.error("Error in joinToVideoStage:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
+    config.onError(error);
   }
 };
 
@@ -352,23 +348,35 @@ export const handleOnUpdateParticipants = (config, clientRTM) => {
 };
 
 
-export const setupEventListeners = (client, config) => {
+export const setupEventListeners = (config) => {
+  const client = config.client;
+
+  // Handle when a user publishes their media (audio/video)
   client.on("user-published", handleUserPublished);
+
+  // Handle when a user stops publishing their media
   client.on("user-unpublished", handleUserUnpublished);
 
   // Modify the user-joined handler to trigger both immediate and full updates
   client.on("user-joined", async (user) => {
-    // Call the immediate join handler
-    await config.onParticipantJoined(user);
+    // Call the immediate join handler (from config)
+    if (config.onParticipantJoined) {
+      await config.onParticipantJoined(user);
+    } else {
+      console.error("onParticipantJoined is not defined in config");
+    }
 
     // Continue with the existing handleUserJoined to fully update the participant list
     await handleUserJoined(user);
   });
 
+  // Handle when a user leaves the session
   client.on("user-left", handleUserLeft);
+
+  // Enable the audio volume indicator
   client.enableAudioVolumeIndicator();
 
-  // Use the callback from config
+  // Handle volume indicator changes
   client.on("volume-indicator", (volume) => {
     if (config.onVolumeIndicatorChanged) {
       config.onVolumeIndicatorChanged(volume);
