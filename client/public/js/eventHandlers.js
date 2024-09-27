@@ -357,8 +357,17 @@ export const setupEventListeners = (client, config) => {
 
   client.on("user-left", handleUserLeft);
   client.enableAudioVolumeIndicator();
-  client.on("volume-indicator", handleVolumeIndicator);
+
+  // Use the callback from config
+  client.on("volume-indicator", (volume) => {
+    if (config.onVolumeIndicatorChanged) {
+      config.onVolumeIndicatorChanged(volume);
+    } else {
+      console.error("onVolumeIndicatorChanged is not defined in config");
+    }
+  });
 };
+
 
 export const handleMemberJoined = async (memberId) => {
   console.log(`Member joined: ${memberId}`);
