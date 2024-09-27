@@ -1,3 +1,65 @@
+import { templateVideoParticipant } from "./templates.js"; // Import the template
+import { eventCallbacks } from "./eventCallbacks.js";
+import {
+  startRecording,
+  stopRecording,
+  acquireResource,
+} from "./recordingHandlers.js";
+
+import {
+  changeRole,
+  handleUserPublished,
+  handleUserJoined,
+  handleUserLeft,
+  handleVolumeIndicator,
+  handleScreenShareEnded,
+  handleRenewToken,
+  handleMessageFromPeer,
+  handleChannelMessage,
+  handleRoleChange,
+  joinToVideoStage,
+  leave,
+  leaveFromVideoStage,
+  handleUserUnpublished,
+  subscribe,
+  checkAndAddMissingWrappers,
+  handleMemberJoined,
+  handleMemberLeft,
+  setupRTMEventListeners,
+  setupEventListeners,
+  removeParticipant,
+  handleOnUpdateParticipants,
+} from "./eventHandlers.js";
+
+import {
+  toggleMic,
+  toggleCamera,
+  toggleScreenShare,
+  turnOffMic,
+  turnOffCamera,
+} from "./uiHandlers.js";
+
+import {
+  log,
+  debounce,
+  sendMessageToPeer,
+  fetchTokens,
+  sendBroadcast,
+  getCameras,
+  getMicrophones,
+  switchCamera,
+  switchMicrophone,
+  sendChat,
+} from "./helperFunctions.js";
+
+import {
+  getProcessorInstance,
+  imageUrlToBase64,
+  enableVirtualBackgroundBlur,
+  enableVirtualBackgroundImage,
+  disableVirtualBackground,
+} from "./virtualBackgroundHandlers.js"; // Moved to a dedicated virtual background handler file
+
 const newMainApp = function (initConfig) {
   let screenClient;
   let localScreenShareTrack;
