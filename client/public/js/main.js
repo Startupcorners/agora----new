@@ -97,7 +97,13 @@ const newMainApp = function (initConfig) {
   };
 
   // Apply event callbacks
-  config = { ...config, ...initConfig, ...eventCallbacks(config) };
+  config = { ...config, ...initConfig };
+
+  // Ensure config is fully initialized before passing to eventCallbacks
+  const callbacks = eventCallbacks(config);
+
+  // Now spread the callbacks into the config
+  config = { ...config, ...callbacks };
 
   if (
     !config.appId ||
