@@ -131,40 +131,42 @@ const newMainApp = function (initConfig) {
   AgoraRTC.registerExtensions([extensionVirtualBackground]);
   let processor = null;
 
-  const join = async () => {
-    try {
-      const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
-      if (!tokens) throw new Error("Failed to fetch token");
+const join = async () => {
+  try {
+    const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
+    if (!tokens) throw new Error("Failed to fetch token");
 
-      if (!config.client) {
-        config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-      }
-
-      await joinRTM(tokens.rtmToken);
-      await config.client.join(
-        config.appId,
-        config.channelName,
-        tokens.rtcToken,
-        config.uid
-      );
-
-      config.client.on("token-privilege-will-expire", handleRenewToken);
-      setupEventListeners(client, config); // Pass client and config to event listeners
-
-      if (config.onNeedJoinToVideoStage(config.user)) {
-        await joinToVideoStage(config.user);
-      }
-
-      if (typeof bubble_fn_joining === "function") {
-        bubble_fn_joining("Joined");
-      }
-    } catch (error) {
-      if (typeof bubble_fn_joining === "function") {
-        console.log("Error before joining",error)
-        bubble_fn_joining("Error");
-      }
+    if (!config.client) {
+      config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
     }
-  };
+
+    await joinRTM(tokens.rtmToken);
+    await config.client.join(
+      config.appId,
+      config.channelName,
+      tokens.rtcToken,
+      config.uid
+    );
+
+    config.client.on("token-privilege-will-expire", handleRenewToken);
+    setupEventListeners(config.client, config); // Pass client and config to event listeners
+
+    // Pass config and client when calling joinToVideoStage
+    if (config.onNeedJoinToVideoStage(config.user)) {
+      await joinToVideoStage(config.user, config, config.client);
+    }
+
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Joined");
+    }
+  } catch (error) {
+    if (typeof bubble_fn_joining === "function") {
+      console.log("Error before joining", error);
+      bubble_fn_joining("Error");
+    }
+  }
+};
+
 
   const joinRTM = async (rtmToken, retryCount = 0) => {
     try {
