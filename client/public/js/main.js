@@ -17,6 +17,7 @@ import {
   handleChannelMessage,
   handleRoleChange,
   joinToVideoStage,
+  leave,
   leaveFromVideoStage,
   handleUserUnpublished,
   subscribe,
