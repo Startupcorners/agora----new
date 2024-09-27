@@ -153,21 +153,17 @@ export const eventCallbacks = (config) => ({
         const avatarDiv = videoWrapper.querySelector(`#avatar-${uid}`);
 
         if (isMuted) {
-          // Camera is off, stop and close the track to fully release the camera
+          // Soft mute the camera (do not release hardware or destroy the track)
           if (config.localVideoTrack) {
-            config.localVideoTrack.stop(); // Stop the track (stop camera feed)
-            config.localVideoTrack.close(); // Close the track (release hardware)
-            await config.client.unpublish([config.localVideoTrack]); // Unpublish the track
-            config.localVideoTrack = null; // Set the track to null to fully release it
+            await config.localVideoTrack.setMuted(true); // Mute the track
           }
 
           if (videoPlayer) videoPlayer.style.display = "none"; // Hide video
           if (avatarDiv) avatarDiv.style.display = "block"; // Show avatar
         } else {
-          // Camera is on, start or resume the track
-          if (!config.localVideoTrack) {
-            config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Recreate the track
-            await config.client.publish([config.localVideoTrack]); // Publish it
+          // Unmute the camera without recreating the track
+          if (config.localVideoTrack) {
+            await config.localVideoTrack.setMuted(false); // Unmute the track
           }
 
           if (videoPlayer) videoPlayer.style.display = "block"; // Show video
