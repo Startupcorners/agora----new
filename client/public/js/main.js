@@ -6,22 +6,16 @@ import {
   acquireResource,
 } from "./recordingHandlers.js";
 
+import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
+
 import {
   handleUserPublished,
+  handleUserUnpublished,
   handleUserJoined,
   handleUserLeft,
   handleVolumeIndicator,
-  handleScreenShareEnded,
   handleRenewToken,
-  handleRoleChange,
-  joinToVideoStage,
-  leave,
-  leaveFromVideoStage,
-  handleUserUnpublished,
-  subscribe,
-  setupEventListeners,
-  removeParticipant,
-} from "./setupEventListeners.js";
+} from "./rtcEventHandlers.js"; // New RTC Event Handler imports
 
 import {
   toggleMic,
