@@ -7,18 +7,34 @@ import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config) => {
-  console.log("handleUserPublished Here");
+  console.log("handleUserPublished for user:", user.uid);
 
+  // Ensure remoteTracks is initialized
+  if (!config.remoteTracks) {
+    config.remoteTracks = {};
+  }
+
+  // Store the user's remote tracks if not already stored
+  config.remoteTracks[user.uid] = user;
+
+  // Add the user's wrapper using the addUserWrapper function (for hosts only)
+  if (user.role === "host") {
+    await addUserWrapper(user, config);
+  }
+
+  // Select the video player and avatar div elements
   const videoPlayer = document.querySelector(`#stream-${user.uid}`);
   const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
   // For video track
   if (mediaType === "video" && user.videoTrack) {
+    console.log(`User ${user.uid} published video.`);
     toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
   }
 
   // For audio track
   if (mediaType === "audio" && user.audioTrack) {
+    console.log(`User ${user.uid} published audio.`);
     user.audioTrack.play();
     toggleMicIcon(user.uid, false); // Mic is unmuted
   }
@@ -82,6 +98,26 @@ export const handleUserJoined = async (user, config) => {
     await addUserWrapper(user, config);
 
     log(`Host user ${user.uid} joined, waiting for media to be published.`);
+
+    // Check if there are already published tracks for existing users
+    config.client.remoteUsers.forEach(async (remoteUser) => {
+      if (remoteUser.videoTrack || remoteUser.audioTrack) {
+        // Add the wrapper and restore the media
+        await addUserWrapper(remoteUser, config);
+        const videoPlayer = document.querySelector(`#stream-${remoteUser.uid}`);
+        const avatarDiv = document.querySelector(`#avatar-${remoteUser.uid}`);
+        toggleVideoOrAvatar(
+          remoteUser.uid,
+          remoteUser.videoTrack,
+          avatarDiv,
+          videoPlayer
+        );
+
+        if (remoteUser.audioTrack) {
+          remoteUser.audioTrack.play();
+        }
+      }
+    });
   } catch (error) {
     console.error(`Error in handleUserJoined for user ${user.uid}:`, error);
   }
