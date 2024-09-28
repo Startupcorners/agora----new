@@ -1,51 +1,10 @@
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
-import {
-  startRecording,
-  stopRecording,
-  acquireResource,
-} from "./recordingHandlers.js";
-
-import { removeParticipant } from "./uiHandlers.js"; // Handle participant removal
-
 import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
-
-import {
-  handleUserPublished,
-  handleUserUnpublished,
-  handleUserJoined,
-  handleUserLeft,
-  handleVolumeIndicator,
-  handleRenewToken,
-} from "./rtcEventHandlers.js"; // New RTC Event Handler imports
-
-import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js";
-
-import {
-  log,
-  debounce,
-  sendMessageToPeer,
-  fetchTokens,
-  sendBroadcast,
-  getCameras,
-  getMicrophones,
-  switchCamera,
-  switchMicrophone,
-  sendChat,
-} from "./helperFunctions.js";
-
-import {
-  getProcessorInstance,
-  imageUrlToBase64,
-  enableVirtualBackgroundBlur,
-  enableVirtualBackgroundImage,
-  disableVirtualBackground,
-} from "./virtualBackgroundHandlers.js"; // Moved to a dedicated virtual background handler file
+import { handleRenewToken } from "./rtcEventHandlers.js"; // Token renewal handler
+import { fetchTokens } from "./helperFunctions.js";
 
 const newMainApp = function (initConfig) {
-  let screenClient;
-  let localScreenShareTrack;
-  let wasCameraOnBeforeSharing = false;
   let config = {
     debugEnabled: true,
     callContainerSelector: "#video-stage",
@@ -113,26 +72,18 @@ const newMainApp = function (initConfig) {
 
   // Initialize event callbacks with clientRTM passed
   const callbacks = eventCallbacks(config, config.clientRTM);
-
-  // Merge the callbacks into config
   config = { ...config, ...callbacks };
 
-  const extensionVirtualBackground = new VirtualBackgroundExtension();
-  if (!extensionVirtualBackground.checkCompatibility()) {
-    log("Does not support Virtual Background!");
-  }
-  AgoraRTC.registerExtensions([extensionVirtualBackground]);
-  let processor = null;
-
+  // Join RTC and RTM
   const join = async () => {
     try {
       const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
       if (!tokens) throw new Error("Failed to fetch token");
 
       if (config.user.role === "host") {
-        await config.client.setClientRole("host"); // Set the role to host for the client
+        await config.client.setClientRole("host");
       } else {
-        await config.client.setClientRole("audience"); // Set as audience for non-hosts
+        await config.client.setClientRole("audience");
       }
 
       // Join RTM and RTC
@@ -144,48 +95,26 @@ const newMainApp = function (initConfig) {
         config.uid
       );
 
-      setupEventListeners(config); // RTC listeners
+      setupEventListeners(config); // Setup RTC listeners
 
       // Handle token renewal
       config.client.on("token-privilege-will-expire", handleRenewToken);
-
-      // Handle existing remote users
-      const remoteUsers = config.client.remoteUsers || [];
-      remoteUsers.forEach(async (user) => {
-        await handleUserJoined(user, config, config.clientRTM); // Add wrapper
-      });
-
-      // Check if the current user should join the video stage
-      if (config.onNeedJoinToVideoStage(config.user)) {
-        await joinToVideoStage(config);
-      }
-
-      // Notify Bubble or external callbacks
-      if (typeof bubble_fn_joining === "function") {
-        bubble_fn_joining("Joined");
-      }
     } catch (error) {
-      // Handle error and notify Bubble or external callbacks
-      if (typeof bubble_fn_joining === "function") {
-        console.log("Error before joining", error);
-        bubble_fn_joining("Error");
-      }
+      console.error("Error before joining", error);
     }
   };
 
+  // RTM Join function
   const joinRTM = async (rtmToken, retryCount = 0) => {
     try {
       const rtmUid = config.uid.toString();
 
-      // Log out if already logged in
       if (config.clientRTM._logined) {
         await config.clientRTM.logout();
       }
 
-      // Login to RTM
       await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
 
-      // Set user attributes
       const attributes = {
         name: config.user.name || "Unknown",
         avatar: config.user.avatar || "default-avatar-url",
@@ -193,12 +122,10 @@ const newMainApp = function (initConfig) {
         desg: config.user.designation || "",
       };
       await config.clientRTM.setLocalUserAttributes(attributes);
-
-      // Join the RTM channel
       await config.channelRTM.join();
     } catch (error) {
       if (error.code === 5 && retryCount < 3) {
-        await new Promise((resolve) => setTimeout(resolve, 2000)); // Retry after 2 seconds
+        await new Promise((resolve) => setTimeout(resolve, 2000));
         return joinRTM(rtmToken, retryCount + 1);
       } else {
         throw new Error("Failed to join RTM after multiple attempts");
@@ -206,51 +133,27 @@ const newMainApp = function (initConfig) {
     }
   };
 
+  // Join video stage function
   const joinToVideoStage = async (config) => {
     try {
-      const { user, client } = config; // Access user and client directly from config
+      const { user, client } = config;
 
-      // Initialize the audio track if it's not already created
       if (!config.localAudioTrack) {
         config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
       }
 
-      // Publish only the audio track initially (video will be handled separately)
       if (user.id === config.uid) {
         await client.publish([config.localAudioTrack]);
       }
     } catch (error) {
-      if (config.onError) {
-        config.onError(error);
-      }
+      console.error("Error in joinToVideoStage", error);
     }
   };
 
   return {
     config,
-    clientRTM: config.clientRTM,
-    client: config.client,
     join,
     joinToVideoStage,
-    toggleMic,
-    toggleCamera,
-    toggleScreenShare,
-    turnOffMic: (...uids) => turnOffMic(clientRTM, ...uids),
-    turnOffCamera: (...uids) => turnOffCamera(clientRTM, ...uids),
-    removeParticipant: (...uids) => removeParticipant(clientRTM, ...uids),
-    getCameras,
-    getMicrophones,
-    switchCamera: (deviceId) => switchCamera(deviceId, config, client),
-    switchMicrophone: (deviceId) => switchMicrophone(deviceId, config, client),
-    sendChat: (data) => sendChat(config, data),
-    sendBroadcast: (data) => sendBroadcast(config, data),
-    enableVirtualBackgroundBlur: () => enableVirtualBackgroundBlur(config),
-    enableVirtualBackgroundImage: (imageSrc) =>
-      enableVirtualBackgroundImage(config, imageSrc),
-    disableVirtualBackground: () => disableVirtualBackground(config),
-    acquireResource,
-    startRecording,
-    stopRecording,
   };
 };
 
