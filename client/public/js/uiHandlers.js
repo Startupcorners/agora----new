@@ -6,26 +6,44 @@ export const toggleMic = async (isMuted, config) => {
   try {
     if (isMuted) {
       if (config.localAudioTrack) {
+        console.log("Muting microphone for user:", config.uid);
+
         // Unpublish and stop the audio track
         await config.client.unpublish([config.localAudioTrack]);
         config.localAudioTrack.stop();
         config.localAudioTrack.close();
-        config.localAudioTrack = null;
+        config.localAudioTrack = null; // Remove the audio track reference
 
         log("Microphone muted and unpublished");
 
         // Toggle the mic icon to show that the microphone is muted
         toggleMicIcon(config.uid, true);
+      } else {
+        console.warn("No microphone track to mute for user:", config.uid);
       }
     } else {
-      // Create and publish a new audio track
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      await config.client.publish([config.localAudioTrack]);
+      console.log("Unmuting microphone for user:", config.uid);
 
-      log("Microphone unmuted and published");
+      // Check if the audio track already exists
+      if (!config.localAudioTrack) {
+        config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
-      // Toggle the mic icon to show that the microphone is unmuted
-      toggleMicIcon(config.uid, false);
+        if (!config.localAudioTrack) {
+          console.error("Failed to create a new audio track!");
+          return;
+        }
+
+        console.log("Created new audio track for user:", config.uid);
+
+        // Publish the new audio track
+        await config.client.publish([config.localAudioTrack]);
+        log("Microphone unmuted and published");
+
+        // Toggle the mic icon to show that the microphone is unmuted
+        toggleMicIcon(config.uid, false);
+      } else {
+        console.log("Microphone track already exists for user:", config.uid);
+      }
     }
   } catch (error) {
     console.error("Error in toggleMic:", error);
@@ -114,8 +132,8 @@ export const toggleCamera = async (isMuted, config) => {
 
 
 
+import { toggleVideoOrAvatar } from "./updateWrappers.js";
 
-// toggleScreenShare Function
 export const toggleScreenShare = async (
   isEnabled,
   config,
@@ -166,7 +184,6 @@ export const toggleScreenShare = async (
         );
         config.localVideoTrack.stop();
         await config.client.unpublish([config.localVideoTrack]);
-        videoPlayer.style.display = "none";
       }
 
       // Play and publish the screen share track
@@ -176,9 +193,14 @@ export const toggleScreenShare = async (
       });
 
       await config.client.publish([config.localScreenShareTrack]);
-      config.localScreenShareTrack.play(videoPlayer);
-      videoPlayer.style.display = "block";
-      avatar.style.display = "none";
+
+      // Use toggleVideoOrAvatar to handle video or avatar display
+      toggleVideoOrAvatar(
+        uid,
+        config.localScreenShareTrack,
+        avatar,
+        videoPlayer
+      );
     } else {
       log(config, "Stopping screen share");
 
@@ -200,13 +222,12 @@ export const toggleScreenShare = async (
         }
 
         await config.client.publish([config.localVideoTrack]);
-        config.localVideoTrack.play(videoPlayer);
-        videoPlayer.style.display = "block";
-        avatar.style.display = "none";
+
+        // Use toggleVideoOrAvatar to handle video or avatar display
+        toggleVideoOrAvatar(uid, config.localVideoTrack, avatar, videoPlayer);
       } else {
         log(config, "Camera was off before sharing, showing avatar...");
-        videoPlayer.style.display = "none";
-        avatar.style.display = "block";
+        toggleVideoOrAvatar(uid, null, avatar, videoPlayer); // Show avatar if the camera was off
       }
     }
 
@@ -225,20 +246,8 @@ export const toggleScreenShare = async (
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
         await config.client.publish([config.localVideoTrack]);
 
-        if (videoPlayer) {
-          log(
-            config,
-            "Playing camera video track in videoPlayer after error..."
-          );
-          config.localVideoTrack.play(videoPlayer);
-
-          videoPlayer.style.display = wasCameraOnBeforeSharing
-            ? "block"
-            : "none";
-          avatar.style.display = wasCameraOnBeforeSharing ? "none" : "block";
-        } else {
-          console.error("Video player not found after error!");
-        }
+        // Use toggleVideoOrAvatar to handle video or avatar display after error
+        toggleVideoOrAvatar(uid, config.localVideoTrack, avatar, videoPlayer);
       } catch (cameraError) {
         console.error("Error reinitializing camera track:", cameraError);
       }
