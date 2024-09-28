@@ -141,10 +141,18 @@ export const handleUserJoined = async (user, config) => {
       videoPlayer.style.display = "none"; // Video off initially
       avatarDiv.style.display = "block"; // Avatar on
     }
+
+    // Check if the user is the current user
+    if (user.uid === config.uid) {
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Joined"); // Notify that the current user has joined
+      }
+    }
   } catch (error) {
     log("Failed to fetch user attributes:", error);
   }
 };
+
 
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
