@@ -86,6 +86,8 @@ const newMainApp = function (initConfig) {
 
       // Join RTM and RTC
       await joinRTM(tokens.rtmToken);
+
+      console.log("config.ui before joining rtc", config.uid);
       await config.client.join(
         config.appId,
         config.channelName,
@@ -93,6 +95,7 @@ const newMainApp = function (initConfig) {
         config.uid
       );
 
+      console.log("config.ui before setting up listener", config.uid)
       setupEventListeners(config); // Setup RTC listeners
 
       // Handle token renewal
