@@ -6,6 +6,7 @@ import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 
 // Handles user published event
+
 export const handleUserPublished = async (user, mediaType, config) => {
   console.log(
     `handleUserPublished for user: ${user.uid}, mediaType: ${mediaType}`
@@ -41,9 +42,12 @@ export const handleUserPublished = async (user, mediaType, config) => {
     console.log(`Avatar div element found for user ${user.uid}`);
   }
 
+  // Delay to ensure the video track is available
+  await new Promise((resolve) => setTimeout(resolve, 500)); // 500ms delay
+
   // For video track
   if (mediaType === "video" && user.videoTrack) {
-    console.log(`User ${user.uid} has a video track.`);
+    console.log(`User ${user.uid} has a video track after delay.`);
 
     // Log the video track details for debugging
     console.log(`Video track for user ${user.uid}:`, user.videoTrack);
@@ -52,7 +56,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
   } else {
     console.log(
-      `User ${user.uid} does not have a video track. Showing avatar.`
+      `User ${user.uid} does not have a video track after delay. Showing avatar.`
     );
     avatarDiv.style.display = "block";
     videoPlayer.style.display = "none";
@@ -187,5 +191,3 @@ export const handleRenewToken = async (config, client) => {
   config.token = await fetchTokens();
   await client.renewToken(config.token);
 };
-
-
