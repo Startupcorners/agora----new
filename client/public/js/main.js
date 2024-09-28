@@ -4,6 +4,8 @@ import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM an
 import { handleRenewToken } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
+import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
+
 
 
 const newMainApp = function (initConfig) {
@@ -192,6 +194,9 @@ const joinToVideoStage = async (config) => {
     config,
     join,
     joinToVideoStage,
+    toggleMic,
+    toggleCamera,
+    toggleScreenShare,
   };
 };
 
