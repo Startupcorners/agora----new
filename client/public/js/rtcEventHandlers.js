@@ -1,7 +1,7 @@
 // rtcEventHandlers.js
 import { toggleMic, toggleCamera } from "./uiHandlers.js";
 import { log, fetchTokens } from "./helperFunctions.js";
-import { addUserWrapper, removeUserWrapper } from "./wrapper.js";
+import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 
 
 // Handles user published event
