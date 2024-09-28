@@ -3,7 +3,8 @@ import { eventCallbacks } from "./eventCallbacks.js";
 import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 import { handleRenewToken } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens } from "./helperFunctions.js";
-import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
+import { addUserWrapper } from "./wrappers.js";
+import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
 
@@ -182,6 +183,21 @@ const joinToVideoStage = async (config) => {
 
     // Add the current user wrapper (for their own video/audio stream)
     await addUserWrapper({ uid: config.uid, ...config.user }, config);
+
+    // Select the video player and avatar elements for the current user
+    const videoPlayer = document.querySelector(`#stream-${config.uid}`);
+    const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
+
+    // Use toggleVideoOrAvatar to handle the video/stream visibility
+    toggleVideoOrAvatar(
+      config.uid,
+      config.localVideoTrack,
+      avatarDiv,
+      videoPlayer
+    );
+
+    // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
+    toggleMicIcon(config.uid, config.localAudioTrack.muted || false);
 
     console.log("Joined the video stage for the current user");
   } catch (error) {
