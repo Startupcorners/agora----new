@@ -105,13 +105,6 @@ const join = async () => {
       "Triggering handleUserJoined for the current user:",
       config.uid
     );
-    await handleUserJoined(
-      {
-        uid: config.uid,
-        ...config.user, // Add user details to simulate the structure for remote users
-      },
-      config
-    );
 
     // If the user is a host, join the video stage
     if (config.user.role === "host") {
