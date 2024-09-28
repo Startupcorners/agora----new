@@ -12,36 +12,31 @@ export const setupEventListeners = (config) => {
   const client = config.client;
 
   // Handle when a user publishes their media (audio/video)
-  client.on("user-published", handleUserPublished);
+  client.on("user-published", async (user, mediaType) => {
+    await handleUserPublished(user, mediaType, config, client);
+  });
 
   // Handle when a user stops publishing their media
-  client.on("user-unpublished", handleUserUnpublished);
+  client.on("user-unpublished", async (user, mediaType) => {
+    await handleUserUnpublished(user, mediaType, config);
+  });
 
-  // Modify the user-joined handler to trigger both immediate and full updates
+  // Handle when a user joins the session
   client.on("user-joined", async (user) => {
-    // Call the immediate join handler (from config)
-    if (config.onParticipantJoined) {
-      await config.onParticipantJoined(user);
-    } else {
-      console.error("onParticipantJoined is not defined in config");
-    }
-
-    // Continue with the existing handleUserJoined to fully update the participant list
-    await handleUserJoined(user);
+    await handleUserJoined(user, config); // Directly use the handler
   });
 
   // Handle when a user leaves the session
-  client.on("user-left", handleUserLeft);
+  client.on("user-left", async (user) => {
+    await handleUserLeft(user, config); // Directly use the handler
+  });
 
   // Enable the audio volume indicator
   client.enableAudioVolumeIndicator();
 
   // Handle volume indicator changes
-  client.on("volume-indicator", (volume) => {
-    if (config.onVolumeIndicatorChanged) {
-      config.onVolumeIndicatorChanged(volume);
-    } else {
-      console.error("onVolumeIndicatorChanged is not defined in config");
-    }
+  client.on("volume-indicator", async (volumes) => {
+    await handleVolumeIndicator(volumes, config); // Directly use the handler
   });
 };
+
