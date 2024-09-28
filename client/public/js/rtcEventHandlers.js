@@ -46,6 +46,20 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 export const handleUserJoined = async (user, config) => {
   console.log("Entering handleUserJoined function for user:", user.uid);
 
+  // Ensure user has a role
+  if (!user.role) {
+    console.error(`Error: User ${user.uid} does not have a role assigned.`);
+    throw new Error(`User ${user.uid} does not have a role assigned.`);
+  }
+
+  // Only proceed if the user is a host
+  if (user.role !== "host") {
+    console.warn(
+      `User ${user.uid} does not have the 'host' role. Skipping wrapper.`
+    );
+    return; // Exit if the user is not a host
+  }
+
   // Initialize remoteTracks if it's undefined
   if (!config.remoteTracks) {
     config.remoteTracks = {};
@@ -54,13 +68,12 @@ export const handleUserJoined = async (user, config) => {
   // Store user in remoteTracks (no media yet)
   config.remoteTracks[user.uid] = user;
 
-  // Call addUserWrapper for hosts to set up the UI for the local user
-  if (user.role === "host") {
-    await addUserWrapper(user, config);
-  }
+  // Add the wrapper for the user if the role is host
+  await addUserWrapper(user, config);
 
-  log(`User ${user.uid} joined, waiting for media to be published.`);
+  log(`Host user ${user.uid} joined, waiting for media to be published.`);
 };
+
 
 
 // Handles user left event
