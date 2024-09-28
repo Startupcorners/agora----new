@@ -100,7 +100,7 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 // Handles user joined event
 export const handleUserJoined = async (user, config) => {
-  log("handleUserJoined Here");
+  console.log("Entering handleUserJoined function for user:", user.uid);
 
   // Initialize remoteTracks if it's undefined
   if (!config.remoteTracks) {
