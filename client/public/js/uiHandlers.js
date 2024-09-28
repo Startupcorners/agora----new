@@ -1,20 +1,31 @@
 // uiHandlers.js
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
+import { toggleMicIcon,toggleVideoOrAvatar } from "./updateWrappers.js";
 
 export const toggleMic = async (isMuted, config) => {
   try {
     if (isMuted) {
       if (config.localAudioTrack) {
+        // Unpublish and stop the audio track
         await config.client.unpublish([config.localAudioTrack]);
         config.localAudioTrack.stop();
         config.localAudioTrack.close();
         config.localAudioTrack = null;
+
         log("Microphone muted and unpublished");
+
+        // Toggle the mic icon to show that the microphone is muted
+        toggleMicIcon(config.uid, true);
       }
     } else {
+      // Create and publish a new audio track
       config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
       await config.client.publish([config.localAudioTrack]);
+
       log("Microphone unmuted and published");
+
+      // Toggle the mic icon to show that the microphone is unmuted
+      toggleMicIcon(config.uid, false);
     }
   } catch (error) {
     console.error("Error in toggleMic:", error);
@@ -22,25 +33,45 @@ export const toggleMic = async (isMuted, config) => {
 };
 
 
+import { toggleVideoOrAvatar } from "./updateWrappers.js"; // Ensure toggleVideoOrAvatar is imported
+
 export const toggleCamera = async (isMuted, config) => {
   try {
+    const videoPlayer = document.querySelector(`#stream-${config.uid}`);
+    const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
+
     if (isMuted) {
       if (config.localVideoTrack) {
+        // Unpublish and stop the video track
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
         config.localVideoTrack.close();
         config.localVideoTrack = null;
+
         log("Camera turned off and unpublished");
+
+        // Toggle to show avatar since the camera is turned off
+        toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
       }
     } else {
+      // Create and publish the new video track
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
       await config.client.publish([config.localVideoTrack]);
       log("Camera turned on and published");
+
+      // Toggle to show video since the camera is turned on
+      toggleVideoOrAvatar(
+        config.uid,
+        config.localVideoTrack,
+        avatarDiv,
+        videoPlayer
+      );
     }
   } catch (error) {
     console.error("Error in toggleCamera:", error);
   }
 };
+
 
 
 
