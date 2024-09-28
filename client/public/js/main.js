@@ -3,6 +3,8 @@ import { eventCallbacks } from "./eventCallbacks.js";
 import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 import { handleRenewToken } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens } from "./helperFunctions.js";
+import { addUserWrapper, removeUserWrapper } from "./wrapper.js";
+
 
 const newMainApp = function (initConfig) {
   let config = {
@@ -87,7 +89,7 @@ const join = async () => {
     // Join RTM and RTC
     await joinRTM(tokens.rtmToken);
 
-    console.log("config.uid before joining rtc", config.uid);
+    console.log("config.uid before joining RTC", config.uid);
     await config.client.join(
       config.appId,
       config.channelName,
@@ -111,12 +113,18 @@ const join = async () => {
       config
     );
 
+    // If the user is a host, join the video stage
+    if (config.user.role === "host") {
+      await joinToVideoStage(config);
+    }
+
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
   } catch (error) {
     console.error("Error before joining", error);
   }
 };
+
 
 
   // RTM Join function
@@ -150,21 +158,32 @@ const join = async () => {
   };
 
   // Join video stage function
-  const joinToVideoStage = async (config) => {
-    try {
-      const { user, client } = config;
+const joinToVideoStage = async (config) => {
+  try {
+    const { user, client } = config;
 
-      if (!config.localAudioTrack) {
-        config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      }
-
-      if (user.id === config.uid) {
-        await client.publish([config.localAudioTrack]);
-      }
-    } catch (error) {
-      console.error("Error in joinToVideoStage", error);
+    // Create and publish the local audio track if it doesn't exist
+    if (!config.localAudioTrack) {
+      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
     }
-  };
+
+    // Create and publish the local video track if it doesn't exist
+    if (!config.localVideoTrack) {
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+    }
+
+    // Publish the local tracks
+    await client.publish([config.localAudioTrack, config.localVideoTrack]);
+
+    // Add the current user wrapper (for their own video/audio stream)
+    await addUserWrapper({ uid: config.uid, ...config.user }, config);
+
+    console.log("Joined the video stage for the current user");
+  } catch (error) {
+    console.error("Error in joinToVideoStage", error);
+  }
+};
+
 
   return {
     config,

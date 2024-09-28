@@ -1,6 +1,8 @@
 // rtcEventHandlers.js
 import { toggleMic, toggleCamera } from "./uiHandlers.js";
 import { log, fetchTokens } from "./helperFunctions.js";
+import { addUserWrapper, removeUserWrapper } from "./wrapper.js";
+
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config) => {
@@ -14,32 +16,11 @@ export const handleUserPublished = async (user, mediaType, config) => {
   // Store the user's remote tracks
   config.remoteTracks[user.uid] = user;
 
-  let videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-  if (!videoWrapper) {
-    // Create the player's HTML for this user if not already present
-    try {
-      const rtmUid = user.uid.toString();
-      const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
+  // Add the user's wrapper using the addUserWrapper function
+  await addUserWrapper(user, config);
 
-      let playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, userAttr.name || "Unknown")
-        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
-
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
-
-      log(`Added player for user: ${user.uid}`);
-    } catch (error) {
-      log("Failed to fetch user attributes:", error);
-    }
-
-    videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-  }
-
-  const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
-  const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
+  const videoPlayer = document.querySelector(`#stream-${user.uid}`);
+  const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
   // Handle screen share track
   if (mediaType === "video" && user.videoTrack && user.videoTrack.isScreen) {
@@ -67,28 +48,13 @@ export const handleUserPublished = async (user, mediaType, config) => {
 export const handleUserUnpublished = async (user, mediaType, config) => {
   log("handleUserUnpublished Here");
 
-  let videoWrapper = document.querySelector(`#video-wrapper-${user.uid}`);
-  if (!videoWrapper) {
-    log(`Video wrapper for user ${user.uid} not found`);
-    return;
-  }
-
-  const videoPlayer = videoWrapper.querySelector(`#stream-${user.uid}`);
-  const avatarDiv = videoWrapper.querySelector(`#avatar-${user.uid}`);
-
-  // Handle when the screen share or video track is unpublished
+  // Remove user's media wrapper if they unpublished video or screen share
   if (mediaType === "video") {
-    if (user.videoTrack && user.videoTrack.isScreen) {
-      log(`User ${user.uid} unpublished screen share`);
-    } else {
-      log(`User ${user.uid} unpublished video`);
-    }
-    // Hide the video and show the avatar when video or screen share is turned off
-    videoPlayer.style.display = "none";
-    avatarDiv.style.display = "block"; // Show avatar when video is turned off
+    log(`User ${user.uid} unpublished video or screen share`);
+    await removeUserWrapper(user.uid);
   }
 
-  // Handle when the audio track is unpublished
+  // Handle audio unpublish (just update the mic icon)
   if (mediaType === "audio") {
     log(`User ${user.uid} unpublished audio`);
     updateMicIcon(user.uid, true); // Mic is muted
@@ -107,63 +73,21 @@ export const handleUserJoined = async (user, config) => {
     config.remoteTracks = {};
   }
 
-  // Store user in remoteTracks
+  // Store user in remoteTracks (no media yet)
   config.remoteTracks[user.uid] = user;
 
-  // Convert UID to string for RTM operations
-  const rtmUid = user.uid.toString();
-
-  try {
-    // Fetch user attributes from RTM (name, avatar)
-    const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
-
-    // Check if the player already exists for this user
-    let player = document.querySelector(`#video-wrapper-${user.uid}`);
-    if (!player) {
-      // Create player HTML with user attributes (name, avatar)
-      let playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, userAttr.name || "Unknown")
-        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
-
-      // Insert the player into the DOM
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
-
-      console.log(`Added player for user: ${user.uid}`);
-    }
-
-    // Hide video player and show avatar initially
-    const videoPlayer = document.querySelector(`#stream-${user.uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-    if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none"; // Video off initially
-      avatarDiv.style.display = "block"; // Avatar on
-    }
-
-    console.log("useruid:", user.uid);
-    console.log("configuid:", config.uid);
-    // Check if the user is the current user
-    if (user.uid === config.uid) {
-      if (typeof bubble_fn_joining === "function") {
-        console.log("Run bubble_fn_joining");
-        bubble_fn_joining("Joined"); // Notify that the current user has joined
-      }
-    }
-  } catch (error) {
-    console.log("Failed to fetch user attributes:", error);
-  }
+  log(`User ${user.uid} joined, waiting for media to be published.`);
 };
-
 
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
+  log(`User ${user.uid} left`);
+
+  // Remove the user's wrapper when they leave
+  await removeUserWrapper(user.uid);
+
+  // Remove the user's tracks from config
   delete config.remoteTracks[user.uid];
-  const player = document.querySelector(`#video-wrapper-${user.uid}`);
-  if (player) {
-    player.remove();
-  }
 };
 
 // Handles volume indicator change
