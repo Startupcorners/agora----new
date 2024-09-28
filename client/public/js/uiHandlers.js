@@ -1,6 +1,5 @@
 // uiHandlers.js
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
-import { toggleMicIcon,toggleVideoOrAvatar } from "./updateWrappers.js";
 
 export const toggleMic = async (isMuted, config) => {
   try {
