@@ -114,18 +114,22 @@ const join = async () => {
       await joinToVideoStage(config); // Host joins the video stage
     }
 
-    // Check for existing remote users and subscribe to their media tracks
+    // **Subscribe to existing remote users' media tracks (video/audio)**
     const remoteUsers = config.client.remoteUsers;
     if (remoteUsers && remoteUsers.length > 0) {
       console.log(`Subscribing to ${remoteUsers.length} remote users`);
       for (const remoteUser of remoteUsers) {
-        // Handle each existing remote user's media
-        await handleUserJoined(remoteUser, config); // Ensure wrappers are added
-        if (remoteUser.hasVideo) {
-          await handleUserPublished(remoteUser, "video", config);
+        await handleUserJoined(remoteUser, config); // Add wrappers for remote users
+
+        // Ensure subscription to both video and audio tracks
+        if (remoteUser.videoTrack) {
+          await config.client.subscribe(remoteUser, "video"); // Subscribe to video
+          await handleUserPublished(remoteUser, "video", config); // Handle video
         }
-        if (remoteUser.hasAudio) {
-          await handleUserPublished(remoteUser, "audio", config);
+
+        if (remoteUser.audioTrack) {
+          await config.client.subscribe(remoteUser, "audio"); // Subscribe to audio
+          await handleUserPublished(remoteUser, "audio", config); // Handle audio
         }
       }
     }

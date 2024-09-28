@@ -42,28 +42,35 @@ export const handleUserPublished = async (user, mediaType, config) => {
     console.log(`Avatar div element found for user ${user.uid}`);
   }
 
-  // Delay to ensure the video track is available
-  await new Promise((resolve) => setTimeout(resolve, 500)); // 500ms delay
+  // If mediaType is video, subscribe to the video track
+  if (mediaType === "video") {
+    console.log(`Attempting to subscribe to video track for user ${user.uid}`);
 
-  // For video track
-  if (mediaType === "video" && user.videoTrack) {
-    console.log(`User ${user.uid} has a video track after delay.`);
+    try {
+      await config.client.subscribe(user, mediaType); // Subscribe to the video track
 
-    // Log the video track details for debugging
-    console.log(`Video track for user ${user.uid}:`, user.videoTrack);
-
-    // Play the video and hide the avatar
-    toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
-  } else {
-    console.log(
-      `User ${user.uid} does not have a video track after delay. Showing avatar.`
-    );
-    avatarDiv.style.display = "block";
-    videoPlayer.style.display = "none";
+      if (user.videoTrack) {
+        console.log(
+          `Successfully subscribed to video track for user ${user.uid}`
+        );
+        toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
+      } else {
+        console.log(
+          `User ${user.uid} does not have a video track after subscribing. Showing avatar.`
+        );
+        avatarDiv.style.display = "block";
+        videoPlayer.style.display = "none";
+      }
+    } catch (error) {
+      console.error(
+        `Error subscribing to video track for user ${user.uid}:`,
+        error
+      );
+    }
   }
 
   // For audio track
-  if (mediaType === "audio" && user.audioTrack) {
+  if (mediaType === "audio") {
     console.log(`User ${user.uid} has an audio track.`);
     user.audioTrack.play();
     toggleMicIcon(user.uid, false); // Mic is unmuted
