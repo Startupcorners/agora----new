@@ -106,6 +106,11 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 export const handleUserJoined = async (user, config) => {
   log("handleUserJoined Here");
 
+  // Initialize remoteTracks if it's undefined
+  if (!config.remoteTracks) {
+    config.remoteTracks = {};
+  }
+
   // Store user in remoteTracks
   config.remoteTracks[user.uid] = user;
 
@@ -150,11 +155,11 @@ export const handleUserJoined = async (user, config) => {
       },
     ];
     updateParticipantList(config, participants);
-
   } catch (error) {
     log("Failed to fetch user attributes:", error);
   }
 };
+
 
 
 // Handles user left event
