@@ -113,8 +113,18 @@ const join = async () => {
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
+
+    // Notify success using bubble_fn_joining
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Joined");
+    }
   } catch (error) {
     console.error("Error before joining", error);
+
+    // Notify error using bubble_fn_joining
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Error");
+    }
   }
 };
 
