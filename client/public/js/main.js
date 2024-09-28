@@ -238,7 +238,6 @@ const newMainApp = function (initConfig) {
     client: config.client,
     join,
     joinToVideoStage,
-    leave,
     toggleMic,
     toggleCamera,
     toggleScreenShare,
