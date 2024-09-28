@@ -83,6 +83,12 @@ const join = async () => {
     const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
     if (!tokens) throw new Error("Failed to fetch token");
 
+    // Ensure the user has a role assigned
+    if (!config.user.role) {
+      throw new Error("User does not have a role assigned.");
+    }
+
+    // Set RTC role based on the user's role
     if (config.user.role === "host") {
       await config.client.setClientRole("host");
     } else {
@@ -100,18 +106,28 @@ const join = async () => {
       config.uid
     );
 
-    console.log("config.uid before setting up listener", config.uid);
+    console.log("config.uid before setting up listeners", config.uid);
     setupEventListeners(config); // Setup RTC listeners
-
-    // **Trigger handleUserJoined for the current user**
-    console.log(
-      "Triggering handleUserJoined for the current user:",
-      config.uid
-    );
 
     // If the user is a host, join the video stage
     if (config.user.role === "host") {
-      await joinToVideoStage(config);
+      await joinToVideoStage(config); // Host joins the video stage
+    }
+
+    // Check for existing remote users and subscribe to their media tracks
+    const remoteUsers = config.client.remoteUsers;
+    if (remoteUsers && remoteUsers.length > 0) {
+      console.log(`Subscribing to ${remoteUsers.length} remote users`);
+      for (const remoteUser of remoteUsers) {
+        // Handle each existing remote user's media
+        await handleUserJoined(remoteUser, config); // Ensure wrappers are added
+        if (remoteUser.hasVideo) {
+          await handleUserPublished(remoteUser, "video", config);
+        }
+        if (remoteUser.hasAudio) {
+          await handleUserPublished(remoteUser, "audio", config);
+        }
+      }
     }
 
     // Handle token renewal
@@ -122,7 +138,7 @@ const join = async () => {
       bubble_fn_joining("Joined");
     }
   } catch (error) {
-    console.error("Error before joining", error);
+    console.error("Error before joining:", error);
 
     // Notify error using bubble_fn_joining
     if (typeof bubble_fn_joining === "function") {
