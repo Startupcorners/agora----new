@@ -7,7 +7,9 @@ import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config) => {
-  console.log("handleUserPublished for user:", user.uid);
+  console.log(
+    `handleUserPublished for user: ${user.uid}, mediaType: ${mediaType}`
+  );
 
   // Ensure remoteTracks is initialized
   if (!config.remoteTracks) {
@@ -26,30 +28,39 @@ export const handleUserPublished = async (user, mediaType, config) => {
   const videoPlayer = document.querySelector(`#stream-${user.uid}`);
   const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
-  // Ensure the videoPlayer and avatarDiv are available
-  if (!videoPlayer || !avatarDiv) {
-    console.error(
-      `Error: videoPlayer or avatarDiv not found for user ${user.uid}`
-    );
-    return;
+  // Log details about the videoPlayer and avatarDiv for debugging
+  if (!videoPlayer) {
+    console.error(`Video player element not found for user ${user.uid}`);
+  } else {
+    console.log(`Video player element found for user ${user.uid}`);
+  }
+
+  if (!avatarDiv) {
+    console.error(`Avatar div element not found for user ${user.uid}`);
+  } else {
+    console.log(`Avatar div element found for user ${user.uid}`);
   }
 
   // For video track
   if (mediaType === "video" && user.videoTrack) {
-    console.log(`User ${user.uid} published video.`);
+    console.log(`User ${user.uid} has a video track.`);
+
+    // Log the video track details for debugging
+    console.log(`Video track for user ${user.uid}:`, user.videoTrack);
 
     // Play the video and hide the avatar
     toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
   } else {
-    // If no video track is published, show the avatar
-    console.log(`User ${user.uid} did not publish video. Showing avatar.`);
+    console.log(
+      `User ${user.uid} does not have a video track. Showing avatar.`
+    );
     avatarDiv.style.display = "block";
     videoPlayer.style.display = "none";
   }
 
   // For audio track
   if (mediaType === "audio" && user.audioTrack) {
-    console.log(`User ${user.uid} published audio.`);
+    console.log(`User ${user.uid} has an audio track.`);
     user.audioTrack.play();
     toggleMicIcon(user.uid, false); // Mic is unmuted
   }
@@ -176,3 +187,5 @@ export const handleRenewToken = async (config, client) => {
   config.token = await fetchTokens();
   await client.renewToken(config.token);
 };
+
+
