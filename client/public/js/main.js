@@ -134,34 +134,39 @@ const join = async () => {
 
 
   // RTM Join function
-  const joinRTM = async (rtmToken, retryCount = 0) => {
-    try {
-      const rtmUid = config.uid.toString();
-      console.log("rtmuid value", rtmUid)
+const joinRTM = async (rtmToken, retryCount = 0) => {
+  try {
+    const rtmUid = config.uid.toString();
+    console.log("rtmuid value", rtmUid);
 
-      if (config.clientRTM._logined) {
-        await config.clientRTM.logout();
-      }
-
-      await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
-
-      const attributes = {
-        name: config.user.name || "Unknown",
-        avatar: config.user.avatar || "default-avatar-url",
-        comp: config.user.company || "",
-        desg: config.user.designation || "",
-      };
-      await config.clientRTM.setLocalUserAttributes(attributes);
-      await config.channelRTM.join();
-    } catch (error) {
-      if (error.code === 5 && retryCount < 3) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        return joinRTM(rtmToken, retryCount + 1);
-      } else {
-        throw new Error("Failed to join RTM after multiple attempts");
-      }
+    if (config.clientRTM._logined) {
+      await config.clientRTM.logout();
     }
-  };
+
+    // Login to RTM
+    await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
+
+    // Set user attributes, including the role
+    const attributes = {
+      name: config.user.name || "Unknown",
+      avatar: config.user.avatar || "default-avatar-url",
+      comp: config.user.company || "",
+      desg: config.user.designation || "",
+      role: config.user.role || "audience", // Add the role to RTM attributes
+    };
+
+    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
+
+    await config.channelRTM.join();
+  } catch (error) {
+    if (error.code === 5 && retryCount < 3) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return joinRTM(rtmToken, retryCount + 1);
+    } else {
+      throw new Error("Failed to join RTM after multiple attempts");
+    }
+  }
+};
 
   // Join video stage function
 const joinToVideoStage = async (config) => {
@@ -217,3 +222,6 @@ const joinToVideoStage = async (config) => {
 };
 
 window["newMainApp"] = newMainApp;
+
+
+

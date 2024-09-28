@@ -46,33 +46,47 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 export const handleUserJoined = async (user, config) => {
   console.log("Entering handleUserJoined function for user:", user.uid);
 
-  // Ensure user has a role
-  if (!user.role) {
-    console.error(`Error: User ${user.uid} does not have a role assigned.`);
-    throw new Error(`User ${user.uid} does not have a role assigned.`);
+  try {
+    // Convert UID to string for RTM operations
+    const rtmUid = user.uid.toString();
+
+    // Fetch user attributes (including role) from RTM
+    const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
+
+    // Ensure user has a role assigned in RTM
+    if (!userAttr.role) {
+      console.error(`Error: User ${user.uid} does not have a role assigned.`);
+      throw new Error(`User ${user.uid} does not have a role assigned.`);
+    }
+
+    // Add the role from RTM to the user object
+    user.role = userAttr.role;
+
+    // Only proceed if the user is a host
+    if (user.role !== "host") {
+      console.warn(
+        `User ${user.uid} does not have the 'host' role. Skipping wrapper.`
+      );
+      return; // Exit if the user is not a host
+    }
+
+    // Initialize remoteTracks if it's undefined
+    if (!config.remoteTracks) {
+      config.remoteTracks = {};
+    }
+
+    // Store user in remoteTracks (no media yet)
+    config.remoteTracks[user.uid] = user;
+
+    // Add the wrapper for the user if the role is host
+    await addUserWrapper(user, config);
+
+    log(`Host user ${user.uid} joined, waiting for media to be published.`);
+  } catch (error) {
+    console.error(`Error in handleUserJoined for user ${user.uid}:`, error);
   }
-
-  // Only proceed if the user is a host
-  if (user.role !== "host") {
-    console.warn(
-      `User ${user.uid} does not have the 'host' role. Skipping wrapper.`
-    );
-    return; // Exit if the user is not a host
-  }
-
-  // Initialize remoteTracks if it's undefined
-  if (!config.remoteTracks) {
-    config.remoteTracks = {};
-  }
-
-  // Store user in remoteTracks (no media yet)
-  config.remoteTracks[user.uid] = user;
-
-  // Add the wrapper for the user if the role is host
-  await addUserWrapper(user, config);
-
-  log(`Host user ${user.uid} joined, waiting for media to be published.`);
 };
+
 
 
 
