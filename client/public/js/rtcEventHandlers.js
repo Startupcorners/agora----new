@@ -26,10 +26,25 @@ export const handleUserPublished = async (user, mediaType, config) => {
   const videoPlayer = document.querySelector(`#stream-${user.uid}`);
   const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
+  // Ensure the videoPlayer and avatarDiv are available
+  if (!videoPlayer || !avatarDiv) {
+    console.error(
+      `Error: videoPlayer or avatarDiv not found for user ${user.uid}`
+    );
+    return;
+  }
+
   // For video track
   if (mediaType === "video" && user.videoTrack) {
     console.log(`User ${user.uid} published video.`);
+
+    // Play the video and hide the avatar
     toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
+  } else {
+    // If no video track is published, show the avatar
+    console.log(`User ${user.uid} did not publish video. Showing avatar.`);
+    avatarDiv.style.display = "block";
+    videoPlayer.style.display = "none";
   }
 
   // For audio track
