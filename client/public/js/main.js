@@ -107,6 +107,7 @@ const newMainApp = function (initConfig) {
   const joinRTM = async (rtmToken, retryCount = 0) => {
     try {
       const rtmUid = config.uid.toString();
+      console.log("rtmuid value", rtmUid)
 
       if (config.clientRTM._logined) {
         await config.clientRTM.logout();
