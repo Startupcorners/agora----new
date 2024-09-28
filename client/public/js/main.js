@@ -6,6 +6,8 @@ import {
   acquireResource,
 } from "./recordingHandlers.js";
 
+import { removeParticipant } from "./uiHandlers.js"; // Handle participant removal
+
 import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 
 import {
@@ -17,7 +19,7 @@ import {
   handleRenewToken,
 } from "./rtcEventHandlers.js"; // New RTC Event Handler imports
 
-import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js"; 
+import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js";
 
 import {
   log,
@@ -31,7 +33,6 @@ import {
   switchMicrophone,
   sendChat,
 } from "./helperFunctions.js";
-
 
 import {
   getProcessorInstance,
@@ -143,21 +144,15 @@ const newMainApp = function (initConfig) {
         config.uid
       );
 
-
       setupEventListeners(config); // RTC listeners
 
       // Handle token renewal
       config.client.on("token-privilege-will-expire", handleRenewToken);
 
-  
-
-      // Subscribe to existing remote users (in case there are already participants in the room)
+      // Handle existing remote users
       const remoteUsers = config.client.remoteUsers || [];
       remoteUsers.forEach(async (user) => {
-        // Subscribe to the existing users
         await handleUserJoined(user, config, config.clientRTM); // Add wrapper
-        await subscribe(user, "video", config, config.client); // Subscribe to video
-        await subscribe(user, "audio", config, config.client); // Subscribe to audio
       });
 
       // Check if the current user should join the video stage
@@ -197,7 +192,7 @@ const newMainApp = function (initConfig) {
         comp: config.user.company || "",
         desg: config.user.designation || "",
       };
-      await config.clientRTM.setLocalUserAttributes(attributes);  
+      await config.clientRTM.setLocalUserAttributes(attributes);
 
       // Join the RTM channel
       await config.channelRTM.join();
@@ -230,7 +225,6 @@ const newMainApp = function (initConfig) {
       }
     }
   };
-
 
   return {
     config,
