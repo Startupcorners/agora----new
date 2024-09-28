@@ -175,3 +175,44 @@ export const toggleScreenShare = async (
   }
 };
 
+
+export const removeParticipant = async (clientRTM, uid, config) => {
+  try {
+    // If RTM is enabled, you can also send a message or notification to the participant before removal
+    if (clientRTM) {
+      const message = "You have been removed from the session";
+      await sendMessageToPeer(clientRTM, uid.toString(), message);
+    }
+
+    // Remove the participant's tracks from the Agora RTC client
+    const participant = config.remoteTracks[uid];
+    if (participant && participant.videoTrack) {
+      participant.videoTrack.stop();
+      participant.videoTrack.close();
+    }
+    if (participant && participant.audioTrack) {
+      participant.audioTrack.stop();
+      participant.audioTrack.close();
+    }
+
+    // Unpublish the participant from the Agora RTC client
+    await config.client.unpublish([
+      participant.audioTrack,
+      participant.videoTrack,
+    ]);
+
+    // Remove the participant from the remoteTracks object
+    delete config.remoteTracks[uid];
+
+    // Remove the participant's UI element from the DOM
+    const player = document.querySelector(`#video-wrapper-${uid}`);
+    if (player) {
+      player.remove();
+    }
+
+    log(`Participant with UID ${uid} has been removed from the session`);
+  } catch (error) {
+    console.error(`Error removing participant with UID ${uid}:`, error);
+  }
+};
+
