@@ -1,5 +1,6 @@
 // uiHandlers.js
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
+import { toggleMicIcon,toggleVideoOrAvatar } from "./updateWrappers.js";
 
 export const toggleMic = async (isMuted, config) => {
   try {
@@ -32,33 +33,29 @@ export const toggleMic = async (isMuted, config) => {
 };
 
 
-import { toggleVideoOrAvatar } from "./updateWrappers.js"; // Ensure toggleVideoOrAvatar is imported
-
 export const toggleCamera = async (isMuted, config) => {
   try {
+    // Get the video player and avatar elements for the current user
     const videoPlayer = document.querySelector(`#stream-${config.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
 
     if (isMuted) {
+      // Turn off the camera
       if (config.localVideoTrack) {
-        // Unpublish and stop the video track
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
         config.localVideoTrack.close();
         config.localVideoTrack = null;
 
-        log("Camera turned off and unpublished");
-
-        // Toggle to show avatar since the camera is turned off
+        // Show avatar, hide video
         toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
       }
     } else {
-      // Create and publish the new video track
+      // Turn on the camera
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
       await config.client.publish([config.localVideoTrack]);
-      log("Camera turned on and published");
 
-      // Toggle to show video since the camera is turned on
+      // Play video and hide avatar
       toggleVideoOrAvatar(
         config.uid,
         config.localVideoTrack,
