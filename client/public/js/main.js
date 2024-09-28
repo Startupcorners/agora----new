@@ -62,9 +62,7 @@ const newMainApp = function (initConfig) {
   // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
   config.clientRTM = AgoraRTM.createInstance(config.appId, {
     enableLogUpload: false,
-    logFilter: config.debugEnabled
-      ? AgoraRTM.LOG_FILTER_INFO
-      : AgoraRTM.LOG_FILTER_OFF,
+    logFilter: config.debugEnabled ? AgoraRTM.LOG_FILTER_INFO : AgoraRTM.LOG_FILTER_OFF,
   });
 
   // Initialize RTM Channel
@@ -86,7 +84,6 @@ const newMainApp = function (initConfig) {
         await config.client.setClientRole("audience");
       }
 
-      console.log("config.ui before joining rtm",config.uid)
       // Join RTM and RTC
       await joinRTM(tokens.rtmToken);
       await config.client.join(
@@ -100,6 +97,7 @@ const newMainApp = function (initConfig) {
 
       // Handle token renewal
       config.client.on("token-privilege-will-expire", handleRenewToken);
+
     } catch (error) {
       console.error("Error before joining", error);
     }
