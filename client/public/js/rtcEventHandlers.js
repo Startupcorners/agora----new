@@ -7,7 +7,7 @@ import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config) => {
-  log("handleUserPublished Here");
+  console.log("handleUserPublished Here");
 
   const videoPlayer = document.querySelector(`#stream-${user.uid}`);
   const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
