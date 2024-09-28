@@ -61,30 +61,38 @@ export const toggleCamera = async (isMuted, config) => {
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
         config.localVideoTrack.close();
-        config.localVideoTrack = null;
+        config.localVideoTrack = null; // Ensure the video track is completely removed
 
         console.log("Camera turned off and unpublished for user:", config.uid);
 
         // Show avatar, hide video
         toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
         console.log("Avatar shown, video hidden for user:", config.uid);
+
+        config.localVideoTrackMuted = true; // Set muted status
       } else {
         console.warn("No video track to turn off for user:", config.uid);
       }
     } else {
       // Turn on the camera
       console.log("Turning on the camera...");
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
+      // Check if the video track already exists
       if (!config.localVideoTrack) {
-        console.error("Failed to create a new video track!");
-        return;
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Create a new video track
+
+        if (!config.localVideoTrack) {
+          console.error("Failed to create a new video track!");
+          return;
+        }
+
+        console.log("Created new video track for user:", config.uid);
+
+        await config.client.publish([config.localVideoTrack]);
+        console.log("Published new video track for user:", config.uid);
+      } else {
+        console.log("Video track already exists for user:", config.uid);
       }
-
-      console.log("Created new video track for user:", config.uid);
-
-      await config.client.publish([config.localVideoTrack]);
-      console.log("Published new video track for user:", config.uid);
 
       // Play video and hide avatar
       toggleVideoOrAvatar(
@@ -94,11 +102,14 @@ export const toggleCamera = async (isMuted, config) => {
         videoPlayer
       );
       console.log("Video shown, avatar hidden for user:", config.uid);
+
+      config.localVideoTrackMuted = false; // Update the muted status
     }
   } catch (error) {
     console.error("Error in toggleCamera:", error);
   }
 };
+
 
 
 
