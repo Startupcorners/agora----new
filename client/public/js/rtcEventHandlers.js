@@ -3,7 +3,7 @@ import { toggleMic, toggleCamera } from "./uiHandlers.js";
 import { log, fetchTokens } from "./helperFunctions.js";
 
 // Handles user published event
-export const handleUserPublished = async (user, mediaType, config, client) => {
+export const handleUserPublished = async (user, mediaType, config) => {
   log("handleUserPublished Here");
 
   // Ensure remoteTracks is initialized
@@ -62,11 +62,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     user.audioTrack.play();
     updateMicIcon(user.uid, false); // Mic is unmuted
   }
-
-  // Subscribe to the user's track (for both video and audio)
-  await subscribe(user, mediaType, config, client);
 };
-
 
 export const handleUserUnpublished = async (user, mediaType, config) => {
   log("handleUserUnpublished Here");
@@ -145,22 +141,10 @@ export const handleUserJoined = async (user, config) => {
       videoPlayer.style.display = "none"; // Video off initially
       avatarDiv.style.display = "block"; // Avatar on
     }
-
-    // Update participant list with user info
-    const participants = [
-      {
-        uid: user.uid,
-        name: userAttr.name || "Unknown",
-        avatar: userAttr.avatar || "default-avatar-url",
-      },
-    ];
-    //updateParticipantList(config, participants);
   } catch (error) {
     log("Failed to fetch user attributes:", error);
   }
 };
-
-
 
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
@@ -169,8 +153,6 @@ export const handleUserLeft = async (user, config) => {
   if (player) {
     player.remove();
   }
-
-  config.onParticipantLeft(user);
 };
 
 // Handles volume indicator change
@@ -184,39 +166,4 @@ export const handleVolumeIndicator = (result, config) => {
 export const handleRenewToken = async (config, client) => {
   config.token = await fetchTokens();
   await client.renewToken(config.token);
-};
-
-
-
-const updateParticipantList = (config, participants) => {
-  const uids = participants.map((participant) => participant.uid);
-  const names = participants.map(
-    (participant) => participant.name || "Unknown"
-  );
-  const avatars = participants.map(
-    (participant) => participant.avatar || "default-avatar-url"
-  );
-
-  console.log("Updating participant list", { uids, names, avatars });
-
-  if (typeof bubble_fn_participantList === "function") {
-    bubble_fn_participantList({
-      outputlist1: uids.toString(),
-      outputlist2: names,
-      outputlist3: avatars,
-    });
-  }
-
-  if (typeof bubble_fn_participantListOther === "function") {
-    const companies = participants.map(
-      (participant) => participant.comp || "Unknown"
-    );
-    const designations = participants.map(
-      (participant) => participant.desg || "Unknown"
-    );
-
-    bubble_fn_participantListOther({
-      outputlist1: designations,
-    });
-  }
 };
