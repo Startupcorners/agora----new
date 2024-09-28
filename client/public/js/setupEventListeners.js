@@ -23,6 +23,7 @@ export const setupEventListeners = (config) => {
 
   // Handle when a user joins the session
   client.on("user-joined", async (user) => {
+    console.log(`User joined: ${user.uid}`); // Add this log to check if the event is triggered
     await handleUserJoined(user, config); // Directly use the handler
   });
 
