@@ -130,10 +130,6 @@ export const toggleCamera = async (isMuted, config) => {
 
 
 
-
-
-import { toggleVideoOrAvatar } from "./updateWrappers.js";
-
 export const toggleScreenShare = async (
   isEnabled,
   config,
