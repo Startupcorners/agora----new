@@ -73,38 +73,51 @@ const newMainApp = function (initConfig) {
   config = { ...config, ...callbacks };
 
   // Join RTC and RTM
-  const join = async () => {
-    try {
-      const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
-      if (!tokens) throw new Error("Failed to fetch token");
+const join = async () => {
+  try {
+    const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
+    if (!tokens) throw new Error("Failed to fetch token");
 
-      if (config.user.role === "host") {
-        await config.client.setClientRole("host");
-      } else {
-        await config.client.setClientRole("audience");
-      }
-
-      // Join RTM and RTC
-      await joinRTM(tokens.rtmToken);
-
-      console.log("config.ui before joining rtc", config.uid);
-      await config.client.join(
-        config.appId,
-        config.channelName,
-        tokens.rtcToken,
-        config.uid
-      );
-
-      console.log("config.ui before setting up listener", config.uid)
-      setupEventListeners(config); // Setup RTC listeners
-
-      // Handle token renewal
-      config.client.on("token-privilege-will-expire", handleRenewToken);
-
-    } catch (error) {
-      console.error("Error before joining", error);
+    if (config.user.role === "host") {
+      await config.client.setClientRole("host");
+    } else {
+      await config.client.setClientRole("audience");
     }
-  };
+
+    // Join RTM and RTC
+    await joinRTM(tokens.rtmToken);
+
+    console.log("config.uid before joining rtc", config.uid);
+    await config.client.join(
+      config.appId,
+      config.channelName,
+      tokens.rtcToken,
+      config.uid
+    );
+
+    console.log("config.uid before setting up listener", config.uid);
+    setupEventListeners(config); // Setup RTC listeners
+
+    // **Trigger handleUserJoined for the current user**
+    console.log(
+      "Triggering handleUserJoined for the current user:",
+      config.uid
+    );
+    await handleUserJoined(
+      {
+        uid: config.uid,
+        ...config.user, // Add user details to simulate the structure for remote users
+      },
+      config
+    );
+
+    // Handle token renewal
+    config.client.on("token-privilege-will-expire", handleRenewToken);
+  } catch (error) {
+    console.error("Error before joining", error);
+  }
+};
+
 
   // RTM Join function
   const joinRTM = async (rtmToken, retryCount = 0) => {
