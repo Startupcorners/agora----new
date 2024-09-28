@@ -39,21 +39,52 @@ export const toggleCamera = async (isMuted, config) => {
     const videoPlayer = document.querySelector(`#stream-${config.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
 
+    console.log("Toggling camera for user:", config.uid);
+    console.log("Video player element:", videoPlayer);
+    console.log("Avatar element:", avatarDiv);
+
+    if (!videoPlayer) {
+      console.error(`Video player for user ${config.uid} not found!`);
+      return;
+    }
+
+    if (!avatarDiv) {
+      console.error(`Avatar element for user ${config.uid} not found!`);
+      return;
+    }
+
     if (isMuted) {
       // Turn off the camera
       if (config.localVideoTrack) {
+        console.log("Turning off the camera...");
+
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
         config.localVideoTrack.close();
         config.localVideoTrack = null;
 
+        console.log("Camera turned off and unpublished for user:", config.uid);
+
         // Show avatar, hide video
         toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
+        console.log("Avatar shown, video hidden for user:", config.uid);
+      } else {
+        console.warn("No video track to turn off for user:", config.uid);
       }
     } else {
       // Turn on the camera
+      console.log("Turning on the camera...");
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+
+      if (!config.localVideoTrack) {
+        console.error("Failed to create a new video track!");
+        return;
+      }
+
+      console.log("Created new video track for user:", config.uid);
+
       await config.client.publish([config.localVideoTrack]);
+      console.log("Published new video track for user:", config.uid);
 
       // Play video and hide avatar
       toggleVideoOrAvatar(
@@ -62,11 +93,13 @@ export const toggleCamera = async (isMuted, config) => {
         avatarDiv,
         videoPlayer
       );
+      console.log("Video shown, avatar hidden for user:", config.uid);
     }
   } catch (error) {
     console.error("Error in toggleCamera:", error);
   }
 };
+
 
 
 
