@@ -1,68 +1,46 @@
 // rtcEventHandlers.js
-import { toggleMic, toggleCamera } from "./uiHandlers.js";
 import { log, fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
+import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
+
 
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config) => {
   log("handleUserPublished Here");
 
-  // Ensure remoteTracks is initialized
-  if (!config.remoteTracks) {
-    config.remoteTracks = {};
-  }
-
-  // Store the user's remote tracks
-  config.remoteTracks[user.uid] = user;
-
-  // Add the user's wrapper using the addUserWrapper function
-  await addUserWrapper(user, config);
-
   const videoPlayer = document.querySelector(`#stream-${user.uid}`);
   const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
-  // Handle screen share track
-  if (mediaType === "video" && user.videoTrack && user.videoTrack.isScreen) {
-    log(`User ${user.uid} started sharing their screen`);
-    videoPlayer.style.display = "block";
-    avatarDiv.style.display = "none";
-    user.videoTrack.play(videoPlayer);
-  }
-  // Handle regular video track
-  else if (mediaType === "video" && user.videoTrack) {
-    log(`User ${user.uid} published video`);
-    videoPlayer.style.display = "block";
-    avatarDiv.style.display = "none";
-    user.videoTrack.play(videoPlayer);
+  // For video track
+  if (mediaType === "video" && user.videoTrack) {
+    toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
   }
 
-  // Handle audio track
+  // For audio track
   if (mediaType === "audio" && user.audioTrack) {
-    log(`User ${user.uid} published audio`);
     user.audioTrack.play();
-    updateMicIcon(user.uid, false); // Mic is unmuted
+    toggleMicIcon(user.uid, false); // Mic is unmuted
   }
 };
+
+
 
 export const handleUserUnpublished = async (user, mediaType, config) => {
-  log("handleUserUnpublished Here");
-
-  // Remove user's media wrapper if they unpublished video or screen share
   if (mediaType === "video") {
-    log(`User ${user.uid} unpublished video or screen share`);
-    await removeUserWrapper(user.uid);
+    const videoPlayer = document.querySelector(`#stream-${user.uid}`);
+    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+    toggleVideoOrAvatar(user.uid, null, avatarDiv, videoPlayer); // Show avatar if video unpublished
   }
 
-  // Handle audio unpublish (just update the mic icon)
   if (mediaType === "audio") {
-    log(`User ${user.uid} unpublished audio`);
-    updateMicIcon(user.uid, true); // Mic is muted
+    toggleMicIcon(user.uid, true); // Show muted mic icon
   }
 
-  // Remove the user's tracks from the config
   delete config.remoteTracks[user.uid];
 };
+
+
 
 // Handles user joined event
 export const handleUserJoined = async (user, config) => {
@@ -76,19 +54,37 @@ export const handleUserJoined = async (user, config) => {
   // Store user in remoteTracks (no media yet)
   config.remoteTracks[user.uid] = user;
 
+  // Call addUserWrapper for hosts to set up the UI for the local user
+  if (user.role === "host") {
+    await addUserWrapper(user, config);
+  }
+
   log(`User ${user.uid} joined, waiting for media to be published.`);
 };
 
+
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
-  log(`User ${user.uid} left`);
+  try {
+    log(`User ${user.uid} left`);
 
-  // Remove the user's wrapper when they leave
-  await removeUserWrapper(user.uid);
+    // Call removeUserWrapper to handle removing the user's video and UI elements
+    await removeUserWrapper(user.uid);
 
-  // Remove the user's tracks from config
-  delete config.remoteTracks[user.uid];
+    // Remove the user's tracks from the config
+    if (config.remoteTracks && config.remoteTracks[user.uid]) {
+      delete config.remoteTracks[user.uid];
+      log(`Removed tracks for user ${user.uid}`);
+    } else {
+      log(`No tracks found for user ${user.uid}`);
+    }
+
+    log(`User ${user.uid} successfully removed`);
+  } catch (error) {
+    console.error(`Error removing user ${user.uid}:`, error);
+  }
 };
+
 
 // Handles volume indicator change
 export const handleVolumeIndicator = (result, config) => {
