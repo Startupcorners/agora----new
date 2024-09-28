@@ -154,7 +154,7 @@ export const handleUserJoined = async (user, config) => {
         avatar: userAttr.avatar || "default-avatar-url",
       },
     ];
-    updateParticipantList(config, participants);
+    //updateParticipantList(config, participants);
   } catch (error) {
     log("Failed to fetch user attributes:", error);
   }
