@@ -201,7 +201,7 @@ const updateParticipantList = (config, participants) => {
 
   if (typeof bubble_fn_participantList === "function") {
     bubble_fn_participantList({
-      outputlist1: uids,
+      outputlist1: uids.toString(),
       outputlist2: names,
       outputlist3: avatars,
     });
