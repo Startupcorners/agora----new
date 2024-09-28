@@ -142,9 +142,12 @@ export const handleUserJoined = async (user, config) => {
       avatarDiv.style.display = "block"; // Avatar on
     }
 
+    log("useruid:", user.uid)
+    log("configuid:", config.uid);
     // Check if the user is the current user
     if (user.uid === config.uid) {
       if (typeof bubble_fn_joining === "function") {
+        log("Run bubble_fn_joining");
         bubble_fn_joining("Joined"); // Notify that the current user has joined
       }
     }
