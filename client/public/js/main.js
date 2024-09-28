@@ -86,6 +86,7 @@ const newMainApp = function (initConfig) {
         await config.client.setClientRole("audience");
       }
 
+      console.log("config.ui before joining rtm",config.uid)
       // Join RTM and RTC
       await joinRTM(tokens.rtmToken);
       await config.client.join(
