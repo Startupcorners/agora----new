@@ -105,8 +105,8 @@ const join = async () => {
       },
     ];
 
-    // Join RTM and RTC
-    await joinRTM(tokens.rtmToken);
+    // Join RTM if using it
+    await joinRTM(tokens.rtmToken); // Make sure joinRTM is properly defined
 
     console.log("config.uid before joining RTC", config.uid);
     await config.client.join(
@@ -121,7 +121,7 @@ const join = async () => {
 
     // If the user is a host, join the video stage
     if (config.user.role === "host") {
-      await joinToVideoStage(config); // Host joins the video stage
+      await joinToVideoStage(config); // Ensure joinToVideoStage is properly defined
     }
 
     // Subscribe to existing remote users' media tracks (video/audio)
@@ -132,7 +132,7 @@ const join = async () => {
       for (const remoteUser of remoteUsers) {
         // Skip subscription if the remote user is the current user
         if (remoteUser.uid !== config.uid) {
-          // Get RTM attributes of the remote user
+          // Get RTM attributes of the remote user if needed
           let attributes = {};
           try {
             attributes = await config.clientRTM.getUserAttributes(
@@ -168,7 +168,11 @@ const join = async () => {
           // Ensure the user is fully joined and the wrapper is ready
           await handleUserJoined(remoteUser, config);
 
-          // Subscribe to both video and audio tracks if available
+          // Set the mic icon based on whether the remote user has an audio track
+          const isMuted = !remoteUser.audioTrack; // Mic is muted if audioTrack is not present
+          toggleMicIcon(remoteUser.uid, isMuted);
+
+          // Subscribe to and handle media tracks
           if (remoteUser.videoTrack) {
             await config.client.subscribe(remoteUser, "video"); // Subscribe to video
             await handleUserPublished(remoteUser, "video", config); // Handle video
@@ -184,28 +188,25 @@ const join = async () => {
 
     // Notify with the list of participants' UIDs and other info
     if (typeof bubble_fn_participantList === "function") {
-      // After collecting participant information
-
-      const participantUIDs = config.participantList.map((p) => p.uid.toString());
+      const participantUIDs = config.participantList.map((p) =>
+        p.uid.toString()
+      );
       const participantNames = config.participantList.map((p) => p.name);
       const participantCompanies = config.participantList.map((p) => p.company);
-      const participantDesignations = config.participantList.map((p) => p.designation);
+      const participantDesignations = config.participantList.map(
+        (p) => p.designation
+      );
 
-      // Pass the arrays directly to bubble_fn_participantList
-      if (typeof bubble_fn_participantList === "function") {
-  
       bubble_fn_participantList({
-  
-      outputlist1: participantUIDs, // Pass as array
-      outputlist2: participantNames,
-      outputlist3: participantCompanies,
-      outputlist4: participantDesignations,
-    });
-}
-  }
+        outputlist1: participantUIDs, // Pass as array
+        outputlist2: participantNames,
+        outputlist3: participantCompanies,
+        outputlist4: participantDesignations,
+      });
+    }
 
     // Handle token renewal
-    config.client.on("token-privilege-will-expire", handleRenewToken);
+    config.client.on("token-privilege-will-expire", handleRenewToken); // Ensure handleRenewToken is defined
 
     // Notify success using bubble_fn_joining
     if (typeof bubble_fn_joining === "function") {
@@ -220,6 +221,7 @@ const join = async () => {
     }
   }
 };
+
 
 
 
