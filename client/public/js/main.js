@@ -250,6 +250,7 @@ const joinToVideoStage = async (config) => {
       console.error(
         "Video player or avatar elements not found for current user"
       );
+      return;
     }
 
     // Use toggleVideoOrAvatar to handle the video/stream visibility
@@ -263,14 +264,6 @@ const joinToVideoStage = async (config) => {
     // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
     const isMuted = config.localAudioTrack.muted || false;
     toggleMicIcon(config.uid, isMuted);
-
-    // Ensure the local audio track is playing for the current user
-    if (!isMuted) {
-      console.log("Playing local audio track for current user");
-      config.localAudioTrack.play();
-    } else {
-      console.warn("Local audio track is muted");
-    }
 
     console.log("Joined the video stage for the current user");
   } catch (error) {
