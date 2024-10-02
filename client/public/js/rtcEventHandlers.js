@@ -185,21 +185,26 @@ export const handleUserJoined = async (user, config) => {
       // Call bubble_fn_participantList with the updated lists
       if (typeof bubble_fn_participantList === "function") {
         // Extract lists from participantList
-        const participantUIDs = config.participantList.map((p) => p.uid);
-        const participantNames = config.participantList.map((p) => p.name);
-        const participantCompanies = config.participantList.map(
-          (p) => p.company
-        );
-        const participantDesignations = config.participantList.map(
-          (p) => p.designation
-        );
+       const participantUIDs = config.participantList.map((p) =>
+         p.uid.toString()
+       );
+       const participantNames = config.participantList.map((p) => p.name);
+       const participantCompanies = config.participantList.map(
+         (p) => p.company
+       );
+       const participantDesignations = config.participantList.map(
+         (p) => p.designation
+       );
 
-        bubble_fn_participantList({
-          outputlist1: JSON.stringify(participantUIDs),
-          outputlist2: JSON.stringify(participantNames),
-          outputlist3: JSON.stringify(participantCompanies),
-          outputlist4: JSON.stringify(participantDesignations),
-        });
+       // Pass the arrays directly to bubble_fn_participantList
+       if (typeof bubble_fn_participantList === "function") {
+         bubble_fn_participantList({
+           outputlist1: participantUIDs, // Pass as array
+           outputlist2: participantNames,
+           outputlist3: participantCompanies,
+           outputlist4: participantDesignations,
+         });
+       }
       }
     }
   } catch (error) {
@@ -236,20 +241,22 @@ export const handleUserLeft = async (user, config) => {
       console.log(`User ${user.uid} removed from participantList`);
 
       // Extract the updated participant information
-      const participantUIDs = config.participantList.map((p) => p.uid);
+      const participantUIDs = config.participantList.map((p) =>
+        p.uid.toString()
+      );
       const participantNames = config.participantList.map((p) => p.name);
       const participantCompanies = config.participantList.map((p) => p.company);
       const participantDesignations = config.participantList.map(
         (p) => p.designation
       );
 
-      // Call bubble_fn_participantList with the updated lists
+      // Pass the arrays directly to bubble_fn_participantList
       if (typeof bubble_fn_participantList === "function") {
         bubble_fn_participantList({
-          outputlist1: JSON.stringify(participantUIDs),
-          outputlist2: JSON.stringify(participantNames),
-          outputlist3: JSON.stringify(participantCompanies),
-          outputlist4: JSON.stringify(participantDesignations),
+          outputlist1: participantUIDs, // Pass as array
+          outputlist2: participantNames,
+          outputlist3: participantCompanies,
+          outputlist4: participantDesignations,
         });
       }
     } else {

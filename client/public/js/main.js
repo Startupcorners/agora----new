@@ -200,7 +200,7 @@ const join = async () => {
       outputlist2: participantNames,
       outputlist3: participantCompanies,
       outputlist4: participantDesignations,
-  });
+    });
 }
   }
 
