@@ -282,7 +282,7 @@ export const handleVolumeIndicator = (result, config) => {
     console.log(userUID, audioLevel);
 
     if (wrapper) {
-      if (audioLevel > 50) {
+      if (audioLevel > 60) {
         // Adjust the threshold based on your needs
         wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
       } else {
