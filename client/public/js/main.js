@@ -184,25 +184,44 @@ const join = async () => {
 
     // Notify with the list of participants' UIDs and other info
     if (typeof bubble_fn_participantList === "function") {
-      const participantUIDs = config.participantList.map((p) => p.uid);
+      // After collecting participant information
+      const participantUIDs = config.participantList.map((p) =>
+        p.uid.toString()
+      );
       const participantNames = config.participantList.map((p) => p.name);
       const participantCompanies = config.participantList.map((p) => p.company);
       const participantDesignations = config.participantList.map(
         (p) => p.designation
       );
 
-      console.log(JSON.stringify(participantUIDs));
-      console.log(JSON.stringify(participantNames));
-      console.log(JSON.stringify(participantCompanies));
-      console.log(JSON.stringify(participantDesignations));
+      // Format each array into a string as per Bubble's expected format
+      const participantUIDsString = participantUIDs
+        .map((uid) => `"${uid}"`)
+        .join(",");
+      const participantNamesString = participantNames
+        .map((name) => `"${name}"`)
+        .join(",");
+      const participantCompaniesString = participantCompanies
+        .map((company) => `"${company}"`)
+        .join(",");
+      const participantDesignationsString = participantDesignations
+        .map((designation) => `"${designation}"`)
+        .join(",");
 
 
-      bubble_fn_participantList({
-        outputlist1: JSON.stringify(participantUIDs),
-        outputlist2: JSON.stringify(participantNames),
-        outputlist3: JSON.stringify(participantCompanies),
-        outputlist4: JSON.stringify(participantDesignations),
-      });
+        console.log(participantUIDsString);
+        console.log(participantNamesStringg);
+        console.log(participantCompaniesString);
+        console.log(participantDesignationsString);
+      // Pass the formatted strings to bubble_fn_participantList
+      if (typeof bubble_fn_participantList === "function") {
+        bubble_fn_participantList({
+          outputlist1: participantUIDsString,
+          outputlist2: participantNamesString,
+          outputlist3: participantCompaniesString,
+          outputlist4: participantDesignationsString,
+        });
+      }
     }
 
     // Handle token renewal
