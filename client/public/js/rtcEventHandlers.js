@@ -279,6 +279,7 @@ export const handleVolumeIndicator = (result, config) => {
     const audioLevel = volume.level; // The audio level, can be used to determine when the user is speaking
 
     const wrapper = document.querySelector(`#video-wrapper-${userUID}`);
+    console.log(userUID, audioLevel);
 
     if (wrapper) {
       if (audioLevel > 80) {
