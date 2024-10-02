@@ -20,24 +20,30 @@ export const handleUserPublished = async (user, mediaType, config) => {
   // Store the user's remote tracks if not already stored
   config.remoteTracks[user.uid] = user;
 
-  // Add the user's wrapper using the addUserWrapper function (for hosts only)
-  if (user.role === "host") {
-    await addUserWrapper(user, config);
+  // Wait for the wrapper to exist before proceeding
+  let videoPlayer, avatarDiv;
+  for (let i = 0; i < 10; i++) {
+    // Try 10 times, with a delay in between
+    videoPlayer = document.querySelector(`#stream-${user.uid}`);
+    avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+    if (videoPlayer && avatarDiv) {
+      break;
+    }
+    console.log(`Waiting for wrapper to be added for user ${user.uid}...`);
+    await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay
   }
-
-  // Select the video player and avatar div elements
-  const videoPlayer = document.querySelector(`#stream-${user.uid}`);
-  const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
   // Log details about the videoPlayer and avatarDiv for debugging
   if (!videoPlayer) {
     console.error(`Video player element not found for user ${user.uid}`);
+    return; // Stop execution if the video player isn't found
   } else {
     console.log(`Video player element found for user ${user.uid}`);
   }
 
   if (!avatarDiv) {
     console.error(`Avatar div element not found for user ${user.uid}`);
+    return; // Stop execution if the avatar div isn't found
   } else {
     console.log(`Avatar div element found for user ${user.uid}`);
   }
@@ -76,6 +82,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     toggleMicIcon(user.uid, false); // Mic is unmuted
   }
 };
+
 
 
 
