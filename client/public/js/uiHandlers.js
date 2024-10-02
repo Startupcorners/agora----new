@@ -156,7 +156,6 @@ export const toggleCamera = async (isMuted, config) => {
 };
 
 
-
 export const toggleScreenShare = async (
   isEnabled,
   config,
@@ -255,11 +254,11 @@ export const toggleScreenShare = async (
 
     config.localScreenShareEnabled = isEnabled;
 
-    // Call bubble_fn_isScreenOff with the current screen sharing state
-    if (typeof bubble_fn_isScreenOff === "function") {
-      bubble_fn_isScreenOff(!isEnabled); // Assuming 'true' when screen is off
+    // Call bubble_fn_isScreenOn with the current screen sharing state
+    if (typeof bubble_fn_isScreenOn === "function") {
+      bubble_fn_isScreenOn(isEnabled); // 'true' when screen sharing is enabled
     } else {
-      console.warn("bubble_fn_isScreenOff is not defined.");
+      console.warn("bubble_fn_isScreenOn is not defined.");
     }
   } catch (error) {
     console.error("Error during screen sharing:", error);
