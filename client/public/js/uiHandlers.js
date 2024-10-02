@@ -185,24 +185,23 @@ export const toggleScreenShare = async (
     }
 
     if (config.localScreenShareEnabled && isEnabled) {
-      log(config, "Already sharing. Stopping screen share.");
+      console.log("Already sharing. Stopping screen share.");
       isEnabled = false; // This will stop the current screen share
     }
 
     if (isEnabled) {
-      log(config, "Starting screen share");
+      console.log("Starting screen share");
       wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
 
       // Create the screen share track if it doesn't already exist
       if (!config.localScreenShareTrack) {
-        log(config, "Creating screen share track...");
+        console.log("Creating screen share track...");
         config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
       }
 
       // Stop and unpublish the local video track before screen share
       if (config.localVideoTrack) {
-        log(
-          config,
+        console.log(
           "Stopping and unpublishing local video track before screen share..."
         );
         config.localVideoTrack.stop();
@@ -211,7 +210,7 @@ export const toggleScreenShare = async (
 
       // Play and publish the screen share track
       config.localScreenShareTrack.on("track-ended", async () => {
-        log(config, "Screen share track ended, reverting back to camera");
+        console.log("Screen share track ended, reverting back to camera");
         await toggleScreenShare(false, config, wasCameraOnBeforeSharing);
       });
 
@@ -225,11 +224,11 @@ export const toggleScreenShare = async (
         videoPlayer
       );
     } else {
-      log(config, "Stopping screen share");
+      console.log("Stopping screen share");
 
       // Stop the screen share and revert to the camera
       if (config.localScreenShareTrack) {
-        log(config, "Stopping and closing the screen share track...");
+        console.log("Stopping and closing the screen share track...");
         config.localScreenShareTrack.stop();
         config.localScreenShareTrack.close();
         await config.client.unpublish([config.localScreenShareTrack]);
@@ -238,9 +237,9 @@ export const toggleScreenShare = async (
 
       // Reinitialize the camera track only if it was on before sharing
       if (wasCameraOnBeforeSharing) {
-        log(config, "Restoring camera track after screen share...");
+        console.log("Restoring camera track after screen share...");
         if (!config.localVideoTrack) {
-          log(config, "Creating new camera video track...");
+          console.log("Creating new camera video track...");
           config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
         }
 
@@ -249,13 +248,19 @@ export const toggleScreenShare = async (
         // Use toggleVideoOrAvatar to handle video or avatar display
         toggleVideoOrAvatar(uid, config.localVideoTrack, avatar, videoPlayer);
       } else {
-        log(config, "Camera was off before sharing, showing avatar...");
+        console.log("Camera was off before sharing, showing avatar...");
         toggleVideoOrAvatar(uid, null, avatar, videoPlayer); // Show avatar if the camera was off
       }
     }
 
     config.localScreenShareEnabled = isEnabled;
-    config.onScreenShareEnabled(isEnabled);
+
+    // Call bubble_fn_isScreenOff with the current screen sharing state
+    if (typeof bubble_fn_isScreenOff === "function") {
+      bubble_fn_isScreenOff(!isEnabled); // Assuming 'true' when screen is off
+    } else {
+      console.warn("bubble_fn_isScreenOff is not defined.");
+    }
   } catch (error) {
     console.error("Error during screen sharing:", error);
     if (config.onError) {
@@ -265,7 +270,7 @@ export const toggleScreenShare = async (
     // Ensure local video is active in case of an error
     if (!isEnabled && !config.localVideoTrack) {
       try {
-        log(config, "Reinitializing camera track after error...");
+        console.log("Reinitializing camera track after error...");
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
         await config.client.publish([config.localVideoTrack]);
 
@@ -277,6 +282,7 @@ export const toggleScreenShare = async (
     }
   }
 };
+
 
 
 export const removeParticipant = async (clientRTM, uid, config) => {
