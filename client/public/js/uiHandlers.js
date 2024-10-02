@@ -88,6 +88,11 @@ export const toggleCamera = async (isMuted, config) => {
         console.log("Avatar shown, video hidden for user:", config.uid);
 
         config.localVideoTrackMuted = true; // Set muted status
+
+        // Run bubble function to notify the camera is off
+        if (typeof bubble_fn_isCamOff === "function") {
+          bubble_fn_isCamOff(true); // Camera is off
+        }
       } else {
         console.warn("No video track to turn off for user:", config.uid);
       }
@@ -122,6 +127,11 @@ export const toggleCamera = async (isMuted, config) => {
       console.log("Video shown, avatar hidden for user:", config.uid);
 
       config.localVideoTrackMuted = false; // Update the muted status
+
+      // Run bubble function to notify the camera is on
+      if (typeof bubble_fn_isCamOff === "function") {
+        bubble_fn_isCamOff(false); // Camera is on
+      }
     }
   } catch (error) {
     console.error("Error in toggleCamera:", error);
