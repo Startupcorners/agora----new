@@ -89,6 +89,18 @@ export const handleUserPublished = async (user, mediaType, config) => {
   if (mediaType === "audio") {
     console.log(`User ${user.uid} has an audio track.`);
 
+    // Retry logic: Try to fetch audio track if not available immediately
+    let retries = 0;
+    while (!user.audioTrack && retries < 10) {
+      console.log(
+        `Retrying to get audio track for user ${user.uid}, attempt ${
+          retries + 1
+        }`
+      );
+      await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay
+      retries++;
+    }
+
     try {
       // Ensure audioTrack is valid before playing
       if (user.audioTrack && typeof user.audioTrack.play === "function") {
