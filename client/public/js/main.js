@@ -122,7 +122,9 @@ const join = async () => {
       console.log(`Subscribing to ${remoteUsers.length} remote users`);
       for (const remoteUser of remoteUsers) {
         participantUIDs.push(remoteUser.uid); // Add remote user UID to the list
-        await handleUserJoined(remoteUser, config); // Add wrappers for remote users
+
+        // Ensure the user is fully joined and the wrapper is ready
+        await handleUserJoined(remoteUser, config);
 
         // Ensure subscription to both video and audio tracks
         if (remoteUser.videoTrack) {
