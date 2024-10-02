@@ -210,7 +210,7 @@ const join = async () => {
 
 
         console.log(participantUIDsString);
-        console.log(participantNamesStringg);
+        console.log(participantNamesString);
         console.log(participantCompaniesString);
         console.log(participantDesignationsString);
       // Pass the formatted strings to bubble_fn_participantList
