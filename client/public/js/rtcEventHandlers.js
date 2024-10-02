@@ -4,9 +4,6 @@ import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 
-const speakingUsers = {};
-const debounceTimers = {};
-
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config) => {
@@ -276,55 +273,25 @@ export const handleUserLeft = async (user, config) => {
 
 
 // Handles volume indicator change
-// Keep track of speaking state and debounce timers for each user
-
-
 export const handleVolumeIndicator = (result, config) => {
   result.forEach((volume) => {
-    // Use the local UID if volume.uid is 0
-    const userUID = volume.uid === 0 ? config.uid : volume.uid;
-    const audioLevel = volume.level; // Audio level ranges from 0 to 255
+    const userUID = volume.uid;
+    const audioLevel = volume.level; // The audio level, can be used to determine when the user is speaking
 
     const wrapper = document.querySelector(`#video-wrapper-${userUID}`);
 
     if (wrapper) {
-      const threshold = 80; // Adjust threshold as needed
-      const isSpeaking = audioLevel > threshold;
-
-      // Clear existing debounce timer if any
-      if (debounceTimers[userUID]) {
-        clearTimeout(debounceTimers[userUID]);
-        debounceTimers[userUID] = null;
-      }
-
-      if (isSpeaking) {
-        if (!speakingUsers[userUID]) {
-          speakingUsers[userUID] = true;
-
-          // Apply inline styles for speaking state
-          wrapper.style.border = '2px solid #00ff00'; // Green border
-          wrapper.style.boxShadow = '0 0 10px 2px rgba(0, 255, 0, 0.7)'; // Glow effect
-          wrapper.style.transition = 'border 0.3s ease, box-shadow 0.3s ease'; // Smooth transition
-        }
+      if (audioLevel > 80) {
+        // Adjust the threshold based on your needs
+        wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
       } else {
-        // Debounce to prevent flickering
-        debounceTimers[userUID] = setTimeout(() => {
-          speakingUsers[userUID] = false;
-
-          // Remove inline styles when not speaking
-          wrapper.style.border = 'none';
-          wrapper.style.boxShadow = 'none';
-          wrapper.style.transition = 'border 0.3s ease, box-shadow 0.3s ease';
-
-          debounceTimers[userUID] = null;
-        }, 300); // Delay in milliseconds
+        wrapper.style.borderColor = "transparent"; // Transparent when not speaking
       }
     } else {
       console.warn(`Wrapper for user ${userUID} not found`);
     }
   });
 };
-
 
 
 // Handles token renewal
