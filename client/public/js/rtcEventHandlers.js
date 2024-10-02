@@ -11,6 +11,12 @@ export const handleUserPublished = async (user, mediaType, config) => {
     `handleUserPublished for user: ${user.uid}, mediaType: ${mediaType}`
   );
 
+  // Ensure we don't subscribe to the local user's own media
+  if (user.uid === config.uid) {
+    console.log("Skipping subscription to local user's own media.");
+    return;
+  }
+
   // Ensure remoteTracks is initialized
   if (!config.remoteTracks) {
     config.remoteTracks = {};
@@ -42,15 +48,12 @@ export const handleUserPublished = async (user, mediaType, config) => {
 
   console.log(`Wrapper found for user ${user.uid}, proceeding with media.`);
 
-  // Subscribe to media if needed and ensure track playback
+  // If mediaType is video, subscribe to the video track
   if (mediaType === "video") {
     console.log(`Attempting to subscribe to video track for user ${user.uid}`);
 
     try {
-      if (!user.videoTrack) {
-        // Only subscribe if there's no video track already
-        await config.client.subscribe(user, mediaType);
-      }
+      await config.client.subscribe(user, mediaType); // Subscribe to the video track
 
       if (user.videoTrack && typeof user.videoTrack.play === "function") {
         console.log(`Playing video track for user ${user.uid}`);
@@ -73,26 +76,19 @@ export const handleUserPublished = async (user, mediaType, config) => {
   if (mediaType === "audio") {
     console.log(`User ${user.uid} has an audio track.`);
 
-    // Retry logic to ensure audio track is fully initialized
-    for (let retries = 0; retries < 10; retries++) {
+    try {
       if (user.audioTrack && typeof user.audioTrack.play === "function") {
         console.log(`Playing audio track for user ${user.uid}`);
         user.audioTrack.play();
         toggleMicIcon(user.uid, false); // Mic is unmuted
-        return;
+      } else {
+        console.error(
+          `Audio track for user ${user.uid} is invalid or missing.`
+        );
       }
-      console.log(
-        `Retrying to get audio track for user ${user.uid}, attempt ${
-          retries + 1
-        }`
-      );
-      await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay
+    } catch (error) {
+      console.error(`Error playing audio track for user ${user.uid}:`, error);
     }
-
-    console.error(
-      `Audio track for user ${user.uid} is either missing or not fully initialized.`
-    );
-    console.log(user.audioTrack); // Log audioTrack for debugging
   }
 };
 
