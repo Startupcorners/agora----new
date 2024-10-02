@@ -20,8 +20,10 @@ export const handleUserPublished = async (user, mediaType, config) => {
   // Store the user's remote tracks if not already stored
   config.remoteTracks[user.uid] = user;
 
-  // Add the user's wrapper for video or audio regardless of their role
-  await addUserWrapper(user, config);
+  // Add the user's wrapper using the addUserWrapper function (for hosts only)
+  if (user.role === "host") {
+    await addUserWrapper(user, config);
+  }
 
   // Select the video player and avatar div elements
   const videoPlayer = document.querySelector(`#stream-${user.uid}`);
@@ -45,36 +47,35 @@ export const handleUserPublished = async (user, mediaType, config) => {
     console.log(`Attempting to subscribe to video track for user ${user.uid}`);
 
     try {
-      // Subscribe to the video track only if it's available
-      if (user.videoTrack) {
-        await config.client.subscribe(user, mediaType); // Subscribe to the video track
-        console.log(`Successfully subscribed to video track for user ${user.uid}`);
+      await config.client.subscribe(user, mediaType); // Subscribe to the video track
 
-        // Ensure the video player is correctly updated
+      if (user.videoTrack) {
+        console.log(
+          `Successfully subscribed to video track for user ${user.uid}`
+        );
         toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
       } else {
-        console.log(`User ${user.uid} does not have a video track after subscribing. Showing avatar.`);
+        console.log(
+          `User ${user.uid} does not have a video track after subscribing. Showing avatar.`
+        );
         avatarDiv.style.display = "block";
         videoPlayer.style.display = "none";
       }
     } catch (error) {
-      console.error(`Error subscribing to video track for user ${user.uid}:`, error);
+      console.error(
+        `Error subscribing to video track for user ${user.uid}:`,
+        error
+      );
     }
   }
 
   // For audio track
   if (mediaType === "audio") {
     console.log(`User ${user.uid} has an audio track.`);
-    try {
-      await config.client.subscribe(user, mediaType); // Subscribe to the audio track
-      user.audioTrack.play();
-      toggleMicIcon(user.uid, false); // Mic is unmuted
-    } catch (error) {
-      console.error(`Error subscribing to audio track for user ${user.uid}:`, error);
-    }
+    user.audioTrack.play();
+    toggleMicIcon(user.uid, false); // Mic is unmuted
   }
 };
-
 
 
 
