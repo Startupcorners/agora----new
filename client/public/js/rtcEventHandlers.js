@@ -20,10 +20,8 @@ export const handleUserPublished = async (user, mediaType, config) => {
   // Store the user's remote tracks if not already stored
   config.remoteTracks[user.uid] = user;
 
-  // Add the user's wrapper using the addUserWrapper function (for hosts only)
-  if (user.role === "host") {
-    await addUserWrapper(user, config);
-  }
+  // Add the user's wrapper for video or audio regardless of their role
+  await addUserWrapper(user, config);
 
   // Select the video player and avatar div elements
   const videoPlayer = document.querySelector(`#stream-${user.uid}`);
@@ -47,35 +45,36 @@ export const handleUserPublished = async (user, mediaType, config) => {
     console.log(`Attempting to subscribe to video track for user ${user.uid}`);
 
     try {
-      await config.client.subscribe(user, mediaType); // Subscribe to the video track
-
+      // Subscribe to the video track only if it's available
       if (user.videoTrack) {
-        console.log(
-          `Successfully subscribed to video track for user ${user.uid}`
-        );
+        await config.client.subscribe(user, mediaType); // Subscribe to the video track
+        console.log(`Successfully subscribed to video track for user ${user.uid}`);
+
+        // Ensure the video player is correctly updated
         toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
       } else {
-        console.log(
-          `User ${user.uid} does not have a video track after subscribing. Showing avatar.`
-        );
+        console.log(`User ${user.uid} does not have a video track after subscribing. Showing avatar.`);
         avatarDiv.style.display = "block";
         videoPlayer.style.display = "none";
       }
     } catch (error) {
-      console.error(
-        `Error subscribing to video track for user ${user.uid}:`,
-        error
-      );
+      console.error(`Error subscribing to video track for user ${user.uid}:`, error);
     }
   }
 
   // For audio track
   if (mediaType === "audio") {
     console.log(`User ${user.uid} has an audio track.`);
-    user.audioTrack.play();
-    toggleMicIcon(user.uid, false); // Mic is unmuted
+    try {
+      await config.client.subscribe(user, mediaType); // Subscribe to the audio track
+      user.audioTrack.play();
+      toggleMicIcon(user.uid, false); // Mic is unmuted
+    } catch (error) {
+      console.error(`Error subscribing to audio track for user ${user.uid}:`, error);
+    }
   }
 };
+
 
 
 
@@ -171,7 +170,6 @@ export const handleUserJoined = async (user, config) => {
 
 
 
-
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
   try {
@@ -191,17 +189,22 @@ export const handleUserLeft = async (user, config) => {
     log(`User ${user.uid} successfully removed`);
 
     // Get the updated list of all participant UIDs
-    const participantUIDs = Object.keys(config.remoteTracks);
+    let participantUIDs = Object.keys(config.remoteTracks);
+
+    // Ensure the current user's UID remains in the list (if needed)
+    if (!participantUIDs.includes(config.uid)) {
+      participantUIDs.push(config.uid);
+    }
 
     // Call bubble_fn_participantList with the updated list of UIDs
     if (typeof bubble_fn_participantList === "function") {
       bubble_fn_participantList(participantUIDs);
     }
-
   } catch (error) {
     console.error(`Error removing user ${user.uid}:`, error);
   }
 };
+
 
 
 
