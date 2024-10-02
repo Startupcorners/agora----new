@@ -54,10 +54,18 @@ export const toggleMic = async (config) => {
 
     // Update the mute state in config
     config.localAudioTrackMuted = isMuted;
+
+    // Call bubble_fn_isMicOff with the current mute state
+    if (typeof bubble_fn_isMicOff === "function") {
+      bubble_fn_isMicOff(isMuted);
+    } else {
+      console.warn("bubble_fn_isMicOff is not defined.");
+    }
   } catch (error) {
     console.error("Error in toggleMic:", error);
   }
 };
+
 
 
 export const toggleCamera = async (isMuted, config) => {
