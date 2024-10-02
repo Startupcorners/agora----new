@@ -126,15 +126,13 @@ const join = async () => {
         // Ensure the user is fully joined and the wrapper is ready
         await handleUserJoined(remoteUser, config);
 
-        // Ensure subscription to both video and audio tracks
+        // Handle already published tracks (only subscribe if needed)
         if (remoteUser.videoTrack) {
-          await config.client.subscribe(remoteUser, "video"); // Subscribe to video
-          await handleUserPublished(remoteUser, "video", config); // Handle video
+          await handleUserPublished(remoteUser, "video", config);
         }
 
         if (remoteUser.audioTrack) {
-          await config.client.subscribe(remoteUser, "audio"); // Subscribe to audio
-          await handleUserPublished(remoteUser, "audio", config); // Handle audio
+          await handleUserPublished(remoteUser, "audio", config);
         }
       }
     }

@@ -32,47 +32,32 @@ export const handleUserPublished = async (user, mediaType, config) => {
     await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay
   }
 
-  // Log details about the videoPlayer and avatarDiv for debugging
-  if (!videoPlayer) {
-    console.error(`Video player element not found for user ${user.uid}`);
-    return; // Stop execution if the video player isn't found
-  } else {
-    console.log(`Video player element found for user ${user.uid}`);
+  // Ensure the video player and avatar div are found
+  if (!videoPlayer || !avatarDiv) {
+    console.error(
+      `Video player or avatar div element not found for user ${user.uid}`
+    );
+    return; // Stop execution if elements aren't found
   }
 
-  if (!avatarDiv) {
-    console.error(`Avatar div element not found for user ${user.uid}`);
-    return; // Stop execution if the avatar div isn't found
-  } else {
-    console.log(`Avatar div element found for user ${user.uid}`);
-  }
+  console.log(`Wrapper found for user ${user.uid}, proceeding with media.`);
 
-  // If mediaType is video, subscribe to the video track
+  // Subscribe to media if needed and ensure track playback
   if (mediaType === "video") {
     console.log(`Attempting to subscribe to video track for user ${user.uid}`);
 
     try {
-      await config.client.subscribe(user, mediaType); // Subscribe to the video track
+      if (!user.videoTrack) {
+        // Only subscribe if there's no video track already
+        await config.client.subscribe(user, mediaType);
+      }
 
-      if (user.videoTrack) {
-        console.log(
-          `Successfully subscribed to video track for user ${user.uid}`
-        );
-
-        // Ensure videoTrack is valid before playing
-        if (user.videoTrack.play) {
-          toggleVideoOrAvatar(
-            user.uid,
-            user.videoTrack,
-            avatarDiv,
-            videoPlayer
-          );
-        } else {
-          console.error(`User ${user.uid} video track is invalid or missing.`);
-        }
+      if (user.videoTrack && typeof user.videoTrack.play === "function") {
+        console.log(`Playing video track for user ${user.uid}`);
+        toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
       } else {
         console.log(
-          `User ${user.uid} does not have a video track after subscribing. Showing avatar.`
+          `User ${user.uid} does not have a valid video track. Showing avatar.`
         );
         avatarDiv.style.display = "block";
         videoPlayer.style.display = "none";
@@ -85,37 +70,29 @@ export const handleUserPublished = async (user, mediaType, config) => {
     }
   }
 
-  // For audio track
   if (mediaType === "audio") {
     console.log(`User ${user.uid} has an audio track.`);
 
-    // Retry logic: Try to fetch audio track if not available immediately
-    let retries = 0;
-    while (!user.audioTrack && retries < 10) {
+    // Retry logic to ensure audio track is fully initialized
+    for (let retries = 0; retries < 10; retries++) {
+      if (user.audioTrack && typeof user.audioTrack.play === "function") {
+        console.log(`Playing audio track for user ${user.uid}`);
+        user.audioTrack.play();
+        toggleMicIcon(user.uid, false); // Mic is unmuted
+        return;
+      }
       console.log(
         `Retrying to get audio track for user ${user.uid}, attempt ${
           retries + 1
         }`
       );
       await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay
-      retries++;
     }
 
-    try {
-      // Ensure audioTrack is valid before playing
-      if (user.audioTrack && typeof user.audioTrack.play === "function") {
-        console.log(`Playing audio track for user ${user.uid}`);
-        user.audioTrack.play();
-        toggleMicIcon(user.uid, false); // Mic is unmuted
-      } else {
-        console.error(
-          `Audio track for user ${user.uid} is either missing or not fully initialized.`
-        );
-        console.log(user.audioTrack); // Log the audioTrack object for debugging
-      }
-    } catch (error) {
-      console.error(`Error playing audio track for user ${user.uid}:`, error);
-    }
+    console.error(
+      `Audio track for user ${user.uid} is either missing or not fully initialized.`
+    );
+    console.log(user.audioTrack); // Log audioTrack for debugging
   }
 };
 
