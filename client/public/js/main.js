@@ -95,6 +95,16 @@ const join = async () => {
       await config.client.setClientRole("audience");
     }
 
+    // Initialize participantList with the local user's info
+    config.participantList = [
+      {
+        uid: config.uid,
+        name: config.user.name || "Unknown",
+        company: config.user.company || "",
+        designation: config.user.designation || "",
+      },
+    ];
+
     // Join RTM and RTC
     await joinRTM(tokens.rtmToken);
 
@@ -116,14 +126,44 @@ const join = async () => {
 
     // Subscribe to existing remote users' media tracks (video/audio)
     const remoteUsers = config.client.remoteUsers;
-    const participantUIDs = [config.uid]; // Initialize list with the current user's UID
 
     if (remoteUsers && remoteUsers.length > 0) {
       console.log(`Subscribing to ${remoteUsers.length} remote users`);
       for (const remoteUser of remoteUsers) {
         // Skip subscription if the remote user is the current user
         if (remoteUser.uid !== config.uid) {
-          participantUIDs.push(remoteUser.uid); // Add remote user UID to the list
+          // Get RTM attributes of the remote user
+          let attributes = {};
+          try {
+            attributes = await config.clientRTM.getUserAttributes(
+              remoteUser.uid.toString()
+            );
+          } catch (e) {
+            console.error(
+              `Failed to get attributes for user ${remoteUser.uid}`,
+              e
+            );
+          }
+
+          // Extract attributes
+          const name = attributes.name || "Unknown";
+          const company = attributes.comp || "";
+          const designation = attributes.desg || "";
+
+          // Check if user already exists in participantList
+          const userExists = config.participantList.some(
+            (participant) => participant.uid === remoteUser.uid
+          );
+
+          if (!userExists) {
+            // Add remote user's info to participantList
+            config.participantList.push({
+              uid: remoteUser.uid,
+              name: name,
+              company: company,
+              designation: designation,
+            });
+          }
 
           // Ensure the user is fully joined and the wrapper is ready
           await handleUserJoined(remoteUser, config);
@@ -142,9 +182,21 @@ const join = async () => {
       }
     }
 
-    // Notify with the list of participants' UIDs
+    // Notify with the list of participants' UIDs and other info
     if (typeof bubble_fn_participantList === "function") {
-      bubble_fn_participantList(participantUIDs);
+      const participantUIDs = config.participantList.map((p) => p.uid);
+      const participantNames = config.participantList.map((p) => p.name);
+      const participantCompanies = config.participantList.map((p) => p.company);
+      const participantDesignations = config.participantList.map(
+        (p) => p.designation
+      );
+
+      bubble_fn_participantList({
+        outputlist1: participantUIDs,
+        outputlist2: participantNames,
+        outputlist3: participantCompanies,
+        outputlist4: participantDesignations,
+      });
     }
 
     // Handle token renewal
@@ -163,6 +215,7 @@ const join = async () => {
     }
   }
 };
+
 
 
 

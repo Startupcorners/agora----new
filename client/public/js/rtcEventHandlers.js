@@ -152,34 +152,55 @@ export const handleUserJoined = async (user, config) => {
     // Add the wrapper for the user if the role is host
     await addUserWrapper(user, config);
 
-    log(`Host user ${user.uid} joined, waiting for media to be published.`);
+    console.log(
+      `Host user ${user.uid} joined, waiting for media to be published.`
+    );
 
-    // Check if there are already published tracks for existing users
-    config.client.remoteUsers.forEach(async (remoteUser) => {
-      if (remoteUser.videoTrack || remoteUser.audioTrack) {
-        // Add the wrapper and restore the media
-        await addUserWrapper(remoteUser, config);
-        const videoPlayer = document.querySelector(`#stream-${remoteUser.uid}`);
-        const avatarDiv = document.querySelector(`#avatar-${remoteUser.uid}`);
-        toggleVideoOrAvatar(
-          remoteUser.uid,
-          remoteUser.videoTrack,
-          avatarDiv,
-          videoPlayer
+    // Initialize participantList if it doesn't exist
+    if (!config.participantList) {
+      config.participantList = [
+        {
+          uid: config.uid,
+          name: config.user.name || "Unknown",
+          company: config.user.company || "",
+          designation: config.user.designation || "",
+        },
+      ];
+    }
+
+    // Check if user is already in participantList to avoid duplicates
+    const userExists = config.participantList.some(
+      (participant) => participant.uid === user.uid
+    );
+
+    if (!userExists) {
+      // Add the new user's info to participantList
+      config.participantList.push({
+        uid: user.uid,
+        name: userAttr.name || "Unknown",
+        company: userAttr.comp || "",
+        designation: userAttr.desg || "",
+      });
+
+      // Call bubble_fn_participantList with the updated lists
+      if (typeof bubble_fn_participantList === "function") {
+        // Extract lists from participantList
+        const participantUIDs = config.participantList.map((p) => p.uid);
+        const participantNames = config.participantList.map((p) => p.name);
+        const participantCompanies = config.participantList.map(
+          (p) => p.company
+        );
+        const participantDesignations = config.participantList.map(
+          (p) => p.designation
         );
 
-        if (remoteUser.audioTrack) {
-          remoteUser.audioTrack.play();
-        }
+        bubble_fn_participantList({
+          outputlist1: participantUIDs,
+          outputlist2: participantNames,
+          outputlist3: participantCompanies,
+          outputlist4: participantDesignations,
+        });
       }
-    });
-
-    // Update participantUIDs by adding the new user and current user
-    const participantUIDs = [...Object.keys(config.remoteTracks), config.uid]; // Include current user
-
-    // Call bubble_fn_participantList with the updated list of UIDs
-    if (typeof bubble_fn_participantList === "function") {
-      bubble_fn_participantList(participantUIDs);
     }
   } catch (error) {
     console.error(`Error in handleUserJoined for user ${user.uid}:`, error);
@@ -192,33 +213,50 @@ export const handleUserJoined = async (user, config) => {
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
   try {
-    log(`User ${user.uid} left`);
+    console.log(`User ${user.uid} left`);
 
-    // Call removeUserWrapper to handle removing the user's video and UI elements
+    // Remove the user's wrapper (video element and UI components)
     await removeUserWrapper(user.uid);
 
     // Remove the user's tracks from the config
     if (config.remoteTracks && config.remoteTracks[user.uid]) {
       delete config.remoteTracks[user.uid];
-      log(`Removed tracks for user ${user.uid}`);
+      console.log(`Removed tracks for user ${user.uid}`);
     } else {
-      log(`No tracks found for user ${user.uid}`);
+      console.log(`No tracks found for user ${user.uid}`);
     }
 
-    log(`User ${user.uid} successfully removed`);
+    // Remove the user from participantList
+    if (config.participantList) {
+      // Filter out the user who left
+      config.participantList = config.participantList.filter(
+        (participant) => participant.uid !== user.uid
+      );
 
-    // Get the updated list of all participant UIDs
-    let participantUIDs = Object.keys(config.remoteTracks);
+      console.log(`User ${user.uid} removed from participantList`);
 
-    // Ensure the current user's UID remains in the list (if needed)
-    if (!participantUIDs.includes(config.uid)) {
-      participantUIDs.push(config.uid);
+      // Extract the updated participant information
+      const participantUIDs = config.participantList.map((p) => p.uid);
+      const participantNames = config.participantList.map((p) => p.name);
+      const participantCompanies = config.participantList.map((p) => p.company);
+      const participantDesignations = config.participantList.map(
+        (p) => p.designation
+      );
+
+      // Call bubble_fn_participantList with the updated lists
+      if (typeof bubble_fn_participantList === "function") {
+        bubble_fn_participantList({
+          outputlist1: participantUIDs,
+          outputlist2: participantNames,
+          outputlist3: participantCompanies,
+          outputlist4: participantDesignations,
+        });
+      }
+    } else {
+      console.warn("participantList is not initialized.");
     }
 
-    // Call bubble_fn_participantList with the updated list of UIDs
-    if (typeof bubble_fn_participantList === "function") {
-      bubble_fn_participantList(participantUIDs);
-    }
+    console.log(`User ${user.uid} successfully removed`);
   } catch (error) {
     console.error(`Error removing user ${user.uid}:`, error);
   }
