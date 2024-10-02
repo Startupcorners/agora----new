@@ -195,10 +195,10 @@ export const handleUserJoined = async (user, config) => {
         );
 
         bubble_fn_participantList({
-          outputlist1: participantUIDs.tostring(),
-          outputlist2: participantNames,
-          outputlist3: participantCompanies,
-          outputlist4: participantDesignations,
+          outputlist1: JSON.stringify(participantUIDs),
+          outputlist2: JSON.stringify(participantNames),
+          outputlist3: JSON.stringify(participantCompanies),
+          outputlist4: JSON.stringify(participantDesignations),
         });
       }
     }
@@ -246,10 +246,10 @@ export const handleUserLeft = async (user, config) => {
       // Call bubble_fn_participantList with the updated lists
       if (typeof bubble_fn_participantList === "function") {
         bubble_fn_participantList({
-          outputlist1: participantUIDs.tostring(),
-          outputlist2: participantNames,
-          outputlist3: participantCompanies,
-          outputlist4: participantDesignations,
+          outputlist1: JSON.stringify(participantUIDs),
+          outputlist2: JSON.stringify(participantNames),
+          outputlist3: JSON.stringify(participantCompanies),
+          outputlist4: JSON.stringify(participantDesignations),
         });
       }
     } else {

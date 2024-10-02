@@ -192,10 +192,10 @@ const join = async () => {
       );
 
       bubble_fn_participantList({
-        outputlist1: participantUIDs.toString(),
-        outputlist2: participantNames,
-        outputlist3: participantCompanies,
-        outputlist4: participantDesignations,
+        outputlist1: JSON.stringify(participantUIDs),
+        outputlist2: JSON.stringify(participantNames),
+        outputlist3: JSON.stringify(participantCompanies),
+        outputlist4: JSON.stringify(participantDesignations),
       });
     }
 
