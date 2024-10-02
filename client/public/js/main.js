@@ -185,44 +185,22 @@ const join = async () => {
     // Notify with the list of participants' UIDs and other info
     if (typeof bubble_fn_participantList === "function") {
       // After collecting participant information
-      const participantUIDs = config.participantList.map((p) =>
-        p.uid.toString()
-      );
-      const participantNames = config.participantList.map((p) => p.name);
-      const participantCompanies = config.participantList.map((p) => p.company);
-      const participantDesignations = config.participantList.map(
-        (p) => p.designation
-      );
+      const participantUIDsJSON = JSON.stringify(config.participantList.map((p) => p.uid.toString()));
+      const participantNamesJSON = JSON.stringify(config.participantList.map((p) => p.name));
+      const participantCompaniesJSON = JSON.stringify(config.participantList.map((p) => p.company));
+      const participantDesignationsJSON = JSON.stringify(config.participantList.map((p) => p.designation));
 
-      // Format each array into a string as per Bubble's expected format
-      const participantUIDsString = participantUIDs
-        .map((uid) => `"${uid}"`)
-        .join(",");
-      const participantNamesString = participantNames
-        .map((name) => `"${name}"`)
-        .join(",");
-      const participantCompaniesString = participantCompanies
-        .map((company) => `"${company}"`)
-        .join(",");
-      const participantDesignationsString = participantDesignations
-        .map((designation) => `"${designation}"`)
-        .join(",");
-
-
-        console.log(participantUIDsString);
-        console.log(participantNamesString);
-        console.log(participantCompaniesString);
-        console.log(participantDesignationsString);
-      // Pass the formatted strings to bubble_fn_participantList
+      // Call bubble_fn_participantList with the serialized arrays
       if (typeof bubble_fn_participantList === "function") {
         bubble_fn_participantList({
-          outputlist1: participantUIDsString,
-          outputlist2: participantNamesString,
-          outputlist3: participantCompaniesString,
-          outputlist4: participantDesignationsString,
+          outputlist1: participantUIDsJSON,
+          outputlist2: participantNamesJSON,
+          outputlist3: participantCompaniesJSON,
+          outputlist4: participantDesignationsJSON,
         });
-      }
     }
+
+  }
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
