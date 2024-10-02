@@ -6,7 +6,6 @@ import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 
 // Handles user published event
-
 export const handleUserPublished = async (user, mediaType, config) => {
   console.log(
     `handleUserPublished for user: ${user.uid}, mediaType: ${mediaType}`
@@ -59,7 +58,18 @@ export const handleUserPublished = async (user, mediaType, config) => {
         console.log(
           `Successfully subscribed to video track for user ${user.uid}`
         );
-        toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
+
+        // Ensure videoTrack is valid before playing
+        if (user.videoTrack.play) {
+          toggleVideoOrAvatar(
+            user.uid,
+            user.videoTrack,
+            avatarDiv,
+            videoPlayer
+          );
+        } else {
+          console.error(`User ${user.uid} video track is invalid or missing.`);
+        }
       } else {
         console.log(
           `User ${user.uid} does not have a video track after subscribing. Showing avatar.`
@@ -78,8 +88,14 @@ export const handleUserPublished = async (user, mediaType, config) => {
   // For audio track
   if (mediaType === "audio") {
     console.log(`User ${user.uid} has an audio track.`);
-    user.audioTrack.play();
-    toggleMicIcon(user.uid, false); // Mic is unmuted
+
+    // Ensure audioTrack is valid before playing
+    if (user.audioTrack && user.audioTrack.play) {
+      user.audioTrack.play();
+      toggleMicIcon(user.uid, false); // Mic is unmuted
+    } else {
+      console.error(`User ${user.uid} audio track is invalid or missing.`);
+    }
   }
 };
 
