@@ -18,11 +18,10 @@ export const toggleVideoOrAvatar = (
 
 
 export const toggleMicIcon = (uid, isMuted) => {
-  // Select the mic icon element for the user
-  const micIcon = document.querySelector(`#mic-icon-${uid}`);
+  // Corrected selector to match the HTML ID
+  const micIcon = document.querySelector(`#mic-status-${uid}`);
 
   if (micIcon) {
-    // If the mic is muted, show the muted mic icon
     if (isMuted) {
       micIcon.style.display = "block"; // Show muted mic icon
     } else {
@@ -32,3 +31,4 @@ export const toggleMicIcon = (uid, isMuted) => {
     console.warn(`Mic icon for user ${uid} not found.`);
   }
 };
+
