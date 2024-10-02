@@ -116,9 +116,12 @@ const join = async () => {
 
     // **Subscribe to existing remote users' media tracks (video/audio)**
     const remoteUsers = config.client.remoteUsers;
+    const participantUIDs = [config.uid]; // Initialize list with the current user's UID
+
     if (remoteUsers && remoteUsers.length > 0) {
       console.log(`Subscribing to ${remoteUsers.length} remote users`);
       for (const remoteUser of remoteUsers) {
+        participantUIDs.push(remoteUser.uid); // Add remote user UID to the list
         await handleUserJoined(remoteUser, config); // Add wrappers for remote users
 
         // Ensure subscription to both video and audio tracks
@@ -132,6 +135,11 @@ const join = async () => {
           await handleUserPublished(remoteUser, "audio", config); // Handle audio
         }
       }
+    }
+
+    // Notify with the list of participants' UIDs
+    if (typeof bubble_fn_participantList === "function") {
+      bubble_fn_participantList(participantUIDs);
     }
 
     // Handle token renewal
@@ -150,6 +158,7 @@ const join = async () => {
     }
   }
 };
+
 
 
 

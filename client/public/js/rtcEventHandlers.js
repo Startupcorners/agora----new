@@ -155,6 +155,14 @@ export const handleUserJoined = async (user, config) => {
         }
       }
     });
+
+    // Update participantUIDs by adding the new user and current user
+    const participantUIDs = [...Object.keys(config.remoteTracks), config.uid]; // Include current user
+
+    // Call bubble_fn_participantList with the updated list of UIDs
+    if (typeof bubble_fn_participantList === "function") {
+      bubble_fn_participantList(participantUIDs);
+    }
   } catch (error) {
     console.error(`Error in handleUserJoined for user ${user.uid}:`, error);
   }
@@ -180,10 +188,25 @@ export const handleUserLeft = async (user, config) => {
     }
 
     log(`User ${user.uid} successfully removed`);
+
+    // Get the updated list of all participant UIDs
+    let participantUIDs = Object.keys(config.remoteTracks);
+
+    // Ensure the current user's UID remains in the list (if needed)
+    if (!participantUIDs.includes(config.uid)) {
+      participantUIDs.push(config.uid);
+    }
+
+    // Call bubble_fn_participantList with the updated list of UIDs
+    if (typeof bubble_fn_participantList === "function") {
+      bubble_fn_participantList(participantUIDs);
+    }
   } catch (error) {
     console.error(`Error removing user ${user.uid}:`, error);
   }
 };
+
+
 
 
 // Handles volume indicator change
