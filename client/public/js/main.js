@@ -191,6 +191,12 @@ const join = async () => {
         (p) => p.designation
       );
 
+      console.log(JSON.stringify(participantUIDs));
+      console.log(JSON.stringify(participantNames));
+      console.log(JSON.stringify(participantCompanies));
+      console.log(JSON.stringify(participantDesignations));
+
+
       bubble_fn_participantList({
         outputlist1: JSON.stringify(participantUIDs),
         outputlist2: JSON.stringify(participantNames),
