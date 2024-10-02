@@ -275,9 +275,24 @@ export const handleUserLeft = async (user, config) => {
 // Handles volume indicator change
 export const handleVolumeIndicator = (result, config) => {
   result.forEach((volume) => {
-    config.onVolumeIndicatorChanged(volume);
+    const userUID = volume.uid;
+    const audioLevel = volume.level; // The audio level, can be used to determine when the user is speaking
+
+    const wrapper = document.querySelector(`#video-wrapper-${userUID}`);
+
+    if (wrapper) {
+      if (audioLevel > 40) {
+        // Adjust the threshold based on your needs
+        wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
+      } else {
+        wrapper.style.borderColor = "transparent"; // Transparent when not speaking
+      }
+    } else {
+      console.warn(`Wrapper for user ${userUID} not found`);
+    }
   });
 };
+
 
 // Handles token renewal
 export const handleRenewToken = async (config, client) => {

@@ -1,21 +1,21 @@
 // templates.js
 
 export const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
-  flex: 1 1 calc(25% - 20px); /* Ensure wrappers resize flexibly */
+  flex: 1 1 calc(25%); /* Resize flexibly, taking 25% of the space */
   width: 100%;
-  min-width: 280px; /* Updated min-width */
+  min-width: 280px; /* Ensure the minimum width is retained */
   max-width: 800px;
   aspect-ratio: 16/9;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 10px;
-  border-radius: 10px;
+  margin: 0; /* Remove margin */
   background-color: #3c4043;
   overflow: hidden;
   position: relative;
   box-sizing: border-box;
-  transition: all 0.3s ease; /* Smooth transitions on resizing */
+  border: 4px solid transparent; /* Border will change color when the user speaks */
+  transition: border-color 0.3s ease; /* Smooth transition for border color change */
 " data-uid="{{uid}}">
   <!-- Video Player -->
   <div id="stream-{{uid}}" class="video-player" style="
@@ -46,7 +46,6 @@ export const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
     color: #fff;
     background-color: rgba(0, 0, 0, 0.5);
     padding: 5px 10px;
-    border-radius: 5px;
   ">
     {{name}}
   </div>
