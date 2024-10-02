@@ -185,21 +185,23 @@ const join = async () => {
     // Notify with the list of participants' UIDs and other info
     if (typeof bubble_fn_participantList === "function") {
       // After collecting participant information
-      const participantUIDsJSON = JSON.stringify(config.participantList.map((p) => p.uid.toString()));
-      const participantNamesJSON = JSON.stringify(config.participantList.map((p) => p.name));
-      const participantCompaniesJSON = JSON.stringify(config.participantList.map((p) => p.company));
-      const participantDesignationsJSON = JSON.stringify(config.participantList.map((p) => p.designation));
 
-      // Call bubble_fn_participantList with the serialized arrays
+      const participantUIDs = config.participantList.map((p) => p.uid.toString());
+      const participantNames = config.participantList.map((p) => p.name);
+      const participantCompanies = config.participantList.map((p) => p.company);
+      const participantDesignations = config.participantList.map((p) => p.designation);
+
+      // Pass the arrays directly to bubble_fn_participantList
       if (typeof bubble_fn_participantList === "function") {
-        bubble_fn_participantList({
-          outputlist1: participantUIDsJSON,
-          outputlist2: participantNamesJSON,
-          outputlist3: participantCompaniesJSON,
-          outputlist4: participantDesignationsJSON,
-        });
-    }
-
+  
+      bubble_fn_participantList({
+  
+      outputlist1: participantUIDs, // Pass as array
+      outputlist2: participantNames,
+      outputlist3: participantCompanies,
+      outputlist4: participantDesignations,
+  });
+}
   }
 
     // Handle token renewal
