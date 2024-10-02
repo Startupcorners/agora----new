@@ -48,24 +48,17 @@ export const handleUserPublished = async (user, mediaType, config) => {
       // Subscribe to the video track only if it's available
       if (user.videoTrack) {
         await config.client.subscribe(user, mediaType); // Subscribe to the video track
-        console.log(
-          `Successfully subscribed to video track for user ${user.uid}`
-        );
+        console.log(`Successfully subscribed to video track for user ${user.uid}`);
 
         // Ensure the video player is correctly updated
         toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
       } else {
-        console.log(
-          `User ${user.uid} does not have a video track after subscribing. Showing avatar.`
-        );
+        console.log(`User ${user.uid} does not have a video track after subscribing. Showing avatar.`);
         avatarDiv.style.display = "block";
         videoPlayer.style.display = "none";
       }
     } catch (error) {
-      console.error(
-        `Error subscribing to video track for user ${user.uid}:`,
-        error
-      );
+      console.error(`Error subscribing to video track for user ${user.uid}:`, error);
     }
   }
 
@@ -77,10 +70,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
       user.audioTrack.play();
       toggleMicIcon(user.uid, false); // Mic is unmuted
     } catch (error) {
-      console.error(
-        `Error subscribing to audio track for user ${user.uid}:`,
-        error
-      );
+      console.error(`Error subscribing to audio track for user ${user.uid}:`, error);
     }
   }
 };
