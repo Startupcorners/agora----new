@@ -73,23 +73,25 @@ export const handleUserPublished = async (user, mediaType, config) => {
     }
   }
 
-  if (mediaType === "audio") {
-    console.log(`User ${user.uid} has an audio track.`);
+if (mediaType === "audio") {
+  console.log(`User ${user.uid} has an audio track.`);
 
-    try {
-      if (user.audioTrack && typeof user.audioTrack.play === "function") {
-        console.log(`Playing audio track for user ${user.uid}`);
-        user.audioTrack.play();
-        toggleMicIcon(user.uid, false); // Mic is unmuted
-      } else {
-        console.error(
-          `Audio track for user ${user.uid} is invalid or missing.`
-        );
-      }
-    } catch (error) {
-      console.error(`Error playing audio track for user ${user.uid}:`, error);
+  try {
+    // Subscribe to the audio track
+    await config.client.subscribe(user, mediaType);
+
+    if (user.audioTrack && typeof user.audioTrack.play === "function") {
+      console.log(`Playing audio track for user ${user.uid}`);
+      user.audioTrack.play();
+      toggleMicIcon(user.uid, false); // Mic is unmuted
+    } else {
+      console.error(`Audio track for user ${user.uid} is invalid or missing.`);
     }
+  } catch (error) {
+    console.error(`Error playing audio track for user ${user.uid}:`, error);
   }
+}
+
 };
 
 
