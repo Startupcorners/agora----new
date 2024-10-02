@@ -53,7 +53,10 @@ export const handleUserPublished = async (user, mediaType, config) => {
         );
 
         // Ensure the video player is correctly updated
-        toggleVideoOrAvatar(user.uid, user.videoTrack, avatarDiv, videoPlayer);
+        console.log(`Playing video track for user ${user.uid}`);
+        user.videoTrack.play(videoPlayer); // Play the video track in the videoPlayer
+        videoPlayer.style.display = "block"; // Show the video player
+        avatarDiv.style.display = "none"; // Hide the avatar
       } else {
         console.log(
           `User ${user.uid} does not have a video track after subscribing. Showing avatar.`
