@@ -2,9 +2,14 @@
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { toggleMicIcon,toggleVideoOrAvatar } from "./updateWrappers.js";
 
-export const toggleMic = async (isMuted, config) => {
+export const toggleMic = async (config) => {
   try {
+    // Invert the current mute state
+    const isMuted = !config.localAudioTrackMuted;
+    console.log(`toggleMic called. Current isMuted: ${isMuted}`);
+
     if (isMuted) {
+      // Muting the microphone
       if (config.localAudioTrack) {
         console.log("Muting microphone for user:", config.uid);
 
@@ -14,7 +19,7 @@ export const toggleMic = async (isMuted, config) => {
         config.localAudioTrack.close();
         config.localAudioTrack = null; // Remove the audio track reference
 
-        log("Microphone muted and unpublished");
+        console.log("Microphone muted and unpublished");
 
         // Toggle the mic icon to show that the microphone is muted
         toggleMicIcon(config.uid, true);
@@ -22,6 +27,7 @@ export const toggleMic = async (isMuted, config) => {
         console.warn("No microphone track to mute for user:", config.uid);
       }
     } else {
+      // Unmuting the microphone
       console.log("Unmuting microphone for user:", config.uid);
 
       // Check if the audio track already exists
@@ -37,7 +43,7 @@ export const toggleMic = async (isMuted, config) => {
 
         // Publish the new audio track
         await config.client.publish([config.localAudioTrack]);
-        log("Microphone unmuted and published");
+        console.log("Microphone unmuted and published");
 
         // Toggle the mic icon to show that the microphone is unmuted
         toggleMicIcon(config.uid, false);
@@ -45,6 +51,9 @@ export const toggleMic = async (isMuted, config) => {
         console.log("Microphone track already exists for user:", config.uid);
       }
     }
+
+    // Update the mute state in config
+    config.localAudioTrackMuted = isMuted;
   } catch (error) {
     console.error("Error in toggleMic:", error);
   }
