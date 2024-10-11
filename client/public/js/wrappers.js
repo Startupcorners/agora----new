@@ -70,7 +70,7 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
       // If the screen share wrapper does not exist, create it
       const videoStage = document.querySelector(config.callContainerSelector);
       const wrapperHTML = `
-        <div id="stream-wrapper-${screenShareUid}" class="fullscreen-wrapper">
+        <div id="stream-wrapper-${screenShareUid}" class="fullscreen-wrapper" style="width: 100%; height: 100%; position: relative;">
           <div id="stream-${screenShareUid}" class="stream fullscreen-wrapper" style="width: 100%; height: 100%;"></div>
         </div>
       `;
@@ -87,25 +87,24 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
     screenShareWrapper.classList.add("fullscreen-wrapper"); // Apply full screen class
     screenShareWrapper.style.display = "block"; // Show the screen share wrapper
 
-    // Move the current user's stream outside of its constrained wrapper to the video stage
-    let userStream = document.querySelector(`#stream-${uid}`);
-    if (userStream) {
+    // Create a smaller wrapper for the current user's video in the bottom-right
+    let userWrapper = document.querySelector(`#stream-wrapper-${uid}`);
+    if (!userWrapper) {
       const videoStage = document.querySelector(config.callContainerSelector);
-      // Remove the user stream from its current wrapper
-      userStream.parentNode.removeChild(userStream);
-      // Append the user stream directly to the video stage
-      videoStage.appendChild(userStream);
-      // Position the user stream at the bottom-right of the video stage
-      userStream.style.width = "150px"; // Smaller size
-      userStream.style.height = "100px"; // Smaller size
-      userStream.style.position = "absolute"; // Absolute positioning
-      userStream.style.bottom = "10px"; // Bottom-right corner
-      userStream.style.right = "10px"; // Bottom-right corner
-      userStream.style.zIndex = "9999"; // Ensure it is on top
-      userStream.style.display = "block"; // Ensure the user stream is visible
+      const userWrapperHTML = `
+        <div id="stream-wrapper-${uid}" class="user-video-wrapper" style="width: 150px; height: 100px; position: absolute; bottom: 10px; right: 10px; z-index: 9999;">
+          <div id="stream-${uid}" class="stream" style="width: 100%; height: 100%;"></div>
+        </div>
+      `;
+      videoStage.insertAdjacentHTML("beforeend", userWrapperHTML);
+      userWrapper = document.querySelector(`#stream-wrapper-${uid}`);
+      console.log(`Created user video wrapper for user: ${uid}`);
     } else {
-      console.error(`User stream with id #stream-${uid} not found`);
+      console.log(`User video wrapper for user ${uid} already exists.`);
     }
+
+    // Make sure the user video wrapper is visible
+    userWrapper.style.display = "block";
   } catch (error) {
     console.error("Error in addScreenShareWrapper:", error);
   }
