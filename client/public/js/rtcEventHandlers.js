@@ -167,25 +167,69 @@ export const handleUserJoined = async (user, config) => {
   console.log("Entering handleUserJoined function for user:", user.uid);
 
   try {
-    // Convert UID to string for RTM operations
-    const rtmUid = user.uid.toString();
+    // Convert UID to string
+    const userUid = user.uid.toString();
 
-    // Fetch user attributes (including role) from RTM
-    const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
+    // Detect if the user is a screen share UID
+    const isScreenShare = userUid.endsWith("-screen");
+    let mainUid = userUid;
+    let userRole = null;
+    let userAttr = {};
 
-    // Ensure user has a role assigned in RTM
-    if (!userAttr.role) {
-      console.error(`Error: User ${user.uid} does not have a role assigned.`);
-      throw new Error(`User ${user.uid} does not have a role assigned.`);
+    if (isScreenShare) {
+      // For screen share UID, extract the main UID
+      mainUid = userUid.replace("-screen", "");
+
+      // Assume the role is the same as the main user (likely 'host')
+      userRole = "host";
+
+      // Get main user's attributes from participantList or config
+      const mainUser = config.participantList.find((p) => p.uid === mainUid);
+      if (mainUser) {
+        userAttr = {
+          name: mainUser.name,
+          company: mainUser.company,
+          designation: mainUser.designation,
+        };
+      } else {
+        userAttr = {
+          name: config.user.name || "Unknown",
+          company: config.user.company || "",
+          designation: config.user.designation || "",
+        };
+      }
+    } else {
+      // For regular UIDs, fetch user attributes from RTM
+      try {
+        userAttr = await config.clientRTM.getUserAttributes(userUid);
+      } catch (error) {
+        console.error(
+          `Failed to get RTM attributes for user ${userUid}:`,
+          error
+        );
+        userAttr = {
+          name: "Unknown",
+          company: "",
+          designation: "",
+        };
+      }
+
+      // Ensure user has a role assigned in RTM
+      if (userAttr.role) {
+        userRole = userAttr.role;
+      } else {
+        console.warn(`User ${userUid} does not have a role assigned.`);
+        userRole = "audience"; // Assign a default role
+      }
     }
 
-    // Add the role from RTM to the user object
-    user.role = userAttr.role;
+    // Add the role to the user object
+    user.role = userRole;
 
     // Only proceed if the user is a host
     if (user.role !== "host") {
       console.warn(
-        `User ${user.uid} does not have the 'host' role. Skipping wrapper.`
+        `User ${userUid} does not have the 'host' role. Skipping wrapper.`
       );
       return; // Exit if the user is not a host
     }
@@ -196,65 +240,51 @@ export const handleUserJoined = async (user, config) => {
     }
 
     // Store user in remoteTracks (no media yet)
-    config.remoteTracks[user.uid] = user;
+    config.remoteTracks[userUid] = user;
 
-    // Add the wrapper for the user if the role is host
+    // Add the wrapper for the user
     await addUserWrapper(user, config);
 
     console.log(
-      `Host user ${user.uid} joined, waiting for media to be published.`
+      `Host user ${userUid} joined, waiting for media to be published.`
     );
 
     // Initialize participantList if it doesn't exist
     if (!config.participantList) {
-      config.participantList = [
-        {
-          uid: config.uid,
-          name: config.user.name || "Unknown",
-          company: config.user.company || "",
-          designation: config.user.designation || "",
-        },
-      ];
+      config.participantList = [];
     }
 
-    // Check if user is already in participantList to avoid duplicates
-    const userExists = config.participantList.some(
-      (participant) => participant.uid === user.uid
-    );
+    // Check if participant already exists in participantList
+    let participant = config.participantList.find((p) => p.uid === mainUid);
 
-    if (!userExists) {
+    if (!participant) {
       // Add the new user's info to participantList
-      config.participantList.push({
-        uid: user.uid,
+      participant = {
+        uid: mainUid,
+        uids: [userUid],
         name: userAttr.name || "Unknown",
-        company: userAttr.comp || "",
-        designation: userAttr.desg || "",
-      });
-
-      // Call bubble_fn_participantList with the updated lists
-      if (typeof bubble_fn_participantList === "function") {
-        // Extract lists from participantList
-       const participantUIDs = config.participantList.map((p) =>
-         p.uid.toString()
-       );
-       const participantNames = config.participantList.map((p) => p.name);
-       const participantCompanies = config.participantList.map(
-         (p) => p.company
-       );
-       const participantDesignations = config.participantList.map(
-         (p) => p.designation
-       );
-
-       // Pass the arrays directly to bubble_fn_participantList
-       if (typeof bubble_fn_participantList === "function") {
-         bubble_fn_participantList({
-           outputlist1: participantUIDs, // Pass as array
-           outputlist2: participantNames,
-           outputlist3: participantCompanies,
-           outputlist4: participantDesignations,
-         });
-       }
+        company: userAttr.company || "",
+        designation: userAttr.designation || "",
+      };
+      config.participantList.push(participant);
+    } else {
+      // Add the new UID to the participant's uids array if not already present
+      if (!participant.uids.includes(userUid)) {
+        participant.uids.push(userUid);
       }
+    }
+
+    // Call bubble_fn_participantList with the updated participant list
+    if (typeof bubble_fn_participantList === "function") {
+      const participantData = config.participantList.map((p) => ({
+        uid: p.uid,
+        uids: p.uids,
+        name: p.name,
+        company: p.company,
+        designation: p.designation,
+      }));
+
+      bubble_fn_participantList({ participants: participantData });
     }
   } catch (error) {
     console.error(`Error in handleUserJoined for user ${user.uid}:`, error);
