@@ -10,7 +10,7 @@ export const addUserWrapper = async (user, config) => {
     if (!wrapper) {
       console.log(`Creating wrapper for user: ${user.uid}`);
 
-      // Create player HTML with avatar
+      // Create player HTML with avatar and mic icon
       const playerHTML = `
         <div id="participant-${user.uid}" class="participant-wrapper">
           <div id="stream-${
@@ -24,6 +24,9 @@ export const addUserWrapper = async (user, config) => {
           <div class="participant-info">
             <div class="participant-name">${userAttr.name || "Unknown"}</div>
             <div class="participant-company">${userAttr.company || ""}</div>
+          </div>
+          <div id="mic-icon-${user.uid}" class="mic-icon">
+            <img src="path-to-mic-icon" alt="Mic icon">
           </div>
         </div>
       `;
@@ -48,9 +51,11 @@ export const addUserWrapper = async (user, config) => {
     // Ensure the video player and avatar elements are ready
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-    if (!videoPlayer || !avatarDiv) {
+    const micIcon = document.querySelector(`#mic-icon-${user.uid}`);
+
+    if (!videoPlayer || !avatarDiv || !micIcon) {
       console.error(
-        `Video player or avatar elements not found for user ${user.uid}`
+        `Video player, avatar, or mic icon not found for user ${user.uid}`
       );
       return;
     }
