@@ -94,8 +94,8 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
       userWrapper.style.width = "150px"; // Smaller size
       userWrapper.style.height = "100px"; // Smaller size
       userWrapper.style.position = "absolute"; // Ensure absolute positioning
-      userWrapper.style.bottom = "10px"; // Bottom-right corner
-      userWrapper.style.right = "10px"; // Bottom-right corner
+      userWrapper.style.bottom = "10px"; // Bottom margin
+      userWrapper.style.right = "10px"; // Right margin
       userWrapper.style.zIndex = "9999"; // Ensure it is on top
       userWrapper.style.display = "block"; // Ensure the user wrapper is visible
     } else {
@@ -105,7 +105,6 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
     console.error("Error in addScreenShareWrapper:", error);
   }
 };
-
 
 
 
