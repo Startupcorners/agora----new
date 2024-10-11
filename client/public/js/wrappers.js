@@ -70,8 +70,8 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
       // If the screen share wrapper does not exist, create it
       const videoStage = document.querySelector(config.callContainerSelector);
       const wrapperHTML = `
-        <div id="stream-${screenShareUid}" class="fullscreen-wrapper">
-          <div class="stream"></div>
+        <div id="stream-wrapper-${screenShareUid}" class="fullscreen-wrapper">
+          <div id="stream-${screenShareUid}" class="stream"></div>
         </div>
       `;
       videoStage.insertAdjacentHTML("beforeend", wrapperHTML);
@@ -91,11 +91,12 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
     const userWrapper = document.querySelector(`#stream-${uid}`);
     if (userWrapper) {
       userWrapper.classList.add("user-video-bottom-right"); // Apply bottom-right class
-      userWrapper.style.width = "200px"; // Smaller size
-      userWrapper.style.height = "120px"; // Smaller size
+      userWrapper.style.width = "150px"; // Smaller size
+      userWrapper.style.height = "100px"; // Smaller size
       userWrapper.style.position = "absolute"; // Ensure absolute positioning
       userWrapper.style.bottom = "10px"; // Bottom-right corner
       userWrapper.style.right = "10px"; // Bottom-right corner
+      userWrapper.style.zIndex = "9999"; // Ensure it is on top
       userWrapper.style.display = "block"; // Ensure the user wrapper is visible
     } else {
       console.error(`User wrapper with id #stream-${uid} not found`);
@@ -104,6 +105,7 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
     console.error("Error in addScreenShareWrapper:", error);
   }
 };
+
 
 
 
