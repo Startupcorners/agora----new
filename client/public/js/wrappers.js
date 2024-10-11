@@ -71,7 +71,7 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
       const videoStage = document.querySelector(config.callContainerSelector);
       const wrapperHTML = `
         <div id="stream-wrapper-${screenShareUid}" class="fullscreen-wrapper">
-          <div id="stream-${screenShareUid}" class="stream"></div>
+          <div id="stream-${screenShareUid}" class="stream fullscreen-wrapper" style="width: 100%; height: 100%;"></div>
         </div>
       `;
       videoStage.insertAdjacentHTML("beforeend", wrapperHTML);
@@ -87,19 +87,24 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
     screenShareWrapper.classList.add("fullscreen-wrapper"); // Apply full screen class
     screenShareWrapper.style.display = "block"; // Show the screen share wrapper
 
-    // Handle the user video wrapper (small in bottom-right)
-    const userWrapper = document.querySelector(`#stream-${uid}`);
-    if (userWrapper) {
-      userWrapper.classList.add("user-video-bottom-right"); // Apply bottom-right class
-      userWrapper.style.width = "150px"; // Smaller size
-      userWrapper.style.height = "100px"; // Smaller size
-      userWrapper.style.position = "absolute"; // Ensure absolute positioning
-      userWrapper.style.bottom = "10px"; // Bottom margin
-      userWrapper.style.right = "10px"; // Right margin
-      userWrapper.style.zIndex = "9999"; // Ensure it is on top
-      userWrapper.style.display = "block"; // Ensure the user wrapper is visible
+    // Move the current user's stream outside of its constrained wrapper to the video stage
+    let userStream = document.querySelector(`#stream-${uid}`);
+    if (userStream) {
+      const videoStage = document.querySelector(config.callContainerSelector);
+      // Remove the user stream from its current wrapper
+      userStream.parentNode.removeChild(userStream);
+      // Append the user stream directly to the video stage
+      videoStage.appendChild(userStream);
+      // Position the user stream at the bottom-right of the video stage
+      userStream.style.width = "150px"; // Smaller size
+      userStream.style.height = "100px"; // Smaller size
+      userStream.style.position = "absolute"; // Absolute positioning
+      userStream.style.bottom = "10px"; // Bottom-right corner
+      userStream.style.right = "10px"; // Bottom-right corner
+      userStream.style.zIndex = "9999"; // Ensure it is on top
+      userStream.style.display = "block"; // Ensure the user stream is visible
     } else {
-      console.error(`User wrapper with id #stream-${uid} not found`);
+      console.error(`User stream with id #stream-${uid} not found`);
     }
   } catch (error) {
     console.error("Error in addScreenShareWrapper:", error);
