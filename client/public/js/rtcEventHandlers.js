@@ -11,8 +11,8 @@ export const handleUserPublished = async (user, mediaType, config) => {
     `handleUserPublished for user: ${user.uid}, mediaType: ${mediaType}`
   );
 
-  // Skip subscribing to the local user's own media
-  if (user.uid === config.uid) {
+  // Skip subscribing to the local user's own media (camera and screen share)
+  if (user.uid === config.uid || user.uid === config.screenShareUid) {
     console.log("Skipping subscription to local user's own media.");
     return;
   }
@@ -31,24 +31,45 @@ export const handleUserPublished = async (user, mediaType, config) => {
     // Prepare attributes
     let attributes = {};
     const userUid = user.uid.toString();
+    const isScreenShare = userUid.endsWith("-screen");
+    let mainUid = userUid;
 
-    // Fetch user attributes from RTM if available
-    if (config.clientRTM && config.clientRTM.getUserAttributes) {
-      try {
-        attributes = await config.clientRTM.getUserAttributes(userUid);
-      } catch (e) {
-        console.error(`Failed to get attributes for user ${user.uid}`, e);
+    if (isScreenShare) {
+      // For screen share UID, extract the main UID
+      mainUid = userUid.replace("-screen", "");
+
+      // Use main user's attributes
+      const mainUser = config.participantList.find((p) => p.uid === mainUid);
+      if (mainUser) {
+        attributes = {
+          name: mainUser.name,
+          avatar: mainUser.avatar || "default-avatar-url",
+        };
+      } else {
+        attributes = {
+          name: config.user.name || "Unknown",
+          avatar: config.user.avatar || "default-avatar-url",
+        };
+      }
+    } else {
+      // Fetch user attributes from RTM if available
+      if (config.clientRTM && config.clientRTM.getUserAttributes) {
+        try {
+          attributes = await config.clientRTM.getUserAttributes(userUid);
+        } catch (e) {
+          console.error(`Failed to get attributes for user ${user.uid}`, e);
+          attributes = {
+            name: "Unknown",
+            avatar: "default-avatar-url",
+          };
+        }
+      } else {
+        // If RTM is not available, use default attributes
         attributes = {
           name: "Unknown",
           avatar: "default-avatar-url",
         };
       }
-    } else {
-      // If RTM is not available, use default attributes
-      attributes = {
-        name: "Unknown",
-        avatar: "default-avatar-url",
-      };
     }
 
     // Add user wrapper for the new UID
@@ -56,15 +77,13 @@ export const handleUserPublished = async (user, mediaType, config) => {
   }
 
   // Wait for the wrapper to exist before proceeding
-  let videoContainer = document.querySelector(`#stream-container-${user.uid}`);
-  if (!videoContainer) {
-    // Create a container to hold multiple video streams for this user
-    videoContainer = document.createElement("div");
-    videoContainer.id = `stream-container-${user.uid}`;
-    videoContainer.className = "stream-container";
-    document
-      .querySelector(`#participant-${user.uid}`)
-      .appendChild(videoContainer);
+  let videoPlayer = document.querySelector(`#stream-${user.uid}`);
+  if (!videoPlayer) {
+    // Create the video player element
+    videoPlayer = document.createElement("div");
+    videoPlayer.id = `stream-${user.uid}`;
+    videoPlayer.className = "video-player";
+    document.querySelector(`#participant-${user.uid}`).appendChild(videoPlayer);
   }
 
   if (mediaType === "video") {
@@ -73,29 +92,25 @@ export const handleUserPublished = async (user, mediaType, config) => {
     try {
       await config.client.subscribe(user, mediaType);
 
-      // Handle multiple video tracks
-      const videoTracks = user.videoTracks || [user.videoTrack];
-      videoTracks.forEach((track, index) => {
-        // Create a unique DOM element ID for each track
-        const streamId = `stream-${user.uid}-${index}`;
-        let videoPlayer = document.querySelector(`#${streamId}`);
-        if (!videoPlayer) {
-          videoPlayer = document.createElement("div");
-          videoPlayer.id = streamId;
-          videoPlayer.className = "video-player";
-          videoContainer.appendChild(videoPlayer);
+      if (user.videoTrack && typeof user.videoTrack.play === "function") {
+        console.log(`Playing video track for user ${user.uid}`);
+        user.videoTrack.play(videoPlayer);
+
+        // Hide avatar when video is available
+        const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+        if (avatarDiv) {
+          avatarDiv.style.display = "none";
         }
+      } else {
+        console.log(
+          `User ${user.uid} does not have a valid video track. Showing avatar.`
+        );
 
-        // Play the video track
-        track.play(videoPlayer);
-
-        console.log(`Playing video track ${index} for user ${user.uid}`);
-      });
-
-      // Hide avatar when video is available
-      const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-      if (avatarDiv) {
-        avatarDiv.style.display = "none";
+        // Show avatar if video track is not available
+        const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+        if (avatarDiv) {
+          avatarDiv.style.display = "block";
+        }
       }
     } catch (error) {
       console.error(
