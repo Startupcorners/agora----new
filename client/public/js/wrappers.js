@@ -63,17 +63,29 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
     });
 
     // Handle the screen share wrapper (full screen)
-    const screenShareWrapper = document.querySelector(
+    let screenShareWrapper = document.querySelector(
       `#stream-${screenShareUid}`
     );
-    if (screenShareWrapper) {
-      screenShareWrapper.classList.add("fullscreen-wrapper"); // Apply full screen class
-      screenShareWrapper.style.display = "block"; // Show the screen share wrapper
+    if (!screenShareWrapper) {
+      // If the screen share wrapper does not exist, create it
+      const videoStage = document.querySelector(config.callContainerSelector);
+      const wrapperHTML = `
+        <div id="participant-${screenShareUid}" class="fullscreen-wrapper">
+          <div id="stream-${screenShareUid}" class="stream"></div>
+        </div>
+      `;
+      videoStage.insertAdjacentHTML("beforeend", wrapperHTML);
+      screenShareWrapper = document.querySelector(`#stream-${screenShareUid}`);
+      console.log(`Created screen share wrapper for user: ${screenShareUid}`);
     } else {
-      console.error(
-        `Screen share player with id #stream-${screenShareUid} not found`
+      console.log(
+        `Screen share wrapper for user ${screenShareUid} already exists.`
       );
     }
+
+    // Show the screen share wrapper
+    screenShareWrapper.classList.add("fullscreen-wrapper"); // Apply full screen class
+    screenShareWrapper.style.display = "block"; // Show the screen share wrapper
 
     // Handle the user video wrapper (small in bottom-right)
     const userWrapper = document.querySelector(`#stream-${uid}`);
