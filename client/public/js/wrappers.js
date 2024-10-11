@@ -70,8 +70,8 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
       // If the screen share wrapper does not exist, create it
       const videoStage = document.querySelector(config.callContainerSelector);
       const wrapperHTML = `
-        <div id="stream-wrapper-${screenShareUid}" class="fullscreen-wrapper">
-          <div id="stream-${screenShareUid}" class="stream"></div>
+        <div id="stream-${screenShareUid}" class="fullscreen-wrapper">
+          <div class="stream"></div>
         </div>
       `;
       videoStage.insertAdjacentHTML("beforeend", wrapperHTML);
@@ -88,7 +88,7 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
     screenShareWrapper.style.display = "block"; // Show the screen share wrapper
 
     // Handle the user video wrapper (small in bottom-right)
-    const userWrapper = document.querySelector(`#stream-wrapper-${uid}`);
+    const userWrapper = document.querySelector(`#stream-${uid}`);
     if (userWrapper) {
       userWrapper.classList.add("user-video-bottom-right"); // Apply bottom-right class
       userWrapper.style.width = "200px"; // Smaller size
@@ -98,7 +98,7 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
       userWrapper.style.right = "10px"; // Bottom-right corner
       userWrapper.style.display = "block"; // Ensure the user wrapper is visible
     } else {
-      console.error(`User wrapper with id #stream-wrapper-${uid} not found`);
+      console.error(`User wrapper with id #stream-${uid} not found`);
     }
   } catch (error) {
     console.error("Error in addScreenShareWrapper:", error);
@@ -127,7 +127,7 @@ export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
     }
 
     // Remove small video from the bottom-right
-    const userWrapper = document.querySelector(`#stream-wrapper-${uid}`);
+    const userWrapper = document.querySelector(`#stream-${uid}`);
     if (userWrapper) {
       userWrapper.classList.remove("user-video-bottom-right");
       userWrapper.style.display = "block"; // Restore user's video
