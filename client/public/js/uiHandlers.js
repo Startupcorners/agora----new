@@ -163,7 +163,6 @@ export const toggleCamera = async (isMuted, config) => {
   }
 };
 
-import { addScreenShareWithUser } from "./path-to-your-file";
 
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
