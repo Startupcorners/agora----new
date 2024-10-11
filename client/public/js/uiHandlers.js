@@ -237,13 +237,19 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // Hide all other video wrappers including the current user
+      // Hide all other video wrappers, including the current user's wrapper
       const allWrappers = document.querySelectorAll(
         "#video-stage .stream-wrapper"
       );
       allWrappers.forEach((wrapper) => {
         wrapper.style.display = "none"; // Hide all other video wrappers
       });
+
+      // Explicitly hide the current user's wrapper by its ID
+      const userWrapper = document.querySelector(`#stream-wrapper-${uid}`);
+      if (userWrapper) {
+        userWrapper.style.display = "none"; // Hide the current user's wrapper
+      }
 
       // Add the screen share wrapper
       const videoStage = document.querySelector(config.callContainerSelector);
@@ -298,6 +304,12 @@ export const toggleScreenShare = async (isEnabled, config) => {
         wrapper.style.display = "block"; // Show all other video wrappers
       });
 
+      // Show the current user's wrapper again
+      const userWrapper = document.querySelector(`#stream-wrapper-${uid}`);
+      if (userWrapper) {
+        userWrapper.style.display = "block"; // Show the current user's wrapper again
+      }
+
       // Remove the screen share player's DOM elements
       const screenShareWrapper = document.querySelector(
         "#screen-share-wrapper"
@@ -322,6 +334,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
+
 
 
 // RTM Join function for screen share
