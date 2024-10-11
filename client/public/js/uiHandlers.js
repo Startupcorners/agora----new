@@ -163,6 +163,8 @@ export const toggleCamera = async (isMuted, config) => {
   }
 };
 
+import { addScreenShareWithUser } from "./path-to-your-file";
+
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
     const uid = config.uid; // Main UID
@@ -224,9 +226,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
           "Screen share track created:",
           config.localScreenShareTrack
         );
-
-        // Call addScreenShareWithUser to modify the UI and prepare it for the stream
-        addScreenShareWithUser(config);
       } catch (error) {
         console.error("Error creating screen share track:", error);
 
@@ -245,22 +244,21 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
+      // Ensure the local video track exists for the user
+      if (!config.localVideoTrack) {
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // If not created, create the user video track
+      }
+
+      // **Add the screen share and user wrapper and play the streams**
+      addScreenShareWithUser(
+        config,
+        config.localScreenShareTrack,
+        config.localVideoTrack
+      ); // Pass screen share and user video track
+
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
       console.log("Screen share track published.");
-
-      // **Play the screen share track after the wrapper is created**
-      const screenSharePlayer = document.querySelector(
-        `#stream-${screenShareUid}`
-      );
-      if (screenSharePlayer) {
-        console.log(`Playing screen share for ${screenShareUid}`);
-        config.localScreenShareTrack.play(screenSharePlayer); // Play the screen share track in the wrapper
-      } else {
-        console.error(
-          `Screen share player with id #stream-${screenShareUid} not found`
-        );
-      }
 
       // Handle track-ended event
       config.localScreenShareTrack.on("track-ended", async () => {
@@ -290,7 +288,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       // Remove the screen share player's DOM elements
       const screenShareWrapper = document.querySelector(
-        `#participant-${config.screenShareUid}`
+        `#screen-share-wrapper`
       );
       if (screenShareWrapper) {
         screenShareWrapper.remove();

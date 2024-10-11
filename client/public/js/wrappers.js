@@ -161,7 +161,11 @@ export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
   }
 };
 
-export function addScreenShareWithUser(config) {
+export function addScreenShareWithUser(
+  config,
+  screenShareTrack,
+  userVideoTrack
+) {
   const videoStage = document.querySelector("#video-stage");
 
   // Clear previous elements in video stage (optional)
@@ -192,4 +196,16 @@ export function addScreenShareWithUser(config) {
   videoStage.appendChild(screenShareWrapper);
 
   console.log("Screen share and user wrapper added to the stage.");
+
+  // Play the screen share track in the screen share wrapper
+  if (screenShareTrack && typeof screenShareTrack.play === "function") {
+    const screenShareElement = document.getElementById("screen-share-wrapper");
+    screenShareTrack.play(screenShareElement); // Play screen share track
+  }
+
+  // Play the user video track in the small user video wrapper
+  if (userVideoTrack && typeof userVideoTrack.play === "function") {
+    const userVideoElement = document.getElementById(`stream-${config.uid}`);
+    userVideoTrack.play(userVideoElement); // Play user video track
+  }
 }
