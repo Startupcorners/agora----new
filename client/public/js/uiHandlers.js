@@ -183,10 +183,17 @@ export const toggleScreenShare = async (isEnabled, config) => {
         console.log("No camera track found, creating it now...");
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
 
-        // Publish the camera track as a low stream (fallback in case of bandwidth issues)
-        await config.client.publish([config.localVideoTrack], {
-          priority: "low", // Marking camera as a lower priority
+        // Set dual stream mode to allow both camera and screen share streams
+        await config.client.enableDualStream();
+        await config.client.setLowStreamParameter({
+          width: 640,
+          height: 360,
+          framerate: 15,
+          bitrate: 500,
         });
+
+        // Publish the camera track (low priority as fallback)
+        await config.client.publish([config.localVideoTrack]);
       }
 
       // Create the screen share track
@@ -210,10 +217,8 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // Publish the screen share track as a high-priority stream
-      await config.client.publish([config.localScreenShareTrack], {
-        priority: "high", // Marking screen share as the high-priority stream
-      });
+      // Publish the screen share track as the high-priority stream
+      await config.client.publish([config.localScreenShareTrack]);
 
       // Update the UI
       await addUserWrapper({ uid: uid, ...config.user }, config);
@@ -268,7 +273,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
-
 
 
 
