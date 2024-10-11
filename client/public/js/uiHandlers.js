@@ -178,23 +178,33 @@ export const toggleScreenShare = async (isEnabled, config) => {
     if (isEnabled) {
       console.log("Starting screen share");
 
-      // Ensure camera track is already published
-      if (!config.localVideoTrack) {
-        console.log("No camera track found, creating it now...");
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-
-        // Set dual stream mode to allow both camera and screen share streams
-        await config.client.enableDualStream();
-        await config.client.setLowStreamParameter({
-          width: 640,
-          height: 360,
-          framerate: 15,
-          bitrate: 500,
+      // Create a separate Agora client for screen share if not already initialized
+      if (!config.screenShareClient) {
+        console.log("Initializing screenShareClient");
+        config.screenShareClient = AgoraRTC.createClient({
+          mode: "rtc",
+          codec: "vp8",
         });
-
-        // Publish the camera track (low priority as fallback)
-        await config.client.publish([config.localVideoTrack]);
       }
+
+      // Generate a unique UID for screen sharing (different from the camera UID)
+      const screenShareUid = parseInt(uid.toString().slice(0, -1), 10);
+      config.screenShareUid = screenShareUid;
+
+      // Fetch a new token for screenShareUid
+      const tokens = await fetchTokens({
+        ...config,
+        uid: screenShareUid,
+      });
+      if (!tokens) throw new Error("Failed to fetch token for screen share");
+
+      // Join the channel with the screenShareClient
+      await config.screenShareClient.join(
+        config.appId,
+        config.channelName,
+        tokens.rtcToken,
+        screenShareUid
+      );
 
       // Create the screen share track
       try {
@@ -217,19 +227,21 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // Publish the screen share track as the high-priority stream
-      await config.client.publish([config.localScreenShareTrack]);
+      // Publish the screen share track using the separate client
+      await config.screenShareClient.publish([config.localScreenShareTrack]);
 
       // Update the UI
-      await addUserWrapper({ uid: uid, ...config.user }, config);
+      await addUserWrapper({ uid: screenShareUid, ...config.user }, config);
 
       // Play the screen share track locally
-      const screenSharePlayer = document.querySelector(`#stream-${uid}-screen`);
+      const screenSharePlayer = document.querySelector(
+        `#stream-${screenShareUid}`
+      );
       if (screenSharePlayer) {
         config.localScreenShareTrack.play(screenSharePlayer);
       } else {
         console.error(
-          `Screen share player with id #stream-${uid}-screen not found`
+          `Screen share player with id #stream-${screenShareUid} not found`
         );
       }
 
@@ -241,17 +253,27 @@ export const toggleScreenShare = async (isEnabled, config) => {
     } else {
       console.log("Stopping screen share");
 
-      // Unpublish the screen share track and stop it
+      // Unpublish the screen share track and leave the channel
       if (config.localScreenShareTrack) {
-        await config.client.unpublish([config.localScreenShareTrack]);
+        await config.screenShareClient.unpublish([
+          config.localScreenShareTrack,
+        ]);
         config.localScreenShareTrack.stop();
         config.localScreenShareTrack.close();
         config.localScreenShareTrack = null;
       }
 
+      // Leave the screenShareClient channel
+      if (config.screenShareClient) {
+        await config.screenShareClient.leave();
+        config.screenShareClient = null;
+      }
+
+      config.screenShareUid = null;
+
       // Remove the screen share player's DOM elements
       const screenShareWrapper = document.querySelector(
-        `#participant-${uid}-screen`
+        `#participant-${config.screenShareUid}`
       );
       if (screenShareWrapper) {
         screenShareWrapper.remove();
@@ -273,7 +295,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
-
 
 
 
