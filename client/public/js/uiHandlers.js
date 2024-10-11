@@ -162,7 +162,6 @@ export const toggleCamera = async (isMuted, config) => {
   }
 };
 
-
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
     const uid = config.uid; // Main UID
@@ -243,11 +242,23 @@ export const toggleScreenShare = async (isEnabled, config) => {
         "#video-stage .stream-wrapper"
       );
       allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "none";
+        wrapper.style.display = "none"; // Hide all other video wrappers
       });
 
-      // **Add the screen share wrapper**
-      addScreenShareWithUser(config, config.localScreenShareTrack);
+      // Add the screen share wrapper
+      const videoStage = document.querySelector(config.callContainerSelector);
+      const screenShareWrapperHTML = `
+        <div id="screen-share-wrapper" class="fullscreen-wrapper" style="width: 100%; height: 100%; position: relative;">
+          <div id="stream-${screenShareUid}" class="stream fullscreen-wrapper"></div>
+        </div>
+      `;
+      videoStage.insertAdjacentHTML("beforeend", screenShareWrapperHTML);
+
+      // Play the screen share track in the screen share wrapper
+      const screenShareElement = document.getElementById(
+        `stream-${screenShareUid}`
+      );
+      config.localScreenShareTrack.play(screenShareElement);
 
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
@@ -284,7 +295,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
         "#video-stage .stream-wrapper"
       );
       allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "block";
+        wrapper.style.display = "block"; // Show all other video wrappers
       });
 
       // Remove the screen share player's DOM elements
