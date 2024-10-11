@@ -10,9 +10,9 @@ module.exports = async (req, res) => {
 
   // Set no-cache headers to prevent caching of token responses
   res.set({
-    "Cache-Control": "no-cache, no-store, must-revalidate", // HTTP 1.1
-    Pragma: "no-cache", // HTTP 1.0
-    Expires: "0", // Force immediate expiration
+    "Cache-Control": "no-cache, no-store, must-revalidate",
+    Pragma: "no-cache",
+    Expires: "0",
   });
 
   if (req.method !== "GET") {
@@ -37,13 +37,11 @@ module.exports = async (req, res) => {
     // Determine if UID is numeric
     const isNumericUid = /^\d+$/.test(uid);
 
-    // Generate RTC token
+    // Generate RTC token for the regular user
     const rtcRole =
       role === "publisher" ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
-
     let rtcToken;
     if (isNumericUid) {
-      // UID is numeric
       rtcToken = RtcTokenBuilder.buildTokenWithUid(
         process.env.APP_ID,
         process.env.APP_CERTIFICATE,
@@ -52,9 +50,7 @@ module.exports = async (req, res) => {
         rtcRole,
         privilegeExpiredTs
       );
-      console.log("Using buildTokenWithUid for RTC token.");
     } else {
-      // UID is string
       rtcToken = RtcTokenBuilder.buildTokenWithAccount(
         process.env.APP_ID,
         process.env.APP_CERTIFICATE,
@@ -63,10 +59,9 @@ module.exports = async (req, res) => {
         rtcRole,
         privilegeExpiredTs
       );
-      console.log("Using buildTokenWithAccount for RTC token.");
     }
 
-    // Generate RTM token
+    // Generate RTM token for the regular user
     const rtmToken = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
@@ -75,15 +70,37 @@ module.exports = async (req, res) => {
       privilegeExpiredTs
     );
 
-    console.log("APP ID:", process.env.APP_ID);
-    console.log("UID:", uid);
-    console.log("Generated RTC Token:", rtcToken);
-    console.log("Generated RTM Token:", rtmToken);
+    // Generate separate tokens for screen share UID (modify the UID slightly)
+    const screenShareUid = isNumericUid
+      ? parseInt(uid.toString().slice(0, -1), 10) // For numeric UIDs
+      : uid + "-screen"; // For string UIDs, append '-screen'
+
+    const screenShareRtcToken = RtcTokenBuilder.buildTokenWithUid(
+      process.env.APP_ID,
+      process.env.APP_CERTIFICATE,
+      channelName,
+      parseInt(screenShareUid, 10), // Use screenShareUid
+      rtcRole,
+      privilegeExpiredTs
+    );
+
+    const screenShareRtmToken = RtmTokenBuilder.buildToken(
+      process.env.APP_ID,
+      process.env.APP_CERTIFICATE,
+      screenShareUid.toString(), // Convert to string if necessary
+      RtmRole.Rtm_User,
+      privilegeExpiredTs
+    );
+
+    console.log("Generated RTC Token for Screen Share:", screenShareRtcToken);
+    console.log("Generated RTM Token for Screen Share:", screenShareRtmToken);
 
     // Return both tokens in the response
     return res.json({
       rtcToken: rtcToken,
       rtmToken: rtmToken,
+      screenShareRtcToken: screenShareRtcToken,
+      screenShareRtmToken: screenShareRtmToken,
     });
   } catch (error) {
     console.error("Token generation failed:", error);

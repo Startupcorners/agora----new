@@ -192,21 +192,25 @@ export const toggleScreenShare = async (isEnabled, config) => {
       const screenShareUid = parseInt(uid.toString().slice(0, -1), 10);
       config.screenShareUid = screenShareUid;
 
-      // Fetch a new token for screenShareUid
+      // Fetch a new token for screenShareUid from your backend
       const tokens = await fetchTokens({
         ...config,
-        uid: screenShareUid,
+        uid: screenShareUid, // Send screenShareUid to get tokens specifically for screen share
       });
       if (!tokens) throw new Error("Failed to fetch token for screen share");
 
-      // Join the RTM with screen share client
-      await joinRTMForScreenShare(tokens.rtmToken, screenShareUid, config); // RTM join function for screen sharing
+      // Join RTM for screen sharing
+      await joinRTMForScreenShare(
+        tokens.screenShareRtmToken,
+        screenShareUid,
+        config
+      );
 
-      // Join the channel with the screenShareClient
+      // Join the RTC channel with the screenShareClient
       await config.screenShareClient.join(
         config.appId,
         config.channelName,
-        tokens.rtcToken,
+        tokens.screenShareRtcToken, // Use RTC token for screen sharing
         screenShareUid
       );
 
