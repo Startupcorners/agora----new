@@ -207,37 +207,11 @@ export const handleUserJoined = async (user, config) => {
   try {
     // Convert UID to string
     const userUid = user.uid.toString();
-
-    // Detect if the user is a screen share UID
-    const isScreenShare = userUid.endsWith("-screen");
-    let mainUid = userUid;
     let userRole = null;
     let userAttr = {};
 
-    if (isScreenShare) {
-      // For screen share UID, extract the main UID
-      mainUid = userUid.replace("-screen", "");
-
-      // Assume the role is the same as the main user (likely 'host')
-      userRole = "host";
-
-      // Get main user's attributes from participantList or config
-      const mainUser = config.participantList.find((p) => p.uid === mainUid);
-      if (mainUser) {
-        userAttr = {
-          name: mainUser.name,
-          company: mainUser.company,
-          designation: mainUser.designation,
-        };
-      } else {
-        userAttr = {
-          name: config.user.name || "Unknown",
-          company: config.user.company || "",
-          designation: config.user.designation || "",
-        };
-      }
-    } else {
-      // For regular UIDs, fetch user attributes from RTM
+    // Only fetch attributes if config.clientRTM exists and attributes are expected
+    if (config.clientRTM && config.fetchAttributes) {
       try {
         userAttr = await config.clientRTM.getUserAttributes(userUid);
       } catch (error) {
@@ -251,14 +225,16 @@ export const handleUserJoined = async (user, config) => {
           designation: "",
         };
       }
+    } else {
+      console.log(`Skipping attribute fetch for user ${userUid}.`);
+    }
 
-      // Ensure user has a role assigned in RTM
-      if (userAttr.role) {
-        userRole = userAttr.role;
-      } else {
-        console.warn(`User ${userUid} does not have a role assigned.`);
-        userRole = "audience"; // Assign a default role
-      }
+    // Ensure user has a role assigned in RTM
+    if (userAttr.role) {
+      userRole = userAttr.role;
+    } else {
+      console.warn(`User ${userUid} does not have a role assigned.`);
+      userRole = "audience"; // Assign a default role
     }
 
     // Add the role to the user object
@@ -293,12 +269,12 @@ export const handleUserJoined = async (user, config) => {
     }
 
     // Check if participant already exists in participantList
-    let participant = config.participantList.find((p) => p.uid === mainUid);
+    let participant = config.participantList.find((p) => p.uid === userUid);
 
     if (!participant) {
       // Add the new user's info to participantList
       participant = {
-        uid: mainUid,
+        uid: userUid,
         uids: [userUid],
         name: userAttr.name || "Unknown",
         company: userAttr.company || "",
