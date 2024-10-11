@@ -157,13 +157,6 @@ export const toggleCamera = async (isMuted, config) => {
 
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
-    const uid = config.uid; // UID is already a string
-
-    if (!uid) {
-      console.error("UID is not set in config.");
-      return;
-    }
-
     if (!config.client) {
       console.error("Agora client is not initialized!");
       return;
@@ -176,39 +169,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
     if (isEnabled) {
       console.log("Starting screen share");
-
-      // Initialize screenShareClient if not already done
-      if (!config.screenShareClient) {
-        console.log("Initializing screenShareClient");
-        config.screenShareClient = AgoraRTC.createClient({
-          mode: "live",
-          codec: "vp8",
-        });
-      }
-
-      // Generate a unique UID for screen sharing
-      const screenShareUid = `${uid}-screen`; // Use a string UID
-      config.screenShareUid = screenShareUid;
-
-      // Fetch a new token for screenShareUid
-      const tokens = await fetchTokens({
-        ...config,
-        uid: screenShareUid,
-      });
-      if (!tokens) throw new Error("Failed to fetch token for screen share");
-
-      // Join the channel with screenShareClient
-      await config.screenShareClient.join(
-        config.appId,
-        config.channelName,
-        tokens.rtcToken,
-        screenShareUid
-      );
-
-      // Set client role to "host" for screenShareClient
-      await config.screenShareClient.setClientRole("host");
-
-      // Remove RTM login and attribute setting
 
       // Create the screen share track
       try {
@@ -231,23 +191,13 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // Publish the screen share track with screenShareClient
-      await config.screenShareClient.publish([config.localScreenShareTrack]);
+      // Publish the screen share track with the same client
+      await config.client.publish([config.localScreenShareTrack]);
 
-      // Add user wrapper for screen share
-      await addUserWrapper({ uid: screenShareUid, ...config.user }, config);
+      console.log("Successfully published screen share track");
 
-      // Play the screen share track
-      const screenSharePlayer = document.querySelector(
-        `#stream-${screenShareUid}`
-      );
-      if (screenSharePlayer) {
-        config.localScreenShareTrack.play(screenSharePlayer);
-      } else {
-        console.error(
-          `Screen share player with id #stream-${screenShareUid} not found`
-        );
-      }
+      // Update the UI to display the screen share track
+      // For local user, manage the UI as per your application's requirements
 
       // Handle track-ended event
       config.localScreenShareTrack.on("track-ended", async () => {
@@ -257,31 +207,15 @@ export const toggleScreenShare = async (isEnabled, config) => {
     } else {
       console.log("Stopping screen share");
 
-      // Unpublish the screen share track and leave the channel
+      // Unpublish the screen share track
       if (config.localScreenShareTrack) {
-        await config.screenShareClient.unpublish([
-          config.localScreenShareTrack,
-        ]);
+        await config.client.unpublish([config.localScreenShareTrack]);
         config.localScreenShareTrack.stop();
         config.localScreenShareTrack.close();
         config.localScreenShareTrack = null;
       }
 
-      // Leave the screenShareClient channel
-      if (config.screenShareClient) {
-        await config.screenShareClient.leave();
-        config.screenShareClient = null;
-      }
-
-      config.screenShareUid = null;
-
-      // Remove the screen share player's DOM elements
-      const screenShareWrapper = document.querySelector(
-        `#participant-${config.screenShareUid}`
-      );
-      if (screenShareWrapper) {
-        screenShareWrapper.remove();
-      }
+      // Update the UI to remove the screen share track
     }
 
     config.localScreenShareEnabled = isEnabled;
