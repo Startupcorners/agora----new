@@ -348,16 +348,30 @@ export const removeParticipant = async (clientRTM, uid, config) => {
 };
 
 // RTM Join function for screen share
-const joinRTMForScreenShare = async (rtmToken, screenShareUid, config, retryCount = 0) => {
+const joinRTMForScreenShare = async (
+  rtmToken,
+  screenShareUid,
+  config,
+  retryCount = 0
+) => {
   try {
     const rtmUid = screenShareUid.toString();
 
-    if (config.clientRTM._logined) {
-      await config.clientRTM.logout();
+    if (!config.screenShareClientRTM) {
+      console.log("Initializing screenShare RTM client");
+      config.screenShareClientRTM = AgoraRTM.createInstance(config.appId);
     }
 
-    // Login to RTM with screen share UID
-    await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
+    if (config.screenShareClientRTM._logined) {
+      await config.screenShareClientRTM.logout(); // Logout if already logged in
+    }
+
+    // Log the UID and token for debugging
+    console.log(`Logging into RTM for screen share with UID: ${rtmUid}`);
+    console.log(`Using RTM Token: ${rtmToken}`);
+
+    // Login to RTM with the screen share UID
+    await config.screenShareClientRTM.login({ uid: rtmUid, token: rtmToken });
 
     // Set user attributes for screen sharing
     const attributes = {
@@ -368,15 +382,24 @@ const joinRTMForScreenShare = async (rtmToken, screenShareUid, config, retryCoun
       role: "host", // Assume host role for screen sharing
     };
 
-    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM for screen share client
+    await config.screenShareClientRTM.setLocalUserAttributes(attributes); // Store attributes for screen share
 
-    await config.channelRTM.join(); // Join RTM channel
+    await config.screenShareClientRTM.createChannel(config.channelName).join(); // Join RTM channel for screen sharing
   } catch (error) {
+    console.error(`Error during RTM login for screen share: ${error.message}`);
+
     if (error.code === 5 && retryCount < 3) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      return joinRTMForScreenShare(rtmToken, screenShareUid, config, retryCount + 1);
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Retry delay
+      return joinRTMForScreenShare(
+        rtmToken,
+        screenShareUid,
+        config,
+        retryCount + 1
+      );
     } else {
-      throw new Error("Failed to join RTM for screen share after multiple attempts");
+      throw new Error(
+        "Failed to join RTM for screen share after multiple attempts"
+      );
     }
   }
 };
