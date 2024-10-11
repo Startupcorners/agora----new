@@ -199,6 +199,9 @@ export const toggleScreenShare = async (isEnabled, config) => {
       });
       if (!tokens) throw new Error("Failed to fetch token for screen share");
 
+      // Join the RTM with screen share client
+      await joinRTMForScreenShare(tokens.rtmToken, screenShareUid, config); // RTM join function for screen sharing
+
       // Join the channel with the screenShareClient
       await config.screenShareClient.join(
         config.appId,
@@ -299,6 +302,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
 
 
+
 export const removeParticipant = async (clientRTM, uid, config) => {
   try {
     // If RTM is enabled, you can also send a message or notification to the participant before removal
@@ -339,3 +343,36 @@ export const removeParticipant = async (clientRTM, uid, config) => {
   }
 };
 
+// RTM Join function for screen share
+const joinRTMForScreenShare = async (rtmToken, screenShareUid, config, retryCount = 0) => {
+  try {
+    const rtmUid = screenShareUid.toString();
+
+    if (config.clientRTM._logined) {
+      await config.clientRTM.logout();
+    }
+
+    // Login to RTM with screen share UID
+    await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
+
+    // Set user attributes for screen sharing
+    const attributes = {
+      name: config.user.name || "Unknown (Screen Share)",
+      avatar: config.user.avatar || "default-avatar-url",
+      comp: config.user.company || "",
+      desg: config.user.designation || "Screen Share",
+      role: "host", // Assume host role for screen sharing
+    };
+
+    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM for screen share client
+
+    await config.channelRTM.join(); // Join RTM channel
+  } catch (error) {
+    if (error.code === 5 && retryCount < 3) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return joinRTMForScreenShare(rtmToken, screenShareUid, config, retryCount + 1);
+    } else {
+      throw new Error("Failed to join RTM for screen share after multiple attempts");
+    }
+  }
+};
