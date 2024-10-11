@@ -155,31 +155,17 @@ export const toggleCamera = async (isMuted, config) => {
   }
 };
 
-
-export const toggleScreenShare = async (
-  isEnabled,
-  config,
-  wasCameraOnBeforeSharing
-) => {
+export const toggleScreenShare = async (isEnabled, config) => {
   try {
     const uid = config.uid;
 
-    // Ensure UID is set
     if (!uid) {
       console.error("UID is not set in config.");
       return;
     }
 
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatar = document.querySelector(`#avatar-${uid}`);
-
     if (!config.client) {
       console.error("Agora client is not initialized!");
-      return;
-    }
-
-    if (!videoPlayer) {
-      console.error(`Video player with id #stream-${uid} not found`);
       return;
     }
 
@@ -190,65 +176,108 @@ export const toggleScreenShare = async (
 
     if (isEnabled) {
       console.log("Starting screen share");
-      wasCameraOnBeforeSharing = !config.localVideoTrackMuted;
 
-      // Create the screen share track if it doesn't already exist
-      if (!config.localScreenShareTrack) {
-        console.log("Creating screen share track...");
-        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+      // Initialize screenShareClient if not already done
+      if (!config.screenShareClient) {
+        console.log("Initializing screenShareClient");
+        config.screenShareClient = AgoraRTC.createClient({
+          mode: "live",
+          codec: "vp8",
+        });
       }
 
-      // Stop and unpublish the local video track before screen share
-      if (config.localVideoTrack) {
-        console.log(
-          "Stopping and unpublishing local video track before screen share..."
-        );
-        config.localVideoTrack.stop();
-        await config.client.unpublish([config.localVideoTrack]);
-      }
+      // Generate a unique UID for screen sharing
+      const screenShareUid = Number(`${uid}12345`); // Ensure this UID is unique and a number
+      config.screenShareUid = screenShareUid;
 
-      // Play and publish the screen share track
-      config.localScreenShareTrack.on("track-ended", async () => {
-        console.log("Screen share track ended, reverting back to camera");
-        await toggleScreenShare(false, config, wasCameraOnBeforeSharing);
+      // Fetch a new token for screenShareUid
+      const tokens = await fetchTokens({
+        ...config,
+        uid: screenShareUid,
       });
+      if (!tokens) throw new Error("Failed to fetch token for screen share");
 
-      await config.client.publish([config.localScreenShareTrack]);
-
-      // Use toggleVideoOrAvatar to handle video or avatar display
-      toggleVideoOrAvatar(
-        uid,
-        config.localScreenShareTrack,
-        avatar,
-        videoPlayer
+      // Join the channel with screenShareClient
+      await config.screenShareClient.join(
+        config.appId,
+        config.channelName,
+        tokens.rtcToken,
+        screenShareUid
       );
+
+      // Set client role to "host" for screenShareClient
+      await config.screenShareClient.setClientRole("host");
+
+      // Create the screen share track
+      try {
+        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+      } catch (error) {
+        console.error("Error creating screen share track:", error);
+
+        // Handle user cancellation
+        if (
+          error.name === "NotAllowedError" ||
+          error.message.includes("Permission denied")
+        ) {
+          console.log("User canceled the screen sharing prompt.");
+          if (typeof bubble_fn_isScreenOn === "function") {
+            bubble_fn_isScreenOn(false);
+          }
+          return;
+        } else {
+          throw error;
+        }
+      }
+
+      // Publish the screen share track with screenShareClient
+      await config.screenShareClient.publish([config.localScreenShareTrack]);
+
+      // Add user wrapper for screen share
+      await addUserWrapper({ uid: screenShareUid, ...config.user }, config);
+
+      // Play the screen share track
+      const screenSharePlayer = document.querySelector(
+        `#stream-${screenShareUid}`
+      );
+      if (screenSharePlayer) {
+        config.localScreenShareTrack.play(screenSharePlayer);
+      } else {
+        console.error(
+          `Screen share player with id #stream-${screenShareUid} not found`
+        );
+      }
+
+      // Handle track-ended event
+      config.localScreenShareTrack.on("track-ended", async () => {
+        console.log("Screen share track ended, stopping screen share");
+        await toggleScreenShare(false, config);
+      });
     } else {
       console.log("Stopping screen share");
 
-      // Stop the screen share and revert to the camera
+      // Unpublish the screen share track and leave the channel
       if (config.localScreenShareTrack) {
-        console.log("Stopping and closing the screen share track...");
+        await config.screenShareClient.unpublish([
+          config.localScreenShareTrack,
+        ]);
         config.localScreenShareTrack.stop();
         config.localScreenShareTrack.close();
-        await config.client.unpublish([config.localScreenShareTrack]);
         config.localScreenShareTrack = null;
       }
 
-      // Reinitialize the camera track only if it was on before sharing
-      if (wasCameraOnBeforeSharing) {
-        console.log("Restoring camera track after screen share...");
-        if (!config.localVideoTrack) {
-          console.log("Creating new camera video track...");
-          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        }
+      // Leave the screenShareClient channel
+      if (config.screenShareClient) {
+        await config.screenShareClient.leave();
+        config.screenShareClient = null;
+        config.screenShareUid = null;
+      }
 
-        await config.client.publish([config.localVideoTrack]);
-
-        // Use toggleVideoOrAvatar to handle video or avatar display
-        toggleVideoOrAvatar(uid, config.localVideoTrack, avatar, videoPlayer);
-      } else {
-        console.log("Camera was off before sharing, showing avatar...");
-        toggleVideoOrAvatar(uid, null, avatar, videoPlayer); // Show avatar if the camera was off
+      // Remove the screen share player's DOM elements
+      const screenShareWrapper = document.querySelector(
+        `#participant-${config.screenShareUid}`
+      );
+      if (screenShareWrapper) {
+        screenShareWrapper.remove();
       }
     }
 
@@ -256,7 +285,7 @@ export const toggleScreenShare = async (
 
     // Call bubble_fn_isScreenOn with the current screen sharing state
     if (typeof bubble_fn_isScreenOn === "function") {
-      bubble_fn_isScreenOn(isEnabled); // 'true' when screen sharing is enabled
+      bubble_fn_isScreenOn(isEnabled);
     } else {
       console.warn("bubble_fn_isScreenOn is not defined.");
     }
@@ -265,22 +294,9 @@ export const toggleScreenShare = async (
     if (config.onError) {
       config.onError(error);
     }
-
-    // Ensure local video is active in case of an error
-    if (!isEnabled && !config.localVideoTrack) {
-      try {
-        console.log("Reinitializing camera track after error...");
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        await config.client.publish([config.localVideoTrack]);
-
-        // Use toggleVideoOrAvatar to handle video or avatar display after error
-        toggleVideoOrAvatar(uid, config.localVideoTrack, avatar, videoPlayer);
-      } catch (cameraError) {
-        console.error("Error reinitializing camera track:", cameraError);
-      }
-    }
   }
 };
+
 
 
 

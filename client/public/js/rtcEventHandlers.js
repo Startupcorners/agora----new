@@ -11,8 +11,8 @@ export const handleUserPublished = async (user, mediaType, config) => {
     `handleUserPublished for user: ${user.uid}, mediaType: ${mediaType}`
   );
 
-  // Skip subscribing to the local user's own media
-  if (user.uid === config.uid) {
+  // Skip subscribing to the local user's own media (camera and screen share)
+  if (user.uid === config.uid || user.uid === config.screenShareUid) {
     console.log("Skipping subscription to local user's own media.");
     return;
   }
@@ -25,11 +25,31 @@ export const handleUserPublished = async (user, mediaType, config) => {
   // Store the user's remote tracks
   config.remoteTracks[user.uid] = user;
 
+  // Check if the participant wrapper exists; if not, create it
+  let participantWrapper = document.querySelector(`#participant-${user.uid}`);
+  if (!participantWrapper) {
+    // Retrieve user attributes via RTM or another method
+    let attributes = {};
+    if (config.clientRTM && config.clientRTM.getUserAttributes) {
+      try {
+        attributes = await config.clientRTM.getUserAttributes(
+          user.uid.toString()
+        );
+      } catch (e) {
+        console.error(`Failed to get attributes for user ${user.uid}`, e);
+      }
+    }
+    const name = attributes.name || "Unknown";
+    const avatar = attributes.avatar || "default-avatar-url";
+
+    // Add user wrapper for the new UID
+    await addUserWrapper({ uid: user.uid, name, avatar }, config);
+  }
+
   // Wait for the wrapper to exist before proceeding
   let videoPlayer = null;
   let avatarDiv = null;
   for (let i = 0; i < 10; i++) {
-    // Try 10 times, with a delay in between
     videoPlayer = document.querySelector(`#stream-${user.uid}`);
     avatarDiv = document.querySelector(`#avatar-${user.uid}`);
     if (videoPlayer && avatarDiv) {
@@ -39,12 +59,11 @@ export const handleUserPublished = async (user, mediaType, config) => {
     await new Promise((resolve) => setTimeout(resolve, 100)); // 100ms delay
   }
 
-  // Ensure the video player and avatar div are found
   if (!videoPlayer || !avatarDiv) {
     console.error(
       `Video player or avatar div element not found for user ${user.uid}`
     );
-    return; // Stop execution if elements aren't found
+    return;
   }
 
   console.log(`Wrapper found for user ${user.uid}, proceeding with media.`);
@@ -53,13 +72,13 @@ export const handleUserPublished = async (user, mediaType, config) => {
     console.log(`Attempting to subscribe to video track for user ${user.uid}`);
 
     try {
-      await config.client.subscribe(user, mediaType); // Subscribe to the video track
+      await config.client.subscribe(user, mediaType);
 
       if (user.videoTrack && typeof user.videoTrack.play === "function") {
         console.log(`Playing video track for user ${user.uid}`);
-        user.videoTrack.play(`stream-${user.uid}`); // Play the remote video track in the designated container
-        avatarDiv.style.display = "none"; // Hide the avatar
-        videoPlayer.style.display = "block"; // Show the video player
+        user.videoTrack.play(`stream-${user.uid}`);
+        avatarDiv.style.display = "none";
+        videoPlayer.style.display = "block";
       } else {
         console.log(
           `User ${user.uid} does not have a valid video track. Showing avatar.`
@@ -79,18 +98,17 @@ export const handleUserPublished = async (user, mediaType, config) => {
     console.log(`User ${user.uid} has published an audio track.`);
 
     try {
-      // Subscribe to the audio track
       await config.client.subscribe(user, mediaType);
 
       if (user.audioTrack && typeof user.audioTrack.play === "function") {
         console.log(`Playing audio track for user ${user.uid}`);
         user.audioTrack.play();
-        toggleMicIcon(user.uid, false); // Mic is unmuted
+        toggleMicIcon(user.uid, false);
       } else {
         console.error(
           `Audio track for user ${user.uid} is invalid or missing.`
         );
-        toggleMicIcon(user.uid, true); // Mic is muted
+        toggleMicIcon(user.uid, true);
       }
     } catch (error) {
       console.error(`Error playing audio track for user ${user.uid}:`, error);
@@ -102,16 +120,22 @@ export const handleUserPublished = async (user, mediaType, config) => {
 
 
 
+
 export const handleUserUnpublished = async (user, mediaType, config) => {
   console.log(
     `handleUserUnpublished called for user: ${user.uid}, mediaType: ${mediaType}`
   );
 
+  // Skip handling for local user's own media
+  if (user.uid === config.uid || user.uid === config.screenShareUid) {
+    console.log("Skipping handling of local user's own media.");
+    return;
+  }
+
   if (mediaType === "audio") {
     console.log(`User ${user.uid} has unpublished their audio track.`);
-    toggleMicIcon(user.uid, true); // Show muted mic icon
+    toggleMicIcon(user.uid, true);
 
-    // Remove the audio track from remoteTracks
     if (config.remoteTracks[user.uid]) {
       delete config.remoteTracks[user.uid].audioTrack;
     }
@@ -123,18 +147,18 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
     const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
     if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none"; // Hide the video player
-      avatarDiv.style.display = "block"; // Show the avatar
+      videoPlayer.style.display = "none";
+      avatarDiv.style.display = "block";
     } else {
       console.warn(`Video player or avatar div not found for user ${user.uid}`);
     }
 
-    // Remove the video track from remoteTracks
     if (config.remoteTracks[user.uid]) {
       delete config.remoteTracks[user.uid].videoTrack;
     }
   }
 };
+
 
 
 

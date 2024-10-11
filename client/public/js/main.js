@@ -1,13 +1,15 @@
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
 import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
-import { handleRenewToken, handleUserJoined, handleUserPublished } from "./rtcEventHandlers.js"; // Token renewal handler
+import {
+  handleRenewToken,
+  handleUserJoined,
+  handleUserPublished,
+} from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
-
-
 
 const newMainApp = function (initConfig) {
   let config = {
@@ -33,6 +35,8 @@ const newMainApp = function (initConfig) {
     channelName: null,
     localAudioTrack: null,
     localVideoTrack: null,
+    screenShareClient: null,
+    screenShareUid: null,
     localScreenShareTrack: null,
     localScreenShareEnabled: false,
     localAudioTrackMuted: false,
@@ -67,7 +71,9 @@ const newMainApp = function (initConfig) {
   // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
   config.clientRTM = AgoraRTM.createInstance(config.appId, {
     enableLogUpload: false,
-    logFilter: config.debugEnabled ? AgoraRTM.LOG_FILTER_INFO : AgoraRTM.LOG_FILTER_OFF,
+    logFilter: config.debugEnabled
+      ? AgoraRTM.LOG_FILTER_INFO
+      : AgoraRTM.LOG_FILTER_OFF,
   });
 
   // Initialize RTM Channel
@@ -78,61 +84,69 @@ const newMainApp = function (initConfig) {
   config = { ...config, ...callbacks };
 
   // Join RTC and RTM
-const join = async () => {
-  try {
-    const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
-    if (!tokens) throw new Error("Failed to fetch token");
+  const join = async () => {
+    try {
+      const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
+      if (!tokens) throw new Error("Failed to fetch token");
 
-    // Ensure the user has a role assigned
-    if (!config.user.role) {
-      throw new Error("User does not have a role assigned.");
-    }
+      // Ensure the user has a role assigned
+      if (!config.user.role) {
+        throw new Error("User does not have a role assigned.");
+      }
 
-    // Set RTC role based on the user's role
-    if (config.user.role === "host") {
-      await config.client.setClientRole("host");
-    } else {
-      await config.client.setClientRole("audience");
-    }
+      // Set RTC role based on the user's role
+      if (config.user.role === "host") {
+        await config.client.setClientRole("host");
+      } else {
+        await config.client.setClientRole("audience");
+      }
 
-    // Initialize participantList with the local user's info
-    config.participantList = [
-      {
-        uid: config.uid,
-        name: config.user.name || "Unknown",
-        company: config.user.company || "",
-        designation: config.user.designation || "",
-      },
-    ];
+      // Initialize participantList with the local user's info
+      config.participantList = [
+        {
+          mainUid: config.uid,
+          uids: [config.uid],
+          name: config.user.name || "Unknown",
+          company: config.user.company || "",
+          designation: config.user.designation || "",
+        },
+      ];
 
-    // Join RTM if using it
-    await joinRTM(tokens.rtmToken); // Make sure joinRTM is properly defined
+      // Join RTM
+      await joinRTM(tokens.rtmToken);
 
-    console.log("config.uid before joining RTC", config.uid);
-    await config.client.join(
-      config.appId,
-      config.channelName,
-      tokens.rtcToken,
-      config.uid
-    );
+      console.log("config.uid before joining RTC", config.uid);
+      await config.client.join(
+        config.appId,
+        config.channelName,
+        tokens.rtcToken,
+        config.uid
+      );
 
-    console.log("config.uid before setting up listeners", config.uid);
-    setupEventListeners(config); // Setup RTC listeners
+      console.log("config.uid before setting up listeners", config.uid);
+      setupEventListeners(config); // Setup RTC listeners
 
-    // If the user is a host, join the video stage
-    if (config.user.role === "host") {
-      await joinToVideoStage(config); // Ensure joinToVideoStage is properly defined
-    }
+      // If the user is a host, join the video stage
+      if (config.user.role === "host") {
+        await joinToVideoStage(config);
+      }
 
-    // Subscribe to existing remote users' media tracks (video/audio)
-    const remoteUsers = config.client.remoteUsers;
+      // Subscribe to existing remote users' media tracks (video/audio)
+      const remoteUsers = config.client.remoteUsers;
 
-    if (remoteUsers && remoteUsers.length > 0) {
-      console.log(`Subscribing to ${remoteUsers.length} remote users`);
-      for (const remoteUser of remoteUsers) {
-        // Skip subscription if the remote user is the current user
-        if (remoteUser.uid !== config.uid) {
-          // Get RTM attributes of the remote user if needed
+      if (remoteUsers && remoteUsers.length > 0) {
+        console.log(`Subscribing to ${remoteUsers.length} remote users`);
+        for (const remoteUser of remoteUsers) {
+          // Skip subscription if the remote user is the current user or their screen share
+          if (
+            remoteUser.uid === config.uid ||
+            remoteUser.uid === config.screenShareUid
+          ) {
+            console.log("Skipping subscription to local user's own media.");
+            continue;
+          }
+
+          // Get RTM attributes of the remote user
           let attributes = {};
           try {
             attributes = await config.clientRTM.getUserAttributes(
@@ -147,22 +161,32 @@ const join = async () => {
 
           // Extract attributes
           const name = attributes.name || "Unknown";
+          const avatar = attributes.avatar || "default-avatar-url";
           const company = attributes.comp || "";
           const designation = attributes.desg || "";
+          const mainUid = attributes.mainUid || remoteUser.uid.toString();
 
-          // Check if user already exists in participantList
-          const userExists = config.participantList.some(
-            (participant) => participant.uid === remoteUser.uid
+          // Check if participant already exists in participantList
+          let participant = config.participantList.find(
+            (p) => p.mainUid === mainUid
           );
 
-          if (!userExists) {
-            // Add remote user's info to participantList
-            config.participantList.push({
-              uid: remoteUser.uid,
+          if (participant) {
+            // Add the new UID to the participant's uids array if not already present
+            if (!participant.uids.includes(remoteUser.uid)) {
+              participant.uids.push(remoteUser.uid);
+            }
+          } else {
+            // Add new participant to participantList
+            participant = {
+              mainUid: mainUid,
+              uids: [remoteUser.uid],
               name: name,
+              avatar: avatar,
               company: company,
               designation: designation,
-            });
+            };
+            config.participantList.push(participant);
           }
 
           // Ensure the user is fully joined and the wrapper is ready
@@ -184,154 +208,301 @@ const join = async () => {
           }
         }
       }
+
+      // Notify with the list of participants' UIDs and other info
+      if (typeof bubble_fn_participantList === "function") {
+        const participantData = config.participantList.map((p) => ({
+          mainUid: p.mainUid.toString(),
+          uids: p.uids.map((uid) => uid.toString()),
+          name: p.name,
+          avatar: p.avatar,
+          company: p.company,
+          designation: p.designation,
+        }));
+
+        bubble_fn_participantList({
+          participants: participantData,
+        });
+      }
+
+      // Handle token renewal
+      config.client.on("token-privilege-will-expire", handleRenewToken);
+
+      // Notify success using bubble_fn_joining
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Joined");
+      }
+    } catch (error) {
+      console.error("Error before joining:", error);
+
+      // Notify error using bubble_fn_joining
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Error");
+      }
     }
-
-    // Notify with the list of participants' UIDs and other info
-    if (typeof bubble_fn_participantList === "function") {
-      const participantUIDs = config.participantList.map((p) =>
-        p.uid.toString()
-      );
-      const participantNames = config.participantList.map((p) => p.name);
-      const participantCompanies = config.participantList.map((p) => p.company);
-      const participantDesignations = config.participantList.map(
-        (p) => p.designation
-      );
-
-      bubble_fn_participantList({
-        outputlist1: participantUIDs, // Pass as array
-        outputlist2: participantNames,
-        outputlist3: participantCompanies,
-        outputlist4: participantDesignations,
-      });
-    }
-
-    // Handle token renewal
-    config.client.on("token-privilege-will-expire", handleRenewToken); // Ensure handleRenewToken is defined
-
-    // Notify success using bubble_fn_joining
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Joined");
-    }
-  } catch (error) {
-    console.error("Error before joining:", error);
-
-    // Notify error using bubble_fn_joining
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Error");
-    }
-  }
-};
-
-
-
-
+  };
 
   // RTM Join function
-const joinRTM = async (rtmToken, retryCount = 0) => {
-  try {
-    const rtmUid = config.uid.toString();
-    console.log("rtmuid value", rtmUid);
+  const joinRTM = async (rtmToken, retryCount = 0) => {
+    try {
+      const rtmUid = config.uid.toString();
+      console.log("rtmuid value", rtmUid);
 
-    if (config.clientRTM._logined) {
-      await config.clientRTM.logout();
+      if (config.clientRTM._logined) {
+        await config.clientRTM.logout();
+      }
+
+      // Login to RTM
+      await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
+
+      // Set user attributes, including the role
+      const attributes = {
+        name: config.user.name || "Unknown",
+        avatar: config.user.avatar || "default-avatar-url",
+        comp: config.user.company || "",
+        desg: config.user.designation || "",
+        role: config.user.role || "audience",
+      };
+
+      await config.clientRTM.setLocalUserAttributes(attributes);
+
+      await config.channelRTM.join();
+    } catch (error) {
+      if (error.code === 5 && retryCount < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        return joinRTM(rtmToken, retryCount + 1);
+      } else {
+        throw new Error("Failed to join RTM after multiple attempts");
+      }
     }
-
-    // Login to RTM
-    await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
-
-    // Set user attributes, including the role
-    const attributes = {
-      name: config.user.name || "Unknown",
-      avatar: config.user.avatar || "default-avatar-url",
-      comp: config.user.company || "",
-      desg: config.user.designation || "",
-      role: config.user.role || "audience", // Add the role to RTM attributes
-    };
-
-    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
-
-    await config.channelRTM.join();
-  } catch (error) {
-    if (error.code === 5 && retryCount < 3) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      return joinRTM(rtmToken, retryCount + 1);
-    } else {
-      throw new Error("Failed to join RTM after multiple attempts");
-    }
-  }
-};
+  };
 
   // Join video stage function
-const joinToVideoStage = async (config) => {
-  try {
-    const { user, client } = config;
+  const joinToVideoStage = async (config) => {
+    try {
+      const { user, client } = config;
 
-    // Create and publish the local audio track if it doesn't exist
-    if (!config.localAudioTrack) {
-      console.log("Creating microphone audio track");
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    }
+      // Create and publish the local audio track if it doesn't exist
+      if (!config.localAudioTrack) {
+        console.log("Creating microphone audio track");
+        config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      }
 
-    // Check if the local audio track is created successfully
-    if (config.localAudioTrack) {
-      console.log("Microphone audio track created successfully");
-    } else {
-      console.error("Failed to create local audio track");
-    }
+      // Create and publish the local video track if it doesn't exist
+      if (!config.localVideoTrack) {
+        console.log("Creating camera video track");
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      }
 
-    // Create and publish the local video track if it doesn't exist
-    if (!config.localVideoTrack) {
-      console.log("Creating camera video track");
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-    }
+      // Publish the local tracks (audio and video)
+      console.log("Publishing local audio and video tracks");
+      await client.publish([config.localAudioTrack, config.localVideoTrack]);
 
-    // Check if the local video track is created successfully
-    if (config.localVideoTrack) {
-      console.log("Camera video track created successfully");
-    } else {
-      console.error("Failed to create local video track");
-    }
+      console.log("Successfully published local audio and video tracks");
 
-    // Publish the local tracks (audio and video)
-    console.log("Publishing local audio and video tracks");
-    await client.publish([config.localAudioTrack, config.localVideoTrack]);
+      // Add the current user wrapper (for their own video/audio stream)
+      await addUserWrapper({ uid: config.uid, ...config.user }, config);
 
-    console.log("Successfully published local audio and video tracks");
+      // Select the video player and avatar elements for the current user
+      const videoPlayer = document.querySelector(`#stream-${config.uid}`);
+      const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
 
-    // Add the current user wrapper (for their own video/audio stream)
-    await addUserWrapper({ uid: config.uid, ...config.user }, config);
+      // Ensure the video player and avatar elements are found
+      if (!videoPlayer || !avatarDiv) {
+        console.error(
+          "Video player or avatar elements not found for current user"
+        );
+        return;
+      }
 
-    // Select the video player and avatar elements for the current user
-    const videoPlayer = document.querySelector(`#stream-${config.uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
-
-    // Ensure the video player and avatar elements are found
-    if (!videoPlayer || !avatarDiv) {
-      console.error(
-        "Video player or avatar elements not found for current user"
+      // Use toggleVideoOrAvatar to handle the video/stream visibility
+      toggleVideoOrAvatar(
+        config.uid,
+        config.localVideoTrack,
+        avatarDiv,
+        videoPlayer
       );
-      return;
+
+      // Use toggleMicIcon to handle the mic icon
+      const isMuted = config.localAudioTrack.muted || false;
+      toggleMicIcon(config.uid, isMuted);
+
+      console.log("Joined the video stage for the current user");
+    } catch (error) {
+      console.error("Error in joinToVideoStage", error);
     }
+  };
 
-    // Use toggleVideoOrAvatar to handle the video/stream visibility
-    toggleVideoOrAvatar(
-      config.uid,
-      config.localVideoTrack,
-      avatarDiv,
-      videoPlayer
-    );
+  // Toggle screen share function
+  const toggleScreenShare = async (isEnabled, config) => {
+    try {
+      const uid = config.uid;
 
-    // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
-    const isMuted = config.localAudioTrack.muted || false;
-    toggleMicIcon(config.uid, isMuted);
+      if (!uid) {
+        console.error("UID is not set in config.");
+        return;
+      }
 
-    console.log("Joined the video stage for the current user");
-  } catch (error) {
-    console.error("Error in joinToVideoStage", error);
-  }
-};
+      if (!config.client) {
+        console.error("Agora client is not initialized!");
+        return;
+      }
 
+      if (config.localScreenShareEnabled && isEnabled) {
+        console.log("Already sharing. Stopping screen share.");
+        isEnabled = false; // This will stop the current screen share
+      }
 
+      if (isEnabled) {
+        console.log("Starting screen share");
+
+        // Initialize screenShareClient if not already done
+        if (!config.screenShareClient) {
+          console.log("Initializing screenShareClient");
+          config.screenShareClient = AgoraRTC.createClient({
+            mode: "live",
+            codec: "vp8",
+          });
+        }
+
+        // Generate a unique UID for screen sharing
+        const screenShareUid = Number(`${uid}12345`); // Ensure this UID is unique and a number
+        config.screenShareUid = screenShareUid;
+
+        // Fetch a new token for screenShareUid
+        const tokens = await fetchTokens({
+          ...config,
+          uid: screenShareUid,
+        });
+        if (!tokens) throw new Error("Failed to fetch token for screen share");
+
+        // Join the channel with screenShareClient
+        await config.screenShareClient.join(
+          config.appId,
+          config.channelName,
+          tokens.rtcToken,
+          screenShareUid
+        );
+
+        // Set client role to "host" for screenShareClient
+        await config.screenShareClient.setClientRole("host");
+
+        // Set RTM attributes for the screen share UID
+        try {
+          const screenShareRTMClient = AgoraRTM.createInstance(config.appId, {
+            enableLogUpload: false,
+            logFilter: config.debugEnabled
+              ? AgoraRTM.LOG_FILTER_INFO
+              : AgoraRTM.LOG_FILTER_OFF,
+          });
+          await screenShareRTMClient.login({
+            uid: screenShareUid.toString(),
+            token: tokens.rtmToken,
+          });
+
+          // Set the mainUid attribute
+          await screenShareRTMClient.setLocalUserAttributes({
+            mainUid: config.uid.toString(),
+          });
+
+          // Logout from RTM after setting attributes
+          await screenShareRTMClient.logout();
+        } catch (error) {
+          console.error(
+            "Error setting RTM attributes for screen share:",
+            error
+          );
+        }
+
+        // Create the screen share track
+        try {
+          config.localScreenShareTrack =
+            await AgoraRTC.createScreenVideoTrack();
+        } catch (error) {
+          console.error("Error creating screen share track:", error);
+
+          // Handle user cancellation
+          if (
+            error.name === "NotAllowedError" ||
+            error.message.includes("Permission denied")
+          ) {
+            console.log("User canceled the screen sharing prompt.");
+            if (typeof bubble_fn_isScreenOn === "function") {
+              bubble_fn_isScreenOn(false);
+            }
+            return;
+          } else {
+            throw error;
+          }
+        }
+
+        // Publish the screen share track with screenShareClient
+        await config.screenShareClient.publish([config.localScreenShareTrack]);
+
+        // Add user wrapper for screen share
+        await addUserWrapper({ uid: screenShareUid, ...config.user }, config);
+
+        // Play the screen share track
+        const screenSharePlayer = document.querySelector(
+          `#stream-${screenShareUid}`
+        );
+        if (screenSharePlayer) {
+          config.localScreenShareTrack.play(screenSharePlayer);
+        } else {
+          console.error(
+            `Screen share player with id #stream-${screenShareUid} not found`
+          );
+        }
+
+        // Handle track-ended event
+        config.localScreenShareTrack.on("track-ended", async () => {
+          console.log("Screen share track ended, stopping screen share");
+          await toggleScreenShare(false, config);
+        });
+      } else {
+        console.log("Stopping screen share");
+
+        // Unpublish the screen share track and leave the channel
+        if (config.localScreenShareTrack) {
+          await config.screenShareClient.unpublish([
+            config.localScreenShareTrack,
+          ]);
+          config.localScreenShareTrack.stop();
+          config.localScreenShareTrack.close();
+          config.localScreenShareTrack = null;
+        }
+
+        // Leave the screenShareClient channel
+        if (config.screenShareClient) {
+          await config.screenShareClient.leave();
+          config.screenShareClient = null;
+          config.screenShareUid = null;
+        }
+
+        // Remove the screen share player's DOM elements
+        const screenShareWrapper = document.querySelector(
+          `#participant-${config.screenShareUid}`
+        );
+        if (screenShareWrapper) {
+          screenShareWrapper.remove();
+        }
+      }
+
+      config.localScreenShareEnabled = isEnabled;
+
+      // Call bubble_fn_isScreenOn with the current screen sharing state
+      if (typeof bubble_fn_isScreenOn === "function") {
+        bubble_fn_isScreenOn(isEnabled);
+      } else {
+        console.warn("bubble_fn_isScreenOn is not defined.");
+      }
+    } catch (error) {
+      console.error("Error during screen sharing:", error);
+      if (config.onError) {
+        config.onError(error);
+      }
+    }
+  };
 
   return {
     config,
@@ -344,6 +515,3 @@ const joinToVideoStage = async (config) => {
 };
 
 window["newMainApp"] = newMainApp;
-
-
-
