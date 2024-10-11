@@ -187,12 +187,12 @@ export const toggleScreenShare = async (isEnabled, config) => {
         });
       }
 
-      console.error("uid before screenshare:",uid);
+      console.log("uid before screenshare:",uid);
 
       // Generate a unique UID for screen sharing
-      const screenShareUid = `${uid}-screen`; // Use a string UID
+      const screenShareUid = parseInt(uid.toString().slice(0, -1), 10);
       config.screenShareUid = screenShareUid;
-      console.error("screenshare-uid:", screenShareUid);
+      console.log("screenshare-uid:", screenShareUid);
 
       // Fetch a new token for screenShareUid
       const tokens = await fetchTokens({
