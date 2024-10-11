@@ -209,3 +209,42 @@ export function addScreenShareWithUser(
     userVideoTrack.play(userVideoElement); // Play user video track
   }
 }
+
+
+export function revertToNormalView(config) {
+  const videoStage = document.querySelector("#video-stage");
+
+  // Remove any screen share related content
+  videoStage.innerHTML = "";
+
+  // Add the user back to normal layout (add wrappers for all participants)
+  config.participants.forEach((participant) => {
+    const userWrapper = document.createElement("div");
+    userWrapper.id = `stream-wrapper-${participant.uid}`;
+    userWrapper.className = "normal-stream";
+
+    const videoPlayer = document.createElement("div");
+    videoPlayer.id = `stream-${participant.uid}`;
+    videoPlayer.className = "video-player";
+
+    userWrapper.appendChild(videoPlayer);
+    videoStage.appendChild(userWrapper);
+
+    // Play the video for each user (this assumes tracks are stored in config)
+    const track = config.remoteTracks[participant.uid];
+    if (track) {
+      track.play(`#stream-${participant.uid}`);
+    }
+  });
+
+  console.log("Reverted to normal view for all users.");
+}
+
+
+export function removeScreenShareWrapper() {
+  const screenShareWrapper = document.querySelector("#screen-share-wrapper");
+  if (screenShareWrapper) {
+    screenShareWrapper.remove();
+    console.log("Screen share wrapper removed, returning to normal view.");
+  }
+}

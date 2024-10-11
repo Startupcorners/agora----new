@@ -262,7 +262,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
       // Handle track-ended event
       config.localScreenShareTrack.on("track-ended", async () => {
         console.log("Screen share track ended, stopping screen share");
-        await toggleScreenShare(false, config);
+        await toggleScreenShare(false, config); // Stop sharing when track ends
       });
     } else {
       console.log("Stopping screen share");
@@ -286,12 +286,10 @@ export const toggleScreenShare = async (isEnabled, config) => {
       config.screenShareUid = null;
 
       // Remove the screen share player's DOM elements
-      const screenShareWrapper = document.querySelector(
-        `#screen-share-wrapper`
-      );
-      if (screenShareWrapper) {
-        screenShareWrapper.remove();
-      }
+      removeScreenShareWrapper(); // Revert UI layout
+
+      // Revert to the normal view for all participants
+      revertToNormalView(config); // Function to reset video layout to normal (details below)
     }
 
     config.localScreenShareEnabled = isEnabled;
