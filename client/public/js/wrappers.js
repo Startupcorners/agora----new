@@ -56,7 +56,7 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
   try {
     // Hide all other video wrappers
     const allWrappers = document.querySelectorAll(
-      `#video-stage .participant-wrapper`
+      `#video-stage .stream-wrapper`
     );
     allWrappers.forEach((wrapper) => {
       wrapper.style.display = "none"; // Hide all other wrappers
@@ -70,7 +70,7 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
       // If the screen share wrapper does not exist, create it
       const videoStage = document.querySelector(config.callContainerSelector);
       const wrapperHTML = `
-        <div id="participant-${screenShareUid}" class="fullscreen-wrapper">
+        <div id="stream-wrapper-${screenShareUid}" class="fullscreen-wrapper">
           <div id="stream-${screenShareUid}" class="stream"></div>
         </div>
       `;
@@ -88,12 +88,17 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
     screenShareWrapper.style.display = "block"; // Show the screen share wrapper
 
     // Handle the user video wrapper (small in bottom-right)
-    const userWrapper = document.querySelector(`#stream-${uid}`);
+    const userWrapper = document.querySelector(`#stream-wrapper-${uid}`);
     if (userWrapper) {
       userWrapper.classList.add("user-video-bottom-right"); // Apply bottom-right class
+      userWrapper.style.width = "200px"; // Smaller size
+      userWrapper.style.height = "120px"; // Smaller size
+      userWrapper.style.position = "absolute"; // Ensure absolute positioning
+      userWrapper.style.bottom = "10px"; // Bottom-right corner
+      userWrapper.style.right = "10px"; // Bottom-right corner
       userWrapper.style.display = "block"; // Ensure the user wrapper is visible
     } else {
-      console.error(`User wrapper with id #stream-${uid} not found`);
+      console.error(`User wrapper with id #stream-wrapper-${uid} not found`);
     }
   } catch (error) {
     console.error("Error in addScreenShareWrapper:", error);
@@ -101,11 +106,12 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
 };
 
 
+
 export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
   try {
     // Restore the layout when screen share ends
     const allWrappers = document.querySelectorAll(
-      `#video-stage .participant-wrapper`
+      `#video-stage .stream-wrapper`
     );
     allWrappers.forEach((wrapper) => {
       wrapper.style.display = "block"; // Restore other wrappers
@@ -121,7 +127,7 @@ export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
     }
 
     // Remove small video from the bottom-right
-    const userWrapper = document.querySelector(`#stream-${uid}`);
+    const userWrapper = document.querySelector(`#stream-wrapper-${uid}`);
     if (userWrapper) {
       userWrapper.classList.remove("user-video-bottom-right");
       userWrapper.style.display = "block"; // Restore user's video
