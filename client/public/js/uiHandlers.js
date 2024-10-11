@@ -217,6 +217,10 @@ export const toggleScreenShare = async (isEnabled, config) => {
       // Create the screen share track
       try {
         config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+        console.log(
+          "Screen share track created:",
+          config.localScreenShareTrack
+        );
       } catch (error) {
         console.error("Error creating screen share track:", error);
 
@@ -237,6 +241,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
+      console.log("Screen share track published.");
 
       // **Play the screen share track after the wrapper is created**
       const screenSharePlayer = document.querySelector(
