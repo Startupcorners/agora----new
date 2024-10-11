@@ -28,22 +28,52 @@ export const handleUserPublished = async (user, mediaType, config) => {
   // Check if the participant wrapper exists; if not, create it
   let participantWrapper = document.querySelector(`#participant-${user.uid}`);
   if (!participantWrapper) {
-    // Retrieve user attributes via RTM or another method
+    // Prepare attributes
     let attributes = {};
-    if (config.clientRTM && config.clientRTM.getUserAttributes) {
-      try {
-        attributes = await config.clientRTM.getUserAttributes(
-          user.uid.toString()
-        );
-      } catch (e) {
-        console.error(`Failed to get attributes for user ${user.uid}`, e);
+    const userUid = user.uid.toString();
+    const isScreenShare = userUid.endsWith("-screen");
+    let mainUid = userUid;
+
+    if (isScreenShare) {
+      // For screen share UID, extract the main UID
+      mainUid = userUid.replace("-screen", "");
+
+      // Get main user's attributes from participantList or config
+      const mainUser = config.participantList.find((p) => p.uid === mainUid);
+      if (mainUser) {
+        attributes = {
+          name: mainUser.name,
+          avatar: mainUser.avatar || "default-avatar-url",
+        };
+      } else {
+        attributes = {
+          name: config.user.name || "Unknown",
+          avatar: config.user.avatar || "default-avatar-url",
+        };
+      }
+    } else {
+      // For regular UIDs, fetch user attributes from RTM
+      if (config.clientRTM && config.clientRTM.getUserAttributes) {
+        try {
+          attributes = await config.clientRTM.getUserAttributes(userUid);
+        } catch (e) {
+          console.error(`Failed to get attributes for user ${user.uid}`, e);
+          attributes = {
+            name: "Unknown",
+            avatar: "default-avatar-url",
+          };
+        }
+      } else {
+        // If RTM is not available, use default attributes
+        attributes = {
+          name: "Unknown",
+          avatar: "default-avatar-url",
+        };
       }
     }
-    const name = attributes.name || "Unknown";
-    const avatar = attributes.avatar || "default-avatar-url";
 
     // Add user wrapper for the new UID
-    await addUserWrapper({ uid: user.uid, name, avatar }, config);
+    await addUserWrapper({ uid: userUid, ...attributes }, config);
   }
 
   // Wait for the wrapper to exist before proceeding
@@ -115,7 +145,6 @@ export const handleUserPublished = async (user, mediaType, config) => {
     }
   }
 };
-
 
 
 
