@@ -160,10 +160,13 @@ export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
       console.log(`User video ${uid} reset.`);
     }
 
-    // Optionally, remove the screen share track from Agora client
-    if (config.screenShareClient) {
+    // Optional: remove the screen share track from Agora client
+    if (config && config.screenShareClient) {
       config.screenShareClient.leave();
       config.screenShareClient = null;
+      console.log("Screen share client left and removed.");
+    } else {
+      console.warn("Screen share client is already undefined or missing.");
     }
 
     console.log("Screen share layout reset successfully.");
@@ -171,6 +174,7 @@ export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
     console.error("Error in removeScreenShareWrapper:", error);
   }
 };
+
 
 export function addScreenShareWithUser(
   config,

@@ -8,6 +8,7 @@ import {
   addScreenShareWrapper,
   removeScreenShareWrapper,
   addScreenShareWithUser,
+  revertToNormalView,
 } from "./wrappers.js";
 
 export const toggleMic = async (config) => {
@@ -286,7 +287,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
       config.screenShareUid = null;
 
       // Remove the screen share player's DOM elements
-      removeScreenShareWrapper(); // Revert UI layout
+      removeScreenShareWrapper(config.screenShareUid, config.uid, config); // Revert UI layout
 
       // Revert to the normal view for all participants
       revertToNormalView(config); // Function to reset video layout to normal (details below)
@@ -307,8 +308,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
-
-
 
 // RTM Join function for screen share
 const joinRTMForScreenShare = async (
