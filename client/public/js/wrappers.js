@@ -160,3 +160,36 @@ export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
     console.error("Error in removeScreenShareWrapper:", error);
   }
 };
+
+export function addScreenShareWithUser(config) {
+  const videoStage = document.querySelector("#video-stage");
+
+  // Clear previous elements in video stage (optional)
+  videoStage.innerHTML = "";
+
+  // Create the fullscreen screen share wrapper
+  const screenShareWrapper = document.createElement("div");
+  screenShareWrapper.id = "screen-share-wrapper";
+  screenShareWrapper.className = "fullscreen-wrapper";
+
+  // Create small user video wrapper (inside the fullscreen screen share)
+  const userVideoWrapper = document.createElement("div");
+  userVideoWrapper.id = `stream-wrapper-${config.uid}`;
+  userVideoWrapper.className = "fullscreen-stream";
+
+  // Create video player for the user inside the small wrapper
+  const userVideoPlayer = document.createElement("div");
+  userVideoPlayer.id = `stream-${config.uid}`;
+  userVideoPlayer.className = "video-player";
+
+  // Append the video player to the user video wrapper
+  userVideoWrapper.appendChild(userVideoPlayer);
+
+  // Append the user video wrapper to the fullscreen screen share wrapper
+  screenShareWrapper.appendChild(userVideoWrapper);
+
+  // Append the fullscreen screen share wrapper to the video stage
+  videoStage.appendChild(screenShareWrapper);
+
+  console.log("Screen share and user wrapper added to the stage.");
+}

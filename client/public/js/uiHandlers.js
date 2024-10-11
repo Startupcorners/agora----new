@@ -2,7 +2,13 @@
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { toggleMicIcon,toggleVideoOrAvatar } from "./updateWrappers.js";
 import { fetchTokens } from "./helperFunctions.js";
-import { addUserWrapper,removeUserWrapper,addScreenShareWrapper,removeScreenShareWrapper } from "./wrappers.js";
+import {
+  addUserWrapper,
+  removeUserWrapper,
+  addScreenShareWrapper,
+  removeScreenShareWrapper,
+  addScreenShareWithUser,
+} from "./wrappers.js";
 
 export const toggleMic = async (config) => {
   try {
@@ -218,6 +224,9 @@ export const toggleScreenShare = async (isEnabled, config) => {
           "Screen share track created:",
           config.localScreenShareTrack
         );
+
+        // Call addScreenShareWithUser to modify the UI and prepare it for the stream
+        addScreenShareWithUser(config);
       } catch (error) {
         console.error("Error creating screen share track:", error);
 
@@ -236,20 +245,17 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // **Only after the user confirms sharing the screen (track created)**
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
       console.log("Screen share track published.");
 
-      // Handle the screen share wrapper layout
-      addScreenShareWrapper(screenShareUid, uid, config);
-
-      // **Play the screen share track in the correct DOM element**
-      const screenShareWrapper = document.querySelector(
+      // **Play the screen share track after the wrapper is created**
+      const screenSharePlayer = document.querySelector(
         `#stream-${screenShareUid}`
       );
-      if (screenShareWrapper) {
-        config.localScreenShareTrack.play(screenShareWrapper); // Play the screen share track
+      if (screenSharePlayer) {
+        console.log(`Playing screen share for ${screenShareUid}`);
+        config.localScreenShareTrack.play(screenSharePlayer); // Play the screen share track in the wrapper
       } else {
         console.error(
           `Screen share player with id #stream-${screenShareUid} not found`
@@ -282,8 +288,13 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       config.screenShareUid = null;
 
-      // Restore the layout when screen share ends
-      removeScreenShareWrapper(screenShareUid, uid, config);
+      // Remove the screen share player's DOM elements
+      const screenShareWrapper = document.querySelector(
+        `#participant-${config.screenShareUid}`
+      );
+      if (screenShareWrapper) {
+        screenShareWrapper.remove();
+      }
     }
 
     config.localScreenShareEnabled = isEnabled;
