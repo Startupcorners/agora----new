@@ -330,13 +330,13 @@ const joinRTMForScreenShare = async (
     // Login to RTM with the screen share UID
     await config.screenShareClientRTM.login({ uid: rtmUid, token: rtmToken });
 
-    // Set user attributes for screen sharing
+    // Set user attributes for screen sharing (copying from main user)
     const attributes = {
       name: config.user.name || "Unknown (Screen Share)",
       avatar: config.user.avatar || "default-avatar-url",
       comp: config.user.company || "",
       desg: config.user.designation || "Screen Share",
-      role: "host", // Assume host role for screen sharing
+      role: "host", // Assign host role for screen sharing
     };
 
     await config.screenShareClientRTM.setLocalUserAttributes(attributes); // Store attributes for screen share
@@ -360,6 +360,7 @@ const joinRTMForScreenShare = async (
     }
   }
 };
+
 
 
 export const removeParticipant = async (clientRTM, uid, config) => {

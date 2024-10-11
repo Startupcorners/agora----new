@@ -205,12 +205,20 @@ export const handleUserJoined = async (user, config) => {
   console.log("Entering handleUserJoined function for user:", user.uid);
 
   try {
+    // Prevent handling your own stream or screen share
+    if (user.uid === config.uid || user.uid === config.uid + 100000) {
+      console.log(
+        `Skipping wrapper for own user or screen share UID: ${user.uid}`
+      );
+      return; // Exit early for own stream or screen share
+    }
+
     // Convert UID to string
     const userUid = user.uid.toString();
     let userRole = null;
     let userAttr = {};
 
-    // Only fetch attributes if config.clientRTM exists and attributes are expected
+    // Fetch attributes if config.clientRTM and fetchAttributes are enabled
     if (config.clientRTM && config.fetchAttributes) {
       try {
         userAttr = await config.clientRTM.getUserAttributes(userUid);
@@ -256,7 +264,7 @@ export const handleUserJoined = async (user, config) => {
     // Store user in remoteTracks (no media yet)
     config.remoteTracks[userUid] = user;
 
-    // Add the wrapper for the user
+    // Add the wrapper for the user (if not screen share UID)
     await addUserWrapper(user, config);
 
     console.log(
