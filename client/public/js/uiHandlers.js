@@ -211,6 +211,9 @@ export const toggleScreenShare = async (isEnabled, config) => {
         screenShareUid
       );
 
+      // **Add the wrapper first** (ensure the DOM element for screen share exists)
+      await addUserWrapper({ uid: screenShareUid, ...config.user }, config);
+
       // Create the screen share track
       try {
         config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
@@ -235,7 +238,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
 
-      // **Play the screen share track locally**
+      // **Play the screen share track after the wrapper is created**
       const screenSharePlayer = document.querySelector(
         `#stream-${screenShareUid}`
       );
@@ -247,9 +250,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
           `Screen share player with id #stream-${screenShareUid} not found`
         );
       }
-
-      // Update the UI (add the wrapper for the screen share)
-      await addUserWrapper({ uid: screenShareUid, ...config.user }, config);
 
       // Handle track-ended event
       config.localScreenShareTrack.on("track-ended", async () => {
