@@ -157,7 +157,7 @@ export const toggleCamera = async (isMuted, config) => {
 
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
-    const uid = config.uid;
+    const uid = config.uid; // UID is already a string
 
     if (!uid) {
       console.error("UID is not set in config.");
@@ -187,7 +187,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
       }
 
       // Generate a unique UID for screen sharing
-      const screenShareUid = Number(`${uid}12345`); // Ensure this UID is unique and a number
+      const screenShareUid = `${uid}-screen`; // Use a string UID
       config.screenShareUid = screenShareUid;
 
       // Fetch a new token for screenShareUid
@@ -207,6 +207,30 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       // Set client role to "host" for screenShareClient
       await config.screenShareClient.setClientRole("host");
+
+      // Set RTM attributes for the screen share UID
+      try {
+        const screenShareRTMClient = AgoraRTM.createInstance(config.appId, {
+          enableLogUpload: false,
+          logFilter: config.debugEnabled
+            ? AgoraRTM.LOG_FILTER_INFO
+            : AgoraRTM.LOG_FILTER_OFF,
+        });
+        await screenShareRTMClient.login({
+          uid: screenShareUid,
+          token: tokens.rtmToken,
+        });
+
+        // Set the mainUid attribute
+        await screenShareRTMClient.setLocalUserAttributes({
+          mainUid: uid,
+        });
+
+        // Logout from RTM after setting attributes
+        await screenShareRTMClient.logout();
+      } catch (error) {
+        console.error("Error setting RTM attributes for screen share:", error);
+      }
 
       // Create the screen share track
       try {
