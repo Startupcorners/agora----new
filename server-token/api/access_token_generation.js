@@ -1,5 +1,9 @@
-const { RtcTokenBuilder, RtcRole } = require("./RtcTokenBuilder2");
-const { RtmTokenBuilder } = require("./RtmTokenBuilder2");
+const {
+  RtcTokenBuilder,
+  RtcRole,
+  RtmTokenBuilder,
+  RtmRole,
+} = require("agora-access-token");
 
 module.exports = async (req, res) => {
   const { channelName, uid, role } = req.query;
@@ -40,12 +44,11 @@ module.exports = async (req, res) => {
     let rtcToken;
     if (isNumericUid) {
       // UID is numeric
-      const rtcUid = parseInt(uid, 10);
       rtcToken = RtcTokenBuilder.buildTokenWithUid(
         process.env.APP_ID,
         process.env.APP_CERTIFICATE,
         channelName,
-        rtcUid,
+        parseInt(uid, 10),
         rtcRole,
         privilegeExpiredTs
       );
@@ -68,14 +71,12 @@ module.exports = async (req, res) => {
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       uid,
+      RtmRole.Rtm_User,
       privilegeExpiredTs
     );
 
     console.log("APP ID:", process.env.APP_ID);
-    console.log("APP Certificate:", process.env.APP_CERTIFICATE);
     console.log("UID:", uid);
-    console.log("Current Timestamp:", currentTimestamp);
-    console.log("Privilege Expiration Timestamp:", privilegeExpiredTs);
     console.log("Generated RTC Token:", rtcToken);
     console.log("Generated RTM Token:", rtmToken);
 
