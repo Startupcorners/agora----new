@@ -67,14 +67,14 @@ module.exports = async (req, res) => {
 
     // Generate separate tokens for screen share UID
     const screenShareUid = isNumericUid
-      ? parseInt(uid) + 10000 // Modify for uniqueness
-      : `${uid}-screen`;
+      ? parseInt(uid, 10) + 10000 // Ensure numeric for screen sharing
+      : Math.floor(Math.random() * 100000); // Generate random UID for string-based UIDs
 
     const screenShareRtcToken = RtcTokenBuilder.buildTokenWithUid(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
-      parseInt(screenShareUid, 10),
+      screenShareUid, // Always numeric
       rtcRole,
       privilegeExpiredTs
     );
@@ -82,7 +82,7 @@ module.exports = async (req, res) => {
     const screenShareRtmToken = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
-      screenShareUid.toString(),
+      screenShareUid.toString(), // Use numeric screenShareUid converted to string
       RtmRole.Rtm_User,
       privilegeExpiredTs
     );
