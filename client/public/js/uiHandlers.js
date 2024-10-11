@@ -7,7 +7,6 @@ import {
   removeUserWrapper,
   addScreenShareWrapper,
   removeScreenShareWrapper,
-  revertToNormalView,
 } from "./wrappers.js";
 
 export const toggleMic = async (config) => {
