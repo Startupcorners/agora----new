@@ -210,24 +210,24 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       // Set RTM attributes for the screen share UID
       try {
-        const screenShareRTMClient = AgoraRTM.createInstance(config.appId, {
+        // Store the RTM client instance in config
+        config.screenShareRTMClient = AgoraRTM.createInstance(config.appId, {
           enableLogUpload: false,
           logFilter: config.debugEnabled
             ? AgoraRTM.LOG_FILTER_INFO
             : AgoraRTM.LOG_FILTER_OFF,
         });
-        await screenShareRTMClient.login({
+        await config.screenShareRTMClient.login({
           uid: screenShareUid,
           token: tokens.rtmToken,
         });
 
         // Set the mainUid attribute
-        await screenShareRTMClient.setLocalUserAttributes({
+        await config.screenShareRTMClient.setLocalUserAttributes({
           mainUid: uid,
         });
 
-        // Logout from RTM after setting attributes
-        await screenShareRTMClient.logout();
+        // Do NOT log out here. Keep the RTM client logged in during screen sharing.
       } catch (error) {
         console.error("Error setting RTM attributes for screen share:", error);
       }
@@ -293,8 +293,15 @@ export const toggleScreenShare = async (isEnabled, config) => {
       if (config.screenShareClient) {
         await config.screenShareClient.leave();
         config.screenShareClient = null;
-        config.screenShareUid = null;
       }
+
+      // Logout from RTM and clean up screenShareRTMClient
+      if (config.screenShareRTMClient) {
+        await config.screenShareRTMClient.logout();
+        config.screenShareRTMClient = null;
+      }
+
+      config.screenShareUid = null;
 
       // Remove the screen share player's DOM elements
       const screenShareWrapper = document.querySelector(
@@ -320,6 +327,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
+
 
 
 
