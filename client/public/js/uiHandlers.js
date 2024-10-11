@@ -204,10 +204,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
       const tokens = await fetchTokens(config, screenShareUid); // Pass screenShareUid here
       if (!tokens) throw new Error("Failed to fetch token for screen share");
 
-      // Log fetched tokens
-      console.log("Using RTC Token for screen share:", tokens.rtcToken);
-      console.log("Using RTM Token for screen share:", tokens.rtmToken);
-
       // Join RTM for screen sharing
       await joinRTMForScreenShare(tokens.rtmToken, screenShareUid, config);
 
@@ -244,17 +240,16 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // Ensure the local video track exists for the user
-      if (!config.localVideoTrack) {
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // If not created, create the user video track
-      }
+      // Hide all other video wrappers including the current user
+      const allWrappers = document.querySelectorAll(
+        "#video-stage .stream-wrapper"
+      );
+      allWrappers.forEach((wrapper) => {
+        wrapper.style.display = "none";
+      });
 
-      // **Add the screen share and user wrapper and play the streams**
-      addScreenShareWithUser(
-        config,
-        config.localScreenShareTrack,
-        config.localVideoTrack
-      ); // Pass screen share and user video track
+      // **Add the screen share wrapper**
+      addScreenShareWithUser(config, config.localScreenShareTrack);
 
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
@@ -286,11 +281,21 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       config.screenShareUid = null;
 
-      // Remove the screen share player's DOM elements
-      removeScreenShareWrapper(config.screenShareUid, config.uid, config); // Revert UI layout
+      // Show all previously hidden video wrappers again
+      const allWrappers = document.querySelectorAll(
+        "#video-stage .stream-wrapper"
+      );
+      allWrappers.forEach((wrapper) => {
+        wrapper.style.display = "block";
+      });
 
-      // Revert to the normal view for all participants
-      revertToNormalView(config); // Function to reset video layout to normal (details below)
+      // Remove the screen share player's DOM elements
+      const screenShareWrapper = document.querySelector(
+        "#screen-share-wrapper"
+      );
+      if (screenShareWrapper) {
+        screenShareWrapper.remove(); // Remove the screen share wrapper
+      }
     }
 
     config.localScreenShareEnabled = isEnabled;
@@ -308,6 +313,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
+
 
 // RTM Join function for screen share
 const joinRTMForScreenShare = async (
