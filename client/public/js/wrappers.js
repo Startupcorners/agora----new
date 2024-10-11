@@ -50,3 +50,71 @@ export const removeUserWrapper = (uid) => {
     console.log("Failed to remove user wrapper:", error);
   }
 };
+
+
+export const addScreenShareWrapper = (screenShareUid, uid, config) => {
+  try {
+    // Hide all other video wrappers
+    const allWrappers = document.querySelectorAll(
+      `#video-stage .participant-wrapper`
+    );
+    allWrappers.forEach((wrapper) => {
+      wrapper.style.display = "none"; // Hide all other wrappers
+    });
+
+    // Handle the screen share wrapper (full screen)
+    const screenShareWrapper = document.querySelector(
+      `#stream-${screenShareUid}`
+    );
+    if (screenShareWrapper) {
+      screenShareWrapper.classList.add("fullscreen-wrapper"); // Apply full screen class
+      screenShareWrapper.style.display = "block"; // Show the screen share wrapper
+    } else {
+      console.error(
+        `Screen share player with id #stream-${screenShareUid} not found`
+      );
+    }
+
+    // Handle the user video wrapper (small in bottom-right)
+    const userWrapper = document.querySelector(`#stream-${uid}`);
+    if (userWrapper) {
+      userWrapper.classList.add("user-video-bottom-right"); // Apply bottom-right class
+      userWrapper.style.display = "block"; // Ensure the user wrapper is visible
+    } else {
+      console.error(`User wrapper with id #stream-${uid} not found`);
+    }
+  } catch (error) {
+    console.error("Error in addScreenShareWrapper:", error);
+  }
+};
+
+
+export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
+  try {
+    // Restore the layout when screen share ends
+    const allWrappers = document.querySelectorAll(
+      `#video-stage .participant-wrapper`
+    );
+    allWrappers.forEach((wrapper) => {
+      wrapper.style.display = "block"; // Restore other wrappers
+    });
+
+    // Remove full screen mode for screen share
+    const screenShareWrapper = document.querySelector(
+      `#stream-${screenShareUid}`
+    );
+    if (screenShareWrapper) {
+      screenShareWrapper.classList.remove("fullscreen-wrapper");
+      screenShareWrapper.style.display = "none"; // Hide screen share
+    }
+
+    // Remove small video from the bottom-right
+    const userWrapper = document.querySelector(`#stream-${uid}`);
+    if (userWrapper) {
+      userWrapper.classList.remove("user-video-bottom-right");
+      userWrapper.style.display = "block"; // Restore user's video
+    }
+  } catch (error) {
+    console.error("Error in removeScreenShareWrapper:", error);
+  }
+};

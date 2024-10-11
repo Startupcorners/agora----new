@@ -2,7 +2,7 @@
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { toggleMicIcon,toggleVideoOrAvatar } from "./updateWrappers.js";
 import { fetchTokens } from "./helperFunctions.js";
-import { addUserWrapper } from "./wrappers.js";
+import { addUserWrapper,removeUserWrapper,addScreenShareWrapper,removeScreenShareWrapper } from "./wrappers.js";
 
 export const toggleMic = async (config) => {
   try {
@@ -211,37 +211,44 @@ export const toggleScreenShare = async (isEnabled, config) => {
         screenShareUid
       );
 
-      // Add the screen share wrapper if it doesn’t already exist
-      await addUserWrapper({ uid: screenShareUid, ...config.user }, config);
+      // Handle the screen share wrapper layout
+      addScreenShareWrapper(screenShareUid, uid, config);
 
-      // Hide all other user video wrappers
-      const allWrappers = document.querySelectorAll(
-        `#video-stage .participant-wrapper`
-      );
-      allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "none"; // Hide all wrappers
-      });
+      // Create the screen share track
+      try {
+        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+        console.log(
+          "Screen share track created:",
+          config.localScreenShareTrack
+        );
+      } catch (error) {
+        console.error("Error creating screen share track:", error);
 
-      // Show screen share in fullscreen
+        // Handle user cancellation
+        if (
+          error.name === "NotAllowedError" ||
+          error.message.includes("Permission denied")
+        ) {
+          console.log("User canceled the screen sharing prompt.");
+          if (typeof bubble_fn_isScreenOn === "function") {
+            bubble_fn_isScreenOn(false);
+          }
+          return;
+        } else {
+          throw error;
+        }
+      }
+
+      // Publish the screen share track using the separate client
+      await config.screenShareClient.publish([config.localScreenShareTrack]);
+      console.log("Screen share track published.");
+
+      // **Play the screen share track in the correct DOM element**
       const screenShareWrapper = document.querySelector(
         `#stream-${screenShareUid}`
       );
       if (screenShareWrapper) {
-        screenShareWrapper.classList.add("fullscreen-wrapper"); // Make fullscreen
-        screenShareWrapper.style.display = "block"; // Show the screen share
-
         config.localScreenShareTrack.play(screenShareWrapper); // Play the screen share track
-      } else {
-        console.error(
-          `Screen share player with id #stream-${screenShareUid} not found`
-        );
-      }
-
-      // Show the user’s small video in the bottom-right corner
-      const userWrapper = document.querySelector(`#stream-${uid}`);
-      if (userWrapper) {
-        userWrapper.classList.add("user-video-bottom-right"); // Position in bottom-right corner
-        userWrapper.style.display = "block"; // Ensure user video is visible
       }
 
       // Handle track-ended event
@@ -270,29 +277,8 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       config.screenShareUid = null;
 
-      // Remove fullscreen mode
-      const screenShareWrapper = document.querySelector(
-        `#stream-${config.screenShareUid}`
-      );
-      if (screenShareWrapper) {
-        screenShareWrapper.classList.remove("fullscreen-wrapper");
-        screenShareWrapper.style.display = "none";
-      }
-
-      // Restore other wrappers
-      const allWrappers = document.querySelectorAll(
-        `#video-stage .participant-wrapper`
-      );
-      allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "block"; // Restore other wrappers
-      });
-
-      // Remove small video from the bottom-right
-      const userWrapper = document.querySelector(`#stream-${uid}`);
-      if (userWrapper) {
-        userWrapper.classList.remove("user-video-bottom-right");
-        userWrapper.style.display = "block";
-      }
+      // Restore the layout when screen share ends
+      removeScreenShareWrapper(screenShareUid, uid, config);
     }
 
     config.localScreenShareEnabled = isEnabled;
