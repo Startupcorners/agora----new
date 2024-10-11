@@ -7,38 +7,44 @@ export const addUserWrapper = async (user, config) => {
     const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
 
     // Check if the player already exists for this user
-    let player = document.querySelector(`#video-wrapper-${user.uid}`);
+    let player = document.querySelector(`#participant-${user.uid}`);
     if (!player) {
+      // Log that we are creating the player wrapper
+      console.log(`Creating wrapper for user: ${user.uid}`);
+
       // Create player HTML with user attributes (name, avatar)
-      let playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, userAttr.name || "Unknown")
-        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
+      let playerHTML = `
+        <div id="participant-${user.uid}" class="participant-wrapper">
+          <div id="stream-${
+            user.uid
+          }" class="video-player" style="display: block; width: 100%; height: 100%;"></div>
+          <div class="participant-info">
+            <div class="participant-name">${userAttr.name || "Unknown"}</div>
+            <div class="participant-company">${userAttr.company || ""}</div>
+          </div>
+        </div>
+      `;
 
       // Insert the player into the DOM
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
-
-      console.log(`Added player for user: ${user.uid}`);
+      const callContainer = document.querySelector(
+        config.callContainerSelector
+      );
+      if (callContainer) {
+        callContainer.insertAdjacentHTML("beforeend", playerHTML);
+        console.log(`Added player wrapper for user: ${user.uid}`);
+      } else {
+        console.error(
+          `Call container ${config.callContainerSelector} not found`
+        );
+      }
     }
 
-    // Select the video player and avatar elements
+    // Ensure that the video player element is ready
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-
-    // Initially hide the video player and show the avatar
     if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none"; // Hide video initially
-      avatarDiv.style.display = "block"; // Show avatar initially
-    }
-
-    // If a video track is available, show the video and hide the avatar
-    if (config.localScreenShareTrack && user.uid === config.screenShareUid) {
-      console.log(`Showing video for screen share ${user.uid}`);
-      videoPlayer.style.display = "block"; // Show the video player
-      avatarDiv.style.display = "none"; // Hide the avatar
-      config.localScreenShareTrack.play(videoPlayer); // Play the video track
+      videoPlayer.style.display = "none"; // Video off initially
+      avatarDiv.style.display = "block"; // Avatar on
     }
   } catch (error) {
     console.log("Failed to fetch user attributes:", error);
