@@ -30,10 +30,12 @@ export const sendMessageToPeer = (clientRTM, data, uid) => {
     });
 };
 
-export const fetchTokens = async (config) => {
+export const fetchTokens = async (config, uidToFetch) => {
   try {
+    const uid = uidToFetch || config.uid; // Use screenShareUid if provided, otherwise default to main UID
+
     const res = await fetch(
-      `${config.serverUrl}/generateTokens?channelName=${config.channelName}&uid=${config.uid}&role=${config.user.role}`,
+      `${config.serverUrl}/generateTokens?channelName=${config.channelName}&uid=${uid}&role=${config.user.role}`,
       {
         method: "GET",
         headers: {
@@ -44,6 +46,11 @@ export const fetchTokens = async (config) => {
       }
     );
     const data = await res.json();
+
+    // Log fetched tokens for debugging
+    console.log(`Fetched RTC Token for UID ${uid}:`, data.rtcToken);
+    console.log(`Fetched RTM Token for UID ${uid}:`, data.rtmToken);
+
     return {
       rtcToken: data.rtcToken,
       rtmToken: data.rtmToken,
@@ -53,6 +60,7 @@ export const fetchTokens = async (config) => {
     throw err;
   }
 };
+
 
 export const sendBroadcast = (config, data) => {
   const messageObj = {

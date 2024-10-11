@@ -192,25 +192,22 @@ export const toggleScreenShare = async (isEnabled, config) => {
       const screenShareUid = uid + 100000; // Add constant to ensure it's numeric but unique
       config.screenShareUid = screenShareUid;
 
-      // Fetch tokens for screen sharing
-      const tokens = await fetchTokens({
-        ...config,
-        uid: screenShareUid, // Send screenShareUid to get tokens specifically for screen share
-      });
+      // Fetch tokens for screen sharing by passing the screenShareUid
+      const tokens = await fetchTokens(config, screenShareUid); // Pass screenShareUid here
       if (!tokens) throw new Error("Failed to fetch token for screen share");
 
+      // Log fetched tokens
+      console.log("Using RTC Token for screen share:", tokens.rtcToken);
+      console.log("Using RTM Token for screen share:", tokens.rtmToken);
+
       // Join RTM for screen sharing
-      await joinRTMForScreenShare(
-        tokens.screenShareRtmToken,
-        screenShareUid,
-        config
-      );
+      await joinRTMForScreenShare(tokens.rtmToken, screenShareUid, config);
 
       // Join the RTC channel with the screenShareClient
       await config.screenShareClient.join(
         config.appId,
         config.channelName,
-        tokens.screenShareRtcToken, // Use RTC token for screen sharing
+        tokens.rtcToken, // Use RTC token for screen sharing
         screenShareUid
       );
 
@@ -307,46 +304,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
 
 
-export const removeParticipant = async (clientRTM, uid, config) => {
-  try {
-    // If RTM is enabled, you can also send a message or notification to the participant before removal
-    if (clientRTM) {
-      const message = "You have been removed from the session";
-      await sendMessageToPeer(clientRTM, uid.toString(), message);
-    }
-
-    // Remove the participant's tracks from the Agora RTC client
-    const participant = config.remoteTracks[uid];
-    if (participant && participant.videoTrack) {
-      participant.videoTrack.stop();
-      participant.videoTrack.close();
-    }
-    if (participant && participant.audioTrack) {
-      participant.audioTrack.stop();
-      participant.audioTrack.close();
-    }
-
-    // Unpublish the participant from the Agora RTC client
-    await config.client.unpublish([
-      participant.audioTrack,
-      participant.videoTrack,
-    ]);
-
-    // Remove the participant from the remoteTracks object
-    delete config.remoteTracks[uid];
-
-    // Remove the participant's UI element from the DOM
-    const player = document.querySelector(`#video-wrapper-${uid}`);
-    if (player) {
-      player.remove();
-    }
-
-    log(`Participant with UID ${uid} has been removed from the session`);
-  } catch (error) {
-    console.error(`Error removing participant with UID ${uid}:`, error);
-  }
-};
-
 // RTM Join function for screen share
 const joinRTMForScreenShare = async (
   rtmToken,
@@ -401,5 +358,46 @@ const joinRTMForScreenShare = async (
         "Failed to join RTM for screen share after multiple attempts"
       );
     }
+  }
+};
+
+
+export const removeParticipant = async (clientRTM, uid, config) => {
+  try {
+    // If RTM is enabled, you can also send a message or notification to the participant before removal
+    if (clientRTM) {
+      const message = "You have been removed from the session";
+      await sendMessageToPeer(clientRTM, uid.toString(), message);
+    }
+
+    // Remove the participant's tracks from the Agora RTC client
+    const participant = config.remoteTracks[uid];
+    if (participant && participant.videoTrack) {
+      participant.videoTrack.stop();
+      participant.videoTrack.close();
+    }
+    if (participant && participant.audioTrack) {
+      participant.audioTrack.stop();
+      participant.audioTrack.close();
+    }
+
+    // Unpublish the participant from the Agora RTC client
+    await config.client.unpublish([
+      participant.audioTrack,
+      participant.videoTrack,
+    ]);
+
+    // Remove the participant from the remoteTracks object
+    delete config.remoteTracks[uid];
+
+    // Remove the participant's UI element from the DOM
+    const player = document.querySelector(`#video-wrapper-${uid}`);
+    if (player) {
+      player.remove();
+    }
+
+    log(`Participant with UID ${uid} has been removed from the session`);
+  } catch (error) {
+    console.error(`Error removing participant with UID ${uid}:`, error);
   }
 };
