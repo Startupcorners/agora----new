@@ -171,7 +171,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
       return;
     }
 
-    // Check if already sharing and need to stop
     if (config.localScreenShareEnabled && isEnabled) {
       console.log("Already sharing. Stopping screen share.");
       isEnabled = false; // This will stop the current screen share
@@ -180,7 +179,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
     if (isEnabled) {
       console.log("Starting screen share");
 
-      // Initialize screenShareClient if not already initialized
+      // Create a separate Agora client for screen share if not already initialized
       if (!config.screenShareClient) {
         console.log("Initializing screenShareClient");
         config.screenShareClient = AgoraRTC.createClient({
@@ -190,7 +189,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
       }
 
       // Generate a unique UID for screen sharing (numeric, different from camera UID)
-      const screenShareUid = uid + 100000; // Ensure uniqueness
+      const screenShareUid = uid + 100000; // Add constant to ensure it's numeric but unique
       config.screenShareUid = screenShareUid;
 
       // Fetch tokens for screen sharing by passing the screenShareUid
@@ -212,21 +211,8 @@ export const toggleScreenShare = async (isEnabled, config) => {
         screenShareUid
       );
 
-      // **Add the wrapper first** (ensure the DOM element for screen share exists)
+      // Add the screen share wrapper if it doesn’t already exist
       await addUserWrapper({ uid: screenShareUid, ...config.user }, config);
-
-      // Ensure the wrapper exists and is visible
-      const screenShareWrapper = document.querySelector(
-        `#participant-${screenShareUid}`
-      );
-      if (screenShareWrapper) {
-        screenShareWrapper.style.display = "block"; // Ensure the wrapper is visible
-      } else {
-        console.error(
-          `Wrapper for screen share user ${screenShareUid} not found`
-        );
-        return;
-      }
 
       // Create the screen share track
       try {
@@ -257,14 +243,14 @@ export const toggleScreenShare = async (isEnabled, config) => {
       await config.screenShareClient.publish([config.localScreenShareTrack]);
       console.log("Screen share track published.");
 
-      // **Play the screen share track after the wrapper is created**
-      const screenSharePlayer = document.querySelector(
+      // **Play the screen share track in the correct DOM element**
+      const screenShareWrapper = document.querySelector(
         `#stream-${screenShareUid}`
       );
-      if (screenSharePlayer) {
+      if (screenShareWrapper) {
         console.log(`Playing screen share for ${screenShareUid}`);
-        screenSharePlayer.style.display = "block"; // Ensure the video player is visible
-        config.localScreenShareTrack.play(screenSharePlayer); // Play the screen share track in the wrapper
+        screenShareWrapper.style.display = "block"; // Ensure the video player is visible
+        config.localScreenShareTrack.play(screenShareWrapper); // Play the screen share track
       } else {
         console.error(
           `Screen share player with id #stream-${screenShareUid} not found`
@@ -299,7 +285,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       // Remove the screen share player's DOM elements
       const screenShareWrapper = document.querySelector(
-        `#participant-${config.screenShareUid}`
+        `#stream-${config.screenShareUid}`
       );
       if (screenShareWrapper) {
         screenShareWrapper.remove();
