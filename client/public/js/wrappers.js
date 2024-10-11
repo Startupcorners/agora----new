@@ -1,70 +1,38 @@
+// Wrapper for adding users (current or remote) to the video stage
 export const addUserWrapper = async (user, config) => {
   try {
+    // Convert UID to string for RTM operations
     const rtmUid = user.uid.toString();
 
     // Fetch user attributes from RTM (name, avatar)
     const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
 
-    // Check if the wrapper already exists for this user
-    let wrapper = document.querySelector(`#participant-${user.uid}`);
-    if (!wrapper) {
-      console.log(`Creating wrapper for user: ${user.uid}`);
-
-      // Create player HTML with avatar and mic icon
-      const playerHTML = `
-        <div id="participant-${user.uid}" class="participant-wrapper">
-          <div id="stream-${
-            user.uid
-          }" class="video-player" style="width: 100%; height: 100%;"></div>
-          <div id="avatar-${user.uid}" class="avatar" style="display: block;">
-            <img src="${userAttr.avatar || "default-avatar-url"}" alt="${
-        userAttr.name || "User"
-      } Avatar" />
-          </div>
-          <div class="participant-info">
-            <div class="participant-name">${userAttr.name || "Unknown"}</div>
-            <div class="participant-company">${userAttr.company || ""}</div>
-          </div>
-          <div id="mic-icon-${user.uid}" class="mic-icon">
-            <img src="path-to-mic-icon" alt="Mic icon">
-          </div>
-        </div>
-      `;
+    // Check if the player already exists for this user
+    let player = document.querySelector(`#video-wrapper-${user.uid}`);
+    if (!player) {
+      // Create player HTML with user attributes (name, avatar)
+      let playerHTML = config.participantPlayerContainer
+        .replace(/{{uid}}/g, user.uid)
+        .replace(/{{name}}/g, userAttr.name || "Unknown")
+        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
 
       // Insert the player into the DOM
-      const callContainer = document.querySelector(
-        config.callContainerSelector
-      );
-      if (callContainer) {
-        callContainer.insertAdjacentHTML("beforeend", playerHTML);
-        console.log(`Added player wrapper for user: ${user.uid}`);
-      } else {
-        console.error(
-          `Call container ${config.callContainerSelector} not found`
-        );
-        return;
-      }
-    } else {
-      console.log(`Wrapper for user ${user.uid} already exists`);
+      document
+        .querySelector(config.callContainerSelector)
+        .insertAdjacentHTML("beforeend", playerHTML);
+
+      console.log(`Added player for user: ${user.uid}`);
     }
 
-    // Ensure the video player and avatar elements are ready
+    // Hide video player and show avatar initially
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-    const micIcon = document.querySelector(`#mic-icon-${user.uid}`);
-
-    if (!videoPlayer || !avatarDiv || !micIcon) {
-      console.error(
-        `Video player, avatar, or mic icon not found for user ${user.uid}`
-      );
-      return;
+    if (videoPlayer && avatarDiv) {
+      videoPlayer.style.display = "none"; // Video off initially
+      avatarDiv.style.display = "block"; // Avatar on
     }
-
-    // Initially hide the video player and show avatar
-    videoPlayer.style.display = "none"; // Video hidden by default
-    avatarDiv.style.display = "block"; // Avatar visible by default
   } catch (error) {
-    console.error("Error in addUserWrapper:", error);
+    console.log("Failed to fetch user attributes:", error);
   }
 };
 
