@@ -51,7 +51,6 @@ export const removeUserWrapper = (uid) => {
   }
 };
 
-
 export const addScreenShareWrapper = (screenShareUid, uid, config) => {
   try {
     // Hide all other video wrappers
@@ -64,7 +63,7 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
 
     // Handle the screen share wrapper (full screen)
     let screenShareWrapper = document.querySelector(
-      `#stream-${screenShareUid}`
+      `#stream-wrapper-${screenShareUid}`
     );
     if (!screenShareWrapper) {
       // If the screen share wrapper does not exist, create it
@@ -109,10 +108,19 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
       userWrapper.style.zIndex = "9999";
     }
 
-    // Move the user's stream back into the user-wrapper if it was moved out
-    const userStream = document.querySelector(`#stream-${uid}`);
-    if (userStream && !userWrapper.contains(userStream)) {
-      userWrapper.appendChild(userStream); // Ensure userStream is inside the wrapper
+    // Move the user's stream to the user-wrapper
+    const userStream = document.querySelector(
+      `#video-wrapper-${uid} .video-player`
+    );
+    if (userStream) {
+      // Remove from the previous location
+      const existingParent = userStream.parentNode;
+      existingParent.removeChild(userStream);
+
+      // Append it inside the user's smaller wrapper
+      userWrapper.querySelector(`#stream-${uid}`).appendChild(userStream);
+    } else {
+      console.error(`User stream for UID ${uid} not found.`);
     }
 
     // Make sure the user video wrapper is visible and positioned over the screen share
@@ -121,7 +129,6 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
     console.error("Error in addScreenShareWrapper:", error);
   }
 };
-
 
 export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
   try {
