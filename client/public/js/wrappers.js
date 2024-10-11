@@ -1,6 +1,5 @@
 export const addUserWrapper = async (user, config) => {
   try {
-    // Convert UID to string for RTM operations
     const rtmUid = user.uid.toString();
 
     // Fetch user attributes from RTM (name, avatar)
@@ -9,15 +8,19 @@ export const addUserWrapper = async (user, config) => {
     // Check if the wrapper already exists for this user
     let wrapper = document.querySelector(`#participant-${user.uid}`);
     if (!wrapper) {
-      // Log that we are creating the wrapper
       console.log(`Creating wrapper for user: ${user.uid}`);
 
-      // Create the player HTML with user attributes (name, avatar)
+      // Create player HTML with avatar
       const playerHTML = `
         <div id="participant-${user.uid}" class="participant-wrapper">
           <div id="stream-${
             user.uid
           }" class="video-player" style="width: 100%; height: 100%;"></div>
+          <div id="avatar-${user.uid}" class="avatar" style="display: block;">
+            <img src="${userAttr.avatar || "default-avatar-url"}" alt="${
+        userAttr.name || "User"
+      } Avatar" />
+          </div>
           <div class="participant-info">
             <div class="participant-name">${userAttr.name || "Unknown"}</div>
             <div class="participant-company">${userAttr.company || ""}</div>
@@ -25,7 +28,7 @@ export const addUserWrapper = async (user, config) => {
         </div>
       `;
 
-      // Insert the player into the DOM (ensure the container exists)
+      // Insert the player into the DOM
       const callContainer = document.querySelector(
         config.callContainerSelector
       );
@@ -38,27 +41,27 @@ export const addUserWrapper = async (user, config) => {
         );
         return;
       }
+    } else {
+      console.log(`Wrapper for user ${user.uid} already exists`);
     }
 
-    // Ensure the video player element is ready
+    // Ensure the video player and avatar elements are ready
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);
-    if (!videoPlayer) {
-      console.error(`Video player for user ${user.uid} not found`);
+    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+    if (!videoPlayer || !avatarDiv) {
+      console.error(
+        `Video player or avatar elements not found for user ${user.uid}`
+      );
       return;
     }
 
-    // Initially hide video player and show avatar (if you have avatars)
-    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-    if (avatarDiv) {
-      videoPlayer.style.display = "none"; // Hide video initially
-      avatarDiv.style.display = "block"; // Show avatar initially
-    }
+    // Initially hide the video player and show avatar
+    videoPlayer.style.display = "none"; // Video hidden by default
+    avatarDiv.style.display = "block"; // Avatar visible by default
   } catch (error) {
     console.error("Error in addUserWrapper:", error);
   }
 };
-
-
 
 // Wrapper for removing users from the video stage
 export const removeUserWrapper = (uid) => {
