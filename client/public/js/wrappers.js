@@ -1,4 +1,3 @@
-// Wrapper for adding users (current or remote) to the video stage
 export const addUserWrapper = async (user, config) => {
   try {
     // Convert UID to string for RTM operations
@@ -24,12 +23,22 @@ export const addUserWrapper = async (user, config) => {
       console.log(`Added player for user: ${user.uid}`);
     }
 
-    // Hide video player and show avatar initially
+    // Select the video player and avatar elements
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+
+    // Initially hide the video player and show the avatar
     if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none"; // Video off initially
-      avatarDiv.style.display = "block"; // Avatar on
+      videoPlayer.style.display = "none"; // Hide video initially
+      avatarDiv.style.display = "block"; // Show avatar initially
+    }
+
+    // If a video track is available, show the video and hide the avatar
+    if (config.localScreenShareTrack && user.uid === config.screenShareUid) {
+      console.log(`Showing video for screen share ${user.uid}`);
+      videoPlayer.style.display = "block"; // Show the video player
+      avatarDiv.style.display = "none"; // Hide the avatar
+      config.localScreenShareTrack.play(videoPlayer); // Play the video track
     }
   } catch (error) {
     console.log("Failed to fetch user attributes:", error);
