@@ -188,11 +188,11 @@ export const toggleScreenShare = async (isEnabled, config) => {
         });
       }
 
-      // Generate a unique UID for screen sharing (different from the camera UID)
-      const screenShareUid = parseInt(uid.toString().slice(0, -1), 10);
+      // Generate a unique UID for screen sharing (numeric, different from camera UID)
+      const screenShareUid = uid + 100000; // Add constant to ensure it's numeric but unique
       config.screenShareUid = screenShareUid;
 
-      // Fetch a new token for screenShareUid from your backend
+      // Fetch tokens for screen sharing
       const tokens = await fetchTokens({
         ...config,
         uid: screenShareUid, // Send screenShareUid to get tokens specifically for screen share
