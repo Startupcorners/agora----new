@@ -247,10 +247,17 @@ export const toggleScreenShare = async (isEnabled, config) => {
       const screenShareWrapper = document.querySelector(
         `#stream-${screenShareUid}`
       );
+      const avatarDiv = document.querySelector(`#avatar-${screenShareUid}`); // Select the avatar
+
       if (screenShareWrapper) {
         console.log(`Playing screen share for ${screenShareUid}`);
         screenShareWrapper.style.display = "block"; // Ensure the video player is visible
         config.localScreenShareTrack.play(screenShareWrapper); // Play the screen share track
+
+        // Hide avatar if it exists
+        if (avatarDiv) {
+          avatarDiv.style.display = "none"; // Hide the avatar when screen share starts
+        }
       } else {
         console.error(
           `Screen share player with id #stream-${screenShareUid} not found`
@@ -307,7 +314,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
-
 
 
 
