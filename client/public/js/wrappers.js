@@ -108,22 +108,23 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
       userWrapper.style.zIndex = "9999";
     }
 
-    // Move the user's stream to the user-wrapper
+    // **Remove any existing stream elements in the wrapper to avoid duplication**
+    const existingStream = userWrapper.querySelector(".video-player");
+    if (existingStream) {
+      existingStream.remove(); // Remove any existing stream
+    }
+
+    // Move the user's stream back into the user-wrapper
     const userStream = document.querySelector(
       `#video-wrapper-${uid} .video-player`
     );
     if (userStream) {
-      // Remove from the previous location
-      const existingParent = userStream.parentNode;
-      existingParent.removeChild(userStream);
-
-      // Append it inside the user's smaller wrapper
       userWrapper.querySelector(`#stream-${uid}`).appendChild(userStream);
     } else {
       console.error(`User stream for UID ${uid} not found.`);
     }
 
-    // Make sure the user video wrapper is visible and positioned over the screen share
+    // Ensure the user video wrapper is visible and positioned correctly
     userWrapper.style.display = "block";
   } catch (error) {
     console.error("Error in addScreenShareWrapper:", error);
