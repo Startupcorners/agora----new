@@ -235,20 +235,21 @@ export const toggleScreenShare = async (isEnabled, config) => {
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
 
-      // Update the UI
-      await addUserWrapper({ uid: screenShareUid, ...config.user }, config);
-
-      // Play the screen share track locally
+      // **Play the screen share track locally**
       const screenSharePlayer = document.querySelector(
         `#stream-${screenShareUid}`
       );
       if (screenSharePlayer) {
-        config.localScreenShareTrack.play(screenSharePlayer);
+        console.log(`Playing screen share for ${screenShareUid}`);
+        config.localScreenShareTrack.play(screenSharePlayer); // Play the screen share track in the wrapper
       } else {
         console.error(
           `Screen share player with id #stream-${screenShareUid} not found`
         );
       }
+
+      // Update the UI (add the wrapper for the screen share)
+      await addUserWrapper({ uid: screenShareUid, ...config.user }, config);
 
       // Handle track-ended event
       config.localScreenShareTrack.on("track-ended", async () => {
@@ -300,7 +301,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
-
 
 
 
