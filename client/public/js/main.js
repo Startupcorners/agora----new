@@ -48,6 +48,13 @@ const newMainApp = function (initConfig) {
   // Apply initial config
   config = { ...config, ...initConfig };
 
+  // Ensure UID is a string
+  if (config.uid) {
+    config.uid = config.uid.toString();
+  } else {
+    throw new Error("UID is required in the config.");
+  }
+
   // Initialize AgoraRTC client
   config.client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
 
@@ -150,7 +157,7 @@ const newMainApp = function (initConfig) {
           let attributes = {};
           try {
             attributes = await config.clientRTM.getUserAttributes(
-              remoteUser.uid.toString()
+              remoteUser.uid
             );
           } catch (e) {
             console.error(
@@ -164,7 +171,7 @@ const newMainApp = function (initConfig) {
           const avatar = attributes.avatar || "default-avatar-url";
           const company = attributes.comp || "";
           const designation = attributes.desg || "";
-          const mainUid = attributes.mainUid || remoteUser.uid.toString();
+          const mainUid = attributes.mainUid || remoteUser.uid;
 
           // Check if participant already exists in participantList
           let participant = config.participantList.find(
@@ -212,8 +219,8 @@ const newMainApp = function (initConfig) {
       // Notify with the list of participants' UIDs and other info
       if (typeof bubble_fn_participantList === "function") {
         const participantData = config.participantList.map((p) => ({
-          mainUid: p.mainUid.toString(),
-          uids: p.uids.map((uid) => uid.toString()),
+          mainUid: p.mainUid,
+          uids: p.uids,
           name: p.name,
           avatar: p.avatar,
           company: p.company,
@@ -245,7 +252,7 @@ const newMainApp = function (initConfig) {
   // RTM Join function
   const joinRTM = async (rtmToken, retryCount = 0) => {
     try {
-      const rtmUid = config.uid.toString();
+      const rtmUid = config.uid; // UID is already a string
       console.log("rtmuid value", rtmUid);
 
       if (config.clientRTM._logined) {
@@ -336,7 +343,7 @@ const newMainApp = function (initConfig) {
   // Toggle screen share function
   const toggleScreenShare = async (isEnabled, config) => {
     try {
-      const uid = config.uid;
+      const uid = config.uid; // UID is already a string
 
       if (!uid) {
         console.error("UID is not set in config.");
@@ -366,7 +373,7 @@ const newMainApp = function (initConfig) {
         }
 
         // Generate a unique UID for screen sharing
-        const screenShareUid = Number(`${uid}12345`); // Ensure this UID is unique and a number
+        const screenShareUid = `${uid}-screen`; // Use a string UID
         config.screenShareUid = screenShareUid;
 
         // Fetch a new token for screenShareUid
@@ -396,13 +403,13 @@ const newMainApp = function (initConfig) {
               : AgoraRTM.LOG_FILTER_OFF,
           });
           await screenShareRTMClient.login({
-            uid: screenShareUid.toString(),
+            uid: screenShareUid,
             token: tokens.rtmToken,
           });
 
           // Set the mainUid attribute
           await screenShareRTMClient.setLocalUserAttributes({
-            mainUid: config.uid.toString(),
+            mainUid: uid,
           });
 
           // Logout from RTM after setting attributes
