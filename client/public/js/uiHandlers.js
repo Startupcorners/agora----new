@@ -7,7 +7,6 @@ import {
   removeUserWrapper,
   addScreenShareWrapper,
   removeScreenShareWrapper,
-  addScreenShareWithUser,
   revertToNormalView,
 } from "./wrappers.js";
 
