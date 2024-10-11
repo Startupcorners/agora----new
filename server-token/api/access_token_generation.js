@@ -15,10 +15,6 @@ module.exports = async (req, res) => {
     Expires: "0",
   });
 
-  if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method Not Allowed" });
-  }
-
   if (!channelName || !uid) {
     return res.status(400).json({ error: "channelName and uid are required" });
   }
@@ -29,12 +25,11 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // Set token expiration to 1 hour (3600 seconds)
+    // Token expiration
     const expirationInSeconds = 3600;
-    const currentTimestamp = Math.floor(Date.now() / 1000); // Get current time in seconds
-    const privilegeExpiredTs = currentTimestamp + expirationInSeconds; // Set expiration time
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    const privilegeExpiredTs = currentTimestamp + expirationInSeconds;
 
-    // Determine if UID is numeric
     const isNumericUid = /^\d+$/.test(uid);
 
     // Generate RTC token for the regular user
@@ -70,16 +65,16 @@ module.exports = async (req, res) => {
       privilegeExpiredTs
     );
 
-    // Generate separate tokens for screen share UID (modify the UID slightly)
+    // Generate separate tokens for screen share UID
     const screenShareUid = isNumericUid
-      ? parseInt(uid.toString().slice(0, -1), 10) // For numeric UIDs
-      : uid + "-screen"; // For string UIDs, append '-screen'
+      ? parseInt(uid) + 10000 // Modify for uniqueness
+      : `${uid}-screen`;
 
     const screenShareRtcToken = RtcTokenBuilder.buildTokenWithUid(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
       channelName,
-      parseInt(screenShareUid, 10), // Use screenShareUid
+      parseInt(screenShareUid, 10),
       rtcRole,
       privilegeExpiredTs
     );
@@ -87,13 +82,15 @@ module.exports = async (req, res) => {
     const screenShareRtmToken = RtmTokenBuilder.buildToken(
       process.env.APP_ID,
       process.env.APP_CERTIFICATE,
-      screenShareUid.toString(), // Convert to string if necessary
+      screenShareUid.toString(),
       RtmRole.Rtm_User,
       privilegeExpiredTs
     );
 
-    console.log("Generated RTC Token for Screen Share:", screenShareRtcToken);
-    console.log("Generated RTM Token for Screen Share:", screenShareRtmToken);
+    // Log the tokens and UIDs for troubleshooting
+    console.log("Screen Share UID:", screenShareUid);
+    console.log("Generated Screen Share RTC Token:", screenShareRtcToken);
+    console.log("Generated Screen Share RTM Token:", screenShareRtmToken);
 
     // Return both tokens in the response
     return res.json({
