@@ -133,29 +133,40 @@ export const addScreenShareWrapper = (screenShareUid, uid, config) => {
 
 export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
   try {
-    // Restore the layout when screen share ends
+    // Show all user video wrappers again after screen sharing ends
     const allWrappers = document.querySelectorAll(
       `#video-stage .stream-wrapper`
     );
     allWrappers.forEach((wrapper) => {
-      wrapper.style.display = "block"; // Restore other wrappers
+      wrapper.style.display = "block"; // Show other video wrappers
     });
 
-    // Remove full screen mode for screen share
-    const screenShareWrapper = document.querySelector(
-      `#stream-${screenShareUid}`
+    // Remove full-screen screen share wrapper and hide it
+    const screenShareElement = document.querySelector(
+      `#stream-wrapper-${screenShareUid}`
     );
-    if (screenShareWrapper) {
-      screenShareWrapper.classList.remove("fullscreen-wrapper");
-      screenShareWrapper.style.display = "none"; // Hide screen share
+    if (screenShareElement) {
+      screenShareElement.style.display = "none"; // Hide the screen share wrapper
+      console.log(`Screen share stream ${screenShareUid} hidden.`);
     }
 
-    // Remove small video from the bottom-right
-    const userWrapper = document.querySelector(`#stream-${uid}`);
-    if (userWrapper) {
-      userWrapper.classList.remove("user-video-bottom-right");
-      userWrapper.style.display = "block"; // Restore user's video
+    // Reset the small user video (restore size, remove from bottom-right)
+    const userVideoWrapper = document.querySelector(`#stream-wrapper-${uid}`);
+    if (userVideoWrapper) {
+      userVideoWrapper.classList.remove("user-video-bottom-right");
+      userVideoWrapper.style.position = ""; // Reset positioning
+      userVideoWrapper.style.width = ""; // Reset width
+      userVideoWrapper.style.height = ""; // Reset height
+      console.log(`User video ${uid} reset.`);
     }
+
+    // Optionally, remove the screen share track from Agora client
+    if (config.screenShareClient) {
+      config.screenShareClient.leave();
+      config.screenShareClient = null;
+    }
+
+    console.log("Screen share layout reset successfully.");
   } catch (error) {
     console.error("Error in removeScreenShareWrapper:", error);
   }
@@ -238,13 +249,4 @@ export function revertToNormalView(config) {
   });
 
   console.log("Reverted to normal view for all users.");
-}
-
-
-export function removeScreenShareWrapper() {
-  const screenShareWrapper = document.querySelector("#screen-share-wrapper");
-  if (screenShareWrapper) {
-    screenShareWrapper.remove();
-    console.log("Screen share wrapper removed, returning to normal view.");
-  }
 }
