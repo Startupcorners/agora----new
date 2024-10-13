@@ -4,7 +4,7 @@ export const addUserWrapper = async (user, config) => {
     // Convert UID to string for RTM operations
     const rtmUid = user.uid.toString();
 
-    // Fetch user attributes from RTM (name, avatar)
+    // Fetch user attributes from RTM (name, avatar, and possibly media state)
     let userAttr = {};
     if (config.clientRTM && config.clientRTM.getUserAttributes) {
       try {
@@ -37,15 +37,29 @@ export const addUserWrapper = async (user, config) => {
     // Hide video player and show avatar initially
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+
+    // Check the user's media state (audio/video) based on the presence of tracks
+    const userVideoOn = user.videoTrack && user.videoTrack.isPlaying();
+    const userAudioOn = user.audioTrack && user.audioTrack.isPlaying();
+
     if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none"; // Video off initially
-      avatarDiv.style.display = "block"; // Avatar on
+      if (userVideoOn) {
+        // If video is on, show the video player and hide the avatar
+        videoPlayer.style.display = "block";
+        avatarDiv.style.display = "none";
+      } else {
+        // If video is off, show the avatar and hide the video player
+        videoPlayer.style.display = "none";
+        avatarDiv.style.display = "block";
+      }
+
+      // Handle the mic icon for audio
+      toggleMicIcon(user.uid, !userAudioOn); // Pass true if muted, false if unmuted
     }
   } catch (error) {
     console.error("Error in addUserWrapper:", error);
   }
 };
-
 
 
 // Wrapper for removing users from the video stage
