@@ -96,10 +96,11 @@ export const toggleCamera = async (isMuted, config) => {
     }
 
     if (isMuted) {
-      // Turn off the camera
+      // Turn off the camera (remove track)
       if (config.localVideoTrack) {
         console.log("Turning off the camera...");
 
+        // Unpublish and stop the video track
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
         config.localVideoTrack.close();
@@ -113,7 +114,7 @@ export const toggleCamera = async (isMuted, config) => {
 
         config.localVideoTrackMuted = true; // Set muted status
 
-        // Run bubble function to notify the camera is off
+        // Notify Bubble that the camera is off
         if (typeof bubble_fn_isCamOff === "function") {
           bubble_fn_isCamOff(true); // Camera is off
         }
@@ -121,23 +122,29 @@ export const toggleCamera = async (isMuted, config) => {
         console.warn("No video track to turn off for user:", config.uid);
       }
     } else {
-      // Turn on the camera
+      // Turn on the camera (create and publish a track)
       console.log("Turning on the camera...");
 
       // Check if the video track already exists
       if (!config.localVideoTrack) {
         try {
-          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Create a new video track
+          // Create a new video track
+          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
           console.log("Created new video track for user:", config.uid);
+
+          // Publish the newly created video track
+          await config.client.publish([config.localVideoTrack]);
+          console.log("Published new video track for user:", config.uid);
         } catch (error) {
-          console.error("Failed to create a new video track:", error);
+          console.error(
+            "Failed to create and publish the new video track:",
+            error
+          );
           return;
         }
-
-        await config.client.publish([config.localVideoTrack]);
-        console.log("Published new video track for user:", config.uid);
       } else {
         console.log("Video track already exists for user:", config.uid);
+        await config.client.publish([config.localVideoTrack]); // Ensure it's published
       }
 
       // Play video and hide avatar
@@ -151,7 +158,7 @@ export const toggleCamera = async (isMuted, config) => {
 
       config.localVideoTrackMuted = false; // Update the muted status
 
-      // Run bubble function to notify the camera is on
+      // Notify Bubble that the camera is on
       if (typeof bubble_fn_isCamOff === "function") {
         bubble_fn_isCamOff(false); // Camera is on
       }
@@ -160,6 +167,7 @@ export const toggleCamera = async (isMuted, config) => {
     console.error("Error in toggleCamera:", error);
   }
 };
+
 
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
