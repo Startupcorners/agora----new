@@ -72,9 +72,10 @@ export const toggleMic = async (config) => {
     console.error("Error in toggleMic:", error);
   }
 };
+
+
 export const toggleCamera = async (isMuted, config) => {
   try {
-    // Prevent multiple toggle actions from being triggered simultaneously
     if (config.cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
       return;
@@ -102,28 +103,23 @@ export const toggleCamera = async (isMuted, config) => {
       return;
     }
 
-    // Check if the camera is currently muted (video off)
     if (isMuted) {
-      // Camera is on, turn it off
+      // Camera is currently on, turn it off
       if (config.localVideoTrack) {
         console.log("Turning off the camera...");
 
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
-        config.localVideoTrack.close();
-        config.localVideoTrack = null; // Ensure the video track is completely removed
-
+        config.localVideoTrack.setEnabled(false); // Disable the track but keep it
         console.log("Camera turned off and unpublished for user:", config.uid);
 
         // Show avatar, hide video
         toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
-        console.log("Avatar shown, video hidden for user:", config.uid);
+        config.localVideoTrackMuted = true; // Update muted status
 
-        config.localVideoTrackMuted = true; // Set the muted status to true
-
-        // Run bubble function to notify the camera is off
+        // Notify that the camera is off
         if (typeof bubble_fn_isCamOn === "function") {
-          bubble_fn_isCamOn(false); // Camera is off
+          bubble_fn_isCamOn(false);
         }
       } else {
         console.warn("No video track to turn off for user:", config.uid);
@@ -132,34 +128,16 @@ export const toggleCamera = async (isMuted, config) => {
       // Camera is off, turn it on
       console.log("Turning on the camera...");
 
-      // Check if the video track already exists
-      if (!config.localVideoTrack) {
-        console.log("Creating new video track...");
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Create a new video track
-
-        if (!config.localVideoTrack) {
-          console.error("Failed to create a new video track!");
-          config.cameraToggleInProgress = false;
-          return;
-        }
-
-        console.log("Created new video track for user:", config.uid);
-
+      if (config.localVideoTrack) {
+        // If the track exists, enable it
+        await config.localVideoTrack.setEnabled(true);
         await config.client.publish([config.localVideoTrack]);
-        console.log("Published new video track for user:", config.uid);
-
-        // Ensure the video track plays after publishing
-        await config.localVideoTrack.play(videoPlayer);
-        console.log(
-          "Playing the video track after publishing for user:",
-          config.uid
-        );
+        console.log("Video track enabled and published for user:", config.uid);
       } else {
-        console.log("Video track already exists for user:", config.uid);
-
-        // Ensure the existing video track plays
-        await config.localVideoTrack.play(videoPlayer);
-        console.log("Replaying existing video track for user:", config.uid);
+        // Handle the case where the video track might not exist (though it should)
+        console.error("Video track was not created in the initial stage.");
+        config.cameraToggleInProgress = false;
+        return;
       }
 
       // Play video and hide avatar
@@ -169,13 +147,11 @@ export const toggleCamera = async (isMuted, config) => {
         avatarDiv,
         videoPlayer
       );
-      console.log("Video shown, avatar hidden for user:", config.uid);
+      config.localVideoTrackMuted = false; // Update muted status
 
-      config.localVideoTrackMuted = false; // Set the muted status to false
-
-      // Run bubble function to notify the camera is on
+      // Notify that the camera is on
       if (typeof bubble_fn_isCamOn === "function") {
-        bubble_fn_isCamOn(true); // Camera is on
+        bubble_fn_isCamOn(true);
       }
     }
   } catch (error) {
@@ -184,6 +160,7 @@ export const toggleCamera = async (isMuted, config) => {
     config.cameraToggleInProgress = false; // Reset toggle progress
   }
 };
+
 
 
 export const toggleScreenShare = async (isEnabled, config) => {

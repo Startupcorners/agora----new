@@ -286,27 +286,21 @@ const joinToVideoStage = async (config) => {
       config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
     }
 
-    // Check if the local audio track is created successfully
     if (config.localAudioTrack) {
       console.log("Microphone audio track created successfully");
     } else {
       console.error("Failed to create local audio track");
     }
 
-    // Create the local video track but keep it muted (do not publish yet)
+    // Create the local video track if it doesn't exist, but keep it muted and unpublished
     if (!config.localVideoTrack) {
       console.log("Creating camera video track (muted initially)");
-
-      // Create the video track but keep it muted
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-
-      // Mute the video track immediately after creation
-      await config.localVideoTrack.setEnabled(false);
-
+      await config.localVideoTrack.setEnabled(false); // Keep video muted initially
       console.log("Video track created but kept muted");
     }
 
-    // Publish the local audio track only (video will be published when toggled)
+    // Publish the local audio track only
     console.log("Publishing local audio track");
     await client.publish([config.localAudioTrack]);
 
