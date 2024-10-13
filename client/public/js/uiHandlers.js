@@ -75,7 +75,7 @@ export const toggleMic = async (config) => {
 
 
 
-export const toggleCamera = async (config) => {
+export const toggleCamera = async (isMuted, config) => {
   try {
     // Get the video player and avatar elements for the current user
     const videoPlayer = document.querySelector(`#stream-${config.uid}`);
@@ -95,44 +95,51 @@ export const toggleCamera = async (config) => {
       return;
     }
 
-    // Check if the video track exists
-    if (config.localVideoTrack) {
-      // If a track exists, turn off the camera (unpublish and remove track)
-      console.log("Turning off the camera...");
+    if (isMuted) {
+      // Turn off the camera
+      if (config.localVideoTrack) {
+        console.log("Turning off the camera...");
 
-      // Unpublish and stop the video track
-      await config.client.unpublish([config.localVideoTrack]);
-      config.localVideoTrack.stop();
-      config.localVideoTrack.close();
-      config.localVideoTrack = null; // Ensure the video track is completely removed
+        await config.client.unpublish([config.localVideoTrack]);
+        config.localVideoTrack.stop();
+        config.localVideoTrack.close();
+        config.localVideoTrack = null; // Ensure the video track is completely removed
 
-      console.log("Camera turned off and unpublished for user:", config.uid);
+        console.log("Camera turned off and unpublished for user:", config.uid);
 
-      // Show avatar, hide video
-      toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
-      console.log("Avatar shown, video hidden for user:", config.uid);
+        // Show avatar, hide video
+        toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
+        console.log("Avatar shown, video hidden for user:", config.uid);
 
-      // Run bubble function to notify the camera is off
-      if (typeof bubble_fn_isCamOff === "function") {
-        bubble_fn_isCamOff(true); // Camera is off
+        config.localVideoTrackMuted = true; // Set muted status
+
+        // Run bubble function to notify the camera is off
+        if (typeof bubble_fn_isCamOff === "function") {
+          bubble_fn_isCamOff(true); // Camera is off
+        }
+      } else {
+        console.warn("No video track to turn off for user:", config.uid);
       }
     } else {
-      // If no track exists, create and publish the video track (turn camera on)
+      // Turn on the camera
       console.log("Turning on the camera...");
 
-      // Create a new video track
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-
+      // Check if the video track already exists
       if (!config.localVideoTrack) {
-        console.error("Failed to create a new video track!");
-        return;
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Create a new video track
+
+        if (!config.localVideoTrack) {
+          console.error("Failed to create a new video track!");
+          return;
+        }
+
+        console.log("Created new video track for user:", config.uid);
+
+        await config.client.publish([config.localVideoTrack]);
+        console.log("Published new video track for user:", config.uid);
+      } else {
+        console.log("Video track already exists for user:", config.uid);
       }
-
-      console.log("Created new video track for user:", config.uid);
-
-      // Publish the new video track
-      await config.client.publish([config.localVideoTrack]);
-      console.log("Published new video track for user:", config.uid);
 
       // Play video and hide avatar
       toggleVideoOrAvatar(
@@ -143,6 +150,8 @@ export const toggleCamera = async (config) => {
       );
       console.log("Video shown, avatar hidden for user:", config.uid);
 
+      config.localVideoTrackMuted = false; // Update the muted status
+
       // Run bubble function to notify the camera is on
       if (typeof bubble_fn_isCamOff === "function") {
         bubble_fn_isCamOff(false); // Camera is on
@@ -152,8 +161,6 @@ export const toggleCamera = async (config) => {
     console.error("Error in toggleCamera:", error);
   }
 };
-
-
 
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
