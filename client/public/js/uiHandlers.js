@@ -77,16 +77,6 @@ export const toggleMic = async (config) => {
 
 export const toggleCamera = async (isMuted, config) => {
   try {
-    // Add a flag to prevent multiple toggles from being processed at the same time
-    if (config.cameraToggleInProgress) {
-      console.warn(
-        "Camera toggle is already in progress, ignoring repeated clicks."
-      );
-      return;
-    }
-
-    config.cameraToggleInProgress = true; // Set the flag to true
-
     // Get the video player and avatar elements for the current user
     const videoPlayer = document.querySelector(`#stream-${config.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
@@ -97,87 +87,70 @@ export const toggleCamera = async (isMuted, config) => {
 
     if (!videoPlayer) {
       console.error(`Video player for user ${config.uid} not found!`);
-      config.cameraToggleInProgress = false; // Reset the flag
       return;
     }
 
     if (!avatarDiv) {
       console.error(`Avatar element for user ${config.uid} not found!`);
-      config.cameraToggleInProgress = false; // Reset the flag
       return;
     }
 
-    // Check if the camera is currently muted
-    if (isMuted) {
-      // Camera is on, turn it off
-      if (config.localVideoTrack) {
-        console.log("Turning off the camera...");
-
-        await config.client.unpublish([config.localVideoTrack]);
-        config.localVideoTrack.stop();
-        config.localVideoTrack.close();
-        config.localVideoTrack = null; // Ensure the video track is completely removed
-
-        console.log("Camera turned off and unpublished for user:", config.uid);
+    // If video track already exists, we can mute/unmute it
+    if (config.localVideoTrack) {
+      if (isMuted) {
+        // Mute the video track (camera off)
+        console.log("Muting the video track...");
+        await config.localVideoTrack.setEnabled(false);
 
         // Show avatar, hide video
         toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
         console.log("Avatar shown, video hidden for user:", config.uid);
 
-        config.localVideoTrackMuted = true; // Set the muted status to true
-
-        // Run bubble function to notify the camera is off
-        if (typeof bubble_fn_isCamOn === "function") {
-          bubble_fn_isCamOn(false); // Camera is off
-        }
+        config.localVideoTrackMuted = true; // Set muted status
       } else {
-        console.warn("No video track to turn off for user:", config.uid);
+        // Unmute the video track (camera on)
+        console.log("Unmuting the video track...");
+        await config.localVideoTrack.setEnabled(true);
+
+        // Play video and hide avatar
+        toggleVideoOrAvatar(
+          config.uid,
+          config.localVideoTrack,
+          avatarDiv,
+          videoPlayer
+        );
+        console.log("Video shown, avatar hidden for user:", config.uid);
+
+        config.localVideoTrackMuted = false; // Set muted status
       }
     } else {
-      // Camera is off, turn it on
-      console.log("Turning on the camera...");
+      // Create and publish the video track only if it doesn't exist yet (first-time case)
+      console.log("Creating camera video track...");
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      await config.client.publish([config.localVideoTrack]);
 
-      // Check if the video track already exists
-      if (!config.localVideoTrack) {
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Create a new video track
-
-        if (!config.localVideoTrack) {
-          console.error("Failed to create a new video track!");
-          config.cameraToggleInProgress = false; // Reset the flag
-          return;
-        }
-
-        console.log("Created new video track for user:", config.uid);
-
-        await config.client.publish([config.localVideoTrack]);
-        console.log("Published new video track for user:", config.uid);
-      } else {
-        console.log("Video track already exists for user:", config.uid);
-      }
-
-      // Play video and hide avatar
+      // Unmute the video track and display it
+      await config.localVideoTrack.setEnabled(true);
       toggleVideoOrAvatar(
         config.uid,
         config.localVideoTrack,
         avatarDiv,
         videoPlayer
       );
-      console.log("Video shown, avatar hidden for user:", config.uid);
 
-      config.localVideoTrackMuted = false; // Set the muted status to false
+      config.localVideoTrackMuted = false; // Set muted status
+      console.log("Video track created and published for user:", config.uid);
+    }
 
-      // Run bubble function to notify the camera is on
-      if (typeof bubble_fn_isCamOn === "function") {
-        bubble_fn_isCamOn(true); // Camera is on
-      }
+    // Notify about the camera status change
+    if (typeof bubble_fn_isCamOn === "function") {
+      bubble_fn_isCamOn(!isMuted); // Notify if the camera is on or off
     }
   } catch (error) {
     console.error("Error in toggleCamera:", error);
-  } finally {
-    // Reset the flag after the function finishes executing
-    config.cameraToggleInProgress = false;
   }
 };
+
 
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
