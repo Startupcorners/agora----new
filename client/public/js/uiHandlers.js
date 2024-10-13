@@ -72,7 +72,6 @@ export const toggleMic = async (config) => {
     console.error("Error in toggleMic:", error);
   }
 };
-
 export const toggleCamera = async (isMuted, config) => {
   try {
     // Prevent multiple toggle actions from being triggered simultaneously
@@ -105,7 +104,7 @@ export const toggleCamera = async (isMuted, config) => {
 
     // Check if the camera is currently muted (video off)
     if (isMuted) {
-      // Camera is on, so we need to turn it off
+      // Camera is on, turn it off
       if (config.localVideoTrack) {
         console.log("Turning off the camera...");
 
@@ -146,18 +145,21 @@ export const toggleCamera = async (isMuted, config) => {
 
         console.log("Created new video track for user:", config.uid);
 
-        // Publish the video track immediately after creation
         await config.client.publish([config.localVideoTrack]);
         console.log("Published new video track for user:", config.uid);
 
-        // Ensure the video track plays immediately
-        config.localVideoTrack.play(videoPlayer);
-        console.log("Video track is playing for user:", config.uid);
+        // Ensure the video track plays after publishing
+        await config.localVideoTrack.play(videoPlayer);
+        console.log(
+          "Playing the video track after publishing for user:",
+          config.uid
+        );
       } else {
         console.log("Video track already exists for user:", config.uid);
 
-        // Play the existing video track to ensure visibility
-        config.localVideoTrack.play(videoPlayer);
+        // Ensure the existing video track plays
+        await config.localVideoTrack.play(videoPlayer);
+        console.log("Replaying existing video track for user:", config.uid);
       }
 
       // Play video and hide avatar
@@ -182,6 +184,7 @@ export const toggleCamera = async (isMuted, config) => {
     config.cameraToggleInProgress = false; // Reset toggle progress
   }
 };
+
 
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
