@@ -5,7 +5,7 @@ export const addUserWrapper = async (user, config) => {
     // Convert UID to string for RTM operations
     const rtmUid = user.uid.toString();
 
-    // Fetch user attributes from RTM (name, avatar, and possibly media state)
+    // Fetch user attributes from RTM (name, avatar)
     let userAttr = {};
     if (config.clientRTM && config.clientRTM.getUserAttributes) {
       try {
@@ -39,28 +39,30 @@ export const addUserWrapper = async (user, config) => {
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
 
-    // Check the user's media state (audio/video) based on the presence of tracks
-    const userVideoOn = user.videoTrack && user.videoTrack.isPlaying();
-    const userAudioOn = user.audioTrack && user.audioTrack.isPlaying();
+    // Check the user's media state based on whether their tracks exist and are published
+    const userVideoTrackExists = user.videoTrack && user.videoTrack.isPlaying();
+    const userAudioTrackExists = user.audioTrack && user.audioTrack.isPlaying();
 
     if (videoPlayer && avatarDiv) {
-      if (userVideoOn) {
-        // If video is on, show the video player and hide the avatar
+      if (userVideoTrackExists) {
+        // If video is available, show the video player and hide the avatar
         videoPlayer.style.display = "block";
         avatarDiv.style.display = "none";
+        user.videoTrack.play(videoPlayer); // Ensure video starts playing
       } else {
-        // If video is off, show the avatar and hide the video player
+        // If no video track, hide the video player and show the avatar
         videoPlayer.style.display = "none";
         avatarDiv.style.display = "block";
       }
 
-      // Handle the mic icon for audio
-      toggleMicIcon(user.uid, !userAudioOn); // Pass true if muted, false if unmuted
+      // Update the mic icon based on the user's audio state
+      toggleMicIcon(user.uid, !userAudioTrackExists); // true if muted, false if unmuted
     }
   } catch (error) {
     console.error("Error in addUserWrapper:", error);
   }
 };
+
 
 // Wrapper for removing users from the video stage
 export const removeUserWrapper = (uid) => {
