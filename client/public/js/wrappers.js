@@ -5,10 +5,19 @@ export const addUserWrapper = async (user, config) => {
     const rtmUid = user.uid.toString();
 
     // Fetch user attributes from RTM (name, avatar)
-    const userAttr = await config.clientRTM.getUserAttributes(rtmUid);
+    let userAttr = {};
+    try {
+      userAttr = await config.clientRTM.getUserAttributes(rtmUid);
+    } catch (error) {
+      console.log(`Failed to fetch user attributes for user ${rtmUid}:`, error);
+      userAttr = {
+        name: "Unknown",
+        avatar: "default-avatar-url",
+      };
+    }
 
     // Check if the player already exists for this user
-    let player = document.querySelector(`#video-wrapper-${user.uid}`);
+    let player = document.querySelector(`#participant-${user.uid}`);
     if (!player) {
       // Create player HTML with user attributes (name, avatar)
       let playerHTML = config.participantPlayerContainer
@@ -23,16 +32,8 @@ export const addUserWrapper = async (user, config) => {
 
       console.log(`Added player for user: ${user.uid}`);
     }
-
-    // Hide video player and show avatar initially
-    const videoPlayer = document.querySelector(`#stream-${user.uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-    if (videoPlayer && avatarDiv) {
-      videoPlayer.style.display = "none"; // Video off initially
-      avatarDiv.style.display = "block"; // Avatar on
-    }
   } catch (error) {
-    console.log("Failed to fetch user attributes:", error);
+    console.log("Failed to add user wrapper:", error);
   }
 };
 
