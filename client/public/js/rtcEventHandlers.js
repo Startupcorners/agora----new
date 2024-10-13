@@ -72,8 +72,10 @@ export const handleUserPublished = async (user, mediaType, config) => {
       }
     }
 
-    // Add user wrapper for the new UID
+    // Add user wrapper for the new UID if not already added
     await addUserWrapper({ uid: userUid, ...attributes }, config);
+  } else {
+    console.log(`Participant wrapper already exists for user ${user.uid}`);
   }
 
   // Wait for the wrapper to exist before proceeding
@@ -147,6 +149,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     }
   }
 };
+
 
 
 
