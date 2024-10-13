@@ -201,12 +201,16 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 // Handles user joined event
-export const handleUserJoined = async (user, config) => {
+export const handleUserJoined = async (user, config, userAttr = {}) => {
   console.log("Entering handleUserJoined function for user:", user.uid);
 
   try {
     // Prevent handling your own stream or screen share
-    if (user.uid === config.uid || user.uid === config.uid + 100000) {
+    if (
+      user.uid === config.uid ||
+      user.uid === config.screenShareUid ||
+      user.uid === config.uid + 100000 // For numeric screen share UID
+    ) {
       console.log(
         `Skipping wrapper for own user or screen share UID: ${user.uid}`
       );
@@ -215,38 +219,39 @@ export const handleUserJoined = async (user, config) => {
 
     // Convert UID to string
     const userUid = user.uid.toString();
-    let userRole = null;
-    let userAttr = {};
 
-    // Fetch attributes if config.clientRTM and fetchAttributes are enabled
-    if (config.clientRTM && config.fetchAttributes) {
-      try {
-        userAttr = await config.clientRTM.getUserAttributes(userUid);
-      } catch (error) {
-        console.error(
-          `Failed to get RTM attributes for user ${userUid}:`,
-          error
+    // If userAttr is empty, attempt to fetch attributes
+    if (!userAttr || Object.keys(userAttr).length === 0) {
+      if (config.clientRTM) {
+        try {
+          userAttr = await config.clientRTM.getUserAttributes(userUid);
+        } catch (error) {
+          console.error(
+            `Failed to get RTM attributes for user ${userUid}:`,
+            error
+          );
+          userAttr = {
+            name: "Unknown",
+            company: "",
+            designation: "",
+            role: "audience", // Default role
+          };
+        }
+      } else {
+        console.log(
+          `clientRTM is not initialized. Skipping attribute fetch for user ${userUid}.`
         );
         userAttr = {
           name: "Unknown",
           company: "",
           designation: "",
+          role: "audience", // Default role
         };
       }
-    } else {
-      console.log(`Skipping attribute fetch for user ${userUid}.`);
     }
 
-    // Ensure user has a role assigned in RTM
-    if (userAttr.role) {
-      userRole = userAttr.role;
-    } else {
-      console.warn(`User ${userUid} does not have a role assigned.`);
-      userRole = "audience"; // Assign a default role
-    }
-
-    // Add the role to the user object
-    user.role = userRole;
+    // Assign the role to the user object
+    user.role = userAttr.role || "audience";
 
     // Only proceed if the user is a host
     if (user.role !== "host") {
@@ -265,7 +270,7 @@ export const handleUserJoined = async (user, config) => {
     config.remoteTracks[userUid] = user;
 
     // Add the wrapper for the user (if not screen share UID)
-    await addUserWrapper(user, config);
+    await addUserWrapper({ uid: userUid, ...userAttr }, config);
 
     console.log(
       `Host user ${userUid} joined, waiting for media to be published.`
@@ -287,6 +292,7 @@ export const handleUserJoined = async (user, config) => {
         name: userAttr.name || "Unknown",
         company: userAttr.company || "",
         designation: userAttr.designation || "",
+        role: user.role, // Include role
       };
       config.participantList.push(participant);
     } else {
@@ -304,6 +310,7 @@ export const handleUserJoined = async (user, config) => {
         name: p.name,
         company: p.company,
         designation: p.designation,
+        role: p.role,
       }));
 
       bubble_fn_participantList({ participants: participantData });
@@ -312,7 +319,6 @@ export const handleUserJoined = async (user, config) => {
     console.error(`Error in handleUserJoined for user ${user.uid}:`, error);
   }
 };
-
 
 
 

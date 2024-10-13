@@ -104,11 +104,12 @@ const join = async () => {
         name: config.user.name || "Unknown",
         company: config.user.company || "",
         designation: config.user.designation || "",
+        role: config.user.role || "audience", // Include role
       },
     ];
 
-    // Join RTM if using it
-    await joinRTM(tokens.rtmToken); // Make sure joinRTM is properly defined
+    // Join RTM
+    await joinRTM(tokens.rtmToken);
 
     console.log("config.uid before joining RTC", config.uid);
     await config.client.join(
@@ -123,7 +124,7 @@ const join = async () => {
 
     // If the user is a host, join the video stage
     if (config.user.role === "host") {
-      await joinToVideoStage(config); // Ensure joinToVideoStage is properly defined
+      await joinToVideoStage(config);
     }
 
     // Subscribe to existing remote users' media tracks (video/audio)
@@ -151,6 +152,10 @@ const join = async () => {
           const name = attributes.name || "Unknown";
           const company = attributes.comp || "";
           const designation = attributes.desg || "";
+          const role = attributes.role || "audience"; // Extract role
+
+          // Assign role to remoteUser
+          remoteUser.role = role;
 
           // Check if user already exists in participantList
           const userExists = config.participantList.some(
@@ -164,6 +169,7 @@ const join = async () => {
               name: name,
               company: company,
               designation: designation,
+              role: role, // Include role
             });
           }
 
