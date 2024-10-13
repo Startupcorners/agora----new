@@ -115,8 +115,8 @@ export const toggleCamera = async (isMuted, config) => {
         config.localVideoTrackMuted = true; // Set the muted status to true
 
         // Run bubble function to notify the camera is off
-        if (typeof bubble_fn_isCamOff === "function") {
-          bubble_fn_isCamOff(true); // Camera is off
+        if (typeof bubble_fn_isCamOn === "function") {
+          bubble_fn_isCamOn(false); // Camera is off
         }
       } else {
         console.warn("No video track to turn off for user:", config.uid);
@@ -154,8 +154,8 @@ export const toggleCamera = async (isMuted, config) => {
       config.localVideoTrackMuted = false; // Set the muted status to false
 
       // Run bubble function to notify the camera is on
-      if (typeof bubble_fn_isCamOff === "function") {
-        bubble_fn_isCamOff(false); // Camera is on
+      if (typeof bubble_fn_isCamOn === "function") {
+        bubble_fn_isCamOn(true); // Camera is on
       }
     }
   } catch (error) {
