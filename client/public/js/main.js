@@ -214,18 +214,18 @@ const subscribeToExistingUsers = async (config) => {
               role: role, // Include role
             });
           }
-          
-          await handleUserJoined(remoteUser, config);
+
+          //await handleUserJoined(remoteUser, config);
 
           // Subscribe to and handle media tracks
           if (remoteUser.videoTrack) {
             await config.client.subscribe(remoteUser, "video");
-            await handleUserPublished(remoteUser, "video", config);
+            //await handleUserPublished(remoteUser, "video", config);
           }
 
           if (remoteUser.audioTrack) {
             await config.client.subscribe(remoteUser, "audio");
-            await handleUserPublished(remoteUser, "audio", config);
+            //await handleUserPublished(remoteUser, "audio", config);
           }
         }
       }
