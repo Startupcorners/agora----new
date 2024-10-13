@@ -277,7 +277,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
   // Join video stage function
 const joinToVideoStage = async (config) => {
   try {
-    const { user, client } = config;
+    const { client } = config;
 
     // Create and publish the local audio track if it doesn't exist
     if (!config.localAudioTrack) {
@@ -292,25 +292,9 @@ const joinToVideoStage = async (config) => {
       console.error("Failed to create local audio track");
     }
 
-    // Create the local video track if it doesn't exist
-    if (!config.localVideoTrack) {
-      console.log("Creating camera video track");
+    // Do NOT create the local video track here since we will handle it in toggleCamera
 
-      // Create the video track, but do not publish it yet
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-
-      // Mute the video track immediately after creation
-      config.localVideoTrack.setEnabled(false);
-    }
-
-    // Check if the local video track is created successfully
-    if (config.localVideoTrack) {
-      console.log("Camera video track created and muted successfully");
-    } else {
-      console.error("Failed to create local video track");
-    }
-
-    // Publish the local audio track (but not the video track since it’s muted)
+    // Publish the local audio track (video will be published when toggled)
     console.log("Publishing local audio track");
     await client.publish([config.localAudioTrack]);
 
@@ -331,19 +315,20 @@ const joinToVideoStage = async (config) => {
       return;
     }
 
-    // Show avatar and hide video initially since the video track is muted
+    // Show avatar and hide video initially since the video track is not created yet
     toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
 
     // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
     const isMuted = config.localAudioTrack.muted || false;
     toggleMicIcon(config.uid, isMuted);
 
-    console.log("Joined the video stage for the current user with muted video");
+    console.log(
+      "Joined the video stage for the current user without video initially"
+    );
   } catch (error) {
     console.error("Error in joinToVideoStage", error);
   }
 };
-
 
 
 
