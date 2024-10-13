@@ -73,7 +73,6 @@ export const toggleMic = async (config) => {
   }
 };
 
-
 export const toggleCamera = async (isMuted, config) => {
   try {
     // Prevent multiple toggle actions from being triggered simultaneously
@@ -136,6 +135,7 @@ export const toggleCamera = async (isMuted, config) => {
 
       // Check if the video track already exists
       if (!config.localVideoTrack) {
+        console.log("Creating new video track...");
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Create a new video track
 
         if (!config.localVideoTrack) {
@@ -146,17 +146,17 @@ export const toggleCamera = async (isMuted, config) => {
 
         console.log("Created new video track for user:", config.uid);
 
+        // Publish the video track immediately after creation
         await config.client.publish([config.localVideoTrack]);
         console.log("Published new video track for user:", config.uid);
 
-        // Force playing the video track
-        console.log("Forcing video track to play...");
-        config.localVideoTrack.play(videoPlayer); // Explicitly play the video track
+        // Ensure the video track plays immediately
+        config.localVideoTrack.play(videoPlayer);
+        console.log("Video track is playing for user:", config.uid);
       } else {
         console.log("Video track already exists for user:", config.uid);
 
-        // Ensure the video plays even if the track exists
-        console.log("Ensuring video track plays...");
+        // Play the existing video track to ensure visibility
         config.localVideoTrack.play(videoPlayer);
       }
 
