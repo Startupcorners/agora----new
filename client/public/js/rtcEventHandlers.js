@@ -25,67 +25,11 @@ export const handleUserPublished = async (user, mediaType, config) => {
   // Store the user's remote tracks
   config.remoteTracks[user.uid] = user;
 
-  // Check if the participant wrapper exists; if not, create it
-  let participantWrapper = document.querySelector(`#participant-${user.uid}`);
-  if (!participantWrapper) {
-    // Prepare attributes
-    let attributes = {};
-    const userUid = user.uid.toString();
-    const isScreenShare = userUid.endsWith("-screen");
-    let mainUid = userUid;
-
-    if (isScreenShare) {
-      // For screen share UID, extract the main UID
-      mainUid = userUid.replace("-screen", "");
-
-      // Use main user's attributes
-      const mainUser = config.participantList.find((p) => p.uid === mainUid);
-      if (mainUser) {
-        attributes = {
-          name: mainUser.name,
-          avatar: mainUser.avatar || "default-avatar-url",
-        };
-      } else {
-        attributes = {
-          name: config.user.name || "Unknown",
-          avatar: config.user.avatar || "default-avatar-url",
-        };
-      }
-    } else {
-      // Fetch user attributes from RTM if available
-      if (config.clientRTM && config.clientRTM.getUserAttributes) {
-        try {
-          attributes = await config.clientRTM.getUserAttributes(userUid);
-        } catch (e) {
-          console.error(`Failed to get attributes for user ${user.uid}`, e);
-          attributes = {
-            name: "Unknown",
-            avatar: "default-avatar-url",
-          };
-        }
-      } else {
-        // If RTM is not available, use default attributes
-        attributes = {
-          name: "Unknown",
-          avatar: "default-avatar-url",
-        };
-      }
-    }
-
-    // Add user wrapper for the new UID if not already added
-    await addUserWrapper({ uid: userUid, ...attributes }, config);
-  } else {
-    console.log(`Participant wrapper already exists for user ${user.uid}`);
-  }
-
   // Wait for the wrapper to exist before proceeding
   let videoPlayer = document.querySelector(`#stream-${user.uid}`);
   if (!videoPlayer) {
-    // Create the video player element
-    videoPlayer = document.createElement("div");
-    videoPlayer.id = `stream-${user.uid}`;
-    videoPlayer.className = "video-player";
-    document.querySelector(`#participant-${user.uid}`).appendChild(videoPlayer);
+    console.log(`Video player not found for user ${user.uid}.`);
+    return; // If the wrapper is not found, skip further actions.
   }
 
   if (mediaType === "video") {
