@@ -278,8 +278,15 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
     // Store user in remoteTracks (no media yet)
     config.remoteTracks[userUid] = user;
 
-    // Add the wrapper for the user (if not screen share UID)
-    await addUserWrapper({ uid: userUid, ...userAttr }, config);
+    // Check if the participant wrapper exists; if not, create it
+    let participantWrapper = document.querySelector(`#participant-${userUid}`);
+    if (!participantWrapper) {
+      // Add the wrapper for the user (if not screen share UID)
+      await addUserWrapper({ uid: userUid, ...userAttr }, config);
+      console.log(`Wrapper added for user: ${userUid}`);
+    } else {
+      console.log(`Wrapper already exists for user: ${userUid}`);
+    }
 
     console.log(
       `Host user ${userUid} joined, waiting for media to be published.`
