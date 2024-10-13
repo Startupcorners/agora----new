@@ -96,6 +96,9 @@ export const handleUserPublished = async (user, mediaType, config) => {
         console.log(`Playing video track for user ${user.uid}`);
         user.videoTrack.play(videoPlayer);
 
+        // Ensure videoPlayer is visible
+        videoPlayer.style.display = "block";
+
         // Hide avatar when video is available
         const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
         if (avatarDiv) {
@@ -111,6 +114,9 @@ export const handleUserPublished = async (user, mediaType, config) => {
         if (avatarDiv) {
           avatarDiv.style.display = "block";
         }
+
+        // Hide videoPlayer since no valid video track
+        videoPlayer.style.display = "none";
       }
     } catch (error) {
       console.error(
