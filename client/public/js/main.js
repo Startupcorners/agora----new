@@ -293,9 +293,20 @@ const joinToVideoStage = async (config) => {
       console.error("Failed to create local audio track");
     }
 
-    // Do NOT create the local video track here since we will handle it in toggleCamera
+    // Create the local video track but keep it muted (do not publish yet)
+    if (!config.localVideoTrack) {
+      console.log("Creating camera video track (muted initially)");
 
-    // Publish the local audio track (video will be published when toggled)
+      // Create the video track but keep it muted
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+
+      // Mute the video track immediately after creation
+      await config.localVideoTrack.setEnabled(false);
+
+      console.log("Video track created but kept muted");
+    }
+
+    // Publish the local audio track only (video will be published when toggled)
     console.log("Publishing local audio track");
     await client.publish([config.localAudioTrack]);
 
@@ -316,16 +327,14 @@ const joinToVideoStage = async (config) => {
       return;
     }
 
-    // Show avatar and hide video initially since the video track is not created yet
+    // Show avatar and hide video initially since the video track is muted
     toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
 
     // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
     const isMuted = config.localAudioTrack.muted || false;
     toggleMicIcon(config.uid, isMuted);
 
-    console.log(
-      "Joined the video stage for the current user without video initially"
-    );
+    console.log("Joined the video stage with muted video and active audio");
   } catch (error) {
     console.error("Error in joinToVideoStage", error);
   }
