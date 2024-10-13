@@ -11,6 +11,19 @@ export const addUserWrapper = async (user, config) => {
       return; // Exit if the wrapper already exists
     }
 
+    // Ensure `participantList` exists in the config and check if user already in the list
+    if (!config.participantList) {
+      config.participantList = [];
+    }
+
+    const userExists = config.participantList.some(
+      (participant) => participant.uid === user.uid
+    );
+    if (userExists) {
+      console.log(`User ${user.uid} already exists in participantList.`);
+      return;
+    }
+
     // Fetch user attributes from RTM (name, avatar)
     let userAttr = {};
     if (config.clientRTM && config.clientRTM.getUserAttributes) {
@@ -40,6 +53,13 @@ export const addUserWrapper = async (user, config) => {
       .insertAdjacentHTML("beforeend", playerHTML);
 
     console.log(`Added wrapper for user: ${user.uid}`);
+
+    // Add the new user's info to participantList
+    config.participantList.push({
+      uid: user.uid,
+      name: userAttr.name || "Unknown",
+      avatar: userAttr.avatar || "default-avatar-url",
+    });
 
     // Hide video player and show avatar initially
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);

@@ -28,55 +28,10 @@ export const handleUserPublished = async (user, mediaType, config) => {
   // Check if the participant wrapper exists; if not, create it
   let participantWrapper = document.querySelector(`#participant-${user.uid}`);
   if (!participantWrapper) {
-    // Prepare attributes
-    let attributes = {};
-    const userUid = user.uid.toString();
-    const isScreenShare = userUid.endsWith("-screen");
-    let mainUid = userUid;
-
-    if (isScreenShare) {
-      // For screen share UID, extract the main UID
-      mainUid = userUid.replace("-screen", "");
-
-      // Use main user's attributes
-      const mainUser = config.participantList.find((p) => p.uid === mainUid);
-      if (mainUser) {
-        attributes = {
-          name: mainUser.name,
-          avatar: mainUser.avatar || "default-avatar-url",
-        };
-      } else {
-        attributes = {
-          name: config.user.name || "Unknown",
-          avatar: config.user.avatar || "default-avatar-url",
-        };
-      }
-    } else {
-      // Fetch user attributes from RTM if available
-      if (config.clientRTM && config.clientRTM.getUserAttributes) {
-        try {
-          attributes = await config.clientRTM.getUserAttributes(userUid);
-        } catch (e) {
-          console.error(`Failed to get attributes for user ${user.uid}`, e);
-          attributes = {
-            name: "Unknown",
-            avatar: "default-avatar-url",
-          };
-        }
-      } else {
-        // If RTM is not available, use default attributes
-        attributes = {
-          name: "Unknown",
-          avatar: "default-avatar-url",
-        };
-      }
-    }
-
-    // Add user wrapper for the new UID
-    await addUserWrapper({ uid: userUid, ...attributes }, config);
+    console.log(`Adding wrapper for user ${user.uid}`);
+    await addUserWrapper(user, config);
   }
 
-  // Wait for the wrapper to exist before proceeding
   let videoPlayer = document.querySelector(`#stream-${user.uid}`);
   if (!videoPlayer) {
     // Create the video player element
@@ -88,35 +43,17 @@ export const handleUserPublished = async (user, mediaType, config) => {
 
   if (mediaType === "video") {
     console.log(`Attempting to subscribe to video track for user ${user.uid}`);
-
     try {
-      await config.client.subscribe(user, mediaType);
+      if (!user.videoTrack) {
+        await config.client.subscribe(user, mediaType);
+      }
+      user.videoTrack.play(videoPlayer);
+      videoPlayer.style.display = "block";
 
-      if (user.videoTrack && typeof user.videoTrack.play === "function") {
-        console.log(`Playing video track for user ${user.uid}`);
-        user.videoTrack.play(videoPlayer);
-
-        // Ensure videoPlayer is visible
-        videoPlayer.style.display = "block";
-
-        // Hide avatar when video is available
-        const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-        if (avatarDiv) {
-          avatarDiv.style.display = "none";
-        }
-      } else {
-        console.log(
-          `User ${user.uid} does not have a valid video track. Showing avatar.`
-        );
-
-        // Show avatar if video track is not available
-        const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-        if (avatarDiv) {
-          avatarDiv.style.display = "block";
-        }
-
-        // Hide videoPlayer since no valid video track
-        videoPlayer.style.display = "none";
+      // Hide avatar when video is available
+      const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+      if (avatarDiv) {
+        avatarDiv.style.display = "none";
       }
     } catch (error) {
       console.error(
@@ -125,30 +62,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
       );
     }
   }
-
-  if (mediaType === "audio") {
-    console.log(`User ${user.uid} has published an audio track.`);
-
-    try {
-      await config.client.subscribe(user, mediaType);
-
-      if (user.audioTrack && typeof user.audioTrack.play === "function") {
-        console.log(`Playing audio track for user ${user.uid}`);
-        user.audioTrack.play();
-        toggleMicIcon(user.uid, false);
-      } else {
-        console.error(
-          `Audio track for user ${user.uid} is invalid or missing.`
-        );
-        toggleMicIcon(user.uid, true);
-      }
-    } catch (error) {
-      console.error(`Error playing audio track for user ${user.uid}:`, error);
-    }
-  }
 };
-
-
 
 
 export const handleUserUnpublished = async (user, mediaType, config) => {
@@ -207,7 +121,7 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 // Handles user joined event
-export const handleUserJoined = async (user, config, userAttr = {}) => {
+export const handleUserJoined = async (user, config) => {
   console.log("Entering handleUserJoined function for user:", user.uid);
 
   try {
@@ -226,26 +140,27 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
     // Convert UID to string
     const userUid = user.uid.toString();
 
-    // If userAttr is empty, attempt to fetch attributes
-    if (!userAttr || Object.keys(userAttr).length === 0) {
-      if (config.clientRTM) {
-        try {
-          userAttr = await config.clientRTM.getUserAttributes(userUid);
-        } catch (error) {
-          console.error(
-            `Failed to get RTM attributes for user ${userUid}:`,
-            error
-          );
-          userAttr = {
-            name: "Unknown",
-            company: "",
-            designation: "",
-            role: "audience", // Default role
-          };
-        }
-      } else {
-        console.log(
-          `clientRTM is not initialized. Skipping attribute fetch for user ${userUid}.`
+    // Ensure participantList exists in the config
+    if (!config.participantList) {
+      config.participantList = [];
+    }
+
+    // Check if the user already exists in the participant list
+    let participant = config.participantList.find((p) => p.uid === userUid);
+    if (participant) {
+      console.log(`User ${userUid} is already in participant list.`);
+      return; // Skip if already joined
+    }
+
+    // Fetch user attributes if not provided
+    let userAttr = {};
+    if (config.clientRTM) {
+      try {
+        userAttr = await config.clientRTM.getUserAttributes(userUid);
+      } catch (error) {
+        console.error(
+          `Failed to get RTM attributes for user ${userUid}:`,
+          error
         );
         userAttr = {
           name: "Unknown",
@@ -267,11 +182,6 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       return; // Exit if the user is not a host
     }
 
-    // Initialize remoteTracks if it's undefined
-    if (!config.remoteTracks) {
-      config.remoteTracks = {};
-    }
-
     // Store user in remoteTracks (no media yet)
     config.remoteTracks[userUid] = user;
 
@@ -281,46 +191,6 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
     console.log(
       `Host user ${userUid} joined, waiting for media to be published.`
     );
-
-    // Initialize participantList if it doesn't exist
-    if (!config.participantList) {
-      config.participantList = [];
-    }
-
-    // Check if participant already exists in participantList
-    let participant = config.participantList.find((p) => p.uid === userUid);
-
-    if (!participant) {
-      // Add the new user's info to participantList
-      participant = {
-        uid: userUid,
-        uids: [userUid],
-        name: userAttr.name || "Unknown",
-        company: userAttr.company || "",
-        designation: userAttr.designation || "",
-        role: user.role, // Include role
-      };
-      config.participantList.push(participant);
-    } else {
-      // Add the new UID to the participant's uids array if not already present
-      if (!participant.uids.includes(userUid)) {
-        participant.uids.push(userUid);
-      }
-    }
-
-    // Call bubble_fn_participantList with the updated participant list
-    if (typeof bubble_fn_participantList === "function") {
-      const participantData = config.participantList.map((p) => ({
-        uid: p.uid,
-        uids: p.uids,
-        name: p.name,
-        company: p.company,
-        designation: p.designation,
-        role: p.role,
-      }));
-
-      bubble_fn_participantList({ participants: participantData });
-    }
   } catch (error) {
     console.error(`Error in handleUserJoined for user ${user.uid}:`, error);
   }
