@@ -176,10 +176,6 @@ const join = async () => {
           // Ensure the user is fully joined and the wrapper is ready
           //await handleUserJoined(remoteUser, config);
 
-          // Set the mic icon based on whether the remote user has an audio track
-          const isMuted = !remoteUser.audioTrack; // Mic is muted if audioTrack is not present
-          toggleMicIcon(remoteUser.uid, isMuted);
-
           // Subscribe to and handle media tracks
           if (remoteUser.videoTrack) {
             await config.client.subscribe(remoteUser, "video"); // Subscribe to video
