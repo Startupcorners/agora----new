@@ -82,7 +82,8 @@ const newMainApp = function (initConfig) {
   // Join RTC and RTM
 const join = async () => {
   try {
-    const tokens = await fetchTokens(config); // Fetch RTC and RTM tokens
+    // Fetch RTC and RTM tokens
+    const tokens = await fetchTokens(config);
     if (!tokens) throw new Error("Failed to fetch token");
 
     // Ensure the user has a role assigned
@@ -128,6 +129,47 @@ const join = async () => {
     }
 
     // Subscribe to existing remote users' media tracks (video/audio)
+    await subscribeToExistingUsers(config);
+
+    // Notify with the list of participants' UIDs and other info
+    if (typeof bubble_fn_participantList === "function") {
+      const participantUIDs = config.participantList.map((p) =>
+        p.uid.toString()
+      );
+      const participantNames = config.participantList.map((p) => p.name);
+      const participantCompanies = config.participantList.map((p) => p.company);
+      const participantDesignations = config.participantList.map(
+        (p) => p.designation
+      );
+
+      bubble_fn_participantList({
+        outputlist1: participantUIDs, // Pass as array
+        outputlist2: participantNames,
+        outputlist3: participantCompanies,
+        outputlist4: participantDesignations,
+      });
+    }
+
+    // Handle token renewal
+    config.client.on("token-privilege-will-expire", handleRenewToken);
+
+    // Notify success using bubble_fn_joining
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Joined");
+    }
+  } catch (error) {
+    console.error("Error before joining:", error);
+
+    // Notify error using bubble_fn_joining
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Error");
+    }
+  }
+};
+
+
+const subscribeToExistingUsers = async (config) => {
+  try {
     const remoteUsers = config.client.remoteUsers;
 
     if (remoteUsers && remoteUsers.length > 0) {
@@ -152,7 +194,7 @@ const join = async () => {
           const name = attributes.name || "Unknown";
           const company = attributes.comp || "";
           const designation = attributes.desg || "";
-          const role = attributes.role || "audience"; // Extract role
+          const role = attributes.role || "audience";
 
           // Assign role to remoteUser
           remoteUser.role = role;
@@ -173,56 +215,21 @@ const join = async () => {
             });
           }
 
-          // Ensure the user is fully joined and the wrapper is ready
-          //await handleUserJoined(remoteUser, config);
-
           // Subscribe to and handle media tracks
           if (remoteUser.videoTrack) {
-            await config.client.subscribe(remoteUser, "video"); // Subscribe to video
-            await handleUserPublished(remoteUser, "video", config); // Handle video
+            await config.client.subscribe(remoteUser, "video");
+            await handleUserPublished(remoteUser, "video", config);
           }
 
           if (remoteUser.audioTrack) {
-            await config.client.subscribe(remoteUser, "audio"); // Subscribe to audio
-            await handleUserPublished(remoteUser, "audio", config); // Handle audio
+            await config.client.subscribe(remoteUser, "audio");
+            await handleUserPublished(remoteUser, "audio", config);
           }
         }
       }
     }
-
-    // Notify with the list of participants' UIDs and other info
-    if (typeof bubble_fn_participantList === "function") {
-      const participantUIDs = config.participantList.map((p) =>
-        p.uid.toString()
-      );
-      const participantNames = config.participantList.map((p) => p.name);
-      const participantCompanies = config.participantList.map((p) => p.company);
-      const participantDesignations = config.participantList.map(
-        (p) => p.designation
-      );
-
-      bubble_fn_participantList({
-        outputlist1: participantUIDs, // Pass as array
-        outputlist2: participantNames,
-        outputlist3: participantCompanies,
-        outputlist4: participantDesignations,
-      });
-    }
-
-    // Handle token renewal
-    config.client.on("token-privilege-will-expire", handleRenewToken); // Ensure handleRenewToken is defined
-
-    // Notify success using bubble_fn_joining
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Joined");
-    }
   } catch (error) {
-    console.error("Error before joining:", error);
-
-    // Notify error using bubble_fn_joining
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Error");
-    }
+    console.error("Error in subscribing to existing users:", error);
   }
 };
 
