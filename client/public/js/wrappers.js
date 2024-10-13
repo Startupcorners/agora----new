@@ -4,13 +4,6 @@ export const addUserWrapper = async (user, config) => {
     // Convert UID to string for RTM operations
     const rtmUid = user.uid.toString();
 
-    // Check if the player already exists for this user before doing anything
-    let existingPlayer = document.querySelector(`#participant-${user.uid}`);
-    if (existingPlayer) {
-      console.log(`Wrapper for user ${user.uid} already exists.`);
-      return; // Exit if the wrapper already exists
-    }
-
     // Fetch user attributes from RTM (name, avatar)
     let userAttr = {};
     if (config.clientRTM && config.clientRTM.getUserAttributes) {
