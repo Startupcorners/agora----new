@@ -214,6 +214,8 @@ const subscribeToExistingUsers = async (config) => {
               role: role, // Include role
             });
           }
+          
+          await handleUserJoined(remoteUser, config);
 
           // Subscribe to and handle media tracks
           if (remoteUser.videoTrack) {
