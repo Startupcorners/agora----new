@@ -7,12 +7,13 @@ import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config) => {
+  const userUid = user.uid.toString();
   console.log(
-    `handleUserPublished for user: ${user.uid}, mediaType: ${mediaType}`
+    `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
   // Skip subscribing to the local user's own media (camera and screen share)
-  if (user.uid === config.uid || user.uid === config.screenShareUid) {
+  if (userUid === config.uid.toString() || userUid === config.screenShareUid) {
     console.log("Skipping subscription to local user's own media.");
     return;
   }
@@ -22,74 +23,67 @@ export const handleUserPublished = async (user, mediaType, config) => {
     config.remoteTracks = {};
   }
 
-  // Store the user's remote tracks
-  config.remoteTracks[user.uid] = user;
+  // Check if the wrapper is ready
+  if (
+    !config.remoteTracks[userUid] ||
+    !config.remoteTracks[userUid].wrapperReady
+  ) {
+    console.log(`Wrapper not ready for user: ${userUid}. Waiting...`);
+    setTimeout(() => handleUserPublished(user, mediaType, config), 100); // Retry in 100ms
+    return;
+  }
 
-  // Wait for the wrapper to exist before proceeding
-  let videoPlayer = document.querySelector(`#stream-${user.uid}`);
+  // Wait for the video player to exist before proceeding
+  let videoPlayer = document.querySelector(`#stream-${userUid}`);
   if (!videoPlayer) {
-    console.log(`Video player not found for user ${user.uid}.`);
-    return; // If the wrapper is not found, skip further actions.
+    console.log(`Video player not found for user ${userUid}.`);
+    return;
   }
 
   if (mediaType === "video") {
-    console.log(`Attempting to subscribe to video track for user ${user.uid}`);
-
     try {
       await config.client.subscribe(user, mediaType);
-
       if (user.videoTrack && typeof user.videoTrack.play === "function") {
-        console.log(`Playing video track for user ${user.uid}`);
+        console.log(`Playing video track for user ${userUid}`);
         user.videoTrack.play(videoPlayer);
 
-        // Ensure videoPlayer is visible
-        videoPlayer.style.display = "block";
+        videoPlayer.style.display = "block"; // Show video player
 
-        // Hide avatar when video is available
-        const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+        const avatarDiv = document.querySelector(`#avatar-${userUid}`);
         if (avatarDiv) {
-          avatarDiv.style.display = "none";
+          avatarDiv.style.display = "none"; // Hide avatar when video is available
         }
       } else {
         console.log(
-          `User ${user.uid} does not have a valid video track. Showing avatar.`
+          `User ${userUid} does not have a valid video track. Showing avatar.`
         );
-
-        // Show avatar if video track is not available
-        const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+        const avatarDiv = document.querySelector(`#avatar-${userUid}`);
         if (avatarDiv) {
-          avatarDiv.style.display = "block";
+          avatarDiv.style.display = "block"; // Show avatar if no valid video track
         }
-
-        // Hide videoPlayer since no valid video track
-        videoPlayer.style.display = "none";
+        videoPlayer.style.display = "none"; // Hide video player
       }
     } catch (error) {
       console.error(
-        `Error subscribing to video track for user ${user.uid}:`,
+        `Error subscribing to video track for user ${userUid}:`,
         error
       );
     }
   }
 
   if (mediaType === "audio") {
-    console.log(`User ${user.uid} has published an audio track.`);
-
     try {
       await config.client.subscribe(user, mediaType);
-
       if (user.audioTrack && typeof user.audioTrack.play === "function") {
-        console.log(`Playing audio track for user ${user.uid}`);
+        console.log(`Playing audio track for user ${userUid}`);
         user.audioTrack.play();
-        toggleMicIcon(user.uid, false);
+        toggleMicIcon(userUid, false); // Mic is on
       } else {
-        console.error(
-          `Audio track for user ${user.uid} is invalid or missing.`
-        );
-        toggleMicIcon(user.uid, true);
+        console.error(`Audio track for user ${userUid} is invalid or missing.`);
+        toggleMicIcon(userUid, true); // Mic is off
       }
     } catch (error) {
-      console.error(`Error playing audio track for user ${user.uid}:`, error);
+      console.error(`Error playing audio track for user ${userUid}:`, error);
     }
   }
 };
@@ -158,20 +152,19 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   console.log("Entering handleUserJoined function for user:", user.uid);
 
   try {
+    const userUid = user.uid.toString();
+
     // Prevent handling your own stream or screen share
     if (
-      user.uid === config.uid ||
-      user.uid === config.screenShareUid ||
-      user.uid === config.uid + 100000 // For numeric screen share UID
+      userUid === config.uid.toString() ||
+      userUid === config.screenShareUid ||
+      userUid === (config.uid + 100000).toString() // For numeric screen share UID
     ) {
       console.log(
-        `Skipping wrapper for own user or screen share UID: ${user.uid}`
+        `Skipping wrapper for own user or screen share UID: ${userUid}`
       );
       return; // Exit early for own stream or screen share
     }
-
-    // Convert UID to string
-    const userUid = user.uid.toString();
 
     // If userAttr is empty, attempt to fetch attributes
     if (!userAttr || Object.keys(userAttr).length === 0) {
@@ -203,51 +196,46 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       }
     }
 
-    // Assign the role to the user object
+    // Assign role and initialize remoteTracks if needed
     user.role = userAttr.role || "audience";
+    if (!config.remoteTracks) {
+      config.remoteTracks = {};
+    }
+    config.remoteTracks[userUid] = { wrapperReady: false }; // Set wrapperReady flag to false initially
 
-    // Only proceed if the user is a host
+    // Only proceed with wrapper if the user is a host
     if (user.role !== "host") {
       console.warn(
         `User ${userUid} does not have the 'host' role. Skipping wrapper.`
       );
-      return; // Exit if the user is not a host
+      return;
     }
-
-    // Initialize remoteTracks if it's undefined
-    if (!config.remoteTracks) {
-      config.remoteTracks = {};
-    }
-
-    // Store user in remoteTracks (no media yet)
-    config.remoteTracks[userUid] = user;
 
     // Check if the video-wrapper exists; if not, create it
     let participantWrapper = document.querySelector(
       `#video-wrapper-${userUid}`
     );
     if (!participantWrapper) {
-      // Add the wrapper for the user (if not screen share UID)
-      await addUserWrapper({ uid: userUid, ...userAttr }, config);
+      await addUserWrapper({ uid: userUid, ...userAttr }, config); // Add the wrapper
       console.log(`Wrapper added for user: ${userUid}`);
     } else {
       console.log(`Wrapper already exists for user: ${userUid}`);
     }
 
+    // Mark the wrapper as ready
+    config.remoteTracks[userUid].wrapperReady = true;
+
     console.log(
       `Host user ${userUid} joined, waiting for media to be published.`
     );
 
-    // Initialize participantList if it doesn't exist
+    // Initialize or update participant list
     if (!config.participantList) {
       config.participantList = [];
     }
 
-    // Check if participant already exists in participantList
     let participant = config.participantList.find((p) => p.uid === userUid);
-
     if (!participant) {
-      // Add the new user's info to participantList
       participant = {
         uid: userUid,
         uids: [userUid],
@@ -257,14 +245,11 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         role: user.role, // Include role
       };
       config.participantList.push(participant);
-    } else {
-      // Add the new UID to the participant's uids array if not already present
-      if (!participant.uids.includes(userUid)) {
-        participant.uids.push(userUid);
-      }
+    } else if (!participant.uids.includes(userUid)) {
+      participant.uids.push(userUid);
     }
 
-    // Call bubble_fn_participantList with the updated participant list
+    // Call bubble_fn_participantList with the updated list
     if (typeof bubble_fn_participantList === "function") {
       const participantData = config.participantList.map((p) => ({
         uid: p.uid,
@@ -274,7 +259,6 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         designation: p.designation,
         role: p.role,
       }));
-
       bubble_fn_participantList({ participants: participantData });
     }
   } catch (error) {
