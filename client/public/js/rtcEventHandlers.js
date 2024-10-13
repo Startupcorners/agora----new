@@ -81,12 +81,12 @@ export const handleUserPublished = async (user, mediaType, config) => {
       if (user.audioTrack && typeof user.audioTrack.play === "function") {
         console.log(`Playing audio track for user ${user.uid}`);
         user.audioTrack.play();
-        toggleMicIcon(user.uid, false);
+        toggleMicIcon(user.uid, true);
       } else {
         console.error(
           `Audio track for user ${user.uid} is invalid or missing.`
         );
-        toggleMicIcon(user.uid, true);
+        toggleMicIcon(user.uid, false);
       }
     } catch (error) {
       console.error(`Error playing audio track for user ${user.uid}:`, error);
