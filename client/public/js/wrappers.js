@@ -37,6 +37,7 @@ export const addUserWrapper = async (user, config) => {
   }
 };
 
+
 // Wrapper for removing users from the video stage
 export const removeUserWrapper = (uid) => {
   try {
