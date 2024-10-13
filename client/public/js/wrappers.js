@@ -1,3 +1,4 @@
+import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 // Wrapper for adding users (current or remote) to the video stage
 export const addUserWrapper = async (user, config) => {
   try {
@@ -60,7 +61,6 @@ export const addUserWrapper = async (user, config) => {
     console.error("Error in addUserWrapper:", error);
   }
 };
-
 
 // Wrapper for removing users from the video stage
 export const removeUserWrapper = (uid) => {
