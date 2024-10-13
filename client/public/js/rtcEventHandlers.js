@@ -222,8 +222,10 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
     // Store user in remoteTracks (no media yet)
     config.remoteTracks[userUid] = user;
 
-    // Check if the participant wrapper exists; if not, create it
-    let participantWrapper = document.querySelector(`#participant-${userUid}`);
+    // Check if the video-wrapper exists; if not, create it
+    let participantWrapper = document.querySelector(
+      `#video-wrapper-${userUid}`
+    );
     if (!participantWrapper) {
       // Add the wrapper for the user (if not screen share UID)
       await addUserWrapper({ uid: userUid, ...userAttr }, config);
