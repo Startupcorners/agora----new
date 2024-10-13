@@ -38,7 +38,7 @@ const newMainApp = function (initConfig) {
     localScreenShareTrack: null,
     localScreenShareEnabled: false,
     localAudioTrackMuted: false,
-    localVideoTrackMuted: false,
+    localVideoTrackMuted: true,
     isVirtualBackGroundEnabled: false,
     remoteTracks: {},
   };

@@ -95,51 +95,43 @@ export const toggleCamera = async (isMuted, config) => {
       return;
     }
 
-    if (isMuted) {
-      // Turn off the camera
-      if (config.localVideoTrack) {
-        console.log("Turning off the camera...");
+    // Check if the video track already exists
+    if (config.localVideoTrack) {
+      // If video track exists, toggle it off
+      console.log("Turning off the camera...");
 
-        await config.client.unpublish([config.localVideoTrack]);
-        config.localVideoTrack.stop();
-        config.localVideoTrack.close();
-        config.localVideoTrack = null; // Ensure the video track is completely removed
+      await config.client.unpublish([config.localVideoTrack]);
+      config.localVideoTrack.stop();
+      config.localVideoTrack.close();
+      config.localVideoTrack = null; // Ensure the video track is completely removed
 
-        console.log("Camera turned off and unpublished for user:", config.uid);
+      console.log("Camera turned off and unpublished for user:", config.uid);
 
-        // Show avatar, hide video
-        toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
-        console.log("Avatar shown, video hidden for user:", config.uid);
+      // Show avatar, hide video
+      toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
+      console.log("Avatar shown, video hidden for user:", config.uid);
 
-        config.localVideoTrackMuted = true; // Set muted status
+      config.localVideoTrackMuted = true; // Update muted status
 
-        // Run bubble function to notify the camera is off
-        if (typeof bubble_fn_isCamOff === "function") {
-          bubble_fn_isCamOff(true); // Camera is off
-        }
-      } else {
-        console.warn("No video track to turn off for user:", config.uid);
+      // Run bubble function to notify the camera is off
+      if (typeof bubble_fn_isCamOff === "function") {
+        bubble_fn_isCamOff(true); // Camera is off
       }
     } else {
-      // Turn on the camera
+      // If video track does not exist, toggle it on
       console.log("Turning on the camera...");
 
-      // Check if the video track already exists
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Create a new video track
+
       if (!config.localVideoTrack) {
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Create a new video track
-
-        if (!config.localVideoTrack) {
-          console.error("Failed to create a new video track!");
-          return;
-        }
-
-        console.log("Created new video track for user:", config.uid);
-
-        await config.client.publish([config.localVideoTrack]);
-        console.log("Published new video track for user:", config.uid);
-      } else {
-        console.log("Video track already exists for user:", config.uid);
+        console.error("Failed to create a new video track!");
+        return;
       }
+
+      console.log("Created new video track for user:", config.uid);
+
+      await config.client.publish([config.localVideoTrack]);
+      console.log("Published new video track for user:", config.uid);
 
       // Play video and hide avatar
       toggleVideoOrAvatar(
@@ -150,7 +142,7 @@ export const toggleCamera = async (isMuted, config) => {
       );
       console.log("Video shown, avatar hidden for user:", config.uid);
 
-      config.localVideoTrackMuted = false; // Update the muted status
+      config.localVideoTrackMuted = false; // Update muted status
 
       // Run bubble function to notify the camera is on
       if (typeof bubble_fn_isCamOff === "function") {
