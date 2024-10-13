@@ -4,38 +4,55 @@ export const addUserWrapper = async (user, config) => {
     // Convert UID to string for RTM operations
     const rtmUid = user.uid.toString();
 
+    // Check if the player already exists for this user before doing anything
+    let existingPlayer = document.querySelector(`#participant-${user.uid}`);
+    if (existingPlayer) {
+      console.log(`Wrapper for user ${user.uid} already exists.`);
+      return; // Exit if the wrapper already exists
+    }
+
     // Fetch user attributes from RTM (name, avatar)
     let userAttr = {};
-    try {
-      userAttr = await config.clientRTM.getUserAttributes(rtmUid);
-    } catch (error) {
-      console.log(`Failed to fetch user attributes for user ${rtmUid}:`, error);
-      userAttr = {
-        name: "Unknown",
-        avatar: "default-avatar-url",
-      };
+    if (config.clientRTM && config.clientRTM.getUserAttributes) {
+      try {
+        userAttr = await config.clientRTM.getUserAttributes(rtmUid);
+      } catch (error) {
+        console.error(
+          `Failed to fetch user attributes for ${user.uid}:`,
+          error
+        );
+        userAttr = {
+          name: "Unknown",
+          avatar: "default-avatar-url",
+        };
+      }
     }
 
-    // Check if the player already exists for this user
-    let player = document.querySelector(`#participant-${user.uid}`);
-    if (!player) {
-      // Create player HTML with user attributes (name, avatar)
-      let playerHTML = config.participantPlayerContainer
-        .replace(/{{uid}}/g, user.uid)
-        .replace(/{{name}}/g, userAttr.name || "Unknown")
-        .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
+    // Create player HTML with user attributes (name, avatar)
+    let playerHTML = config.participantPlayerContainer
+      .replace(/{{uid}}/g, user.uid)
+      .replace(/{{name}}/g, userAttr.name || "Unknown")
+      .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
 
-      // Insert the player into the DOM
-      document
-        .querySelector(config.callContainerSelector)
-        .insertAdjacentHTML("beforeend", playerHTML);
+    // Insert the player into the DOM
+    document
+      .querySelector(config.callContainerSelector)
+      .insertAdjacentHTML("beforeend", playerHTML);
 
-      console.log(`Added player for user: ${user.uid}`);
+    console.log(`Added wrapper for user: ${user.uid}`);
+
+    // Hide video player and show avatar initially
+    const videoPlayer = document.querySelector(`#stream-${user.uid}`);
+    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+    if (videoPlayer && avatarDiv) {
+      videoPlayer.style.display = "none"; // Video off initially
+      avatarDiv.style.display = "block"; // Avatar on
     }
   } catch (error) {
-    console.log("Failed to add user wrapper:", error);
+    console.error("Error in addUserWrapper:", error);
   }
 };
+
 
 
 // Wrapper for removing users from the video stage
