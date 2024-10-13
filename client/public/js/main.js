@@ -41,6 +41,7 @@ const newMainApp = function (initConfig) {
     localVideoTrackMuted: true,
     isVirtualBackGroundEnabled: false,
     remoteTracks: {},
+    cameraToggleInProgress: false,
   };
 
   // Apply initial config

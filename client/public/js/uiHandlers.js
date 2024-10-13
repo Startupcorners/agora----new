@@ -77,6 +77,16 @@ export const toggleMic = async (config) => {
 
 export const toggleCamera = async (isMuted, config) => {
   try {
+    // Add a flag to prevent multiple toggles from being processed at the same time
+    if (config.cameraToggleInProgress) {
+      console.warn(
+        "Camera toggle is already in progress, ignoring repeated clicks."
+      );
+      return;
+    }
+
+    config.cameraToggleInProgress = true; // Set the flag to true
+
     // Get the video player and avatar elements for the current user
     const videoPlayer = document.querySelector(`#stream-${config.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
@@ -87,11 +97,13 @@ export const toggleCamera = async (isMuted, config) => {
 
     if (!videoPlayer) {
       console.error(`Video player for user ${config.uid} not found!`);
+      config.cameraToggleInProgress = false; // Reset the flag
       return;
     }
 
     if (!avatarDiv) {
       console.error(`Avatar element for user ${config.uid} not found!`);
+      config.cameraToggleInProgress = false; // Reset the flag
       return;
     }
 
@@ -131,6 +143,7 @@ export const toggleCamera = async (isMuted, config) => {
 
         if (!config.localVideoTrack) {
           console.error("Failed to create a new video track!");
+          config.cameraToggleInProgress = false; // Reset the flag
           return;
         }
 
@@ -160,6 +173,9 @@ export const toggleCamera = async (isMuted, config) => {
     }
   } catch (error) {
     console.error("Error in toggleCamera:", error);
+  } finally {
+    // Reset the flag after the function finishes executing
+    config.cameraToggleInProgress = false;
   }
 };
 
