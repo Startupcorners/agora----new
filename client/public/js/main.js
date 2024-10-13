@@ -272,7 +272,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
   // Join video stage function
 const joinToVideoStage = async (config) => {
   try {
-    const { client } = config;
+    const { user, client } = config;
 
     // Create and publish the local audio track if it doesn't exist
     if (!config.localAudioTrack) {
@@ -285,27 +285,61 @@ const joinToVideoStage = async (config) => {
       console.log("Microphone audio track created successfully");
     } else {
       console.error("Failed to create local audio track");
-      return; // Exit if the audio track couldn't be created
     }
 
-    // Publish only the local audio track
+    // Create the local video track if it doesn't exist
+    if (!config.localVideoTrack) {
+      console.log("Creating camera video track");
+
+      // Create the video track, but do not publish it yet
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+
+      // Mute the video track immediately after creation
+      config.localVideoTrack.setEnabled(false);
+    }
+
+    // Check if the local video track is created successfully
+    if (config.localVideoTrack) {
+      console.log("Camera video track created and muted successfully");
+    } else {
+      console.error("Failed to create local video track");
+    }
+
+    // Publish the local audio track (but not the video track since it’s muted)
     console.log("Publishing local audio track");
     await client.publish([config.localAudioTrack]);
 
     console.log("Successfully published local audio track");
 
-    // Add the current user wrapper (for their own audio stream)
+    // Add the current user wrapper (for their own video/audio stream)
     await addUserWrapper({ uid: config.uid, ...config.user }, config);
 
-    // Handle microphone (audio) status icon update
+    // Select the video player and avatar elements for the current user
+    const videoPlayer = document.querySelector(`#stream-${config.uid}`);
+    const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
+
+    // Ensure the video player and avatar elements are found
+    if (!videoPlayer || !avatarDiv) {
+      console.error(
+        "Video player or avatar elements not found for current user"
+      );
+      return;
+    }
+
+    // Show avatar and hide video initially since the video track is muted
+    toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
+
+    // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
     const isMuted = config.localAudioTrack.muted || false;
     toggleMicIcon(config.uid, isMuted);
 
-    console.log("Joined the video stage with audio only for the current user");
+    console.log("Joined the video stage for the current user with muted video");
   } catch (error) {
     console.error("Error in joinToVideoStage", error);
   }
 };
+
+
 
 
   return {
