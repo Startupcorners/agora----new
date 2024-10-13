@@ -126,14 +126,13 @@ export const toggleCamera = async (isMuted, config) => {
 
       // Check if the video track already exists
       if (!config.localVideoTrack) {
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Create a new video track
-
-        if (!config.localVideoTrack) {
-          console.error("Failed to create a new video track!");
+        try {
+          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack(); // Create a new video track
+          console.log("Created new video track for user:", config.uid);
+        } catch (error) {
+          console.error("Failed to create a new video track:", error);
           return;
         }
-
-        console.log("Created new video track for user:", config.uid);
 
         await config.client.publish([config.localVideoTrack]);
         console.log("Published new video track for user:", config.uid);
