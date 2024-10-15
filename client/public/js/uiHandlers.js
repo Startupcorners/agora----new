@@ -176,9 +176,10 @@ export const toggleScreenShare = async (isEnabled, config) => {
       return;
     }
 
+    // If already sharing, stop the screen share
     if (config.localScreenShareEnabled && isEnabled) {
       console.log("Already sharing. Stopping screen share.");
-      isEnabled = false; // This will stop the current screen share
+      isEnabled = false;
     }
 
     if (isEnabled) {
@@ -200,10 +201,10 @@ export const toggleScreenShare = async (isEnabled, config) => {
       const tokens = await fetchTokens(config, screenShareUid);
       if (!tokens) throw new Error("Failed to fetch token for screen share");
 
-      // Join RTM for screen sharing
+      // Join RTM for screen sharing first
       await joinRTMForScreenShare(tokens.rtmToken, screenShareUid, config);
 
-      // Join the RTC channel with the screenShareClient
+      // Now join the RTC channel with the screenShareClient
       await config.screenShareClient.join(
         config.appId,
         config.channelName,
@@ -220,7 +221,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
         );
       } catch (error) {
         console.error("Error creating screen share track:", error);
-
         if (
           error.name === "NotAllowedError" ||
           error.message.includes("Permission denied")
@@ -237,9 +237,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       // Mark the wrapper as ready for the screen share
       if (!config.remoteTracks[screenShareUid]) {
-        config.remoteTracks[screenShareUid] = {
-          wrapperReady: true,
-        };
+        config.remoteTracks[screenShareUid] = { wrapperReady: true };
       } else {
         config.remoteTracks[screenShareUid].wrapperReady = true;
       }
@@ -252,18 +250,16 @@ export const toggleScreenShare = async (isEnabled, config) => {
         wrapper.style.display = "none";
       });
 
-      // Play the screen share track in the background
+      // Play the screen share track in the main screen share content area
       const screenShareElement = document.getElementById(
         "screen-share-content"
       );
       config.localScreenShareTrack.play(screenShareElement);
 
-      // Play **only** the camera video track in the PiP
+      // Play the camera video track in the PiP (small window)
       const screenShareVideoElement =
         document.getElementById("screen-share-video");
-
-      // Clean the PiP video element before adding the camera track
-      screenShareVideoElement.innerHTML = "";
+      screenShareVideoElement.innerHTML = ""; // Clear any previous tracks in PiP
 
       if (config.localVideoTrack) {
         config.localVideoTrack.play(screenShareVideoElement);
@@ -355,7 +351,7 @@ const joinRTMForScreenShare = async (
     // Login to RTM with the screen share UID
     await config.screenShareClientRTM.login({ uid: rtmUid, token: rtmToken });
 
-    // Set user attributes for screen sharing (copying from main user)
+    // Set RTM attributes for screen sharing (copying from main user)
     const attributes = {
       name: config.user.name || "Unknown (Screen Share)",
       avatar: config.user.avatar || "default-avatar-url",
@@ -365,6 +361,7 @@ const joinRTMForScreenShare = async (
       uidSharingScreen: config.uid.toString(), // Indicate the UID of the user sharing the screen
     };
 
+    // Set the RTM attributes including uidSharingScreen
     await config.screenShareClientRTM.setLocalUserAttributes(attributes);
     console.log(
       `Screen share RTM attributes set for UID: ${rtmUid}, Sharing UID: ${config.uid}`
