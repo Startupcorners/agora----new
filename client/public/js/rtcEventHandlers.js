@@ -12,11 +12,24 @@ export const handleUserPublished = async (user, mediaType, config) => {
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
+  // Log RTC UID and the RTM attribute uidSharingScreen
+  const screenShareRtmUid = config.rtmAttributes?.uidSharingScreen
+    ? config.rtmAttributes.uidSharingScreen.toString()
+    : "Not set";
+  console.log(
+    `RTC UID: ${userUid}, RTM uidSharingScreen: ${screenShareRtmUid}, Current RTC UID: ${config.uid}`
+  );
+
+  // Skip subscribing to the local user's own media (camera and screen share)
+  if (userUid === config.uid.toString()) {
+    console.log("Skipping subscription to local user's own media.");
+    return;
+  }
+
   // Check if the userUid is the screen share UID (RTC) and if the current user is the one sharing
   if (
     userUid === config.screenShareUid.toString() &&
-    config.uid.toString() ===
-      (config.rtmAttributes?.uidSharingScreen || "").toString()
+    config.uid.toString() === screenShareRtmUid
   ) {
     console.log("User is the current screen sharer. Skipping subscription.");
     return; // Skip the subscription to avoid handling the screen share twice for the same user
