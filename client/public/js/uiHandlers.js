@@ -238,15 +238,33 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
+      // Mark the wrapper as ready for the screen share
+      if (!config.remoteTracks[screenShareUid]) {
+        config.remoteTracks[screenShareUid] = {
+          wrapperReady: true,
+        };
+      } else {
+        config.remoteTracks[screenShareUid].wrapperReady = true;
+      }
+
+      // Hide all other video wrappers, including the current user's wrapper
+      const allWrappers = document.querySelectorAll(
+        "#video-stage .stream-wrapper, #video-stage .video-wrapper"
+      );
+      allWrappers.forEach((wrapper) => {
+        wrapper.style.display = "none"; // Hide all other video and stream wrappers
+      });
+
       // Play the screen share track in the background (main screen share content)
       const screenShareElement = document.getElementById(
         "screen-share-content"
       );
       config.localScreenShareTrack.play(screenShareElement);
 
-      // Play the camera video in PiP (small window at the bottom-right)
+      // Play the **user's camera video** in PiP (small window at the bottom-right)
       const screenShareVideoElement =
         document.getElementById("screen-share-video");
+
       if (config.localVideoTrack) {
         config.localVideoTrack.play(screenShareVideoElement); // PiP with the camera video
       } else {
