@@ -245,11 +245,10 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   try {
     const userUid = user.uid.toString();
 
-    // Prevent handling your own stream or screen share
+    // Prevent handling your own stream, screen share (UID 1), or numeric screen share UID
     if (
       userUid === config.uid.toString() ||
-      userUid === config.screenShareUid ||
-      userUid === (config.uid + 100000).toString() // For numeric screen share UID
+      userUid === 1
     ) {
       console.log(
         `Skipping wrapper for own user or screen share UID: ${userUid}`
@@ -363,6 +362,12 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 export const handleUserLeft = async (user, config) => {
   try {
     console.log(`User ${user.uid} left`);
+
+    // Skip handling for screen share UID (RTC UID 1)
+    if (user.uid === 1) {
+      console.log(`Skipping handling for screen share UID: ${user.uid}`);
+      return;
+    }
 
     // Remove the user's wrapper (video element and UI components)
     await removeUserWrapper(user.uid);
