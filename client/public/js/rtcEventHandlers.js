@@ -12,10 +12,14 @@ export const handleUserPublished = async (user, mediaType, config) => {
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
-  // Skip subscribing to the local user's own media (camera and screen share)
-  if (userUid === config.uid.toString()) {
-    console.log("Skipping subscription to local user's own media.");
-    return;
+  // Check if the userUid is the screen share UID (RTC) and if the current user is the one sharing
+  if (
+    userUid === config.screenShareUid.toString() &&
+    config.uid.toString() ===
+      (config.rtmAttributes?.uidSharingScreen || "").toString()
+  ) {
+    console.log("User is the current screen sharer. Skipping subscription.");
+    return; // Skip the subscription to avoid handling the screen share twice for the same user
   }
 
   // Ensure remoteTracks is initialized
@@ -23,7 +27,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     config.remoteTracks = {};
   }
 
-  // Handle screen sharing separately (if the screen share UID matches the user UID)
+  // Handle screen sharing for other users (if the screen share UID matches)
   if (userUid === config.screenShareUid.toString()) {
     let screenShareElement = document.querySelector("#screen-share-content");
     let screenShareVideo = document.querySelector("#screen-share-video"); // For PiP
@@ -45,7 +49,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
           // Play the PiP video (person sharing their screen) in the bottom-right
           if (screenShareVideo && user.videoTrack) {
             console.log(
-              `Playing PiP video for screen share of user ${config.uid}`
+              `Playing PiP video for screen share of user ${userUid}`
             );
             user.videoTrack.play(screenShareVideo); // Play PiP
           }
@@ -118,6 +122,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     }
   }
 };
+
 
 
 
