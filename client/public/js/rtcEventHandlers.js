@@ -150,7 +150,6 @@ export const handleUserPublished = async (user, mediaType, config) => {
 
 
 
-
 export const handleUserUnpublished = async (user, mediaType, config) => {
   console.log(
     `handleUserUnpublished called for user: ${user.uid}, mediaType: ${mediaType}`
@@ -162,41 +161,74 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
     return;
   }
 
+  // Handle video unpublishing (including screen share)
   if (mediaType === "video") {
     console.log(`User ${user.uid} has unpublished their video track.`);
 
-    // Remove video tracks from UI
-    const videoTracks = user.videoTracks || [user.videoTrack];
-    videoTracks.forEach((track, index) => {
-      const streamId = `stream-${user.uid}-${index}`;
-      const videoPlayer = document.querySelector(`#${streamId}`);
-      if (videoPlayer) {
-        track.stop();
-        videoPlayer.parentNode.removeChild(videoPlayer);
-        console.log(`Removed video track ${index} for user ${user.uid}`);
+    // If the unpublished video is the screen share
+    if (user.uid === config.screenShareUid) {
+      console.log(`Screen share track unpublished for user ${user.uid}.`);
+
+      // Hide the screen share stage and show the main video stage again
+      document.querySelector("#screen-share-stage").style.display = "none";
+      document.querySelector("#video-stage").style.display = "block";
+
+      // Remove the screen share video and PiP from the UI
+      const screenShareElement = document.querySelector(
+        "#screen-share-content"
+      );
+      const screenShareVideoElement = document.querySelector(
+        "#screen-share-video"
+      );
+
+      if (screenShareElement) {
+        screenShareElement.innerHTML = ""; // Clear screen share content
       }
-    });
 
-    // Show avatar when video is unavailable
-    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-    if (avatarDiv) {
-      avatarDiv.style.display = "block";
-    }
+      if (screenShareVideoElement) {
+        screenShareVideoElement.innerHTML = ""; // Clear PiP content
+      }
 
-    // Remove video tracks from remoteTracks
-    if (config.remoteTracks[user.uid]) {
-      delete config.remoteTracks[user.uid].videoTracks;
+      console.log(`Removed screen share video for user ${user.uid}.`);
+
+      // Reset screen share status
+      config.screenShareUid = null;
+    } else {
+      // For regular video streams, remove the video tracks from the UI
+      const videoTracks = user.videoTracks || [user.videoTrack];
+      videoTracks.forEach((track, index) => {
+        const streamId = `stream-${user.uid}-${index}`;
+        const videoPlayer = document.querySelector(`#${streamId}`);
+        if (videoPlayer) {
+          track.stop();
+          videoPlayer.parentNode.removeChild(videoPlayer);
+          console.log(`Removed video track ${index} for user ${user.uid}`);
+        }
+      });
+
+      // Show avatar when video is unavailable
+      const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
+      if (avatarDiv) {
+        avatarDiv.style.display = "block";
+      }
+
+      // Remove video tracks from remoteTracks
+      if (config.remoteTracks[user.uid]) {
+        delete config.remoteTracks[user.uid].videoTracks;
+      }
     }
   }
 
+  // Handle audio unpublishing
   if (mediaType === "audio") {
     console.log(`User ${user.uid} has unpublished their audio track.`);
-    toggleMicIcon(user.uid, true);
+    toggleMicIcon(user.uid, true); // Show muted mic icon
 
     if (user.audioTrack) {
       user.audioTrack.stop();
     }
 
+    // Remove audio track from remoteTracks
     if (config.remoteTracks[user.uid]) {
       delete config.remoteTracks[user.uid].audioTrack;
     }
