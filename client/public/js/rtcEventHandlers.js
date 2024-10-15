@@ -13,7 +13,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
   );
 
   // Skip subscribing to the local user's own media (camera and screen share)
-  if (userUid === config.uid.toString() || userUid === config.screenShareUid) {
+  if (userUid === config.uid.toString()) {
     console.log("Skipping subscription to local user's own media.");
     return;
   }
@@ -23,18 +23,8 @@ export const handleUserPublished = async (user, mediaType, config) => {
     config.remoteTracks = {};
   }
 
-  // Wait for the wrapper to be ready for the remote user
-  if (
-    !config.remoteTracks[userUid] ||
-    !config.remoteTracks[userUid].wrapperReady
-  ) {
-    console.log(`Wrapper not ready for user: ${userUid}. Waiting...`);
-    setTimeout(() => handleUserPublished(user, mediaType, config), 100); // Retry in 100ms
-    return;
-  }
-
   // Handle screen sharing separately (if the screen share UID matches the user UID)
-  if (userUid === config.screenShareUid) {
+  if (userUid === config.screenShareUid.toString()) {
     let screenShareElement = document.querySelector("#screen-share-content");
     let screenShareVideo = document.querySelector("#screen-share-video"); // For PiP
 
@@ -49,19 +39,18 @@ export const handleUserPublished = async (user, mediaType, config) => {
         if (user.videoTrack && typeof user.videoTrack.play === "function") {
           console.log(`Playing screen share track for user ${userUid}`);
 
-          // Play the screen share video
+          // Play the screen share video in the main screen share area
           user.videoTrack.play(screenShareElement);
 
-          // Now, let's play the small PiP video of the person sharing their screen
-          // If screenShareVideo div exists, play the video there
-          if (screenShareVideo) {
+          // Play the PiP video (person sharing their screen) in the bottom-right
+          if (screenShareVideo && user.videoTrack) {
             console.log(
-              `Playing PiP video for user ${config.uid} (sharing screen)`
+              `Playing PiP video for screen share of user ${config.uid}`
             );
-            user.videoTrack.play(screenShareVideo); // Play user's own video in PiP
+            user.videoTrack.play(screenShareVideo); // Play PiP
           }
 
-          // Show screen share and hide the main video stage
+          // Display the screen share stage, hide the main video stage
           document.querySelector("#screen-share-stage").style.display = "block";
           document.querySelector("#video-stage").style.display = "none";
         }
@@ -75,7 +64,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     return; // Exit early after handling screen share
   }
 
-  // Handle regular video tracks (non-screen share)
+  // Handle regular media publishing (non-screen share)
   let videoPlayer = document.querySelector(`#stream-${userUid}`);
   if (!videoPlayer) {
     console.log(`Video player not found for user ${userUid}.`);
