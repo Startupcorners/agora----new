@@ -27,6 +27,7 @@ const newMainApp = function (initConfig) {
       company: "",
       designation: "",
       profileLink: "",
+      uidSharingScreen: "",
     },
     serverUrl: "https://agora-new.vercel.app",
     token: null,

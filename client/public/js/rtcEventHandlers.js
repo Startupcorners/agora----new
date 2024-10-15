@@ -23,7 +23,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     config.remoteTracks = {};
   }
 
-  // Check if the wrapper is ready
+  // Wait for the wrapper to be ready for the remote user
   if (
     !config.remoteTracks[userUid] ||
     !config.remoteTracks[userUid].wrapperReady
@@ -33,7 +33,49 @@ export const handleUserPublished = async (user, mediaType, config) => {
     return;
   }
 
-  // Wait for the video player to exist before proceeding
+  // Handle screen sharing separately (if the screen share UID matches the user UID)
+  if (userUid === config.screenShareUid) {
+    let screenShareElement = document.querySelector("#screen-share-content");
+    let screenShareVideo = document.querySelector("#screen-share-video"); // For PiP
+
+    if (!screenShareElement) {
+      console.log("Screen share element not found.");
+      return;
+    }
+
+    if (mediaType === "video") {
+      try {
+        await config.client.subscribe(user, mediaType);
+        if (user.videoTrack && typeof user.videoTrack.play === "function") {
+          console.log(`Playing screen share track for user ${userUid}`);
+
+          // Play the screen share video
+          user.videoTrack.play(screenShareElement);
+
+          // Now, let's play the small PiP video of the person sharing their screen
+          // If screenShareVideo div exists, play the video there
+          if (screenShareVideo) {
+            console.log(
+              `Playing PiP video for user ${config.uid} (sharing screen)`
+            );
+            user.videoTrack.play(screenShareVideo); // Play user's own video in PiP
+          }
+
+          // Show screen share and hide the main video stage
+          document.querySelector("#screen-share-stage").style.display = "block";
+          document.querySelector("#video-stage").style.display = "none";
+        }
+      } catch (error) {
+        console.error(
+          `Error subscribing to screen share track for user ${userUid}:`,
+          error
+        );
+      }
+    }
+    return; // Exit early after handling screen share
+  }
+
+  // Handle regular video tracks (non-screen share)
   let videoPlayer = document.querySelector(`#stream-${userUid}`);
   if (!videoPlayer) {
     console.log(`Video player not found for user ${userUid}.`);

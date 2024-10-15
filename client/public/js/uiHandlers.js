@@ -185,7 +185,12 @@ export const toggleScreenShare = async (isEnabled, config) => {
     if (isEnabled) {
       console.log("Starting screen share");
 
-      // Create a separate Agora client for screen share if not already initialized
+      // Ensure we terminate any current screen share before starting a new one
+      if (config.localScreenShareEnabled) {
+        await toggleScreenShare(false, config); // Stop current screen share
+      }
+
+      // Initialize screen share client if not done already
       if (!config.screenShareClient) {
         console.log("Initializing screenShareClient");
         config.screenShareClient = AgoraRTC.createClient({
@@ -195,11 +200,11 @@ export const toggleScreenShare = async (isEnabled, config) => {
       }
 
       // Generate a unique UID for screen sharing (numeric, different from camera UID)
-      const screenShareUid = uid + 100000; // Add constant to ensure it's numeric but unique
+      const screenShareUid = 1; // You can make this dynamic if needed
       config.screenShareUid = screenShareUid;
 
       // Fetch tokens for screen sharing by passing the screenShareUid
-      const tokens = await fetchTokens(config, screenShareUid); // Pass screenShareUid here
+      const tokens = await fetchTokens(config, screenShareUid);
       if (!tokens) throw new Error("Failed to fetch token for screen share");
 
       // Join RTM for screen sharing
@@ -209,7 +214,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
       await config.screenShareClient.join(
         config.appId,
         config.channelName,
-        tokens.rtcToken, // Use RTC token for screen sharing
+        tokens.rtcToken,
         screenShareUid
       );
 
@@ -238,41 +243,19 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // Hide all other video wrappers, including the current user's wrapper
-      const allWrappers = document.querySelectorAll(
-        "#video-stage .stream-wrapper, #video-stage .video-wrapper"
+      // Hide the main video stage and show the screen share stage
+      document.querySelector("#video-stage").style.display = "none";
+      document.querySelector("#screen-share-stage").style.display = "block";
+
+      // Play the screen share track in the fullscreen area
+      const screenShareContent = document.getElementById(
+        "screen-share-content"
       );
-      allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "none"; // Hide all other video and stream wrappers
-      });
+      config.localScreenShareTrack.play(screenShareContent);
 
-      // Explicitly hide the current user's wrapper (both stream-wrapper and video-wrapper)
-      const userStreamWrapper = document.querySelector(
-        `#stream-wrapper-${uid}`
-      );
-      const userVideoWrapper = document.querySelector(`#video-wrapper-${uid}`);
-
-      if (userStreamWrapper) {
-        userStreamWrapper.style.display = "none"; // Hide the current user's stream wrapper
-      }
-      if (userVideoWrapper) {
-        userVideoWrapper.style.display = "none"; // Hide the current user's video wrapper
-      }
-
-      // Add the screen share wrapper
-      const videoStage = document.querySelector(config.callContainerSelector);
-      const screenShareWrapperHTML = `
-        <div id="screen-share-wrapper" class="fullscreen-wrapper" style="width: 100%; height: 100%; position: relative;">
-          <div id="stream-${screenShareUid}" class="stream fullscreen-wrapper"></div>
-        </div>
-      `;
-      videoStage.insertAdjacentHTML("beforeend", screenShareWrapperHTML);
-
-      // Play the screen share track in the screen share wrapper
-      const screenShareElement = document.getElementById(
-        `stream-${screenShareUid}`
-      );
-      config.localScreenShareTrack.play(screenShareElement);
+      // Play the sharer's small video feed in the bottom-right corner
+      const screenShareVideo = document.getElementById("screen-share-video");
+      config.localVideoTrack.play(screenShareVideo); // Assuming the sharer’s video track is already created
 
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
@@ -304,34 +287,9 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       config.screenShareUid = null;
 
-      // Show all previously hidden video and stream wrappers again
-      const allWrappers = document.querySelectorAll(
-        "#video-stage .stream-wrapper, #video-stage .video-wrapper"
-      );
-      allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "block"; // Show all other video and stream wrappers
-      });
-
-      // Show the current user's wrapper again
-      const userStreamWrapper = document.querySelector(
-        `#stream-wrapper-${uid}`
-      );
-      const userVideoWrapper = document.querySelector(`#video-wrapper-${uid}`);
-
-      if (userStreamWrapper) {
-        userStreamWrapper.style.display = "block"; // Show the current user's stream wrapper again
-      }
-      if (userVideoWrapper) {
-        userVideoWrapper.style.display = "block"; // Show the current user's video wrapper again
-      }
-
-      // Remove the screen share player's DOM elements
-      const screenShareWrapper = document.querySelector(
-        "#screen-share-wrapper"
-      );
-      if (screenShareWrapper) {
-        screenShareWrapper.remove(); // Remove the screen share wrapper
-      }
+      // Hide the screen share stage and show the main video stage again
+      document.querySelector("#screen-share-stage").style.display = "none";
+      document.querySelector("#video-stage").style.display = "flex";
     }
 
     config.localScreenShareEnabled = isEnabled;
@@ -361,13 +319,16 @@ const joinRTMForScreenShare = async (
   try {
     const rtmUid = screenShareUid.toString();
 
+    // Initialize RTM client for screen sharing if not done already
     if (!config.screenShareClientRTM) {
       console.log("Initializing screenShare RTM client");
       config.screenShareClientRTM = AgoraRTM.createInstance(config.appId);
     }
 
+    // Logout if already logged in
     if (config.screenShareClientRTM._logined) {
-      await config.screenShareClientRTM.logout(); // Logout if already logged in
+      console.log("Logging out from previous screen share RTM session.");
+      await config.screenShareClientRTM.logout();
     }
 
     // Log the UID and token for debugging
@@ -384,16 +345,33 @@ const joinRTMForScreenShare = async (
       comp: config.user.company || "",
       desg: config.user.designation || "Screen Share",
       role: "host", // Assign host role for screen sharing
+      uidSharingScreen: config.uid, // Indicate the UID of the user sharing the screen
     };
 
-    await config.screenShareClientRTM.setLocalUserAttributes(attributes); // Store attributes for screen share
+    await config.screenShareClientRTM.setLocalUserAttributes(attributes);
+    console.log(
+      `Screen share RTM attributes set for UID: ${rtmUid}, Sharing UID: ${config.uid}`
+    );
 
-    await config.screenShareClientRTM.createChannel(config.channelName).join(); // Join RTM channel for screen sharing
+    // Join the RTM channel for screen sharing
+    if (!config.screenShareRTMChannel) {
+      config.screenShareRTMChannel = config.screenShareClientRTM.createChannel(
+        config.channelName
+      );
+    }
+
+    console.log("Joining the RTM channel for screen share.");
+    await config.screenShareRTMChannel.join();
+    console.log("Successfully joined RTM channel for screen share.");
   } catch (error) {
     console.error(`Error during RTM login for screen share: ${error.message}`);
 
+    // Retry logic in case of certain errors (code 5)
     if (error.code === 5 && retryCount < 3) {
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Retry delay
+      console.log(
+        `Retrying RTM login for screen share (attempt ${retryCount + 1})`
+      );
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Retry after delay
       return joinRTMForScreenShare(
         rtmToken,
         screenShareUid,
@@ -407,6 +385,7 @@ const joinRTMForScreenShare = async (
     }
   }
 };
+
 
 
 
