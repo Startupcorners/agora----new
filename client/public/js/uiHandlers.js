@@ -185,12 +185,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
     if (isEnabled) {
       console.log("Starting screen share");
 
-      // Ensure we terminate any current screen share before starting a new one
-      if (config.localScreenShareEnabled) {
-        await toggleScreenShare(false, config); // Stop current screen share
-      }
-
-      // Initialize screen share client if not done already
+      // Create a separate Agora client for screen share if not already initialized
       if (!config.screenShareClient) {
         console.log("Initializing screenShareClient");
         config.screenShareClient = AgoraRTC.createClient({
@@ -200,11 +195,11 @@ export const toggleScreenShare = async (isEnabled, config) => {
       }
 
       // Generate a unique UID for screen sharing (numeric, different from camera UID)
-      const screenShareUid = 1; // You can make this dynamic if needed
+      const screenShareUid = 1; // Add constant to ensure it's numeric but unique
       config.screenShareUid = screenShareUid;
 
       // Fetch tokens for screen sharing by passing the screenShareUid
-      const tokens = await fetchTokens(config, screenShareUid);
+      const tokens = await fetchTokens(config, screenShareUid); // Pass screenShareUid here
       if (!tokens) throw new Error("Failed to fetch token for screen share");
 
       // Join RTM for screen sharing
@@ -214,7 +209,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
       await config.screenShareClient.join(
         config.appId,
         config.channelName,
-        tokens.rtcToken,
+        tokens.rtcToken, // Use RTC token for screen sharing
         screenShareUid
       );
 
@@ -243,19 +238,50 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // Hide the main video stage and show the screen share stage
-      document.querySelector("#video-stage").style.display = "none";
-      document.querySelector("#screen-share-stage").style.display = "block";
+      // Mark the wrapper as ready for the screen share
+      if (!config.remoteTracks[screenShareUid]) {
+        config.remoteTracks[screenShareUid] = {
+          wrapperReady: true,
+        };
+      } else {
+        config.remoteTracks[screenShareUid].wrapperReady = true;
+      }
 
-      // Play the screen share track in the fullscreen area
-      const screenShareContent = document.getElementById(
-        "screen-share-content"
+      // Hide all other video wrappers, including the current user's wrapper
+      const allWrappers = document.querySelectorAll(
+        "#video-stage .stream-wrapper, #video-stage .video-wrapper"
       );
-      config.localScreenShareTrack.play(screenShareContent);
+      allWrappers.forEach((wrapper) => {
+        wrapper.style.display = "none"; // Hide all other video and stream wrappers
+      });
 
-      // Play the sharer's small video feed in the bottom-right corner
-      const screenShareVideo = document.getElementById("screen-share-video");
-      config.localVideoTrack.play(screenShareVideo); // Assuming the sharer’s video track is already created
+      // Explicitly hide the current user's wrapper (both stream-wrapper and video-wrapper)
+      const userStreamWrapper = document.querySelector(
+        `#stream-wrapper-${uid}`
+      );
+      const userVideoWrapper = document.querySelector(`#video-wrapper-${uid}`);
+
+      if (userStreamWrapper) {
+        userStreamWrapper.style.display = "none"; // Hide the current user's stream wrapper
+      }
+      if (userVideoWrapper) {
+        userVideoWrapper.style.display = "none"; // Hide the current user's video wrapper
+      }
+
+      // Add the screen share wrapper
+      const videoStage = document.querySelector(config.callContainerSelector);
+      const screenShareWrapperHTML = `
+        <div id="screen-share-wrapper" class="fullscreen-wrapper" style="width: 100%; height: 100%; position: relative;">
+          <div id="stream-${screenShareUid}" class="stream fullscreen-wrapper"></div>
+        </div>
+      `;
+      videoStage.insertAdjacentHTML("beforeend", screenShareWrapperHTML);
+
+      // Play the screen share track in the screen share wrapper
+      const screenShareElement = document.getElementById(
+        `stream-${screenShareUid}`
+      );
+      config.localScreenShareTrack.play(screenShareElement);
 
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
@@ -287,9 +313,34 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       config.screenShareUid = null;
 
-      // Hide the screen share stage and show the main video stage again
-      document.querySelector("#screen-share-stage").style.display = "none";
-      document.querySelector("#video-stage").style.display = "flex";
+      // Show all previously hidden video and stream wrappers again
+      const allWrappers = document.querySelectorAll(
+        "#video-stage .stream-wrapper, #video-stage .video-wrapper"
+      );
+      allWrappers.forEach((wrapper) => {
+        wrapper.style.display = "block"; // Show all other video and stream wrappers
+      });
+
+      // Show the current user's wrapper again
+      const userStreamWrapper = document.querySelector(
+        `#stream-wrapper-${uid}`
+      );
+      const userVideoWrapper = document.querySelector(`#video-wrapper-${uid}`);
+
+      if (userStreamWrapper) {
+        userStreamWrapper.style.display = "block"; // Show the current user's stream wrapper again
+      }
+      if (userVideoWrapper) {
+        userVideoWrapper.style.display = "block"; // Show the current user's video wrapper again
+      }
+
+      // Remove the screen share player's DOM elements
+      const screenShareWrapper = document.querySelector(
+        "#screen-share-wrapper"
+      );
+      if (screenShareWrapper) {
+        screenShareWrapper.remove(); // Remove the screen share wrapper
+      }
     }
 
     config.localScreenShareEnabled = isEnabled;
