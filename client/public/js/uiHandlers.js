@@ -208,7 +208,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
         config.appId,
         config.channelName,
         tokens.rtcToken,
-        1 // Explicitly set the RTC UID to 1 for screen sharing
+        screenShareUid // Explicitly set the RTC UID to 1 for screen sharing
       );
 
       // Create the screen share track
@@ -244,15 +244,15 @@ export const toggleScreenShare = async (isEnabled, config) => {
         config.remoteTracks[screenShareUid].wrapperReady = true;
       }
 
-      // Hide all other video wrappers
+      // Hide all other video wrappers if not already hidden
       const allWrappers = document.querySelectorAll(
         "#video-stage .stream-wrapper, #video-stage .video-wrapper"
       );
       allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "none";
+        wrapper.style.display = "none"; // Hide all other video and stream wrappers
       });
 
-      // Play the screen share track in the background
+      // Play the screen share track in the background (main screen share content)
       const screenShareElement = document.getElementById(
         "screen-share-content"
       );
@@ -272,8 +272,13 @@ export const toggleScreenShare = async (isEnabled, config) => {
       }
 
       // Show the screen share stage and hide the main video stage
-      document.querySelector("#screen-share-stage").style.display = "block";
-      document.querySelector("#video-stage").style.display = "none";
+      const screenShareStage = document.querySelector("#screen-share-stage");
+      const videoStage = document.querySelector("#video-stage");
+
+      if (screenShareStage.style.display !== "block") {
+        screenShareStage.style.display = "block";
+        videoStage.style.display = "none";
+      }
 
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
@@ -305,8 +310,17 @@ export const toggleScreenShare = async (isEnabled, config) => {
       config.screenShareUid = null;
 
       // Show the main video stage and hide the screen share
-      document.querySelector("#video-stage").style.display = "block";
-      document.querySelector("#screen-share-stage").style.display = "none";
+      const screenShareStage = document.querySelector("#screen-share-stage");
+      const videoStage = document.querySelector("#video-stage");
+
+      if (videoStage.style.display !== "block") {
+        videoStage.style.display = "block";
+        screenShareStage.style.display = "none";
+      }
+
+      // Clean up screen share content and PiP
+      document.getElementById("screen-share-content").innerHTML = "";
+      document.getElementById("screen-share-video").innerHTML = "";
     }
 
     config.localScreenShareEnabled = isEnabled;
