@@ -176,45 +176,20 @@ export const toggleScreenShare = async (isEnabled, config) => {
       return;
     }
 
-    // If screen share is already enabled and we are enabling again, stop it
     if (config.localScreenShareEnabled && isEnabled) {
       console.log("Already sharing. Stopping screen share.");
-      isEnabled = false; // Set it to false to stop screen sharing
+      isEnabled = false; // This will stop the current screen share
     }
 
-    // Logic for starting screen sharing
     if (isEnabled) {
       console.log("Starting screen share");
 
-      // Initialize the screenShareClient if not already done
-      if (!config.screenShareClient) {
-        config.screenShareClient = AgoraRTC.createClient({
-          mode: "rtc",
-          codec: "vp8",
-        });
-      }
-
-      const screenShareUid = 1; // Ensure a unique UID for screen sharing
-      config.screenShareUid = screenShareUid;
-
-      // Fetch tokens for screen sharing
-      const tokens = await fetchTokens(config, screenShareUid);
-      if (!tokens) throw new Error("Failed to fetch token for screen share");
-
-      // Join RTM for screen sharing
-      await joinRTMForScreenShare(tokens.rtmToken, screenShareUid, config);
-
-      // Join the RTC channel with the screenShareClient
-      await config.screenShareClient.join(
-        config.appId,
-        config.channelName,
-        tokens.rtcToken,
-        1 // Explicitly set the RTC UID to 1 for screen sharing
-      );
-
       // Create the screen share track
       try {
-        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack({
+          encoderConfig: "1080p_1",
+          optimizationMode: "detail",
+        });
         console.log(
           "Screen share track created:",
           config.localScreenShareTrack
@@ -236,16 +211,15 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // Hide the video stage without touching inner elements
+      // Hide the video stage
       document.querySelector("#video-stage").style.display = "none";
       // Show the screen share stage
       document.querySelector("#screen-share-stage").style.display = "block";
 
-      // Play the screen share track in the designated element
+      // Play the screen share track in the screen share content area
       const screenShareElement = document.getElementById(
         "screen-share-content"
       );
-      screenShareElement.innerHTML = ""; // Clear previous content
       config.localScreenShareTrack.play(screenShareElement);
 
       // Play the camera video track in the PiP (small window)
@@ -254,50 +228,39 @@ export const toggleScreenShare = async (isEnabled, config) => {
       screenShareVideoElement.innerHTML = ""; // Clean PiP
 
       if (config.localVideoTrack) {
-        config.localVideoTrack.play(screenShareVideoElement); // PiP with the camera video
+        config.localVideoTrack.play(screenShareVideoElement);
       } else {
         console.error("User does not have a local video track for PiP.");
       }
 
-      // Publish the screen share track
-      await config.screenShareClient.publish([config.localScreenShareTrack]);
+      // Publish the screen share track using the same client
+      await config.client.publish([config.localScreenShareTrack]);
       console.log("Screen share track published.");
 
-      // Handle track-ended event (when the user stops sharing their screen)
       config.localScreenShareTrack.on("track-ended", async () => {
         console.log("Screen share track ended, stopping screen share");
         await toggleScreenShare(false, config);
       });
     } else {
-      // Logic for stopping screen sharing
       console.log("Stopping screen share");
 
-      // Unpublish the screen share track and leave the channel
+      // Unpublish the screen share track
       if (config.localScreenShareTrack) {
-        await config.screenShareClient.unpublish([
-          config.localScreenShareTrack,
-        ]);
+        await config.client.unpublish([config.localScreenShareTrack]);
         config.localScreenShareTrack.stop();
         config.localScreenShareTrack.close();
         config.localScreenShareTrack = null;
       }
 
-      // Leave the screenShareClient channel
-      if (config.screenShareClient) {
-        await config.screenShareClient.leave();
-        config.screenShareClient = null;
-      }
+      config.localScreenShareEnabled = false;
 
-      config.screenShareUid = null;
-
-      // Restore the video stage without affecting its content
+      // Show the video stage and hide the screen share stage
       document.querySelector("#video-stage").style.display = "block";
       document.querySelector("#screen-share-stage").style.display = "none";
     }
 
     config.localScreenShareEnabled = isEnabled;
 
-    // Call bubble_fn_isScreenOn if available
     if (typeof bubble_fn_isScreenOn === "function") {
       bubble_fn_isScreenOn(isEnabled);
     } else {
@@ -310,7 +273,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
-
 
 
 
