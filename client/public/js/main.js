@@ -260,7 +260,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       comp: config.user.company || "",
       desg: config.user.designation || "",
       role: config.user.role || "audience",
-      uidSharingScreen: "",
+      uidSharingScreen: "0",
     };
 
     await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
