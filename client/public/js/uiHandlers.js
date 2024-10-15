@@ -162,7 +162,6 @@ export const toggleCamera = async (isMuted, config) => {
 };
 
 
-
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
     const uid = config.uid; // Main UID
@@ -194,12 +193,11 @@ export const toggleScreenShare = async (isEnabled, config) => {
         });
       }
 
-      // Generate a unique UID for screen sharing (numeric, different from camera UID)
-      const screenShareUid = 1; // Add constant to ensure it's numeric but unique
+      const screenShareUid = 1; // Ensure a unique UID for screen sharing
       config.screenShareUid = screenShareUid;
 
-      // Fetch tokens for screen sharing by passing the screenShareUid
-      const tokens = await fetchTokens(config, screenShareUid); // Pass screenShareUid here
+      // Fetch tokens for screen sharing
+      const tokens = await fetchTokens(config, screenShareUid);
       if (!tokens) throw new Error("Failed to fetch token for screen share");
 
       // Join RTM for screen sharing
@@ -209,7 +207,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
       await config.screenShareClient.join(
         config.appId,
         config.channelName,
-        tokens.rtcToken, // Use RTC token for screen sharing
+        tokens.rtcToken,
         screenShareUid
       );
 
@@ -223,7 +221,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
       } catch (error) {
         console.error("Error creating screen share track:", error);
 
-        // Handle user cancellation
         if (
           error.name === "NotAllowedError" ||
           error.message.includes("Permission denied")
@@ -247,29 +244,29 @@ export const toggleScreenShare = async (isEnabled, config) => {
         config.remoteTracks[screenShareUid].wrapperReady = true;
       }
 
-      // Hide all other video wrappers, including the current user's wrapper
+      // Hide all other video wrappers
       const allWrappers = document.querySelectorAll(
         "#video-stage .stream-wrapper, #video-stage .video-wrapper"
       );
       allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "none"; // Hide all other video and stream wrappers
+        wrapper.style.display = "none";
       });
 
-      // Play the screen share track in the background (main screen share content)
+      // Play the screen share track in the background
       const screenShareElement = document.getElementById(
         "screen-share-content"
       );
       config.localScreenShareTrack.play(screenShareElement);
 
-      // Play **only** the camera video track in the PiP (small window at the bottom-right)
+      // Play **only** the camera video track in the PiP
       const screenShareVideoElement =
         document.getElementById("screen-share-video");
 
       // Clean the PiP video element before adding the camera track
-      screenShareVideoElement.innerHTML = ""; // Clear any previous tracks in PiP
+      screenShareVideoElement.innerHTML = "";
 
       if (config.localVideoTrack) {
-        config.localVideoTrack.play(screenShareVideoElement); // PiP with the camera video
+        config.localVideoTrack.play(screenShareVideoElement);
       } else {
         console.error("User does not have a local video track for PiP.");
       }
@@ -282,10 +279,9 @@ export const toggleScreenShare = async (isEnabled, config) => {
       await config.screenShareClient.publish([config.localScreenShareTrack]);
       console.log("Screen share track published.");
 
-      // Handle track-ended event
       config.localScreenShareTrack.on("track-ended", async () => {
         console.log("Screen share track ended, stopping screen share");
-        await toggleScreenShare(false, config); // Stop sharing when track ends
+        await toggleScreenShare(false, config);
       });
     } else {
       console.log("Stopping screen share");
@@ -315,7 +311,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
     config.localScreenShareEnabled = isEnabled;
 
-    // Call bubble_fn_isScreenOn with the current screen sharing state
     if (typeof bubble_fn_isScreenOn === "function") {
       bubble_fn_isScreenOn(isEnabled);
     } else {
@@ -328,6 +323,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
+
 
 
 // RTM Join function for screen share

@@ -12,7 +12,6 @@ export const handleUserPublished = async (user, mediaType, config) => {
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
-  // Log RTC UID and the RTM attribute uidSharingScreen
   const screenShareRtmUid = config.rtmAttributes?.uidSharingScreen
     ? config.rtmAttributes.uidSharingScreen.toString()
     : "Not set";
@@ -33,11 +32,6 @@ export const handleUserPublished = async (user, mediaType, config) => {
   ) {
     console.log("User is the current screen sharer. Skipping subscription.");
     return; // Skip the subscription to avoid handling the screen share twice for the same user
-  }
-
-  // Ensure remoteTracks is initialized
-  if (!config.remoteTracks) {
-    config.remoteTracks = {};
   }
 
   // Handle screen sharing for other users (if the screen share UID matches)
@@ -67,7 +61,6 @@ export const handleUserPublished = async (user, mediaType, config) => {
             user.videoTrack.play(screenShareVideo); // Play PiP
           }
 
-          // Display the screen share stage, hide the main video stage
           document.querySelector("#screen-share-stage").style.display = "block";
           document.querySelector("#video-stage").style.display = "none";
         }
