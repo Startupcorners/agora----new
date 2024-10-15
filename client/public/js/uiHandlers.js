@@ -261,9 +261,12 @@ export const toggleScreenShare = async (isEnabled, config) => {
       );
       config.localScreenShareTrack.play(screenShareElement);
 
-      // Play the **user's camera video** in PiP (small window at the bottom-right)
+      // Ensure that only the **camera video** plays in the small PiP window (bottom-right)
       const screenShareVideoElement =
         document.getElementById("screen-share-video");
+
+      // Clean the PiP video element before adding the camera track
+      screenShareVideoElement.innerHTML = ""; // Clear any previous tracks in PiP
 
       if (config.localVideoTrack) {
         config.localVideoTrack.play(screenShareVideoElement); // PiP with the camera video
