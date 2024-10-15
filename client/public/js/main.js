@@ -35,7 +35,6 @@ const newMainApp = function (initConfig) {
     localAudioTrack: null,
     localVideoTrack: null,
     screenShareClient: null,
-    screenShareUid: null,
     localScreenShareTrack: null,
     localScreenShareEnabled: false,
     localAudioTrackMuted: false,
