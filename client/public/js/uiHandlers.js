@@ -176,7 +176,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
       return;
     }
 
-    // If already sharing and trying to start sharing, stop the current share
     if (config.localScreenShareEnabled && isEnabled) {
       console.log("Already sharing. Stopping screen share.");
       isEnabled = false; // This will stop the current screen share
@@ -236,13 +235,10 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // Hide all other video wrappers
-      const allWrappers = document.querySelectorAll(
-        "#video-stage .stream-wrapper, #video-stage .video-wrapper"
-      );
-      allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "none";
-      });
+      // Hide the video stage
+      document.querySelector("#video-stage").style.display = "none";
+      // Show the screen share stage
+      document.querySelector("#screen-share-stage").style.display = "block";
 
       // Play the screen share track in the background
       const screenShareElement = document.getElementById(
@@ -254,8 +250,8 @@ export const toggleScreenShare = async (isEnabled, config) => {
       const screenShareVideoElement =
         document.getElementById("screen-share-video");
 
-      // Clean the PiP video element before adding the camera track
-      screenShareVideoElement.innerHTML = "";
+      // No need to reattach the local video track, just ensure the PiP is clean
+      screenShareVideoElement.innerHTML = ""; // Clean PiP
 
       if (config.localVideoTrack) {
         config.localVideoTrack.play(screenShareVideoElement);
@@ -263,15 +259,10 @@ export const toggleScreenShare = async (isEnabled, config) => {
         console.error("User does not have a local video track for PiP.");
       }
 
-      // Show the screen share stage and hide the main video stage
-      document.querySelector("#screen-share-stage").style.display = "block";
-      document.querySelector("#video-stage").style.display = "none";
-
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
       console.log("Screen share track published.");
 
-      // Handle when the screen share track ends (user stops sharing)
       config.localScreenShareTrack.on("track-ended", async () => {
         console.log("Screen share track ended, stopping screen share");
         await toggleScreenShare(false, config);
@@ -297,29 +288,13 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       config.screenShareUid = null;
 
-      // Show the main video stage and hide the screen share
-      document.querySelector("#video-stage").style.display = "flex"; // Apply flex
+      // Show the video stage and hide the screen share stage
+      document.querySelector("#video-stage").style.display = "block";
       document.querySelector("#screen-share-stage").style.display = "none";
-
-      // After stopping screen share, ensure camera is playing again
-      if (config.localVideoTrack) {
-        const userVideoWrapper = document.querySelector(
-          `#stream-wrapper-${uid}`
-        );
-        const userVideoElement = document.querySelector(`#stream-${uid}`);
-
-        if (userVideoWrapper && userVideoElement) {
-          userVideoWrapper.style.display = "block";
-          config.localVideoTrack.play(userVideoElement);
-        } else {
-          console.error("User's video element not found or not initialized");
-        }
-      }
     }
 
     config.localScreenShareEnabled = isEnabled;
 
-    // Trigger bubble function to notify about the screen share status
     if (typeof bubble_fn_isScreenOn === "function") {
       bubble_fn_isScreenOn(isEnabled);
     } else {
