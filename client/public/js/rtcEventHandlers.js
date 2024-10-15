@@ -12,30 +12,49 @@ export const handleUserPublished = async (user, mediaType, config) => {
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
-  // Skip subscribing to the local user's own media
+  // Fetch RTM attributes if they are not already available
+  if (!config.rtmAttributes || !config.rtmAttributes.uidSharingScreen) {
+    try {
+      const rtmAttributes = await config.clientRTM.getUserAttributes(userUid);
+      config.rtmAttributes = rtmAttributes;
+      console.log(`Fetched RTM Attributes for user ${userUid}:`, rtmAttributes);
+    } catch (error) {
+      console.error(
+        `Failed to fetch RTM attributes for user ${userUid}:`,
+        error
+      );
+    }
+  }
+
+  const screenShareRtmUid = config.rtmAttributes?.uidSharingScreen || "Not set";
+  console.log(
+    `RTC UID: ${userUid}, RTM uidSharingScreen: ${screenShareRtmUid}, Current RTC UID: ${config.uid}`
+  );
+
+  // Skip subscribing to the local user's own media (camera and screen share)
   if (userUid === config.uid.toString()) {
     console.log("Skipping subscription to local user's own media.");
     return;
   }
 
-  // Fetch the RTM attribute to check who is sharing the screen
-  const screenShareRtmUid = config.rtmAttributes?.uidSharingScreen
-    ? config.rtmAttributes.uidSharingScreen.toString()
-    : "Not set";
-  console.log(
-    `RTC UID: ${userUid}, RTM uidSharingScreen: ${screenShareRtmUid}, Current RTC UID: ${config.uid}`
-  );
-
-  // If the userUid is 1 (screen share client) and the current user is the one sharing
-  if (userUid === "1" && screenShareRtmUid === config.uid.toString()) {
+  // Check if the userUid is the screen share UID (RTC) and if the current user is the one sharing
+  if (
+    userUid === config.screenShareUid?.toString() &&
+    config.uid.toString() === screenShareRtmUid
+  ) {
     console.log("User is the current screen sharer. Skipping subscription.");
-    return; // Skip handling the current user's screen share
+    return; // Skip the subscription to avoid handling the screen share twice for the same user
   }
 
-  // Handle screen sharing for other users
-  if (userUid === "1") {
+  // Ensure remoteTracks is initialized
+  if (!config.remoteTracks) {
+    config.remoteTracks = {};
+  }
+
+  // Handle screen sharing for other users (if the screen share UID matches)
+  if (userUid === config.screenShareUid?.toString()) {
     let screenShareElement = document.querySelector("#screen-share-content");
-    let screenShareVideo = document.querySelector("#screen-share-video"); // PiP
+    let screenShareVideo = document.querySelector("#screen-share-video"); // For PiP
 
     if (!screenShareElement) {
       console.log("Screen share element not found.");
@@ -46,29 +65,34 @@ export const handleUserPublished = async (user, mediaType, config) => {
       try {
         await config.client.subscribe(user, mediaType);
         if (user.videoTrack && typeof user.videoTrack.play === "function") {
-          console.log(
-            `Playing screen share track for user ${screenShareRtmUid}`
-          );
+          console.log(`Playing screen share track for user ${userUid}`);
 
+          // Play the screen share video in the main screen share area
           user.videoTrack.play(screenShareElement);
-          if (screenShareVideo) {
-            user.videoTrack.play(screenShareVideo); // Play in PiP
+
+          // Play the PiP video (person sharing their screen) in the bottom-right
+          if (screenShareVideo && user.videoTrack) {
+            console.log(
+              `Playing PiP video for screen share of user ${userUid}`
+            );
+            user.videoTrack.play(screenShareVideo); // Play PiP
           }
 
+          // Display the screen share stage, hide the main video stage
           document.querySelector("#screen-share-stage").style.display = "block";
           document.querySelector("#video-stage").style.display = "none";
         }
       } catch (error) {
         console.error(
-          `Error subscribing to screen share track for user ${screenShareRtmUid}:`,
+          `Error subscribing to screen share track for user ${userUid}:`,
           error
         );
       }
     }
-    return;
+    return; // Exit early after handling screen share
   }
 
-  // Handle normal video track publishing
+  // Handle regular media publishing (non-screen share)
   let videoPlayer = document.querySelector(`#stream-${userUid}`);
   if (!videoPlayer) {
     console.log(`Video player not found for user ${userUid}.`);
@@ -79,8 +103,24 @@ export const handleUserPublished = async (user, mediaType, config) => {
     try {
       await config.client.subscribe(user, mediaType);
       if (user.videoTrack && typeof user.videoTrack.play === "function") {
+        console.log(`Playing video track for user ${userUid}`);
         user.videoTrack.play(videoPlayer);
-        videoPlayer.style.display = "block";
+
+        videoPlayer.style.display = "block"; // Show video player
+
+        const avatarDiv = document.querySelector(`#avatar-${userUid}`);
+        if (avatarDiv) {
+          avatarDiv.style.display = "none"; // Hide avatar when video is available
+        }
+      } else {
+        console.log(
+          `User ${userUid} does not have a valid video track. Showing avatar.`
+        );
+        const avatarDiv = document.querySelector(`#avatar-${userUid}`);
+        if (avatarDiv) {
+          avatarDiv.style.display = "block"; // Show avatar if no valid video track
+        }
+        videoPlayer.style.display = "none"; // Hide video player
       }
     } catch (error) {
       console.error(
@@ -94,7 +134,12 @@ export const handleUserPublished = async (user, mediaType, config) => {
     try {
       await config.client.subscribe(user, mediaType);
       if (user.audioTrack && typeof user.audioTrack.play === "function") {
+        console.log(`Playing audio track for user ${userUid}`);
         user.audioTrack.play();
+        toggleMicIcon(userUid, false); // Mic is on
+      } else {
+        console.error(`Audio track for user ${userUid} is invalid or missing.`);
+        toggleMicIcon(userUid, true); // Mic is off
       }
     } catch (error) {
       console.error(`Error playing audio track for user ${userUid}:`, error);
