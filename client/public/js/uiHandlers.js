@@ -367,6 +367,12 @@ const joinRTMForScreenShare = async (
       `Screen share RTM attributes set for UID: ${rtmUid}, Sharing UID: ${config.uid}`
     );
 
+    // Fetch and log the attributes to confirm they are set
+    const setAttributes = await config.screenShareClientRTM.getUserAttributes(
+      rtmUid
+    );
+    console.log(`RTM Attributes after setting:`, setAttributes);
+
     // Join the RTM channel for screen sharing
     if (!config.screenShareRTMChannel) {
       config.screenShareRTMChannel = config.screenShareClientRTM.createChannel(
@@ -399,7 +405,6 @@ const joinRTMForScreenShare = async (
     }
   }
 };
-
 
 
 
