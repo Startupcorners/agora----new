@@ -248,7 +248,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
     // Prevent handling your own stream, screen share (UID 1), or numeric screen share UID
     if (
       userUid === config.uid.toString() ||
-      userUid === 1
+      userUid === "1"
     ) {
       console.log(
         `Skipping wrapper for own user or screen share UID: ${userUid}`
