@@ -261,7 +261,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
       );
       config.localScreenShareTrack.play(screenShareElement);
 
-      // Ensure that only the **camera video** plays in the small PiP window (bottom-right)
+      // Play **only** the camera video track in the PiP (small window at the bottom-right)
       const screenShareVideoElement =
         document.getElementById("screen-share-video");
 
