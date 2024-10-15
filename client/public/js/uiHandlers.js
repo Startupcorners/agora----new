@@ -396,7 +396,7 @@ const joinRTMForScreenShare = async (
       comp: config.user.company || "",
       desg: config.user.designation || "Screen Share",
       role: "host", // Assign host role for screen sharing
-      uidSharingScreen: config.uid, // Indicate the UID of the user sharing the screen
+      uidSharingScreen: config.uid.toString(), // Indicate the UID of the user sharing the screen
     };
 
     await config.screenShareClientRTM.setLocalUserAttributes(attributes);
