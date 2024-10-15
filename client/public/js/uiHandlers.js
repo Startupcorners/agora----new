@@ -238,50 +238,24 @@ export const toggleScreenShare = async (isEnabled, config) => {
         }
       }
 
-      // Mark the wrapper as ready for the screen share
-      if (!config.remoteTracks[screenShareUid]) {
-        config.remoteTracks[screenShareUid] = {
-          wrapperReady: true,
-        };
-      } else {
-        config.remoteTracks[screenShareUid].wrapperReady = true;
-      }
-
-      // Hide all other video wrappers, including the current user's wrapper
-      const allWrappers = document.querySelectorAll(
-        "#video-stage .stream-wrapper, #video-stage .video-wrapper"
-      );
-      allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "none"; // Hide all other video and stream wrappers
-      });
-
-      // Explicitly hide the current user's wrapper (both stream-wrapper and video-wrapper)
-      const userStreamWrapper = document.querySelector(
-        `#stream-wrapper-${uid}`
-      );
-      const userVideoWrapper = document.querySelector(`#video-wrapper-${uid}`);
-
-      if (userStreamWrapper) {
-        userStreamWrapper.style.display = "none"; // Hide the current user's stream wrapper
-      }
-      if (userVideoWrapper) {
-        userVideoWrapper.style.display = "none"; // Hide the current user's video wrapper
-      }
-
-      // Add the screen share wrapper
-      const videoStage = document.querySelector(config.callContainerSelector);
-      const screenShareWrapperHTML = `
-        <div id="screen-share-wrapper" class="fullscreen-wrapper" style="width: 100%; height: 100%; position: relative;">
-          <div id="stream-${screenShareUid}" class="stream fullscreen-wrapper"></div>
-        </div>
-      `;
-      videoStage.insertAdjacentHTML("beforeend", screenShareWrapperHTML);
-
-      // Play the screen share track in the screen share wrapper
+      // Play the screen share track in the background (main screen share content)
       const screenShareElement = document.getElementById(
-        `stream-${screenShareUid}`
+        "screen-share-content"
       );
       config.localScreenShareTrack.play(screenShareElement);
+
+      // Play the camera video in PiP (small window at the bottom-right)
+      const screenShareVideoElement =
+        document.getElementById("screen-share-video");
+      if (config.localVideoTrack) {
+        config.localVideoTrack.play(screenShareVideoElement); // PiP with the camera video
+      } else {
+        console.error("User does not have a local video track for PiP.");
+      }
+
+      // Show the screen share stage and hide the main video stage
+      document.querySelector("#screen-share-stage").style.display = "block";
+      document.querySelector("#video-stage").style.display = "none";
 
       // Publish the screen share track using the separate client
       await config.screenShareClient.publish([config.localScreenShareTrack]);
@@ -313,34 +287,9 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
       config.screenShareUid = null;
 
-      // Show all previously hidden video and stream wrappers again
-      const allWrappers = document.querySelectorAll(
-        "#video-stage .stream-wrapper, #video-stage .video-wrapper"
-      );
-      allWrappers.forEach((wrapper) => {
-        wrapper.style.display = "block"; // Show all other video and stream wrappers
-      });
-
-      // Show the current user's wrapper again
-      const userStreamWrapper = document.querySelector(
-        `#stream-wrapper-${uid}`
-      );
-      const userVideoWrapper = document.querySelector(`#video-wrapper-${uid}`);
-
-      if (userStreamWrapper) {
-        userStreamWrapper.style.display = "block"; // Show the current user's stream wrapper again
-      }
-      if (userVideoWrapper) {
-        userVideoWrapper.style.display = "block"; // Show the current user's video wrapper again
-      }
-
-      // Remove the screen share player's DOM elements
-      const screenShareWrapper = document.querySelector(
-        "#screen-share-wrapper"
-      );
-      if (screenShareWrapper) {
-        screenShareWrapper.remove(); // Remove the screen share wrapper
-      }
+      // Show the main video stage and hide the screen share
+      document.querySelector("#video-stage").style.display = "block";
+      document.querySelector("#screen-share-stage").style.display = "none";
     }
 
     config.localScreenShareEnabled = isEnabled;
