@@ -228,8 +228,8 @@ export const toggleScreenShare = async (isEnabled, config) => {
       );
       config.localScreenShareTrack.play(screenShareElement);
 
-      // Manage PiP to play the camera video or avatar if the camera is on
-      managePiP(config);
+      // Ensure the PiP shows the camera if it's on
+      managePiP(config); // Handle PiP based on camera state
 
       // Handle track-ended event
       config.localScreenShareTrack.on("track-ended", async () => {
@@ -263,17 +263,12 @@ export const toggleScreenShare = async (isEnabled, config) => {
       document.querySelector("#video-stage").style.display = "flex";
       document.querySelector("#screen-share-stage").style.display = "none";
 
-      // If the camera is on, play the video in the video stage, otherwise show the avatar
+      // Ensure the camera is played back in the video stage
       if (config.localVideoTrack) {
         const videoPlayer = document.querySelector(`#stream-${config.uid}`);
-        const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
-
-        toggleVideoOrAvatar(
-          config.uid,
-          config.localVideoTrack,
-          avatarDiv,
-          videoPlayer
-        );
+        if (videoPlayer) {
+          config.localVideoTrack.play(videoPlayer);
+        }
       }
 
       // Mark screen sharing as disabled
@@ -291,7 +286,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
   }
 };
 
-
+// Adjusted managePiP function to ensure the camera feed shows in PiP if the camera is on
 export const managePiP = (config) => {
   const pipVideoTrack = document.getElementById("pip-video-track");
   const pipAvatar = document.getElementById("pip-avatar");
