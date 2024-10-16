@@ -76,8 +76,6 @@ export const toggleMic = async (config) => {
 };
 
 
-import { playCameraVideo, showAvatar } from "./videoHandlers.js";
-import { userTracks } from "./state.js";
 
 export const toggleCamera = async (isMuted) => {
   try {
