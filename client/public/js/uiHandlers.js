@@ -5,6 +5,8 @@ import {
   startScreenShare,
   stopScreenShare,
   manageCameraState,
+  playCameraVideo,
+  showAvatar,
 } from "./videoHandlers.js";
 import { userTracks } from "./state.js"; // Import userTracks from state.js
 
@@ -72,8 +74,6 @@ export const toggleMic = async (config) => {
     console.error("Error in toggleMic:", error);
   }
 };
-
-import { playCameraVideo, showAvatar } from "./videoHandlers"; // Import your generalized functions
 
 export const toggleCamera = async (isMuted, uid, userType, config) => {
   try {
