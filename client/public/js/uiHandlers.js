@@ -73,12 +73,13 @@ export const toggleMic = async (config) => {
   }
 };
 
-
+import { playCameraVideo, showAvatar } from "./videoHandlers"; // Import your generalized functions
 
 export const toggleCamera = async (isMuted, uid, userType, config) => {
   try {
-    console.log("Config object in toggleCamera:", config); // Add this line
-    console.log("Agora client:", config.client); // Check if client is initialized
+    console.log("Config object in toggleCamera:", config);
+    console.log("Agora client:", config.client);
+
     const userTrack = userTracks[uid] || userTracks.local; // Use local if it's the local user
 
     if (!userTrack) {
@@ -93,24 +94,6 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
 
     userTrack.cameraToggleInProgress = true;
 
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${uid}`);
-    const pipVideoPlayer = document.getElementById(
-      `${userType}-pip-video-track`
-    );
-    const pipAvatarDiv = document.getElementById(`${userType}-pip-avatar`);
-
-    console.log("Video player element:", videoPlayer);
-    console.log("Avatar element:", avatarDiv);
-    console.log("PiP video player element:", pipVideoPlayer);
-    console.log("PiP avatar element:", pipAvatarDiv);
-
-    if (!videoPlayer || !avatarDiv) {
-      console.error(`Video player or avatar not found for user ${uid}`);
-      userTrack.cameraToggleInProgress = false;
-      return;
-    }
-
     if (isMuted) {
       // Camera is currently on, turn it off
       if (userTrack.videoTrack) {
@@ -124,14 +107,8 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
 
         console.log("Camera turned off and unpublished for user:", uid);
 
-        // Show avatar and hide video in both the video stage and PiP
-        if (userTrack.screenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
-          console.log("Showing PiP avatar since camera is off.");
-          toggleVideoOrAvatar(uid, null, pipAvatarDiv, pipVideoPlayer);
-        } else {
-          console.log("Showing main avatar since camera is off.");
-          toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
-        }
+        // Manage camera state by showing avatar when camera is off
+        showAvatar(uid, userType);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
@@ -156,24 +133,7 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
       console.log("Video track enabled and published for user:", uid);
 
       // Play video in the correct location depending on screen sharing
-      if (userTrack.screenShareEnabled) {
-        console.log("Screen sharing is active. Playing video in PiP.");
-        if (pipVideoPlayer && pipAvatarDiv) {
-          toggleVideoOrAvatar(
-            uid,
-            userTrack.videoTrack,
-            pipAvatarDiv,
-            pipVideoPlayer
-          );
-        } else {
-          console.warn("PiP elements not found.");
-        }
-      } else {
-        console.log(
-          "Screen sharing is not active. Playing video in main stage."
-        );
-        toggleVideoOrAvatar(uid, userTrack.videoTrack, avatarDiv, videoPlayer);
-      }
+      playCameraVideo(uid, userType);
 
       if (typeof bubble_fn_isCamOn === "function") {
         bubble_fn_isCamOn(true);
@@ -185,7 +145,6 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
     userTrack.cameraToggleInProgress = false;
   }
 };
-
 
 
 
