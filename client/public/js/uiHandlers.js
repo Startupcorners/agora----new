@@ -257,8 +257,18 @@ const startScreenShare = async (config) => {
       await stopScreenShare(config);
     });
   } catch (error) {
-    console.error("Error creating screen share track:", error);
-    throw error;
+    if (
+      error.name === "NotAllowedError" ||
+      error.message.includes("Permission denied")
+    ) {
+      console.log("User canceled the screen sharing prompt.");
+      if (typeof bubble_fn_isScreenOn === "function") {
+        bubble_fn_isScreenOn(false); // Optionally indicate that screen sharing is off
+      }
+    } else {
+      console.error("Error creating screen share track:", error);
+      throw error;
+    }
   }
 };
 
