@@ -166,7 +166,7 @@ export const showAvatar = (uid, userType) => {
 };
 
 
-const startScreenShare = async (uid, userType) => {
+export const startScreenShare = async (uid, userType) => {
   try {
     console.log(
       `Starting screen share process for ${userType} user with UID:`,
@@ -255,7 +255,7 @@ const startScreenShare = async (uid, userType) => {
 };
 
 
-const stopScreenShare = async (uid, userType) => {
+export const stopScreenShare = async (uid, userType) => {
   try {
     console.log(`Stopping screen share for ${userType} user with UID:`, uid);
 
