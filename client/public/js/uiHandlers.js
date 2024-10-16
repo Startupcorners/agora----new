@@ -186,6 +186,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
   }
 };
 
+
 const startScreenShare = async (config) => {
   try {
     // Create the screen share track
@@ -199,8 +200,8 @@ const startScreenShare = async (config) => {
     // Set the RTM attributes for screen sharing
     await setRTMAttributes(config);
 
-    // Switch to screen share stage
-    toggleStages(true); // Show screen-share stage and hide video stage
+    // Switch to screen share stage and pass config
+    toggleStages(true, config); // Show screen-share stage and hide video stage
 
     // Manage PiP for the camera feed (if the camera is on)
     manageCameraState(config.localVideoTrack !== null, config);
@@ -239,10 +240,10 @@ const stopScreenShare = async (config) => {
     // Clear the RTM attributes for screen sharing
     await clearRTMAttributes(config);
 
-    // Switch back to the video stage
-    toggleStages(false); // Show video stage and hide screen-share stage
+    // Switch back to the video stage and pass config
+    toggleStages(false, config); // Show video stage and hide screen-share stage
 
-    // **Force the camera state update and ensure avatar visibility**
+    // Manage camera state in the main video stage
     manageCameraState(config.localVideoTrack !== null, config);
 
     // Mark screen sharing as disabled
@@ -338,7 +339,7 @@ const clearRTMAttributes = async (config) => {
   }
 };
 
-const toggleStages = (isScreenSharing) => {
+const toggleStages = (isScreenSharing, config) => {
   const videoStage = document.getElementById("video-stage");
   const screenShareStage = document.getElementById("screen-share-stage");
 
@@ -356,6 +357,7 @@ const toggleStages = (isScreenSharing) => {
     }
   }
 };
+
 
 
 
