@@ -121,32 +121,36 @@ export const toggleCamera = async (isMuted, config) => {
       // Camera is off, turn it on
       console.log("Turning on the camera...");
 
-      if (config.localVideoTrack) {
-        await config.localVideoTrack.setEnabled(true);
-        await config.client.publish([config.localVideoTrack]);
-        config.localVideoTrackMuted = false; // ** Mark camera as unmuted **
-        console.log("Video track enabled and published for user:", config.uid);
+      // Check if the video track is already created or create a new one
+      if (!config.localVideoTrack) {
+        console.log("Creating a new camera video track.");
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      }
 
-        // Play video in the correct location depending on screen sharing
-        if (config.localScreenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
-          toggleVideoOrAvatar(
-            config.uid,
-            config.localVideoTrack,
-            pipAvatarDiv,
-            pipVideoPlayer
-          );
-        } else {
-          toggleVideoOrAvatar(
-            config.uid,
-            config.localVideoTrack,
-            avatarDiv,
-            videoPlayer
-          );
-        }
+      await config.localVideoTrack.setEnabled(true);
+      await config.client.publish([config.localVideoTrack]);
+      config.localVideoTrackMuted = false; // ** Mark camera as unmuted **
+      console.log("Video track enabled and published for user:", config.uid);
 
-        if (typeof bubble_fn_isCamOn === "function") {
-          bubble_fn_isCamOn(true);
-        }
+      // Play video in the correct location depending on screen sharing
+      if (config.localScreenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
+        toggleVideoOrAvatar(
+          config.uid,
+          config.localVideoTrack,
+          pipAvatarDiv,
+          pipVideoPlayer
+        );
+      } else {
+        toggleVideoOrAvatar(
+          config.uid,
+          config.localVideoTrack,
+          avatarDiv,
+          videoPlayer
+        );
+      }
+
+      if (typeof bubble_fn_isCamOn === "function") {
+        bubble_fn_isCamOn(true);
       }
     }
   } catch (error) {
