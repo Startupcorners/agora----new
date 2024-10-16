@@ -84,11 +84,18 @@ export const toggleCamera = async (isMuted, config) => {
     }
 
     const uid = config.uid; // Get UID from config
-    const userTrack = userTracks[uid] || userTracks.local; // Use the correct user track
+    let userTrack = userTracks[uid];
 
+    // If userTrack doesn't exist, initialize it
     if (!userTrack) {
-      console.error(`User track for UID ${uid} is undefined.`);
-      return;
+      userTrack = {
+        videoTrack: null,
+        screenShareTrack: null,
+        isVideoMuted: true,
+        isScreenSharing: false,
+        cameraToggleInProgress: false,
+      };
+      userTracks[uid] = userTrack;
     }
 
     if (userTrack.cameraToggleInProgress) {
@@ -110,8 +117,8 @@ export const toggleCamera = async (isMuted, config) => {
 
         console.log("Camera turned off and unpublished for user:", uid);
 
-        // Manage camera state using generalized function
-        manageCameraState(uid, "local");
+        // Manage the state after turning off the camera
+        manageCameraState(uid);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
@@ -125,8 +132,7 @@ export const toggleCamera = async (isMuted, config) => {
       if (!userTrack.videoTrack) {
         console.log("Creating a new camera video track.");
         userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
-        // Update userTrack with the new videoTrack
-        userTracks[uid].videoTrack = userTrack.videoTrack;
+        userTracks[uid].videoTrack = userTrack.videoTrack; // Update track in global userTracks
       } else {
         console.log("Using existing camera video track.");
       }
@@ -137,8 +143,8 @@ export const toggleCamera = async (isMuted, config) => {
 
       console.log("Video track enabled and published for user:", uid);
 
-      // Manage camera state using generalized function
-      manageCameraState(uid, "local");
+      // Manage the state after turning on the camera
+      manageCameraState(uid);
 
       if (typeof bubble_fn_isCamOn === "function") {
         bubble_fn_isCamOn(true);
