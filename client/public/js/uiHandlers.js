@@ -86,7 +86,7 @@ export const toggleCamera = async (isMuted, config) => {
     // Get the video player, avatar, and PiP elements for the current user
     const videoPlayer = document.querySelector(`#stream-${config.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
-    const pipVideoPlayer = document.querySelector(`#screen-share-video`);
+    const pipVideoPlayer = document.querySelector(`#pip-video-track`);
     const pipAvatarDiv = document.querySelector(`#pip-avatar`);
 
     console.log("Toggling camera for user:", config.uid);
@@ -106,7 +106,9 @@ export const toggleCamera = async (isMuted, config) => {
     }
 
     if (!pipVideoPlayer || !pipAvatarDiv) {
-      console.warn("PiP elements not found. Ensure screen sharing is active.");
+      console.warn(
+        "PiP elements not found. Ensure PiP is properly initialized."
+      );
     }
 
     if (isMuted) {
@@ -181,7 +183,6 @@ export const toggleCamera = async (isMuted, config) => {
 };
 
 
-
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
     const uid = config.uid; // Main UID
@@ -236,7 +237,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
         console.log(`Screen share UID attribute set for user ${uid}`);
       }
 
-      // Hide the video stage and show the screen share stage by setting inline styles
+      // Hide the video stage and show the screen share stage
       document.querySelector("#video-stage").style.display = "none";
       document.querySelector("#screen-share-stage").style.display = "block";
 
@@ -245,44 +246,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
         "screen-share-content"
       );
       config.localScreenShareTrack.play(screenShareElement);
-
-      // Handle PiP (Picture-in-Picture)
-      const screenShareVideoElement =
-        document.getElementById("screen-share-video");
-      const pipVideoTrack = document.getElementById("pip-video-track");
-      const pipAvatar = document.getElementById("pip-avatar");
-
-      // Clear the PiP video element before adding the camera track
-      screenShareVideoElement.innerHTML = ""; // Clear PiP
-
-      // Check if the user's camera is on or off
-      if (config.localVideoTrack) {
-        // If the camera is on, play the video track in PiP
-        if (!pipVideoTrack) {
-          // Create the PiP video track element if not already created
-          const newVideoTrack = document.createElement("div");
-          newVideoTrack.id = "pip-video-track";
-          newVideoTrack.className = "video-player";
-          newVideoTrack.style.width = "100%";
-          newVideoTrack.style.height = "100%";
-          newVideoTrack.style.objectFit = "cover";
-          screenShareVideoElement.appendChild(newVideoTrack);
-          config.localVideoTrack.play(newVideoTrack);
-        }
-      } else {
-        // If the camera is off, show the avatar in PiP
-        if (!pipAvatar) {
-          const newAvatar = document.createElement("img");
-          newAvatar.id = "pip-avatar";
-          newAvatar.className = "user-avatar";
-          newAvatar.src = config.user.avatar || "default-avatar-url";
-          newAvatar.style.width = "100px";
-          newAvatar.style.height = "100px";
-          newAvatar.style.borderRadius = "50%";
-          newAvatar.style.objectFit = "cover";
-          screenShareVideoElement.appendChild(newAvatar);
-        }
-      }
 
       // Handle track-ended event
       config.localScreenShareTrack.on("track-ended", async () => {
@@ -312,7 +275,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
         console.log(`Screen share UID attribute removed for user ${uid}`);
       }
 
-      // Show the video stage and hide the screen share stage by setting inline styles
+      // Show the video stage and hide the screen share stage
       document.querySelector("#video-stage").style.display = "flex";
       document.querySelector("#screen-share-stage").style.display = "none";
 
@@ -328,6 +291,27 @@ export const toggleScreenShare = async (isEnabled, config) => {
     if (config.onError) {
       config.onError(error);
     }
+  }
+};
+
+
+export const managePiP = (config) => {
+  const pipVideoTrack = document.getElementById("pip-video-track");
+  const pipAvatar = document.getElementById("pip-avatar");
+
+  if (pipVideoTrack && pipAvatar) {
+    // If the user's camera is on, show the video track in PiP
+    if (config.localVideoTrack) {
+      pipVideoTrack.style.display = "block"; // Show video track
+      pipAvatar.style.display = "none"; // Hide avatar
+      config.localVideoTrack.play(pipVideoTrack);
+    } else {
+      // If the user's camera is off, show the avatar in PiP
+      pipVideoTrack.style.display = "none"; // Hide video track
+      pipAvatar.style.display = "block"; // Show avatar
+    }
+  } else {
+    console.error("PiP elements not found in the DOM.");
   }
 };
 
