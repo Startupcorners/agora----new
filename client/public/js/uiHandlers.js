@@ -216,7 +216,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
         console.log(`Screen share UID attribute set for user ${uid}`);
       }
 
-      // Hide the video stage and show the screen share stage
+      // Hide the video stage and show the screen share stage by setting inline styles
       document.querySelector("#video-stage").style.display = "none";
       document.querySelector("#screen-share-stage").style.display = "block";
 
@@ -267,8 +267,8 @@ export const toggleScreenShare = async (isEnabled, config) => {
         console.log(`Screen share UID attribute removed for user ${uid}`);
       }
 
-      // Show the video stage and hide the screen share stage
-      document.querySelector("#video-stage").style.display = "block";
+      // Show the video stage and hide the screen share stage by setting inline styles
+      document.querySelector("#video-stage").style.display = "flex";
       document.querySelector("#screen-share-stage").style.display = "none";
 
       // Mark screen sharing as disabled
@@ -285,6 +285,8 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
+
+
 
 
 
