@@ -269,6 +269,7 @@ const stopScreenShare = async (config) => {
 
 
 const manageCameraState = (isCameraOn, config) => {
+  console.log("Camera is ",isCameraOn)
   if (isCameraOn) {
     playCameraVideo(config.localVideoTrack, config); // If camera is on, play the video
   } else {
