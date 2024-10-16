@@ -74,7 +74,6 @@ export const toggleMic = async (config) => {
     console.error("Error in toggleMic:", error);
   }
 };
-
 export const toggleCamera = async (isMuted, config) => {
   try {
     if (!config || !config.uid) {
@@ -82,8 +81,12 @@ export const toggleCamera = async (isMuted, config) => {
     }
 
     const uid = config.uid; // Get UID from config
-    console.log("User 's UID", uid);
+    console.log("User's UID", uid);
+
     let userTrack = userTracks[uid]; // Directly access the track for this UID
+
+    // Log the current state of userTrack
+    console.log("Current userTrack state:", userTrack);
 
     if (!userTrack) {
       console.error(`User track for UID ${uid} is undefined.`);
@@ -115,6 +118,8 @@ export const toggleCamera = async (isMuted, config) => {
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
+      } else {
+        console.warn("No video track found to turn off for UID:", uid);
       }
     } else {
       // Camera is off, turn it on
@@ -150,7 +155,6 @@ export const toggleCamera = async (isMuted, config) => {
     }
   }
 };
-
 
 
 export const toggleScreenShare = async (isEnabled, uid, userType, config) => {
