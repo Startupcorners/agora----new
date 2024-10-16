@@ -207,7 +207,7 @@ const startScreenShare = async (config) => {
   try {
     console.log("Starting screen share process...");
 
-    // Create the screen share track
+    // Try to create the screen share track
     config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
     console.log("Screen share track created:", config.localScreenShareTrack);
 
@@ -257,15 +257,17 @@ const startScreenShare = async (config) => {
       await stopScreenShare(config);
     });
   } catch (error) {
+    // Handle case when user cancels the screen sharing permission prompt
     if (
       error.name === "NotAllowedError" ||
       error.message.includes("Permission denied")
     ) {
       console.log("User canceled the screen sharing prompt.");
       if (typeof bubble_fn_isScreenOn === "function") {
-        bubble_fn_isScreenOn(false); // Optionally indicate that screen sharing is off
+        bubble_fn_isScreenOn(false); // Reset screen sharing state
       }
     } else {
+      // Handle other errors
       console.error("Error creating screen share track:", error);
       throw error;
     }
