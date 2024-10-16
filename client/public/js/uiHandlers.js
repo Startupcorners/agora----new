@@ -76,7 +76,6 @@ export const toggleMic = async (config) => {
 };
 
 
-
 export const toggleCamera = async (isMuted, config) => {
   try {
     if (!config || !config.uid) {
@@ -88,6 +87,7 @@ export const toggleCamera = async (isMuted, config) => {
 
     // If userTrack doesn't exist, initialize it
     if (!userTrack) {
+      console.log(`Initializing userTrack for UID: ${uid}`);
       userTrack = {
         videoTrack: null,
         screenShareTrack: null,
@@ -95,7 +95,7 @@ export const toggleCamera = async (isMuted, config) => {
         isScreenSharing: false,
         cameraToggleInProgress: false,
       };
-      userTracks[uid] = userTrack;
+      userTracks[uid] = userTrack; // Ensure the userTrack is properly saved
     }
 
     if (userTrack.cameraToggleInProgress) {
@@ -153,12 +153,12 @@ export const toggleCamera = async (isMuted, config) => {
   } catch (error) {
     console.error("Error in toggleCamera:", error);
   } finally {
-    if (userTrack) {
-      userTrack.cameraToggleInProgress = false;
+    // Ensure userTrack is properly updated in the end
+    if (userTracks[uid]) {
+      userTracks[uid].cameraToggleInProgress = false;
     }
   }
 };
-
 
 
 
