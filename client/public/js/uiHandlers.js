@@ -278,31 +278,64 @@ const manageCameraState = (isCameraOn, config) => {
 };
 
 const playCameraVideo = (videoTrack, config) => {
+  console.log(
+    "playCameraVideo called with videoTrack:",
+    videoTrack,
+    "config:",
+    config
+  );
+
   const videoPlayer = document.querySelector(`#stream-${config.uid}`);
   const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
   const pipVideoPlayer = document.getElementById("pip-video-track");
   const pipAvatarDiv = document.getElementById("pip-avatar");
 
+  console.log("videoPlayer element:", videoPlayer);
+  console.log("avatarDiv element:", avatarDiv);
+  console.log("pipVideoPlayer element:", pipVideoPlayer);
+  console.log("pipAvatarDiv element:", pipAvatarDiv);
+
   if (config.localScreenShareEnabled) {
+    console.log("Screen sharing is enabled, managing PiP.");
+
     // If screen is being shared, play camera in PiP
     if (pipVideoPlayer) {
+      console.log("Playing video track in PiP.");
       videoTrack.play(pipVideoPlayer);
       pipVideoPlayer.style.display = "block"; // Ensure PiP video player is visible
+    } else {
+      console.warn("pipVideoPlayer not found.");
     }
+
     if (pipAvatarDiv) {
+      console.log("Hiding PiP avatar.");
       pipAvatarDiv.style.display = "none"; // Hide PiP avatar if the camera is on
+    } else {
+      console.warn("pipAvatarDiv not found.");
     }
   } else {
+    console.log("Screen sharing is not enabled, managing main video stage.");
+
     // Play the camera feed in the main video stage
     if (videoPlayer) {
+      console.log("Playing video track in main video stage.");
       videoTrack.play(videoPlayer);
       videoPlayer.style.display = "block"; // Ensure main video player is visible
+    } else {
+      console.warn("videoPlayer not found.");
     }
+
     if (avatarDiv) {
+      console.log("Hiding main avatar.");
       avatarDiv.style.display = "none"; // Hide avatar in the main video stage
+    } else {
+      console.warn("avatarDiv not found.");
     }
   }
+
+  console.log("playCameraVideo function execution completed.");
 };
+
 
 const showAvatar = (config) => {
   const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
