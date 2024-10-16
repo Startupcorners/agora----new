@@ -260,18 +260,35 @@ export const toggleScreenShare = async (isEnabled, config) => {
       document.querySelector("#video-stage").style.display = "flex";
       document.querySelector("#screen-share-stage").style.display = "none";
 
-      // Check if the camera is on, and play it in the video stage
+      // Handle if the camera is on or off
+      const videoPlayer = document.querySelector(`#stream-${config.uid}`);
+      const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
+
       if (config.localVideoTrack) {
-        const videoPlayer = document.querySelector(`#stream-${config.uid}`);
+        // If the camera is on, play it in the video stage
         if (videoPlayer) {
-          videoPlayer.style.display = "block"; // Ensure the video player is visible
+          videoPlayer.style.display = "block"; // Show video player
           config.localVideoTrack.play(videoPlayer);
           console.log(
             "Playing camera feed in video stage after stopping screen share"
           );
+
+          // Hide avatar
+          if (avatarDiv) {
+            avatarDiv.style.display = "none";
+          }
         } else {
           console.error("Video player for camera feed not found.");
         }
+      } else {
+        // If the camera is off, show the avatar in the video stage
+        if (avatarDiv) {
+          avatarDiv.style.display = "block"; // Show avatar
+        }
+        if (videoPlayer) {
+          videoPlayer.style.display = "none"; // Hide video player
+        }
+        console.log("Camera is off, showing avatar in video stage.");
       }
 
       // Mark screen sharing as disabled
