@@ -83,38 +83,16 @@ export const toggleCamera = async (isMuted, config) => {
 
     config.cameraToggleInProgress = true;
 
-    // Get the video player, avatar, and PiP elements for the current user
     const videoPlayer = document.querySelector(`#stream-${config.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
     const pipVideoPlayer = document.querySelector(`#pip-video-track`);
     const pipAvatarDiv = document.querySelector(`#pip-avatar`);
 
-    console.log("Toggling camera for user:", config.uid);
-
-    if (!videoPlayer) {
-      console.error(`Video player for user ${config.uid} not found!`);
+    if (!videoPlayer || !avatarDiv) {
+      console.error(`Video player or avatar not found for user ${config.uid}`);
       config.cameraToggleInProgress = false;
       return;
     }
-
-    if (!avatarDiv) {
-      console.error(`Avatar element for user ${config.uid} not found!`);
-      config.cameraToggleInProgress = false;
-      return;
-    }
-
-    if (!pipVideoPlayer || !pipAvatarDiv) {
-      console.warn(
-        "PiP elements not found. Ensure PiP is properly initialized."
-      );
-    }
-
-    // Stop the video playback before toggling
-    const stopVideoTrack = (track) => {
-      if (track && track.stop) {
-        track.stop(); // Stops the video track
-      }
-    };
 
     if (isMuted) {
       // Camera is currently on, turn it off
@@ -122,9 +100,8 @@ export const toggleCamera = async (isMuted, config) => {
         console.log("Turning off the camera...");
 
         await config.client.unpublish([config.localVideoTrack]);
-        stopVideoTrack(config.localVideoTrack); // Stop the local video track
+        config.localVideoTrack.stop();
         config.localVideoTrack.setEnabled(false); // Disable the track but keep it
-
         console.log("Camera turned off and unpublished for user:", config.uid);
 
         // Show avatar, hide video in both video stage and PiP
@@ -133,73 +110,73 @@ export const toggleCamera = async (isMuted, config) => {
           toggleVideoOrAvatar(config.uid, null, pipAvatarDiv, pipVideoPlayer);
         }
 
-        config.localVideoTrackMuted = true; // Update muted status
+        config.localVideoTrackMuted = true;
 
-        // Notify that the camera is off
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
-      } else {
-        console.warn("No video track to turn off for user:", config.uid);
       }
     } else {
       // Camera is off, turn it on
       console.log("Turning on the camera...");
 
       if (config.localVideoTrack) {
-        // If the track exists, enable it
+        // Enable the video track
         await config.localVideoTrack.setEnabled(true);
-
-        // Play the video track in both the main video stage and PiP
-        try {
-          config.localVideoTrack.play(videoPlayer);
-        } catch (error) {
-          console.error("Error playing local video in video stage:", error);
-        }
-
-        if (pipVideoPlayer) {
-          try {
-            config.localVideoTrack.play(pipVideoPlayer);
-          } catch (error) {
-            console.error("Error playing local video in PiP:", error);
-          }
-        }
-
         await config.client.publish([config.localVideoTrack]);
         console.log("Video track enabled and published for user:", config.uid);
-      } else {
-        console.error("Video track was not created in the initial stage.");
-        config.cameraToggleInProgress = false;
-        return;
-      }
 
-      // Play video and hide avatar in both video stage and PiP
-      toggleVideoOrAvatar(
-        config.uid,
-        config.localVideoTrack,
-        avatarDiv,
-        videoPlayer
-      );
-      if (pipAvatarDiv && pipVideoPlayer) {
-        toggleVideoOrAvatar(
-          config.uid,
-          config.localVideoTrack,
-          pipAvatarDiv,
-          pipVideoPlayer
-        );
-      }
+        if (config.localScreenShareEnabled) {
+          // If screen sharing is active, play video in PiP first, then video stage with a delay
+          if (pipVideoPlayer && pipAvatarDiv) {
+            toggleVideoOrAvatar(
+              config.uid,
+              config.localVideoTrack,
+              pipAvatarDiv,
+              pipVideoPlayer
+            );
+          }
 
-      config.localVideoTrackMuted = false; // Update muted status
+          setTimeout(() => {
+            toggleVideoOrAvatar(
+              config.uid,
+              config.localVideoTrack,
+              avatarDiv,
+              videoPlayer
+            );
+          }, 500); // Delay of 500ms
+        } else {
+          // If screen sharing is not active, play video in video stage first, then PiP with a delay
+          toggleVideoOrAvatar(
+            config.uid,
+            config.localVideoTrack,
+            avatarDiv,
+            videoPlayer
+          );
 
-      // Notify that the camera is on
-      if (typeof bubble_fn_isCamOn === "function") {
-        bubble_fn_isCamOn(true);
+          setTimeout(() => {
+            if (pipVideoPlayer && pipAvatarDiv) {
+              toggleVideoOrAvatar(
+                config.uid,
+                config.localVideoTrack,
+                pipAvatarDiv,
+                pipVideoPlayer
+              );
+            }
+          }, 500); // Delay of 500ms
+        }
+
+        config.localVideoTrackMuted = false;
+
+        if (typeof bubble_fn_isCamOn === "function") {
+          bubble_fn_isCamOn(true);
+        }
       }
     }
   } catch (error) {
     console.error("Error in toggleCamera:", error);
   } finally {
-    config.cameraToggleInProgress = false; // Reset toggle progress
+    config.cameraToggleInProgress = false;
   }
 };
 
