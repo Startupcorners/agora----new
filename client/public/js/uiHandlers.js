@@ -389,25 +389,47 @@ const showAvatar = (config) => {
   const pipAvatarDiv = document.getElementById("pip-avatar");
   const pipVideoPlayer = document.getElementById("pip-video-track");
 
+  console.log("Entering showAvatar...");
+  console.log("localScreenShareEnabled:", config.localScreenShareEnabled);
+  console.log("Avatar div:", avatarDiv);
+  console.log("Video player:", videoPlayer);
+  console.log("PiP Avatar div:", pipAvatarDiv);
+  console.log("PiP Video player:", pipVideoPlayer);
+
   if (config.localScreenShareEnabled) {
     // Show avatar in PiP
     if (pipAvatarDiv) {
+      console.log("Showing PiP avatar.");
       pipAvatarDiv.style.display = "block"; // Show PiP avatar
+    } else {
+      console.warn("PiP avatar div not found.");
     }
+
     if (pipVideoPlayer) {
+      console.log("Hiding PiP video player.");
       pipVideoPlayer.style.display = "none"; // Hide PiP video player
+    } else {
+      console.warn("PiP video player not found.");
     }
   } else {
     // Show avatar in the main video stage
     if (avatarDiv) {
+      console.log("Showing main avatar.");
       avatarDiv.style.display = "block"; // Show main avatar
+    } else {
+      console.warn("Main avatar div not found.");
     }
+
     if (videoPlayer) {
+      console.log("Hiding main video player.");
       videoPlayer.style.display = "none"; // Hide main video player
+    } else {
+      console.warn("Main video player not found.");
     }
   }
-};
 
+  console.log("Exiting showAvatar...");
+};
 
 const setRTMAttributes = async (config) => {
   if (config.clientRTM) {
