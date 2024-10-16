@@ -242,7 +242,7 @@ const stopScreenShare = async (config) => {
     // Switch back to the video stage
     toggleStages(false); // Show video stage and hide screen-share stage
 
-    // Manage camera state in the main video stage (handle avatar visibility)
+    // **Force the camera state update and ensure avatar visibility**
     manageCameraState(config.localVideoTrack !== null, config);
 
     // Mark screen sharing as disabled
@@ -265,10 +265,11 @@ const manageCameraState = (isCameraOn, config) => {
   if (isCameraOn) {
     playCameraVideo(config.localVideoTrack, config);
   } else {
-    // Explicitly handle showing the avatar when the camera is off
+    // Ensure avatar is shown if the camera is off
     showAvatar(config);
   }
 };
+
 
 const playCameraVideo = (videoTrack, config) => {
   const videoPlayer = document.querySelector(`#stream-${config.uid}`);
@@ -306,7 +307,7 @@ const showAvatar = (config) => {
   if (config.localScreenShareEnabled) {
     // Show avatar in PiP when screen sharing is active and the camera is off
     if (pipAvatarDiv) {
-      pipAvatarDiv.style.display = "block";
+      pipAvatarDiv.style.display = "block"; // Force PiP avatar to be shown
     }
     if (pipVideoPlayer) {
       pipVideoPlayer.style.display = "none"; // Hide PiP video player
@@ -314,10 +315,10 @@ const showAvatar = (config) => {
   } else {
     // Show avatar in main video stage when screen sharing is not active and the camera is off
     if (avatarDiv) {
-      avatarDiv.style.display = "block"; // Show main avatar
+      avatarDiv.style.display = "block"; // Force main avatar to be shown
     }
     if (videoPlayer) {
-      videoPlayer.style.display = "none"; // Hide main video player
+      videoPlayer.style.display = "none"; // Ensure main video player is hidden
     }
   }
 };
@@ -347,6 +348,12 @@ const toggleStages = (isScreenSharing) => {
   } else {
     videoStage.style.display = "flex";
     screenShareStage.style.display = "none";
+
+    // Ensure that after returning to the video stage, the avatar is shown if the camera is off
+    const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
+    if (avatarDiv) {
+      avatarDiv.style.display = "block"; // Force avatar visibility
+    }
   }
 };
 
