@@ -272,7 +272,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
 };
 
   // Join video stage function
-  const joinToVideoStage = async (config) => {
+const joinToVideoStage = async (config) => {
   try {
     const { client, uid } = config;
 
@@ -304,13 +304,20 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     console.log("Successfully published local audio track");
     console.log("checking uid", uid);
 
+    // Create a shallow copy of the userTracks[uid] if it exists, or create a new object
+    let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
+
     // Update userTracks for the local user (using UID instead of local)
-    userTracks[uid] = {
+    updatedUserTrack = {
+      ...updatedUserTrack,
       videoTrack: config.localVideoTrack,
       screenShareTrack: config.localScreenShareTrack,
       isVideoMuted: config.localVideoTrackMuted,
       isScreenSharing: config.localScreenShareEnabled,
     };
+
+    // Reassign the updated user track back to the global userTracks object
+    userTracks[uid] = updatedUserTrack;
 
     // Add the current user wrapper (for their own video/audio stream)
     await addUserWrapper({ uid, ...config.user }, config);
