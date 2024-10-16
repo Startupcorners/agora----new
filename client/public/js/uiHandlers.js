@@ -95,6 +95,9 @@ export const toggleCamera = async (isMuted, config) => {
       return;
     }
 
+    // Create a shallow copy of the userTrack to avoid direct mutation
+    userTrack = { ...userTrack };
+
     // Check if camera toggle is already in progress
     if (userTrack.cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
@@ -131,7 +134,8 @@ export const toggleCamera = async (isMuted, config) => {
       if (!userTrack.videoTrack) {
         console.log("Creating a new camera video track.");
         userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
-        userTracks[uid].videoTrack = userTrack.videoTrack; // Update the track in global userTracks
+        // Update the track in global userTracks
+        userTrack = { ...userTrack, videoTrack: userTrack.videoTrack };
       } else {
         console.log("Using existing camera video track.");
       }
@@ -157,6 +161,9 @@ export const toggleCamera = async (isMuted, config) => {
       userTracks[uid].cameraToggleInProgress = false;
     }
   }
+
+  // Update the global userTracks with the modified userTrack
+  userTracks[uid] = { ...userTrack };
 };
 
 

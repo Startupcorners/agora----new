@@ -4,24 +4,32 @@ export const manageCameraState = (uid) => {
   console.log(`Managing camera state for user with UID:`, uid);
 
   // Ensure that the user track exists in the global userTracks
-  const userTrack = userTracks[uid];
+  let userTrack = userTracks[uid];
   if (!userTrack) {
     console.error(`User track not found for UID: ${uid}`);
     return;
   }
+
   console.log(`User track for UID ${uid}:`, userTrack);
+
+  // Make a shallow copy to avoid direct mutation
+  userTrack = { ...userTrack };
 
   // Handle camera video and avatar display
   playCameraVideo(uid);
   showAvatar(uid);
+
+  // Update the global userTracks with the new state
+  userTracks[uid] = userTrack;
 
   console.log("Camera state management completed for UID:", uid);
 };
 
 
 
+
 export const playCameraVideo = (uid, userType) => {
-  const userTrack = userTracks[uid]; // Access user's track info from centralized object
+  let userTrack = userTracks[uid]; // Access user's track info from centralized object
   const videoTrack = userTrack ? userTrack.videoTrack : null;
 
   console.log("playCameraVideo called for", userType, "user with UID:", uid);
@@ -36,7 +44,10 @@ export const playCameraVideo = (uid, userType) => {
   const pipVideoPlayer = document.getElementById(`${userType}-pip-video-track`);
   const pipAvatarDiv = document.getElementById(`${userType}-pip-avatar`);
 
-  const isCameraOn = videoTrack && !userTrack.cameraMuted;
+  const isCameraOn = videoTrack && !userTrack.isVideoMuted;
+
+  // Shallow copy the userTrack object to avoid direct mutation
+  userTrack = { ...userTrack, isCameraOn };
 
   if (isCameraOn) {
     if (userTrack.screenShareEnabled) {
@@ -80,9 +91,12 @@ export const playCameraVideo = (uid, userType) => {
 export const showAvatar = (uid, userType) => {
   console.log(`Entering showAvatar for ${userType} user with UID:`, uid);
 
-  const userTrack = userTracks[uid]; // Access user's track info from centralized object
+  let userTrack = userTracks[uid]; // Access user's track info from centralized object
   const isCameraOn =
-    userTrack && userTrack.videoTrack && !userTrack.cameraMuted;
+    userTrack && userTrack.videoTrack && !userTrack.isVideoMuted;
+
+  // Update userTrack immutably
+  userTrack = { ...userTrack, isCameraOn };
 
   const avatarDiv = document.querySelector(`#avatar-${uid}`);
   const videoPlayer = document.querySelector(`#stream-${uid}`);
