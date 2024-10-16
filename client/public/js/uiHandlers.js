@@ -77,6 +77,8 @@ export const toggleMic = async (config) => {
 
 export const toggleCamera = async (isMuted, uid, userType, config) => {
   try {
+    console.log("Config object in toggleCamera:", config); // Add this line
+    console.log("Agora client:", config.client); // Check if client is initialized
     const userTrack = userTracks[uid] || userTracks.local; // Use local if it's the local user
 
     if (!userTrack) {
