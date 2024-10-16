@@ -1,4 +1,4 @@
-const userTracks = {
+export const userTracks = {
   local: {
     videoTrack: null,
     screenShareTrack: null,
