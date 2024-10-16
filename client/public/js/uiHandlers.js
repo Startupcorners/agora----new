@@ -6,7 +6,7 @@ import {
   stopScreenShare,
   manageCameraState,
 } from "./videoHandlers.js";
-import { userTracks } from "./state";
+import { userTracks } from "./state.js";
 
 export const toggleMic = async (config) => {
   try {

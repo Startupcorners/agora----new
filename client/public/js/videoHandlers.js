@@ -1,4 +1,4 @@
-import { userTracks } from "./state";
+import { userTracks } from "./state.js";
 
 export const manageCameraState = (uid, userType) => {
   console.log(`Managing camera state for ${userType} user with UID:`, uid);
