@@ -83,7 +83,6 @@ export const toggleCamera = async (isMuted, config) => {
 
     config.cameraToggleInProgress = true;
 
-    // Get the video player, avatar, and PiP elements
     const videoPlayer = document.querySelector(`#stream-${config.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
     const pipVideoPlayer = document.querySelector(`#pip-video-track`);
@@ -104,6 +103,7 @@ export const toggleCamera = async (isMuted, config) => {
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
         config.localVideoTrack.setEnabled(false); // Disable the track but keep it
+        config.localVideoTrackMuted = true; // ** Mark camera as muted **
         console.log("Camera turned off and unpublished for user:", config.uid);
 
         // Show avatar and hide video in both the video stage and PiP
@@ -112,8 +112,6 @@ export const toggleCamera = async (isMuted, config) => {
         } else {
           toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
         }
-
-        config.localVideoTrackMuted = true;
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
@@ -124,14 +122,13 @@ export const toggleCamera = async (isMuted, config) => {
       console.log("Turning on the camera...");
 
       if (config.localVideoTrack) {
-        // Enable and publish the video track
         await config.localVideoTrack.setEnabled(true);
         await config.client.publish([config.localVideoTrack]);
+        config.localVideoTrackMuted = false; // ** Mark camera as unmuted **
         console.log("Video track enabled and published for user:", config.uid);
 
         // Play video in the correct location depending on screen sharing
         if (config.localScreenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
-          // If screen sharing is active, play in the PiP (screen share stage)
           toggleVideoOrAvatar(
             config.uid,
             config.localVideoTrack,
@@ -139,7 +136,6 @@ export const toggleCamera = async (isMuted, config) => {
             pipVideoPlayer
           );
         } else {
-          // If not sharing screen, play in the video stage
           toggleVideoOrAvatar(
             config.uid,
             config.localVideoTrack,
@@ -147,8 +143,6 @@ export const toggleCamera = async (isMuted, config) => {
             videoPlayer
           );
         }
-
-        config.localVideoTrackMuted = false;
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(true);
@@ -267,14 +261,16 @@ const stopScreenShare = async (config) => {
 
 
 
-const manageCameraState = (isCameraOn, config) => {
-  console.log("Camera is ",isCameraOn)
-  if (isCameraOn) {
+const manageCameraState = (config) => {
+  console.log("Camera state:", !config.localVideoTrackMuted);
+
+  if (!config.localVideoTrackMuted) {
     playCameraVideo(config.localVideoTrack, config); // If camera is on, play the video
   } else {
     showAvatar(config); // If camera is off, show the avatar
   }
 };
+
 
 const playCameraVideo = (videoTrack, config) => {
   console.log(
