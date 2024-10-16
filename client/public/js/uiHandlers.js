@@ -109,13 +109,20 @@ export const toggleCamera = async (isMuted, config) => {
       );
     }
 
+    // Stop the video playback before toggling
+    const stopVideoTrack = (track) => {
+      if (track && track.stop) {
+        track.stop(); // Stops the video track
+      }
+    };
+
     if (isMuted) {
       // Camera is currently on, turn it off
       if (config.localVideoTrack) {
         console.log("Turning off the camera...");
 
         await config.client.unpublish([config.localVideoTrack]);
-        config.localVideoTrack.stop();
+        stopVideoTrack(config.localVideoTrack); // Stop the local video track
         config.localVideoTrack.setEnabled(false); // Disable the track but keep it
 
         console.log("Camera turned off and unpublished for user:", config.uid);
@@ -140,11 +147,26 @@ export const toggleCamera = async (isMuted, config) => {
       console.log("Turning on the camera...");
 
       if (config.localVideoTrack) {
+        // If the track exists, enable it
         await config.localVideoTrack.setEnabled(true);
+
+        // Stop the video before playing it again
+        stopVideoTrack(config.localVideoTrack);
+
+        // Play the video track in both the main video stage and PiP
+        config.localVideoTrack.play(videoPlayer).catch((error) => {
+          console.error("Error playing local video in video stage:", error);
+        });
+
+        if (pipVideoPlayer) {
+          config.localVideoTrack.play(pipVideoPlayer).catch((error) => {
+            console.error("Error playing local video in PiP:", error);
+          });
+        }
+
         await config.client.publish([config.localVideoTrack]);
         console.log("Video track enabled and published for user:", config.uid);
       } else {
-        // Handle the case where the video track might not exist (though it should)
         console.error("Video track was not created in the initial stage.");
         config.cameraToggleInProgress = false;
         return;
