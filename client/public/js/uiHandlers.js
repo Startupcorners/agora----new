@@ -312,21 +312,15 @@ const stopScreenShare = async (config) => {
 
 
 const manageCameraState = (config) => {
-  // Ensure the localVideoTrack is properly checked, both for existence and muted state
-  const isCameraOn = config.localVideoTrack && !config.localVideoTrackMuted;
+  console.log("Managing camera state...");
 
-  console.log("Managing camera state. Camera on:", isCameraOn);
-  console.log("config.localVideoTrack:", config.localVideoTrack);
-  console.log("config.localVideoTrackMuted:", config.localVideoTrackMuted);
+  // Simply call both functions and let them handle the decision-making
+  playCameraVideo(config.localVideoTrack, config); // Always try to play the camera video
+  showAvatar(config); // Always try to show the avatar
 
-  if (isCameraOn) {
-    // If the camera is on, play the video in the appropriate place
-    playCameraVideo(config.localVideoTrack, config);
-  } else {
-    // If the camera is off or muted, show the avatar
-    showAvatar(config);
-  }
+  console.log("Camera state management completed.");
 };
+
 
 
 
@@ -344,39 +338,44 @@ const playCameraVideo = (videoTrack, config) => {
     return;
   }
 
+  // Define video elements
   const videoPlayer = document.querySelector(`#stream-${config.uid}`);
   const pipVideoPlayer = document.getElementById("pip-video-track");
   const pipAvatarDiv = document.getElementById("pip-avatar");
 
-  if (config.localScreenShareEnabled) {
-    console.log("Screen sharing is enabled, managing PiP.");
+  const isCameraOn = videoTrack && !config.localVideoTrackMuted;
 
-    // If screen is being shared, play camera in PiP
-    if (pipVideoPlayer) {
-      console.log("Playing video track in PiP.");
-      videoTrack.play(pipVideoPlayer);
-      pipVideoPlayer.style.display = "block"; // Ensure PiP video player is visible
-    } else {
-      console.warn("pipVideoPlayer not found.");
-    }
+  if (isCameraOn) {
+    if (config.localScreenShareEnabled) {
+      console.log("Screen sharing is enabled, managing PiP.");
 
-    if (pipAvatarDiv) {
-      console.log("Hiding PiP avatar.");
-      pipAvatarDiv.style.display = "none"; // Hide PiP avatar if the camera is on
+      // If screen is being shared, play camera in PiP
+      if (pipVideoPlayer) {
+        console.log("Playing video track in PiP.");
+        videoTrack.play(pipVideoPlayer);
+        pipVideoPlayer.style.display = "block"; // Ensure PiP video player is visible
+      } else {
+        console.warn("pipVideoPlayer not found.");
+      }
+
+      if (pipAvatarDiv) {
+        console.log("Hiding PiP avatar.");
+        pipAvatarDiv.style.display = "none"; // Hide PiP avatar if the camera is on
+      }
     } else {
-      console.warn("pipAvatarDiv not found.");
+      console.log("Screen sharing is not enabled, managing main video stage.");
+
+      // Play the camera feed in the main video stage
+      if (videoPlayer) {
+        console.log("Playing video track in main video stage.");
+        videoTrack.play(videoPlayer);
+        videoPlayer.style.display = "block"; // Ensure main video player is visible
+      } else {
+        console.warn("videoPlayer not found.");
+      }
     }
   } else {
-    console.log("Screen sharing is not enabled, managing main video stage.");
-
-    // Play the camera feed in the main video stage
-    if (videoPlayer) {
-      console.log("Playing video track in main video stage.");
-      videoTrack.play(videoPlayer);
-      videoPlayer.style.display = "block"; // Ensure main video player is visible
-    } else {
-      console.warn("videoPlayer not found.");
-    }
+    console.log("Camera is off or muted, skipping play.");
   }
 
   console.log("playCameraVideo function execution completed.");
@@ -384,52 +383,87 @@ const playCameraVideo = (videoTrack, config) => {
 
 
 const showAvatar = (config) => {
+  console.log("Entering showAvatar...");
+
   const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
   const videoPlayer = document.querySelector(`#stream-${config.uid}`);
   const pipAvatarDiv = document.getElementById("pip-avatar");
   const pipVideoPlayer = document.getElementById("pip-video-track");
 
-  console.log("Entering showAvatar...");
   console.log("localScreenShareEnabled:", config.localScreenShareEnabled);
   console.log("Avatar div:", avatarDiv);
   console.log("Video player:", videoPlayer);
   console.log("PiP Avatar div:", pipAvatarDiv);
   console.log("PiP Video player:", pipVideoPlayer);
 
-  if (config.localScreenShareEnabled) {
-    // Show avatar in PiP
-    if (pipAvatarDiv) {
-      console.log("Showing PiP avatar.");
-      pipAvatarDiv.style.display = "block"; // Show PiP avatar
-    } else {
-      console.warn("PiP avatar div not found.");
-    }
+  // Check if the camera is on or off
+  const isCameraOn = config.localVideoTrack && !config.localVideoTrackMuted;
 
-    if (pipVideoPlayer) {
-      console.log("Hiding PiP video player.");
-      pipVideoPlayer.style.display = "none"; // Hide PiP video player
+  if (!isCameraOn) {
+    console.log("Camera is off or muted, showing avatar.");
+
+    if (config.localScreenShareEnabled) {
+      // Show avatar in PiP
+      if (pipAvatarDiv) {
+        console.log("Showing PiP avatar.");
+        pipAvatarDiv.style.display = "block"; // Show PiP avatar
+      } else {
+        console.warn("PiP avatar div not found.");
+      }
+
+      if (pipVideoPlayer) {
+        console.log("Hiding PiP video player.");
+        pipVideoPlayer.style.display = "none"; // Hide PiP video player
+      } else {
+        console.warn("PiP video player not found.");
+      }
     } else {
-      console.warn("PiP video player not found.");
+      // Show avatar in the main video stage
+      if (avatarDiv) {
+        console.log("Showing main avatar.");
+        avatarDiv.style.display = "block"; // Show main avatar
+      } else {
+        console.warn("Main avatar div not found.");
+      }
+
+      if (videoPlayer) {
+        console.log("Hiding main video player.");
+        videoPlayer.style.display = "none"; // Hide main video player
+      } else {
+        console.warn("Main video player not found.");
+      }
     }
   } else {
-    // Show avatar in the main video stage
-    if (avatarDiv) {
-      console.log("Showing main avatar.");
-      avatarDiv.style.display = "block"; // Show main avatar
-    } else {
-      console.warn("Main avatar div not found.");
-    }
+    console.log("Camera is on, hiding avatar.");
 
-    if (videoPlayer) {
-      console.log("Hiding main video player.");
-      videoPlayer.style.display = "none"; // Hide main video player
+    if (config.localScreenShareEnabled) {
+      // Hide avatar in PiP when camera is on
+      if (pipAvatarDiv) {
+        console.log("Hiding PiP avatar.");
+        pipAvatarDiv.style.display = "none"; // Hide PiP avatar
+      }
+
+      if (pipVideoPlayer) {
+        console.log("Showing PiP video player.");
+        pipVideoPlayer.style.display = "block"; // Show PiP video player
+      }
     } else {
-      console.warn("Main video player not found.");
+      // Hide avatar in the main video stage when the camera is on
+      if (avatarDiv) {
+        console.log("Hiding main avatar.");
+        avatarDiv.style.display = "none"; // Hide main avatar
+      }
+
+      if (videoPlayer) {
+        console.log("Showing main video player.");
+        videoPlayer.style.display = "block"; // Show main video player
+      }
     }
   }
 
   console.log("Exiting showAvatar...");
 };
+
 
 const setRTMAttributes = async (config) => {
   if (config.clientRTM) {
