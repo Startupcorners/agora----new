@@ -228,9 +228,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
       );
       config.localScreenShareTrack.play(screenShareElement);
 
-      // Ensure the PiP shows the camera if it's on
-      managePiP(config); // Handle PiP based on camera state
-
       // Handle track-ended event
       config.localScreenShareTrack.on("track-ended", async () => {
         console.log("Screen share track ended, stopping screen share");
@@ -263,11 +260,17 @@ export const toggleScreenShare = async (isEnabled, config) => {
       document.querySelector("#video-stage").style.display = "flex";
       document.querySelector("#screen-share-stage").style.display = "none";
 
-      // Ensure the camera is played back in the video stage
+      // Check if the camera is on, and play it in the video stage
       if (config.localVideoTrack) {
         const videoPlayer = document.querySelector(`#stream-${config.uid}`);
         if (videoPlayer) {
+          videoPlayer.style.display = "block"; // Ensure the video player is visible
           config.localVideoTrack.play(videoPlayer);
+          console.log(
+            "Playing camera feed in video stage after stopping screen share"
+          );
+        } else {
+          console.error("Video player for camera feed not found.");
         }
       }
 
@@ -285,6 +288,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
     }
   }
 };
+
 
 // Adjusted managePiP function to ensure the camera feed shows in PiP if the camera is on
 export const managePiP = (config) => {
