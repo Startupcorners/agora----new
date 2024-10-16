@@ -202,6 +202,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
 };
 
 
+
 const startScreenShare = async (config) => {
   try {
     console.log("Starting screen share process...");
@@ -214,15 +215,15 @@ const startScreenShare = async (config) => {
     const screenShareElement = document.getElementById("screen-share-content");
     config.localScreenShareTrack.play(screenShareElement);
 
-    // Log the state of the local video track before proceeding
+    // Ensure the camera is still on before managing PiP
     if (!config.localVideoTrack) {
       console.error(
         "Video track is undefined during screen share. Ensure the camera is on."
       );
       return; // Stop the execution if the video track is missing
-    } else {
-      console.log("Video track found, proceeding to manage PiP...");
     }
+
+    console.log("Video track found, proceeding to manage PiP...");
 
     // Mark screen sharing as enabled **before** managing PiP or camera
     config.localScreenShareEnabled = true;
@@ -236,8 +237,7 @@ const startScreenShare = async (config) => {
     toggleStages(true, config); // Show screen-share stage and hide video stage
 
     // Manage PiP for the camera feed (if the camera is on)
-    console.log("Managing PiP for the camera feed...");
-    manageCameraState(config.localVideoTrack !== null, config);
+    manageCameraState(config);
 
     // Call the function to indicate screen sharing is on
     if (typeof bubble_fn_isScreenOn === "function") {
@@ -250,8 +250,10 @@ const startScreenShare = async (config) => {
     // Handle track-ended event triggered by browser
     config.localScreenShareTrack.on("track-ended", async () => {
       console.log(
-        "Screen share track ended by browser. Stopping screen share..."
+        "Screen share track ended by browser. Stopping screen share."
       );
+
+      // Trigger stopScreenShare directly
       await stopScreenShare(config);
     });
   } catch (error) {
@@ -259,7 +261,6 @@ const startScreenShare = async (config) => {
     throw error;
   }
 };
-
 
 
 
@@ -298,9 +299,8 @@ const stopScreenShare = async (config) => {
 
 
 
-
 const manageCameraState = (config) => {
-  // Check if the local video track exists and whether it is muted
+  // Ensure the localVideoTrack is properly checked, both for existence and muted state
   const isCameraOn = config.localVideoTrack && !config.localVideoTrackMuted;
 
   console.log("Managing camera state. Camera on:", isCameraOn);
@@ -315,7 +315,6 @@ const manageCameraState = (config) => {
     showAvatar(config);
   }
 };
-
 
 
 
