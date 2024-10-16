@@ -274,18 +274,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
   // Join video stage function
 const joinToVideoStage = async (config) => {
   try {
-    const { client, uid } = config;
-
-    // Initialize the local user in userTracks if not already present
-    if (!userTracks[uid]) {
-      userTracks[uid] = {
-        videoTrack: null,
-        screenShareTrack: null,
-        cameraToggleInProgress: false,
-        screenShareEnabled: false,
-        cameraMuted: true,
-      };
-    }
+    const { client } = config;
 
     // Create and publish the local audio track if it doesn't exist
     if (!config.localAudioTrack) {
@@ -304,8 +293,7 @@ const joinToVideoStage = async (config) => {
       console.log("Creating camera video track (muted initially)");
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
       await config.localVideoTrack.setEnabled(false); // Keep video muted initially
-      config.localVideoTrackMuted = true;
-      userTracks[uid].videoTrack = config.localVideoTrack; // Store the video track in userTracks
+      config.localVideoTrackMuted = true; // Ensure to track that the video is muted
       console.log("Video track created but kept muted");
     }
 
@@ -314,6 +302,14 @@ const joinToVideoStage = async (config) => {
     await client.publish([config.localAudioTrack]);
 
     console.log("Successfully published local audio track");
+
+    // Update userTracks.local with the newly created tracks
+    userTracks.local = {
+      videoTrack: config.localVideoTrack,
+      screenShareTrack: config.localScreenShareTrack,
+      isVideoMuted: config.localVideoTrackMuted,
+      isScreenSharing: config.localScreenShareEnabled,
+    };
 
     // Add the current user wrapper (for their own video/audio stream)
     await addUserWrapper({ uid: config.uid, ...config.user }, config);

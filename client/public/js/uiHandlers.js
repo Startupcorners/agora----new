@@ -6,7 +6,8 @@ import {
   stopScreenShare,
   manageCameraState,
 } from "./videoHandlers.js";
-import { userTracks } from "./state.js";
+import { userTracks } from "./state.js"; // Import userTracks from state.js
+
 
 export const toggleMic = async (config) => {
   try {
@@ -73,9 +74,10 @@ export const toggleMic = async (config) => {
 };
 
 
+
 export const toggleCamera = async (isMuted, uid, userType, config) => {
   try {
-    const userTrack = userTracks[uid]; // Access the correct user's track data
+    const userTrack = userTracks[uid] || userTracks.local; // Use local if it's the local user
 
     if (!userTrack) {
       console.error(`User track for UID ${uid} is undefined.`);
@@ -113,7 +115,7 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
         console.log("Turning off the camera...");
 
         // Unpublish and stop the video track
-        await config.client.unpublish([userTrack.videoTrack]); // Use config.client
+        await config.client.unpublish([userTrack.videoTrack]);
         userTrack.videoTrack.stop();
         userTrack.videoTrack.setEnabled(false); // Disable the track but keep it
         userTrack.cameraMuted = true; // ** Mark camera as muted **
@@ -146,7 +148,7 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
       }
 
       await userTrack.videoTrack.setEnabled(true);
-      await config.client.publish([userTrack.videoTrack]); // Use config.client
+      await config.client.publish([userTrack.videoTrack]);
       userTrack.cameraMuted = false; // ** Mark camera as unmuted **
 
       console.log("Video track enabled and published for user:", uid);
