@@ -88,6 +88,11 @@ export const toggleCamera = async (isMuted, config) => {
     const pipVideoPlayer = document.querySelector(`#pip-video-track`);
     const pipAvatarDiv = document.querySelector(`#pip-avatar`);
 
+    console.log("Video player element:", videoPlayer);
+    console.log("Avatar element:", avatarDiv);
+    console.log("PiP video player element:", pipVideoPlayer);
+    console.log("PiP avatar element:", pipAvatarDiv);
+
     if (!videoPlayer || !avatarDiv) {
       console.error(`Video player or avatar not found for user ${config.uid}`);
       config.cameraToggleInProgress = false;
@@ -103,13 +108,15 @@ export const toggleCamera = async (isMuted, config) => {
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
         config.localVideoTrack.setEnabled(false); // Disable the track but keep it
-        config.localVideoTrackMuted = true; // Mark camera as muted
+        config.localVideoTrackMuted = true; // ** Mark camera as muted **
         console.log("Camera turned off and unpublished for user:", config.uid);
 
         // Show avatar and hide video in both the video stage and PiP
         if (config.localScreenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
+          console.log("Showing PiP avatar since camera is off.");
           toggleVideoOrAvatar(config.uid, null, pipAvatarDiv, pipVideoPlayer);
         } else {
+          console.log("Showing main avatar since camera is off.");
           toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
         }
 
@@ -129,23 +136,28 @@ export const toggleCamera = async (isMuted, config) => {
         console.log("Using existing camera video track.");
       }
 
-      // Ensure the video track is enabled and publish it
       await config.localVideoTrack.setEnabled(true);
       await config.client.publish([config.localVideoTrack]);
-      config.localVideoTrackMuted = false; // Mark camera as unmuted
+      config.localVideoTrackMuted = false; // ** Mark camera as unmuted **
       console.log("Video track enabled and published for user:", config.uid);
 
       // Play video in the correct location depending on screen sharing
-      if (config.localScreenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
-        console.log("Playing video in PiP during screen sharing.");
-        toggleVideoOrAvatar(
-          config.uid,
-          config.localVideoTrack,
-          pipAvatarDiv,
-          pipVideoPlayer
-        );
+      if (config.localScreenShareEnabled) {
+        console.log("Screen sharing is active. Playing video in PiP.");
+        if (pipVideoPlayer && pipAvatarDiv) {
+          toggleVideoOrAvatar(
+            config.uid,
+            config.localVideoTrack,
+            pipAvatarDiv,
+            pipVideoPlayer
+          );
+        } else {
+          console.warn("PiP elements not found.");
+        }
       } else {
-        console.log("Playing video in main video stage.");
+        console.log(
+          "Screen sharing is not active. Playing video in main stage."
+        );
         toggleVideoOrAvatar(
           config.uid,
           config.localVideoTrack,
