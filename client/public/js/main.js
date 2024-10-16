@@ -302,6 +302,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     await client.publish([config.localAudioTrack]);
 
     console.log("Successfully published local audio track");
+    console.log("checking uid", uid);
 
     // Update userTracks for the local user (using UID instead of local)
     userTracks[uid] = {
