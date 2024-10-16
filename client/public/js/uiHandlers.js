@@ -193,6 +193,9 @@ const startScreenShare = async (config) => {
     config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
     console.log("Screen share track created:", config.localScreenShareTrack);
 
+    // Mark screen sharing as enabled **before** managing PiP or camera
+    config.localScreenShareEnabled = true;
+
     // Play the screen share track
     const screenShareElement = document.getElementById("screen-share-content");
     config.localScreenShareTrack.play(screenShareElement);
@@ -201,13 +204,10 @@ const startScreenShare = async (config) => {
     await setRTMAttributes(config);
 
     // Switch to screen share stage
-    toggleStages(true, config); // Show screen-share stage and hide video stage
+    toggleStages(true); // Show screen-share stage and hide video stage
 
     // Manage PiP for the camera feed (if the camera is on)
     manageCameraState(config.localVideoTrack !== null, config);
-
-    // Mark screen sharing as enabled
-    config.localScreenShareEnabled = true;
 
     // Call the function to indicate screen sharing is on
     if (typeof bubble_fn_isScreenOn === "function") {
@@ -245,14 +245,14 @@ const stopScreenShare = async (config) => {
     // Clear the RTM attributes for screen sharing
     await clearRTMAttributes(config);
 
+    // Mark screen sharing as disabled before switching stages
+    config.localScreenShareEnabled = false;
+
     // Switch back to the video stage and check if config.uid is available
     toggleStages(false, config); // Ensure config is passed
 
     // Manage camera state in the main video stage
     manageCameraState(config.localVideoTrack !== null, config);
-
-    // Mark screen sharing as disabled
-    config.localScreenShareEnabled = false;
 
     // Call the function to indicate screen sharing is off
     if (typeof bubble_fn_isScreenOn === "function") {
@@ -263,7 +263,6 @@ const stopScreenShare = async (config) => {
     throw error;
   }
 };
-
 
 
 
