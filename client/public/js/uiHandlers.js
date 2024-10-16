@@ -76,8 +76,6 @@ export const toggleMic = async (config) => {
 };
 
 
-import { playCameraVideo, showAvatar } from "./videoHandlers"; // Import your generalized functions
-
 export const toggleCamera = async (isMuted, uid, userType, config) => {
   try {
     console.log("Config object in toggleCamera:", config);
