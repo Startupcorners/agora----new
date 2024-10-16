@@ -90,8 +90,6 @@ export const toggleCamera = async (isMuted, config) => {
     const pipAvatarDiv = document.querySelector(`#pip-avatar`);
 
     console.log("Toggling camera for user:", config.uid);
-    console.log("Video player element:", videoPlayer);
-    console.log("Avatar element:", avatarDiv);
 
     if (!videoPlayer) {
       console.error(`Video player for user ${config.uid} not found!`);
@@ -119,6 +117,7 @@ export const toggleCamera = async (isMuted, config) => {
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
         config.localVideoTrack.setEnabled(false); // Disable the track but keep it
+
         console.log("Camera turned off and unpublished for user:", config.uid);
 
         // Show avatar, hide video in both video stage and PiP
@@ -141,12 +140,18 @@ export const toggleCamera = async (isMuted, config) => {
       console.log("Turning on the camera...");
 
       if (config.localVideoTrack) {
-        // If the track exists, enable it
-        await config.localVideoTrack.setEnabled(true);
-        await config.client.publish([config.localVideoTrack]);
-        console.log("Video track enabled and published for user:", config.uid);
+        // If the track exists, ensure it's not already playing
+        if (config.localVideoTrack.isPlaying()) {
+          console.log("Camera track is already playing.");
+        } else {
+          await config.localVideoTrack.setEnabled(true);
+          await config.client.publish([config.localVideoTrack]);
+          console.log(
+            "Video track enabled and published for user:",
+            config.uid
+          );
+        }
       } else {
-        // Handle the case where the video track might not exist (though it should)
         console.error("Video track was not created in the initial stage.");
         config.cameraToggleInProgress = false;
         return;
