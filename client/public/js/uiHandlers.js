@@ -274,24 +274,22 @@ const stopScreenShare = async (config) => {
 
 
 const manageCameraState = (config) => {
-  const isCameraOn =
-    !config.localVideoTrackMuted && config.localVideoTrack !== null;
+  // Check if the local video track exists and whether it is muted
+  const isCameraOn = config.localVideoTrack && !config.localVideoTrackMuted;
+
   console.log("Managing camera state. Camera on:", isCameraOn);
   console.log("config.localVideoTrack:", config.localVideoTrack);
   console.log("config.localVideoTrackMuted:", config.localVideoTrackMuted);
 
   if (isCameraOn) {
-    if (!config.localVideoTrack) {
-      console.error(
-        "Error: config.localVideoTrack is undefined when trying to play the camera."
-      );
-    } else {
-      playCameraVideo(config.localVideoTrack, config); // If camera is on, play the video
-    }
+    // If the camera is on, play the video in the appropriate place
+    playCameraVideo(config.localVideoTrack, config);
   } else {
-    showAvatar(config); // If camera is off, show the avatar
+    // If the camera is off or muted, show the avatar
+    showAvatar(config);
   }
 };
+
 
 
 
