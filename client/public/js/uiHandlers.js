@@ -110,8 +110,8 @@ export const toggleCamera = async (isMuted, config) => {
 
         console.log("Camera turned off and unpublished for user:", uid);
 
-        // Use generalized functions to handle state
-        showAvatar(uid, "local"); // Show avatar for local user
+        // Manage camera state using generalized function
+        manageCameraState(uid, "local");
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
@@ -137,8 +137,8 @@ export const toggleCamera = async (isMuted, config) => {
 
       console.log("Video track enabled and published for user:", uid);
 
-      // Play the video track, passing correct uid
-      playCameraVideo(uid, "local");
+      // Manage camera state using generalized function
+      manageCameraState(uid, "local");
 
       if (typeof bubble_fn_isCamOn === "function") {
         bubble_fn_isCamOn(true);

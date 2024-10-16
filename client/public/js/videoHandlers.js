@@ -3,12 +3,36 @@ import { userTracks } from "./state.js";
 export const manageCameraState = (uid, userType) => {
   console.log(`Managing camera state for ${userType} user with UID:`, uid);
 
-  // Simply call both functions and let them handle the decision-making
+  // Check if uid and userType are defined
+  if (!uid) {
+    console.error("UID is not defined. Cannot manage camera state.");
+    return;
+  }
+
+  if (!userType) {
+    console.error("User type is not defined. Cannot manage camera state.");
+    return;
+  }
+
+  // Log to check user track info
+  const userTrack = userTracks[uid] || userTracks.local;
+  if (!userTrack) {
+    console.error(`User track not found for UID: ${uid}`);
+  } else {
+    console.log(`User track for UID ${uid}:`, userTrack);
+  }
+
+  // Call playCameraVideo and log the result
+  console.log("Calling playCameraVideo...");
   playCameraVideo(uid, userType); // Always try to play the camera video
+
+  // Call showAvatar and log the result
+  console.log("Calling showAvatar...");
   showAvatar(uid, userType); // Always try to show the avatar
 
-  console.log("Camera state management completed.");
+  console.log("Camera state management completed for UID:", uid);
 };
+
 
 export const playCameraVideo = (uid, userType) => {
   const userTrack = userTracks[uid]; // Access user's track info from centralized object
