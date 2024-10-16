@@ -140,18 +140,11 @@ export const toggleCamera = async (isMuted, config) => {
       console.log("Turning on the camera...");
 
       if (config.localVideoTrack) {
-        // If the track exists, ensure it's not already playing
-        if (config.localVideoTrack.isPlaying()) {
-          console.log("Camera track is already playing.");
-        } else {
-          await config.localVideoTrack.setEnabled(true);
-          await config.client.publish([config.localVideoTrack]);
-          console.log(
-            "Video track enabled and published for user:",
-            config.uid
-          );
-        }
+        await config.localVideoTrack.setEnabled(true);
+        await config.client.publish([config.localVideoTrack]);
+        console.log("Video track enabled and published for user:", config.uid);
       } else {
+        // Handle the case where the video track might not exist (though it should)
         console.error("Video track was not created in the initial stage.");
         config.cameraToggleInProgress = false;
         return;
@@ -186,6 +179,7 @@ export const toggleCamera = async (isMuted, config) => {
     config.cameraToggleInProgress = false; // Reset toggle progress
   }
 };
+
 
 
 export const toggleScreenShare = async (isEnabled, config) => {
