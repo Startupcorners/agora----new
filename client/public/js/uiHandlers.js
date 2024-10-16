@@ -73,7 +73,9 @@ export const toggleMic = async (config) => {
   } catch (error) {
     console.error("Error in toggleMic:", error);
   }
-};export const toggleCamera = async (isMuted, config) => {
+};
+
+export const toggleCamera = async (isMuted, config) => {
   try {
     // Ensure config and uid are defined
     if (!config || !config.uid) {
@@ -82,6 +84,9 @@ export const toggleMic = async (config) => {
 
     const uid = config.uid; // Get UID from config
     console.log("User's UID:", uid); // Confirm UID is set
+
+    // Log the current userTrack for the UID
+    console.log("userTracks[uid] at the beginning:", userTracks[uid]);
 
     let userTrack = userTracks[uid]; // Directly access the track for this UID
 
