@@ -83,6 +83,7 @@ export const toggleCamera = async (isMuted, config) => {
 
     config.cameraToggleInProgress = true;
 
+    // Get the video player, avatar, and PiP elements
     const videoPlayer = document.querySelector(`#stream-${config.uid}`);
     const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
     const pipVideoPlayer = document.querySelector(`#pip-video-track`);
@@ -99,15 +100,17 @@ export const toggleCamera = async (isMuted, config) => {
       if (config.localVideoTrack) {
         console.log("Turning off the camera...");
 
+        // Unpublish and stop the video track
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
         config.localVideoTrack.setEnabled(false); // Disable the track but keep it
         console.log("Camera turned off and unpublished for user:", config.uid);
 
-        // Show avatar, hide video in both video stage and PiP
-        toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
-        if (pipAvatarDiv && pipVideoPlayer) {
+        // Show avatar and hide video in both the video stage and PiP
+        if (config.localScreenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
           toggleVideoOrAvatar(config.uid, null, pipAvatarDiv, pipVideoPlayer);
+        } else {
+          toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
         }
 
         config.localVideoTrackMuted = true;
@@ -121,49 +124,28 @@ export const toggleCamera = async (isMuted, config) => {
       console.log("Turning on the camera...");
 
       if (config.localVideoTrack) {
-        // Enable the video track
+        // Enable and publish the video track
         await config.localVideoTrack.setEnabled(true);
         await config.client.publish([config.localVideoTrack]);
         console.log("Video track enabled and published for user:", config.uid);
 
-        if (config.localScreenShareEnabled) {
-          // If screen sharing is active, play video in PiP first, then video stage with a delay
-          if (pipVideoPlayer && pipAvatarDiv) {
-            toggleVideoOrAvatar(
-              config.uid,
-              config.localVideoTrack,
-              pipAvatarDiv,
-              pipVideoPlayer
-            );
-          }
-
-          setTimeout(() => {
-            toggleVideoOrAvatar(
-              config.uid,
-              config.localVideoTrack,
-              avatarDiv,
-              videoPlayer
-            );
-          }, 500); // Delay of 500ms
+        // Play video in the correct location depending on screen sharing
+        if (config.localScreenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
+          // If screen sharing is active, play in the PiP (screen share stage)
+          toggleVideoOrAvatar(
+            config.uid,
+            config.localVideoTrack,
+            pipAvatarDiv,
+            pipVideoPlayer
+          );
         } else {
-          // If screen sharing is not active, play video in video stage first, then PiP with a delay
+          // If not sharing screen, play in the video stage
           toggleVideoOrAvatar(
             config.uid,
             config.localVideoTrack,
             avatarDiv,
             videoPlayer
           );
-
-          setTimeout(() => {
-            if (pipVideoPlayer && pipAvatarDiv) {
-              toggleVideoOrAvatar(
-                config.uid,
-                config.localVideoTrack,
-                pipAvatarDiv,
-                pipVideoPlayer
-              );
-            }
-          }, 500); // Delay of 500ms
         }
 
         config.localVideoTrackMuted = false;
