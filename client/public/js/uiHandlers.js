@@ -73,31 +73,30 @@ export const toggleMic = async (config) => {
   } catch (error) {
     console.error("Error in toggleMic:", error);
   }
-};
-export const toggleCamera = async (isMuted, config) => {
+};export const toggleCamera = async (isMuted, config) => {
   try {
+    // Ensure config and uid are defined
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
     }
 
     const uid = config.uid; // Get UID from config
-    console.log("User's UID", uid);
+    console.log("User's UID:", uid); // Confirm UID is set
 
     let userTrack = userTracks[uid]; // Directly access the track for this UID
-
-    // Log the current state of userTrack
-    console.log("Current userTrack state:", userTrack);
 
     if (!userTrack) {
       console.error(`User track for UID ${uid} is undefined.`);
       return;
     }
 
+    // Check if camera toggle is already in progress
     if (userTrack.cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
       return;
     }
 
+    // Set camera toggle in progress
     userTrack.cameraToggleInProgress = true;
 
     if (isMuted) {
@@ -112,14 +111,12 @@ export const toggleCamera = async (isMuted, config) => {
 
         console.log("Camera turned off and unpublished for user:", uid);
 
-        // Use generalized functions to manage the camera state
+        // Use generalized function to manage the camera state
         manageCameraState(uid);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
-      } else {
-        console.warn("No video track found to turn off for UID:", uid);
       }
     } else {
       // Camera is off, turn it on
@@ -129,7 +126,7 @@ export const toggleCamera = async (isMuted, config) => {
       if (!userTrack.videoTrack) {
         console.log("Creating a new camera video track.");
         userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
-        userTracks[uid].videoTrack = userTrack.videoTrack; // Update track in global userTracks
+        userTracks[uid].videoTrack = userTrack.videoTrack; // Update the track in global userTracks
       } else {
         console.log("Using existing camera video track.");
       }
@@ -140,7 +137,7 @@ export const toggleCamera = async (isMuted, config) => {
 
       console.log("Video track enabled and published for user:", uid);
 
-      // Use generalized functions to manage the camera state
+      // Use generalized function to manage the camera state
       manageCameraState(uid);
 
       if (typeof bubble_fn_isCamOn === "function") {
@@ -150,6 +147,7 @@ export const toggleCamera = async (isMuted, config) => {
   } catch (error) {
     console.error("Error in toggleCamera:", error);
   } finally {
+    // Ensure toggle progress is reset
     if (userTracks[uid]) {
       userTracks[uid].cameraToggleInProgress = false;
     }
