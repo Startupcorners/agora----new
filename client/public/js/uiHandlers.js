@@ -273,9 +273,12 @@ const stopScreenShare = async (config) => {
 
 
 
-const manageCameraState = (isCameraOn, config) => {
+const manageCameraState = (config) => {
+  const isCameraOn =
+    !config.localVideoTrackMuted && config.localVideoTrack !== null;
   console.log("Managing camera state. Camera on:", isCameraOn);
   console.log("config.localVideoTrack:", config.localVideoTrack);
+  console.log("config.localVideoTrackMuted:", config.localVideoTrackMuted);
 
   if (isCameraOn) {
     if (!config.localVideoTrack) {
@@ -289,6 +292,7 @@ const manageCameraState = (isCameraOn, config) => {
     showAvatar(config); // If camera is off, show the avatar
   }
 };
+
 
 
 
