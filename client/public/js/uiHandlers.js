@@ -196,6 +196,7 @@ export const toggleScreenShare = async (isEnabled, config) => {
   }
 };
 
+
 const startScreenShare = async (config) => {
   try {
     // Create the screen share track without a separate client
@@ -283,12 +284,21 @@ const toggleStages = (isScreenSharing) => {
   const videoStage = document.querySelector("#video-stage");
   const screenShareStage = document.querySelector("#screen-share-stage");
 
+  if (!videoStage || !screenShareStage) {
+    console.error("Video stage or Screen share stage not found in DOM.");
+    return;
+  }
+
   if (isScreenSharing) {
+    // Show screen share stage, hide video stage
     videoStage.style.display = "none";
     screenShareStage.style.display = "block";
+    console.log("Switched to screen share stage.");
   } else {
-    videoStage.style.display = "flex";
+    // Show video stage, hide screen share stage
+    videoStage.style.display = "flex"; // Changed to "flex" for correct layout
     screenShareStage.style.display = "none";
+    console.log("Switched to video stage.");
   }
 };
 
