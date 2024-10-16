@@ -76,19 +76,22 @@ export const toggleMic = async (config) => {
 };
 
 export const toggleCamera = async (isMuted, config) => {
+  let uid; // Declare uid in the outer scope
+  let userTrack; // Declare userTrack in the outer scope
+
   try {
     // Ensure config and uid are defined
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
     }
 
-    const uid = config.uid; // Get UID from config
+    uid = config.uid; // Assign UID from config
     console.log("User's UID:", uid); // Confirm UID is set
 
     // Log the current userTrack for the UID
     console.log("userTracks[uid] at the beginning:", userTracks[uid]);
 
-    let userTrack = userTracks[uid]; // Directly access the track for this UID
+    userTrack = userTracks[uid]; // Directly access the track for this UID
 
     if (!userTrack) {
       console.error(`User track for UID ${uid} is undefined.`);
@@ -134,7 +137,7 @@ export const toggleCamera = async (isMuted, config) => {
       if (!userTrack.videoTrack) {
         console.log("Creating a new camera video track.");
         userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
-        // Update the track in global userTracks
+        // Update the track in userTrack
         userTrack = { ...userTrack, videoTrack: userTrack.videoTrack };
       } else {
         console.log("Using existing camera video track.");
