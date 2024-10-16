@@ -189,21 +189,28 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
 const startScreenShare = async (config) => {
   try {
+    // Check if config and its essential properties are defined
+    if (!config || !config.client) {
+      console.error("startScreenShare: config or client is undefined.");
+      return; // Exit early to prevent further errors
+    }
+
     // Create the screen share track
     config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
     console.log("Screen share track created:", config.localScreenShareTrack);
 
-    // Play the screen share track
+    // Play the screen share track in the screen share stage
     const screenShareElement = document.getElementById("screen-share-content");
+    if (!screenShareElement) {
+      throw new Error("Screen share content element not found.");
+    }
     config.localScreenShareTrack.play(screenShareElement);
 
     // Set the RTM attributes for screen sharing
     await setRTMAttributes(config);
 
-    // Switch to screen share stage
-    toggleStages(true); // Show screen-share stage and hide video stage
-
-    // Manage PiP for the camera feed (if the camera is on)
+    // Switch to screen share stage and manage PiP for the camera feed (if the camera is on)
+    toggleStages(true, config); // Ensure we pass config to avoid undefined errors
     manageCameraState(config.localVideoTrack !== null, config);
 
     // Mark screen sharing as enabled
@@ -214,7 +221,7 @@ const startScreenShare = async (config) => {
       bubble_fn_isScreenOn(true); // Indicate screen is on
     }
 
-    // Handle track-ended event triggered by browser
+    // Handle track-ended event triggered by the browser
     config.localScreenShareTrack.on("track-ended", async () => {
       console.log(
         "Screen share track ended by browser. Stopping screen share."
@@ -224,10 +231,10 @@ const startScreenShare = async (config) => {
       await stopScreenShare(config);
     });
   } catch (error) {
-    console.error("Error creating screen share track:", error);
-    throw error;
+    console.error("Error during screen sharing start:", error);
   }
 };
+
 
 
 
