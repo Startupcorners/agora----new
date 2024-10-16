@@ -73,7 +73,7 @@ export const toggleMic = async (config) => {
 };
 
 
-export const toggleCamera = async (isMuted, uid, userType) => {
+export const toggleCamera = async (isMuted, uid, userType, config) => {
   try {
     const userTrack = userTracks[uid]; // Access the correct user's track data
 
@@ -89,7 +89,6 @@ export const toggleCamera = async (isMuted, uid, userType) => {
 
     userTrack.cameraToggleInProgress = true;
 
-    // Define video and avatar elements
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatarDiv = document.querySelector(`#avatar-${uid}`);
     const pipVideoPlayer = document.getElementById(
@@ -102,7 +101,6 @@ export const toggleCamera = async (isMuted, uid, userType) => {
     console.log("PiP video player element:", pipVideoPlayer);
     console.log("PiP avatar element:", pipAvatarDiv);
 
-    // If no video or avatar elements are found, exit
     if (!videoPlayer || !avatarDiv) {
       console.error(`Video player or avatar not found for user ${uid}`);
       userTrack.cameraToggleInProgress = false;
@@ -110,19 +108,19 @@ export const toggleCamera = async (isMuted, uid, userType) => {
     }
 
     if (isMuted) {
-      // Camera is currently on, so we turn it off
+      // Camera is currently on, turn it off
       if (userTrack.videoTrack) {
         console.log("Turning off the camera...");
 
         // Unpublish and stop the video track
-        await userTrack.client.unpublish([userTrack.videoTrack]);
+        await config.client.unpublish([userTrack.videoTrack]); // Use config.client
         userTrack.videoTrack.stop();
         userTrack.videoTrack.setEnabled(false); // Disable the track but keep it
-        userTrack.cameraMuted = true; // Mark camera as muted
+        userTrack.cameraMuted = true; // ** Mark camera as muted **
 
         console.log("Camera turned off and unpublished for user:", uid);
 
-        // Show avatar and hide video in both video stage and PiP if screen sharing is enabled
+        // Show avatar and hide video in both the video stage and PiP
         if (userTrack.screenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
           console.log("Showing PiP avatar since camera is off.");
           toggleVideoOrAvatar(uid, null, pipAvatarDiv, pipVideoPlayer);
@@ -136,10 +134,10 @@ export const toggleCamera = async (isMuted, uid, userType) => {
         }
       }
     } else {
-      // Camera is off, so we turn it on
+      // Camera is off, turn it on
       console.log("Turning on the camera...");
 
-      // Create a new video track if one doesn't exist
+      // Check if the video track exists or create a new one
       if (!userTrack.videoTrack) {
         console.log("Creating a new camera video track.");
         userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
@@ -148,12 +146,12 @@ export const toggleCamera = async (isMuted, uid, userType) => {
       }
 
       await userTrack.videoTrack.setEnabled(true);
-      await userTrack.client.publish([userTrack.videoTrack]);
-      userTrack.cameraMuted = false; // Mark camera as unmuted
+      await config.client.publish([userTrack.videoTrack]); // Use config.client
+      userTrack.cameraMuted = false; // ** Mark camera as unmuted **
 
       console.log("Video track enabled and published for user:", uid);
 
-      // Play video in the correct location depending on whether screen sharing is active
+      // Play video in the correct location depending on screen sharing
       if (userTrack.screenShareEnabled) {
         console.log("Screen sharing is active. Playing video in PiP.");
         if (pipVideoPlayer && pipAvatarDiv) {
@@ -183,6 +181,7 @@ export const toggleCamera = async (isMuted, uid, userType) => {
     userTrack.cameraToggleInProgress = false;
   }
 };
+
 
 
 
