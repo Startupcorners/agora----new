@@ -196,20 +196,11 @@ const startScreenShare = async (config) => {
     const screenShareElement = document.getElementById("screen-share-content");
     config.localScreenShareTrack.play(screenShareElement);
 
-    // Set the RTM attributes for screen sharing
-    await setRTMAttributes(config);
-
-    // Show the screen share stage and manage PiP if the camera is on
-    toggleStages(true);
-    manageCameraState(config.localVideoTrack !== null, config);
-
     // Mark screen sharing as enabled
     config.localScreenShareEnabled = true;
 
-    // Call the function to indicate screen sharing is on
-    if (typeof bubble_fn_isScreenOn === "function") {
-      bubble_fn_isScreenOn(true); // Indicate screen is on
-    }
+    // Manage PiP for the camera feed (if camera is on)
+    manageCameraState(config.localVideoTrack !== null, config);
 
     // Handle track-ended event
     config.localScreenShareTrack.on("track-ended", async () => {
@@ -224,6 +215,7 @@ const startScreenShare = async (config) => {
 
 
 
+
 const stopScreenShare = async (config) => {
   try {
     // Stop and close the screen share track
@@ -233,9 +225,6 @@ const stopScreenShare = async (config) => {
       config.localScreenShareTrack = null;
     }
 
-    // Clear the RTM attributes related to screen sharing
-    await clearRTMAttributes(config);
-
     // Show the video stage and manage camera state accordingly
     toggleStages(false);
     manageCameraState(config.localVideoTrack !== null, config);
@@ -243,9 +232,9 @@ const stopScreenShare = async (config) => {
     // Mark screen sharing as disabled
     config.localScreenShareEnabled = false;
 
-    // Call the function to indicate screen sharing is off
+    // Indicate screen sharing is off
     if (typeof bubble_fn_isScreenOn === "function") {
-      bubble_fn_isScreenOn(false); // Indicate screen is off
+      bubble_fn_isScreenOn(false);
     }
   } catch (error) {
     console.error("Error stopping screen share:", error);
@@ -254,13 +243,32 @@ const stopScreenShare = async (config) => {
 };
 
 
-const manageCameraState = (isCameraOn, config) => {
-  if (isCameraOn) {
-    playCameraVideo(config.localVideoTrack, config);
+export const manageCameraState = (isCameraOn, config) => {
+  const pipVideoTrack = document.getElementById("pip-video-track");
+  const pipAvatar = document.getElementById("pip-avatar");
+
+  if (pipVideoTrack && pipAvatar) {
+    if (isCameraOn) {
+      // If the camera is on, show the video track in PiP
+      pipVideoTrack.style.display = "block";
+      pipAvatar.style.display = "none";
+
+      // Play the video track in the PiP
+      if (config.localVideoTrack) {
+        config.localVideoTrack.play(pipVideoTrack);
+      } else {
+        console.error("Local video track is not available.");
+      }
+    } else {
+      // If the camera is off, show the avatar in PiP
+      pipVideoTrack.style.display = "none";
+      pipAvatar.style.display = "block";
+    }
   } else {
-    showAvatar(config);
+    console.error("PiP elements not found in the DOM.");
   }
 };
+
 
 const playCameraVideo = (videoTrack, config) => {
   const videoPlayer = document.querySelector(`#stream-${config.uid}`);
