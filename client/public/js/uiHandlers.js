@@ -82,6 +82,7 @@ export const toggleCamera = async (isMuted, config) => {
     }
 
     const uid = config.uid; // Get UID from config
+    console.log("User 's UID", uid);
     let userTrack = userTracks[uid]; // Directly access the track for this UID
 
     if (!userTrack) {
