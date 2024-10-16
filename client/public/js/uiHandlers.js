@@ -178,14 +178,8 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
     if (isEnabled) {
       await startScreenShare(config); // Start screen sharing
-      await setRTMAttributes(config); // Set RTM attributes
-      toggleStages(true); // Switch to screen share stage
-      manageCameraState(config.localVideoTrack !== null, config); // Manage PiP
     } else {
       await stopScreenShare(config); // Stop screen sharing
-      await clearRTMAttributes(config); // Clear RTM attributes
-      toggleStages(false); // Switch back to video stage
-      manageCameraState(config.localVideoTrack !== null, config); // Show camera in main stage
     }
 
     if (typeof bubble_fn_isScreenOn === "function") {
@@ -196,10 +190,9 @@ export const toggleScreenShare = async (isEnabled, config) => {
   }
 };
 
-
 const startScreenShare = async (config) => {
   try {
-    // Create the screen share track without a separate client
+    // Create the screen share track
     config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
     console.log("Screen share track created:", config.localScreenShareTrack);
 
@@ -207,28 +200,51 @@ const startScreenShare = async (config) => {
     const screenShareElement = document.getElementById("screen-share-content");
     config.localScreenShareTrack.play(screenShareElement);
 
+    // Set the RTM attributes for screen sharing
+    await setRTMAttributes(config);
+
+    // Show the screen share stage and manage PiP if the camera is on
+    toggleStages(true);
+    manageCameraState(config.localVideoTrack !== null, config);
+
     // Mark screen sharing as enabled
     config.localScreenShareEnabled = true;
 
     // Handle track-ended event
     config.localScreenShareTrack.on("track-ended", async () => {
-      console.log("Screen share track ended, stopping screen share");
-      await stopScreenShare(config); // Stop sharing when track ends
+      console.log("Screen share track ended.");
+      await stopScreenShare(config); // Automatically stop sharing when track ends
     });
   } catch (error) {
     console.error("Error creating screen share track:", error);
-    throw error; // Propagate the error to handle it in toggleScreenShare
+    throw error;
   }
 };
 
-const stopScreenShare = async (config) => {
-  if (config.localScreenShareTrack) {
-    config.localScreenShareTrack.stop();
-    config.localScreenShareTrack.close();
-    config.localScreenShareTrack = null;
-  }
 
-  config.localScreenShareEnabled = false;
+
+const stopScreenShare = async (config) => {
+  try {
+    // Stop and close the screen share track
+    if (config.localScreenShareTrack) {
+      config.localScreenShareTrack.stop();
+      config.localScreenShareTrack.close();
+      config.localScreenShareTrack = null;
+    }
+
+    // Clear the RTM attributes related to screen sharing
+    await clearRTMAttributes(config);
+
+    // Show the video stage and manage camera state accordingly
+    toggleStages(false);
+    manageCameraState(config.localVideoTrack !== null, config);
+
+    // Mark screen sharing as disabled
+    config.localScreenShareEnabled = false;
+  } catch (error) {
+    console.error("Error stopping screen share:", error);
+    throw error;
+  }
 };
 
 
@@ -281,24 +297,14 @@ const clearRTMAttributes = async (config) => {
 };
 
 const toggleStages = (isScreenSharing) => {
-  const videoStage = document.querySelector("#video-stage");
-  const screenShareStage = document.querySelector("#screen-share-stage");
-
-  if (!videoStage || !screenShareStage) {
-    console.error("Video stage or Screen share stage not found in DOM.");
-    return;
-  }
-
   if (isScreenSharing) {
-    // Show screen share stage, hide video stage
-    videoStage.style.display = "none";
-    screenShareStage.style.display = "block";
-    console.log("Switched to screen share stage.");
+    // Hide the video stage and show the screen share stage
+    document.querySelector("#video-stage").style.display = "none";
+    document.querySelector("#screen-share-stage").style.display = "block";
   } else {
-    // Show video stage, hide screen share stage
-    videoStage.style.display = "flex"; // Changed to "flex" for correct layout
-    screenShareStage.style.display = "none";
-    console.log("Switched to video stage.");
+    // Show the video stage and hide the screen share stage
+    document.querySelector("#video-stage").style.display = "flex";
+    document.querySelector("#screen-share-stage").style.display = "none";
   }
 };
 
