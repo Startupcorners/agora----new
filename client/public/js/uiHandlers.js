@@ -193,7 +193,7 @@ const startScreenShare = async (config) => {
     config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
     console.log("Screen share track created:", config.localScreenShareTrack);
 
-    // Play the screen share track in the screen share stage
+    // Play the screen share track
     const screenShareElement = document.getElementById("screen-share-content");
     config.localScreenShareTrack.play(screenShareElement);
 
@@ -201,23 +201,27 @@ const startScreenShare = async (config) => {
     await setRTMAttributes(config);
 
     // Switch to screen share stage
-    toggleStages(true, config); // Show screen-share stage and hide video stage
+    toggleStages(true); // Show screen-share stage and hide video stage
 
-    // Ensure PiP is updated correctly after stage switch
-    managePiP(config); // Manage the PiP directly here for clarity
+    // Manage PiP for the camera feed (if the camera is on)
+    manageCameraState(config.localVideoTrack !== null, config);
 
     // Mark screen sharing as enabled
     config.localScreenShareEnabled = true;
 
-    // Indicate screen sharing is on
+    // Call the function to indicate screen sharing is on
     if (typeof bubble_fn_isScreenOn === "function") {
-      bubble_fn_isScreenOn(true);
+      bubble_fn_isScreenOn(true); // Indicate screen is on
     }
 
-    // Handle track-ended event
+    // Handle track-ended event triggered by browser
     config.localScreenShareTrack.on("track-ended", async () => {
-      console.log("Screen share track ended.");
-      await stopScreenShare(config); // Automatically stop sharing when track ends
+      console.log(
+        "Screen share track ended by browser. Stopping screen share."
+      );
+
+      // Trigger stopScreenShare directly
+      await stopScreenShare(config);
     });
   } catch (error) {
     console.error("Error creating screen share track:", error);
@@ -241,17 +245,17 @@ const stopScreenShare = async (config) => {
     await clearRTMAttributes(config);
 
     // Switch back to the video stage
-    toggleStages(false, config); // Show video stage and hide screen-share stage
+    toggleStages(false); // Show video stage and hide screen-share stage
 
     // Manage camera state in the main video stage
-    manageCameraState(config.localVideoTrack !== null, config);
+    manageCameraState(config.localVideoTrack !== null, config); // If camera is on, show video feed, else show avatar
 
     // Mark screen sharing as disabled
     config.localScreenShareEnabled = false;
 
-    // Indicate screen sharing is off
+    // Call the function to indicate screen sharing is off
     if (typeof bubble_fn_isScreenOn === "function") {
-      bubble_fn_isScreenOn(false);
+      bubble_fn_isScreenOn(false); // Indicate screen is off
     }
   } catch (error) {
     console.error("Error stopping screen share:", error);
