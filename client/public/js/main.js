@@ -298,6 +298,7 @@ const joinToVideoStage = async (config) => {
       console.log("Creating camera video track (muted initially)");
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
       await config.localVideoTrack.setEnabled(false); // Keep video muted initially
+      config.localVideoTrackMuted = true; // Ensure to track that the video is muted
       console.log("Video track created but kept muted");
     }
 
