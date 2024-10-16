@@ -273,75 +273,75 @@ const stopScreenShare = async (config) => {
 
 
 
-const manageCameraState = (config) => {
-  console.log("Camera state:", !config.localVideoTrackMuted);
+const manageCameraState = (isCameraOn, config) => {
+  console.log("Managing camera state. Camera on:", isCameraOn);
+  console.log("config.localVideoTrack:", config.localVideoTrack);
 
-  if (!config.localVideoTrackMuted) {
-    playCameraVideo(config.localVideoTrack, config); // If camera is on, play the video
+  if (isCameraOn) {
+    if (!config.localVideoTrack) {
+      console.error(
+        "Error: config.localVideoTrack is undefined when trying to play the camera."
+      );
+    } else {
+      playCameraVideo(config.localVideoTrack, config); // If camera is on, play the video
+    }
   } else {
     showAvatar(config); // If camera is off, show the avatar
   }
 };
 
 
-const playCameraVideo = (videoTrack, config) => {
-  if (!videoTrack) {
-    console.error("Video track is undefined. Ensure the camera is on.");
-    return; // Exit if no video track is provided
-  }
 
-  if (!config || typeof config !== "object") {
-    console.error("Invalid config object. Ensure proper config is passed.");
-    return; // Exit if config is not a valid object
+const playCameraVideo = (videoTrack, config) => {
+  console.log(
+    "playCameraVideo called with videoTrack:",
+    videoTrack,
+    "config:",
+    config
+  );
+
+  if (!videoTrack) {
+    console.error("Error: Video track is undefined. Ensure the camera is on.");
+    return;
   }
 
   const videoPlayer = document.querySelector(`#stream-${config.uid}`);
-  const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
   const pipVideoPlayer = document.getElementById("pip-video-track");
   const pipAvatarDiv = document.getElementById("pip-avatar");
 
-  console.log("videoPlayer element:", videoPlayer);
-  console.log("avatarDiv element:", avatarDiv);
-  console.log("pipVideoPlayer element:", pipVideoPlayer);
-  console.log("pipAvatarDiv element:", pipAvatarDiv);
-
   if (config.localScreenShareEnabled) {
-    // Play camera in PiP
+    console.log("Screen sharing is enabled, managing PiP.");
+
+    // If screen is being shared, play camera in PiP
     if (pipVideoPlayer) {
       console.log("Playing video track in PiP.");
       videoTrack.play(pipVideoPlayer);
-      pipVideoPlayer.style.display = "block";
+      pipVideoPlayer.style.display = "block"; // Ensure PiP video player is visible
     } else {
       console.warn("pipVideoPlayer not found.");
     }
 
     if (pipAvatarDiv) {
       console.log("Hiding PiP avatar.");
-      pipAvatarDiv.style.display = "none";
+      pipAvatarDiv.style.display = "none"; // Hide PiP avatar if the camera is on
     } else {
       console.warn("pipAvatarDiv not found.");
     }
   } else {
-    // Play in main video stage
+    console.log("Screen sharing is not enabled, managing main video stage.");
+
+    // Play the camera feed in the main video stage
     if (videoPlayer) {
       console.log("Playing video track in main video stage.");
       videoTrack.play(videoPlayer);
-      videoPlayer.style.display = "block";
+      videoPlayer.style.display = "block"; // Ensure main video player is visible
     } else {
       console.warn("videoPlayer not found.");
-    }
-
-    if (avatarDiv) {
-      console.log("Hiding main avatar.");
-      avatarDiv.style.display = "none";
-    } else {
-      console.warn("avatarDiv not found.");
     }
   }
 
   console.log("playCameraVideo function execution completed.");
 };
-
 
 
 const showAvatar = (config) => {
