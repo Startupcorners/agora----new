@@ -103,7 +103,7 @@ export const toggleCamera = async (isMuted, config) => {
         await config.client.unpublish([config.localVideoTrack]);
         config.localVideoTrack.stop();
         config.localVideoTrack.setEnabled(false); // Disable the track but keep it
-        config.localVideoTrackMuted = true; // ** Mark camera as muted **
+        config.localVideoTrackMuted = true; // Mark camera as muted
         console.log("Camera turned off and unpublished for user:", config.uid);
 
         // Show avatar and hide video in both the video stage and PiP
@@ -121,19 +121,23 @@ export const toggleCamera = async (isMuted, config) => {
       // Camera is off, turn it on
       console.log("Turning on the camera...");
 
-      // Check if the video track is already created or create a new one
+      // Check if the video track exists or create a new one
       if (!config.localVideoTrack) {
         console.log("Creating a new camera video track.");
         config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      } else {
+        console.log("Using existing camera video track.");
       }
 
+      // Ensure the video track is enabled and publish it
       await config.localVideoTrack.setEnabled(true);
       await config.client.publish([config.localVideoTrack]);
-      config.localVideoTrackMuted = false; // ** Mark camera as unmuted **
+      config.localVideoTrackMuted = false; // Mark camera as unmuted
       console.log("Video track enabled and published for user:", config.uid);
 
       // Play video in the correct location depending on screen sharing
       if (config.localScreenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
+        console.log("Playing video in PiP during screen sharing.");
         toggleVideoOrAvatar(
           config.uid,
           config.localVideoTrack,
@@ -141,6 +145,7 @@ export const toggleCamera = async (isMuted, config) => {
           pipVideoPlayer
         );
       } else {
+        console.log("Playing video in main video stage.");
         toggleVideoOrAvatar(
           config.uid,
           config.localVideoTrack,
