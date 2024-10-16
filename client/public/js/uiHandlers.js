@@ -187,18 +187,26 @@ const startScreenShare = async (config) => {
     config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
     console.log("Screen share track created:", config.localScreenShareTrack);
 
-    // Mark screen sharing as enabled **before** managing PiP or camera
-    config.localScreenShareEnabled = true;
-
     // Play the screen share track
     const screenShareElement = document.getElementById("screen-share-content");
     config.localScreenShareTrack.play(screenShareElement);
+
+    // Ensure the camera is still on before managing PiP
+    if (!config.localVideoTrack) {
+      console.error(
+        "Video track is undefined during screen share. Ensure the camera is on."
+      );
+      return; // Stop the execution if the video track is missing
+    }
+
+    // Mark screen sharing as enabled **before** managing PiP or camera
+    config.localScreenShareEnabled = true;
 
     // Set the RTM attributes for screen sharing
     await setRTMAttributes(config);
 
     // Switch to screen share stage
-  toggleStages(true, config); // Show screen-share stage and hide video stage
+    toggleStages(true, config); // Show screen-share stage and hide video stage
 
     // Manage PiP for the camera feed (if the camera is on)
     manageCameraState(config.localVideoTrack !== null, config);
