@@ -1,13 +1,4 @@
-const userTracks = {
-  local: {
-    videoTrack: null,
-    screenShareTrack: null,
-    isVideoMuted: true,
-    isScreenSharing: false,
-  },
-  remote: {},
-};
-
+import { userTracks } from "./state";
 
 export const manageCameraState = (uid, userType) => {
   console.log(`Managing camera state for ${userType} user with UID:`, uid);
@@ -18,7 +9,6 @@ export const manageCameraState = (uid, userType) => {
 
   console.log("Camera state management completed.");
 };
-
 
 export const playCameraVideo = (uid, userType) => {
   const userTrack = userTracks[uid]; // Access user's track info from centralized object
@@ -76,7 +66,6 @@ export const playCameraVideo = (uid, userType) => {
 
   console.log("playCameraVideo function execution completed.");
 };
-
 
 export const showAvatar = (uid, userType) => {
   console.log(`Entering showAvatar for ${userType} user with UID:`, uid);
@@ -164,7 +153,6 @@ export const showAvatar = (uid, userType) => {
 
   console.log("Exiting showAvatar...");
 };
-
 
 export const startScreenShare = async (uid, userType) => {
   try {
@@ -254,7 +242,6 @@ export const startScreenShare = async (uid, userType) => {
   }
 };
 
-
 export const stopScreenShare = async (uid, userType) => {
   try {
     console.log(`Stopping screen share for ${userType} user with UID:`, uid);
@@ -305,7 +292,6 @@ export const stopScreenShare = async (uid, userType) => {
   }
 };
 
-
 const toggleStages = (isScreenSharing, uid, userType) => {
   // Select the correct video and screen share stage based on the userType
   const videoStage = document.getElementById(`${userType}-video-stage`);
@@ -342,8 +328,6 @@ const toggleStages = (isScreenSharing, uid, userType) => {
   }
 };
 
-
-
 const setRTMAttributes = async (uid, userType, clientRTM) => {
   if (clientRTM) {
     const attributes = { uidSharingScreen: uid.toString() };
@@ -355,7 +339,6 @@ const setRTMAttributes = async (uid, userType, clientRTM) => {
     console.error(`RTM client not found for ${userType} user with UID ${uid}`);
   }
 };
-
 
 const clearRTMAttributes = async (uid, userType, clientRTM) => {
   if (clientRTM) {

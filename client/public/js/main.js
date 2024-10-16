@@ -6,7 +6,7 @@ import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
-
+import { userTracks } from "./state";
 
 
 const newMainApp = function (initConfig) {
@@ -32,16 +32,11 @@ const newMainApp = function (initConfig) {
     serverUrl: "https://agora-new.vercel.app",
     token: null,
     channelName: null,
-    localAudioTrack: null,
-    localVideoTrack: null,
-    screenShareClient: null,
-    localScreenShareTrack: null,
-    localScreenShareEnabled: false,
-    localAudioTrackMuted: false,
+    localAudioTrackMuted: false, // These are needed in config
     localVideoTrackMuted: true,
     isVirtualBackGroundEnabled: false,
-    remoteTracks: {},
     cameraToggleInProgress: false,
+    // Remove localVideoTrack, localAudioTrack, etc.
   };
 
   // Apply initial config
@@ -279,41 +274,41 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
   // Join video stage function
 const joinToVideoStage = async (config) => {
   try {
-    const { client } = config;
+    const { client, uid } = config;
 
     // Create and publish the local audio track if it doesn't exist
-    if (!config.localAudioTrack) {
+    if (!userTracks.local.audioTrack) {
       console.log("Creating microphone audio track");
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      userTracks.local.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
     }
 
-    if (config.localAudioTrack) {
+    if (userTracks.local.audioTrack) {
       console.log("Microphone audio track created successfully");
     } else {
       console.error("Failed to create local audio track");
     }
 
     // Create the local video track if it doesn't exist, but keep it muted and unpublished
-    if (!config.localVideoTrack) {
+    if (!userTracks.local.videoTrack) {
       console.log("Creating camera video track (muted initially)");
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      await config.localVideoTrack.setEnabled(false); // Keep video muted initially
-      config.localVideoTrackMuted = true; // Ensure to track that the video is muted
+      userTracks.local.videoTrack = await AgoraRTC.createCameraVideoTrack();
+      await userTracks.local.videoTrack.setEnabled(false); // Keep video muted initially
+      userTracks.local.isVideoMuted = true; // Track that the video is muted
       console.log("Video track created but kept muted");
     }
 
     // Publish the local audio track only
     console.log("Publishing local audio track");
-    await client.publish([config.localAudioTrack]);
+    await client.publish([userTracks.local.audioTrack]);
 
     console.log("Successfully published local audio track");
 
     // Add the current user wrapper (for their own video/audio stream)
-    await addUserWrapper({ uid: config.uid, ...config.user }, config);
+    await addUserWrapper({ uid, ...config.user }, config);
 
     // Select the video player and avatar elements for the current user
-    const videoPlayer = document.querySelector(`#stream-${config.uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
+    const videoPlayer = document.querySelector(`#stream-${uid}`);
+    const avatarDiv = document.querySelector(`#avatar-${uid}`);
 
     // Ensure the video player and avatar elements are found
     if (!videoPlayer || !avatarDiv) {
@@ -324,11 +319,11 @@ const joinToVideoStage = async (config) => {
     }
 
     // Show avatar and hide video initially since the video track is muted
-    toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
+    toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
 
     // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
-    const isMuted = config.localAudioTrack.muted || false;
-    toggleMicIcon(config.uid, isMuted);
+    const isMuted = userTracks.local.audioTrack.muted || false;
+    toggleMicIcon(uid, isMuted);
 
     console.log("Joined the video stage with muted video and active audio");
   } catch (error) {
