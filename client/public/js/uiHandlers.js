@@ -268,27 +268,39 @@ const startScreenShare = async (config) => {
 
 const stopScreenShare = async (config) => {
   try {
+    console.log("Stopping screen share...");
+
     // Stop and close the screen share track
     if (config.localScreenShareTrack) {
       config.localScreenShareTrack.stop();
       config.localScreenShareTrack.close();
       config.localScreenShareTrack = null;
+      console.log("Screen share track stopped and closed.");
+    } else {
+      console.warn("No active screen share track found to stop.");
     }
 
     // Clear the RTM attributes for screen sharing
+    console.log("Clearing RTM attributes for screen sharing...");
     await clearRTMAttributes(config);
 
     // Mark screen sharing as disabled before switching stages
     config.localScreenShareEnabled = false;
+    console.log("Screen sharing marked as disabled.");
 
-    // Switch back to the video stage and check if config.uid is available
+    // Switch back to the video stage
+    console.log("Toggling stages: switching to video stage...");
     toggleStages(false, config); // Ensure config is passed
 
     // Manage camera state in the main video stage
-    manageCameraState(config.localVideoTrack !== null, config);
+    console.log("Managing camera state after screen share stopped...");
+    manageCameraState(config); // Simply pass config, as manageCameraState handles the checks
 
     // Call the function to indicate screen sharing is off
     if (typeof bubble_fn_isScreenOn === "function") {
+      console.log(
+        "Calling bubble_fn_isScreenOn(false) to indicate screen sharing is off..."
+      );
       bubble_fn_isScreenOn(false); // Indicate screen is off
     }
   } catch (error) {
