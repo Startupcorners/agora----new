@@ -75,6 +75,8 @@ export const toggleMic = async (config) => {
   }
 };
 
+import { playCameraVideo, showAvatar } from "./videoHandlers"; // Import your generalized functions
+
 export const toggleCamera = async (isMuted, uid, userType, config) => {
   try {
     console.log("Config object in toggleCamera:", config);
@@ -122,8 +124,14 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
       if (!userTrack.videoTrack) {
         console.log("Creating a new camera video track.");
         userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
-      } else {
-        console.log("Using existing camera video track.");
+
+        // Update the userTracks with the new video track
+        userTracks[uid].videoTrack = userTrack.videoTrack; // Ensure userTracks is updated properly
+      }
+
+      if (!userTrack.videoTrack) {
+        console.error("Error: Unable to create or access video track.");
+        return;
       }
 
       await userTrack.videoTrack.setEnabled(true);
