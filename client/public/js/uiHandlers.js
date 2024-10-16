@@ -244,11 +244,11 @@ const stopScreenShare = async (config) => {
     // Clear the RTM attributes for screen sharing
     await clearRTMAttributes(config);
 
-    // Switch back to the video stage
-    toggleStages(false); // Show video stage and hide screen-share stage
+    // Switch back to the video stage and check if config.uid is available
+    toggleStages(false, config); // Ensure config is passed
 
     // Manage camera state in the main video stage
-    manageCameraState(config.localVideoTrack !== null, config); // If camera is on, show video feed, else show avatar
+    manageCameraState(config.localVideoTrack !== null, config);
 
     // Mark screen sharing as disabled
     config.localScreenShareEnabled = false;
@@ -262,6 +262,7 @@ const stopScreenShare = async (config) => {
     throw error;
   }
 };
+
 
 
 
@@ -343,10 +344,14 @@ const clearRTMAttributes = async (config) => {
     console.log(`Screen share UID attribute cleared for user ${config.uid}`);
   }
 };
-
 const toggleStages = (isScreenSharing, config) => {
   const videoStage = document.getElementById("video-stage");
   const screenShareStage = document.getElementById("screen-share-stage");
+
+  if (!config || !config.uid) {
+    console.error("toggleStages: config or config.uid is undefined.");
+    return; // Exit early to prevent further errors
+  }
 
   if (isScreenSharing) {
     videoStage.style.display = "none";
@@ -358,11 +363,12 @@ const toggleStages = (isScreenSharing, config) => {
     // Ensure that after returning to the video stage, the avatar is shown if the camera is off
     const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
     if (avatarDiv) {
-      avatarDiv.style.display = "block"; // Force avatar visibility
+      avatarDiv.style.display = "block"; // Force avatar visibility if camera is off
+    } else {
+      console.warn(`Avatar for UID ${config.uid} not found.`);
     }
   }
 };
-
 
 
 
