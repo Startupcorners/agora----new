@@ -204,7 +204,7 @@ const startScreenShare = async (config) => {
     await setRTMAttributes(config);
 
     // Switch to screen share stage
-    toggleStages(true); // Show screen-share stage and hide video stage
+  toggleStages(true, config); // Show screen-share stage and hide video stage
 
     // Manage PiP for the camera feed (if the camera is on)
     manageCameraState(config.localVideoTrack !== null, config);
