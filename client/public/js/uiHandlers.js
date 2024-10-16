@@ -166,13 +166,6 @@ export const toggleCamera = async (isMuted, config) => {
 
 export const toggleScreenShare = async (isEnabled, config) => {
   try {
-    const uid = config.uid; // Main UID
-
-    if (!uid) {
-      console.error("UID is not set in config.");
-      return;
-    }
-
     if (!config.client) {
       console.error("Agora client is not initialized!");
       return;
@@ -180,131 +173,135 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
     if (config.localScreenShareEnabled && isEnabled) {
       console.log("Already sharing. Stopping screen share.");
-      isEnabled = false; // This will stop the current screen share
+      isEnabled = false;
     }
 
     if (isEnabled) {
-      console.log("Starting screen share");
-
-      // Create the screen share track without a separate client
-      try {
-        config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
-        console.log(
-          "Screen share track created:",
-          config.localScreenShareTrack
-        );
-      } catch (error) {
-        console.error("Error creating screen share track:", error);
-        if (
-          error.name === "NotAllowedError" ||
-          error.message.includes("Permission denied")
-        ) {
-          console.log("User canceled the screen sharing prompt.");
-          if (typeof bubble_fn_isScreenOn === "function") {
-            bubble_fn_isScreenOn(false);
-          }
-          return;
-        } else {
-          throw error;
-        }
-      }
-
-      // Add the screen share UID attribute (on the RTM client)
-      if (config.clientRTM) {
-        const attributes = {
-          uidSharingScreen: uid.toString(),
-        };
-        await config.clientRTM.setLocalUserAttributes(attributes);
-        console.log(`Screen share UID attribute set for user ${uid}`);
-      }
-
-      // Hide the video stage and show the screen share stage
-      document.querySelector("#video-stage").style.display = "none";
-      document.querySelector("#screen-share-stage").style.display = "block";
-
-      // Play the screen share track in the screen share stage
-      const screenShareElement = document.getElementById(
-        "screen-share-content"
-      );
-      config.localScreenShareTrack.play(screenShareElement);
-
-      // Handle track-ended event
-      config.localScreenShareTrack.on("track-ended", async () => {
-        console.log("Screen share track ended, stopping screen share");
-        await toggleScreenShare(false, config); // Automatically stop sharing when track ends
-      });
-
-      // Mark screen sharing as enabled
-      config.localScreenShareEnabled = true;
-
-      if (typeof bubble_fn_isScreenOn === "function") {
-        bubble_fn_isScreenOn(true);
-      }
+      await startScreenShare(config); // Start screen sharing
+      await setRTMAttributes(config); // Set RTM attributes
+      toggleStages(true); // Switch to screen share stage
+      manageCameraState(config.localVideoTrack !== null, config); // Manage PiP
     } else {
-      console.log("Stopping screen share");
+      await stopScreenShare(config); // Stop screen sharing
+      await clearRTMAttributes(config); // Clear RTM attributes
+      toggleStages(false); // Switch back to video stage
+      manageCameraState(config.localVideoTrack !== null, config); // Show camera in main stage
+    }
 
-      // Stop and close the screen share track
-      if (config.localScreenShareTrack) {
-        config.localScreenShareTrack.stop();
-        config.localScreenShareTrack.close();
-        config.localScreenShareTrack = null;
-      }
-
-      // Remove the screen share UID attribute
-      if (config.clientRTM) {
-        await config.clientRTM.clearLocalUserAttributes();
-        console.log(`Screen share UID attribute removed for user ${uid}`);
-      }
-
-      // Show the video stage and hide the screen share stage
-      document.querySelector("#video-stage").style.display = "flex";
-      document.querySelector("#screen-share-stage").style.display = "none";
-
-      // Handle if the camera is on or off
-      const videoPlayer = document.querySelector(`#stream-${config.uid}`);
-      const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
-
-      if (config.localVideoTrack) {
-        // If the camera is on, play it in the video stage
-        if (videoPlayer) {
-          videoPlayer.style.display = "block"; // Show video player
-          config.localVideoTrack.play(videoPlayer);
-          console.log(
-            "Playing camera feed in video stage after stopping screen share"
-          );
-
-          // Hide avatar
-          if (avatarDiv) {
-            avatarDiv.style.display = "none";
-          }
-        } else {
-          console.error("Video player for camera feed not found.");
-        }
-      } else {
-        // If the camera is off, show the avatar in the video stage
-        if (avatarDiv) {
-          avatarDiv.style.display = "block"; // Show avatar
-        }
-        if (videoPlayer) {
-          videoPlayer.style.display = "none"; // Hide video player
-        }
-        console.log("Camera is off, showing avatar in video stage.");
-      }
-
-      // Mark screen sharing as disabled
-      config.localScreenShareEnabled = false;
-
-      if (typeof bubble_fn_isScreenOn === "function") {
-        bubble_fn_isScreenOn(false);
-      }
+    if (typeof bubble_fn_isScreenOn === "function") {
+      bubble_fn_isScreenOn(isEnabled);
     }
   } catch (error) {
     console.error("Error during screen sharing toggle:", error);
-    if (config.onError) {
-      config.onError(error);
-    }
   }
 };
+
+const startScreenShare = async (config) => {
+  try {
+    // Create the screen share track without a separate client
+    config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
+    console.log("Screen share track created:", config.localScreenShareTrack);
+
+    // Play the screen share track
+    const screenShareElement = document.getElementById("screen-share-content");
+    config.localScreenShareTrack.play(screenShareElement);
+
+    // Mark screen sharing as enabled
+    config.localScreenShareEnabled = true;
+
+    // Handle track-ended event
+    config.localScreenShareTrack.on("track-ended", async () => {
+      console.log("Screen share track ended, stopping screen share");
+      await stopScreenShare(config); // Stop sharing when track ends
+    });
+  } catch (error) {
+    console.error("Error creating screen share track:", error);
+    throw error; // Propagate the error to handle it in toggleScreenShare
+  }
+};
+
+const stopScreenShare = async (config) => {
+  if (config.localScreenShareTrack) {
+    config.localScreenShareTrack.stop();
+    config.localScreenShareTrack.close();
+    config.localScreenShareTrack = null;
+  }
+
+  config.localScreenShareEnabled = false;
+};
+
+
+const manageCameraState = (isCameraOn, config) => {
+  if (isCameraOn) {
+    playCameraVideo(config.localVideoTrack, config);
+  } else {
+    showAvatar(config);
+  }
+};
+
+const playCameraVideo = (videoTrack, config) => {
+  const videoPlayer = document.querySelector(`#stream-${config.uid}`);
+  const pipVideoPlayer = document.getElementById("pip-video-track");
+
+  if (config.localScreenShareEnabled) {
+    // If screen is being shared, play in PiP
+    if (pipVideoPlayer) videoTrack.play(pipVideoPlayer);
+  } else {
+    // Play in main video stage
+    if (videoPlayer) videoTrack.play(videoPlayer);
+  }
+};
+
+const showAvatar = (config) => {
+  const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
+  const pipAvatarDiv = document.getElementById("pip-avatar");
+
+  if (config.localScreenShareEnabled) {
+    if (pipAvatarDiv) pipAvatarDiv.style.display = "block";
+  } else {
+    if (avatarDiv) avatarDiv.style.display = "block";
+  }
+};
+
+
+const setRTMAttributes = async (config) => {
+  if (config.clientRTM) {
+    const attributes = { uidSharingScreen: config.uid.toString() };
+    await config.clientRTM.setLocalUserAttributes(attributes);
+    console.log(`Screen share UID attribute set for user ${config.uid}`);
+  }
+};
+
+const clearRTMAttributes = async (config) => {
+  if (config.clientRTM) {
+    await config.clientRTM.clearLocalUserAttributes();
+    console.log(`Screen share UID attribute cleared for user ${config.uid}`);
+  }
+};
+
+const toggleStages = (isScreenSharing) => {
+  const videoStage = document.querySelector("#video-stage");
+  const screenShareStage = document.querySelector("#screen-share-stage");
+
+  if (isScreenSharing) {
+    videoStage.style.display = "none";
+    screenShareStage.style.display = "block";
+  } else {
+    videoStage.style.display = "flex";
+    screenShareStage.style.display = "none";
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
 
 
 // Adjusted managePiP function to ensure the camera feed shows in PiP if the camera is on
