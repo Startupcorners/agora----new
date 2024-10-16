@@ -242,7 +242,7 @@ const stopScreenShare = async (config) => {
     // Switch back to the video stage
     toggleStages(false); // Show video stage and hide screen-share stage
 
-    // Manage camera state in the main video stage
+    // Manage camera state in the main video stage (handle avatar visibility)
     manageCameraState(config.localVideoTrack !== null, config);
 
     // Mark screen sharing as disabled
@@ -260,10 +260,12 @@ const stopScreenShare = async (config) => {
 
 
 
+
 const manageCameraState = (isCameraOn, config) => {
   if (isCameraOn) {
     playCameraVideo(config.localVideoTrack, config);
   } else {
+    // Explicitly handle showing the avatar when the camera is off
     showAvatar(config);
   }
 };
@@ -275,19 +277,19 @@ const playCameraVideo = (videoTrack, config) => {
   const pipAvatarDiv = document.getElementById("pip-avatar");
 
   if (config.localScreenShareEnabled) {
-    // Play in PiP
+    // Play in PiP when screen sharing is active
     if (pipVideoPlayer) {
       videoTrack.play(pipVideoPlayer);
-      pipVideoPlayer.style.display = "block"; // Ensure the PiP video player is visible
+      pipVideoPlayer.style.display = "block"; // Show PiP video player
     }
     if (pipAvatarDiv) {
       pipAvatarDiv.style.display = "none"; // Hide PiP avatar
     }
   } else {
-    // Play in main video stage
+    // Play in main video stage when screen sharing is not active
     if (videoPlayer) {
       videoTrack.play(videoPlayer);
-      videoPlayer.style.display = "block"; // Ensure the main video player is visible
+      videoPlayer.style.display = "block"; // Show main video player
     }
     if (avatarDiv) {
       avatarDiv.style.display = "none"; // Hide main avatar
@@ -302,7 +304,7 @@ const showAvatar = (config) => {
   const pipVideoPlayer = document.getElementById("pip-video-track");
 
   if (config.localScreenShareEnabled) {
-    // Show PiP avatar
+    // Show avatar in PiP when screen sharing is active and the camera is off
     if (pipAvatarDiv) {
       pipAvatarDiv.style.display = "block";
     }
@@ -310,16 +312,15 @@ const showAvatar = (config) => {
       pipVideoPlayer.style.display = "none"; // Hide PiP video player
     }
   } else {
-    // Show main avatar
+    // Show avatar in main video stage when screen sharing is not active and the camera is off
     if (avatarDiv) {
-      avatarDiv.style.display = "block";
+      avatarDiv.style.display = "block"; // Show main avatar
     }
     if (videoPlayer) {
       videoPlayer.style.display = "none"; // Hide main video player
     }
   }
 };
-
 
 const setRTMAttributes = async (config) => {
   if (config.clientRTM) {
