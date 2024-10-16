@@ -78,10 +78,9 @@ export const toggleMic = async (config) => {
 
 export const toggleCamera = async (isMuted, uid, userType, config) => {
   try {
-    console.log("Config object in toggleCamera:", config);
-    console.log("Agora client:", config.client);
-
-    const userTrack = userTracks[uid] || userTracks.local; // Use local if it's the local user
+    // Access the correct user track (local or remote)
+    const userTrack =
+      userType === "local" ? userTracks.local : userTracks.remote[uid];
 
     if (!userTrack) {
       console.error(`User track for UID ${uid} is undefined.`);
@@ -95,57 +94,51 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
 
     userTrack.cameraToggleInProgress = true;
 
+    const videoPlayer = document.querySelector(`#stream-${uid}`);
+    const avatarDiv = document.querySelector(`#avatar-${uid}`);
+    const pipVideoPlayer = document.getElementById(
+      `${userType}-pip-video-track`
+    );
+    const pipAvatarDiv = document.getElementById(`${userType}-pip-avatar`);
+
+    if (!videoPlayer || !avatarDiv) {
+      console.error(`Video player or avatar not found for user ${uid}`);
+      userTrack.cameraToggleInProgress = false;
+      return;
+    }
+
     if (isMuted) {
-      // Camera is currently on, turn it off
+      // Turn off the camera
       if (userTrack.videoTrack) {
         console.log("Turning off the camera...");
-
-        // Unpublish and stop the video track
         await config.client.unpublish([userTrack.videoTrack]);
         userTrack.videoTrack.stop();
         userTrack.videoTrack.setEnabled(false); // Disable the track but keep it
-        userTrack.cameraMuted = true; // ** Mark camera as muted **
+        userTrack.cameraMuted = true; // Mark camera as muted
 
         console.log("Camera turned off and unpublished for user:", uid);
-
-        // Manage camera state by showing avatar when camera is off
-        showAvatar(uid, userType);
+        // Show avatar
+        manageCameraState(uid, userType);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
-      } else {
-        console.warn("No video track found to turn off.");
       }
     } else {
-      // Camera is off, turn it on
-      console.log("Turning on the camera...");
-
-      // Check if the video track exists or create a new one
+      // Turn on the camera
       if (!userTrack.videoTrack) {
         console.log("Creating a new camera video track.");
-        userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack().catch(
-          (error) => {
-            console.error("Error creating camera video track:", error);
-            return null; // Return null if the creation fails
-          }
-        );
-      }
-
-      // Check if the video track was successfully created
-      if (!userTrack.videoTrack) {
-        console.error("Error: Unable to create or access video track.");
-        return;
+        userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
       }
 
       await userTrack.videoTrack.setEnabled(true);
       await config.client.publish([userTrack.videoTrack]);
-      userTrack.cameraMuted = false; // ** Mark camera as unmuted **
+      userTrack.cameraMuted = false;
 
       console.log("Video track enabled and published for user:", uid);
 
-      // Play video in the correct location depending on screen sharing
-      playCameraVideo(uid, userType);
+      // Play video
+      manageCameraState(uid, userType);
 
       if (typeof bubble_fn_isCamOn === "function") {
         bubble_fn_isCamOn(true);
@@ -157,6 +150,7 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
     userTrack.cameraToggleInProgress = false;
   }
 };
+
 
 
 
