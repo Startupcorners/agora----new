@@ -77,9 +77,15 @@ export const toggleMic = async (config) => {
 
 
 
-export const toggleCamera = async (isMuted) => {
+export const toggleCamera = async (isMuted, config) => {
   try {
-    const userTrack = userTracks.local; // Always use the local track
+    const uid = config.uid; // Get the actual uid from config
+    const userTrack = userTracks[uid] || userTracks.local; // Use correct userTrack for local or remote
+
+    if (!userTrack) {
+      console.error(`User track for UID ${uid} is undefined.`);
+      return;
+    }
 
     if (userTrack.cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
@@ -94,15 +100,18 @@ export const toggleCamera = async (isMuted) => {
         console.log("Turning off the camera...");
 
         // Unpublish and stop the video track
-        await window.app.config.client.unpublish([userTrack.videoTrack]);
+        await config.client.unpublish([userTrack.videoTrack]);
         userTrack.videoTrack.stop();
-        userTrack.videoTrack.setEnabled(false); // Disable the track
         userTrack.isVideoMuted = true;
 
-        console.log("Camera turned off and unpublished");
+        console.log("Camera turned off and unpublished for user:", uid);
 
-        // Use generalized function to show the avatar and stop playing the video
-        showAvatar(userTrack, "local");
+        // Use generalized functions to handle state
+        showAvatar(uid, "local"); // Show avatar for local user
+
+        if (typeof bubble_fn_isCamOn === "function") {
+          bubble_fn_isCamOn(false);
+        }
       }
     } else {
       // Camera is off, turn it on
@@ -117,17 +126,17 @@ export const toggleCamera = async (isMuted) => {
       }
 
       await userTrack.videoTrack.setEnabled(true);
-      await window.app.config.client.publish([userTrack.videoTrack]);
+      await config.client.publish([userTrack.videoTrack]);
       userTrack.isVideoMuted = false;
 
-      console.log("Video track enabled and published");
+      console.log("Video track enabled and published for user:", uid);
 
-      // Use generalized function to play the video and hide the avatar
-      playCameraVideo(userTrack, "local");
-    }
+      // Play the video track, passing correct uid
+      playCameraVideo(uid, "local");
 
-    if (typeof bubble_fn_isCamOn === "function") {
-      bubble_fn_isCamOn(!isMuted);
+      if (typeof bubble_fn_isCamOn === "function") {
+        bubble_fn_isCamOn(true);
+      }
     }
   } catch (error) {
     console.error("Error in toggleCamera:", error);
@@ -135,6 +144,7 @@ export const toggleCamera = async (isMuted) => {
     userTrack.cameraToggleInProgress = false;
   }
 };
+
 
 
 
