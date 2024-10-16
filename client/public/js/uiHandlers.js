@@ -196,11 +196,22 @@ const startScreenShare = async (config) => {
     const screenShareElement = document.getElementById("screen-share-content");
     config.localScreenShareTrack.play(screenShareElement);
 
+    // Set the RTM attributes for screen sharing
+    await setRTMAttributes(config);
+
+    // Switch to screen share stage
+    toggleStages(true); // Show screen-share stage and hide video stage
+
+    // Manage PiP for the camera feed (if the camera is on)
+    manageCameraState(config.localVideoTrack !== null, config);
+
     // Mark screen sharing as enabled
     config.localScreenShareEnabled = true;
 
-    // Manage PiP for the camera feed (if camera is on)
-    manageCameraState(config.localVideoTrack !== null, config);
+    // Call the function to indicate screen sharing is on
+    if (typeof bubble_fn_isScreenOn === "function") {
+      bubble_fn_isScreenOn(true); // Indicate screen is on
+    }
 
     // Handle track-ended event
     config.localScreenShareTrack.on("track-ended", async () => {
@@ -225,16 +236,21 @@ const stopScreenShare = async (config) => {
       config.localScreenShareTrack = null;
     }
 
-    // Show the video stage and manage camera state accordingly
-    toggleStages(false);
+    // Clear the RTM attributes for screen sharing
+    await clearRTMAttributes(config);
+
+    // Switch back to the video stage
+    toggleStages(false); // Show video stage and hide screen-share stage
+
+    // Manage camera state in the main video stage
     manageCameraState(config.localVideoTrack !== null, config);
 
     // Mark screen sharing as disabled
     config.localScreenShareEnabled = false;
 
-    // Indicate screen sharing is off
+    // Call the function to indicate screen sharing is off
     if (typeof bubble_fn_isScreenOn === "function") {
-      bubble_fn_isScreenOn(false);
+      bubble_fn_isScreenOn(false); // Indicate screen is off
     }
   } catch (error) {
     console.error("Error stopping screen share:", error);
@@ -243,54 +259,64 @@ const stopScreenShare = async (config) => {
 };
 
 
-export const manageCameraState = (isCameraOn, config) => {
-  const pipVideoTrack = document.getElementById("pip-video-track");
-  const pipAvatar = document.getElementById("pip-avatar");
 
-  if (pipVideoTrack && pipAvatar) {
-    if (isCameraOn) {
-      // If the camera is on, show the video track in PiP
-      pipVideoTrack.style.display = "block";
-      pipAvatar.style.display = "none";
-
-      // Play the video track in the PiP
-      if (config.localVideoTrack) {
-        config.localVideoTrack.play(pipVideoTrack);
-      } else {
-        console.error("Local video track is not available.");
-      }
-    } else {
-      // If the camera is off, show the avatar in PiP
-      pipVideoTrack.style.display = "none";
-      pipAvatar.style.display = "block";
-    }
+const manageCameraState = (isCameraOn, config) => {
+  if (isCameraOn) {
+    playCameraVideo(config.localVideoTrack, config);
   } else {
-    console.error("PiP elements not found in the DOM.");
+    showAvatar(config);
   }
 };
 
-
 const playCameraVideo = (videoTrack, config) => {
   const videoPlayer = document.querySelector(`#stream-${config.uid}`);
+  const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
   const pipVideoPlayer = document.getElementById("pip-video-track");
+  const pipAvatarDiv = document.getElementById("pip-avatar");
 
   if (config.localScreenShareEnabled) {
-    // If screen is being shared, play in PiP
-    if (pipVideoPlayer) videoTrack.play(pipVideoPlayer);
+    // Play in PiP
+    if (pipVideoPlayer) {
+      videoTrack.play(pipVideoPlayer);
+      pipVideoPlayer.style.display = "block"; // Ensure the PiP video player is visible
+    }
+    if (pipAvatarDiv) {
+      pipAvatarDiv.style.display = "none"; // Hide PiP avatar
+    }
   } else {
     // Play in main video stage
-    if (videoPlayer) videoTrack.play(videoPlayer);
+    if (videoPlayer) {
+      videoTrack.play(videoPlayer);
+      videoPlayer.style.display = "block"; // Ensure the main video player is visible
+    }
+    if (avatarDiv) {
+      avatarDiv.style.display = "none"; // Hide main avatar
+    }
   }
 };
 
 const showAvatar = (config) => {
   const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
+  const videoPlayer = document.querySelector(`#stream-${config.uid}`);
   const pipAvatarDiv = document.getElementById("pip-avatar");
+  const pipVideoPlayer = document.getElementById("pip-video-track");
 
   if (config.localScreenShareEnabled) {
-    if (pipAvatarDiv) pipAvatarDiv.style.display = "block";
+    // Show PiP avatar
+    if (pipAvatarDiv) {
+      pipAvatarDiv.style.display = "block";
+    }
+    if (pipVideoPlayer) {
+      pipVideoPlayer.style.display = "none"; // Hide PiP video player
+    }
   } else {
-    if (avatarDiv) avatarDiv.style.display = "block";
+    // Show main avatar
+    if (avatarDiv) {
+      avatarDiv.style.display = "block";
+    }
+    if (videoPlayer) {
+      videoPlayer.style.display = "none"; // Hide main video player
+    }
   }
 };
 
@@ -311,14 +337,15 @@ const clearRTMAttributes = async (config) => {
 };
 
 const toggleStages = (isScreenSharing) => {
+  const videoStage = document.getElementById("video-stage");
+  const screenShareStage = document.getElementById("screen-share-stage");
+
   if (isScreenSharing) {
-    // Hide the video stage and show the screen share stage
-    document.querySelector("#video-stage").style.display = "none";
-    document.querySelector("#screen-share-stage").style.display = "block";
+    videoStage.style.display = "none";
+    screenShareStage.style.display = "block";
   } else {
-    // Show the video stage and hide the screen share stage
-    document.querySelector("#video-stage").style.display = "flex";
-    document.querySelector("#screen-share-stage").style.display = "none";
+    videoStage.style.display = "flex";
+    screenShareStage.style.display = "none";
   }
 };
 
