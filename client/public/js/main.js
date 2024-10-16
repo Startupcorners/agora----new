@@ -272,9 +272,9 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
 };
 
   // Join video stage function
-const joinToVideoStage = async (config) => {
+  const joinToVideoStage = async (config) => {
   try {
-    const { client } = config;
+    const { client, uid } = config;
 
     // Create and publish the local audio track if it doesn't exist
     if (!config.localAudioTrack) {
@@ -303,8 +303,8 @@ const joinToVideoStage = async (config) => {
 
     console.log("Successfully published local audio track");
 
-    // Update userTracks.local with the newly created tracks
-    userTracks.local = {
+    // Update userTracks for the local user (using UID instead of local)
+    userTracks[uid] = {
       videoTrack: config.localVideoTrack,
       screenShareTrack: config.localScreenShareTrack,
       isVideoMuted: config.localVideoTrackMuted,
@@ -312,11 +312,11 @@ const joinToVideoStage = async (config) => {
     };
 
     // Add the current user wrapper (for their own video/audio stream)
-    await addUserWrapper({ uid: config.uid, ...config.user }, config);
+    await addUserWrapper({ uid, ...config.user }, config);
 
     // Select the video player and avatar elements for the current user
-    const videoPlayer = document.querySelector(`#stream-${config.uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
+    const videoPlayer = document.querySelector(`#stream-${uid}`);
+    const avatarDiv = document.querySelector(`#avatar-${uid}`);
 
     // Ensure the video player and avatar elements are found
     if (!videoPlayer || !avatarDiv) {
@@ -327,11 +327,11 @@ const joinToVideoStage = async (config) => {
     }
 
     // Show avatar and hide video initially since the video track is muted
-    toggleVideoOrAvatar(config.uid, null, avatarDiv, videoPlayer);
+    toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
 
     // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
     const isMuted = config.localAudioTrack.muted || false;
-    toggleMicIcon(config.uid, isMuted);
+    toggleMicIcon(uid, isMuted);
 
     console.log("Joined the video stage with muted video and active audio");
   } catch (error) {
