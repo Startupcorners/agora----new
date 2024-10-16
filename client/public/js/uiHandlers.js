@@ -150,18 +150,19 @@ export const toggleCamera = async (isMuted, config) => {
         // If the track exists, enable it
         await config.localVideoTrack.setEnabled(true);
 
-        // Stop the video before playing it again
-        stopVideoTrack(config.localVideoTrack);
-
         // Play the video track in both the main video stage and PiP
-        config.localVideoTrack.play(videoPlayer).catch((error) => {
+        try {
+          config.localVideoTrack.play(videoPlayer);
+        } catch (error) {
           console.error("Error playing local video in video stage:", error);
-        });
+        }
 
         if (pipVideoPlayer) {
-          config.localVideoTrack.play(pipVideoPlayer).catch((error) => {
+          try {
+            config.localVideoTrack.play(pipVideoPlayer);
+          } catch (error) {
             console.error("Error playing local video in PiP:", error);
-          });
+          }
         }
 
         await config.client.publish([config.localVideoTrack]);
