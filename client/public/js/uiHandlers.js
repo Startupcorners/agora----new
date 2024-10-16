@@ -193,25 +193,25 @@ const startScreenShare = async (config) => {
     config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
     console.log("Screen share track created:", config.localScreenShareTrack);
 
-    // Play the screen share track
+    // Play the screen share track in the screen share stage
     const screenShareElement = document.getElementById("screen-share-content");
     config.localScreenShareTrack.play(screenShareElement);
 
     // Set the RTM attributes for screen sharing
     await setRTMAttributes(config);
 
-    // Switch to screen share stage and pass config
+    // Switch to screen share stage
     toggleStages(true, config); // Show screen-share stage and hide video stage
 
-    // Manage PiP for the camera feed (if the camera is on)
-    manageCameraState(config.localVideoTrack !== null, config);
+    // Ensure PiP is updated correctly after stage switch
+    managePiP(config); // Manage the PiP directly here for clarity
 
     // Mark screen sharing as enabled
     config.localScreenShareEnabled = true;
 
-    // Call the function to indicate screen sharing is on
+    // Indicate screen sharing is on
     if (typeof bubble_fn_isScreenOn === "function") {
-      bubble_fn_isScreenOn(true); // Indicate screen is on
+      bubble_fn_isScreenOn(true);
     }
 
     // Handle track-ended event
@@ -366,12 +366,6 @@ const toggleStages = (isScreenSharing, config) => {
 
 
 
-
-
-
-
-
-// Adjusted managePiP function to ensure the camera feed shows in PiP if the camera is on
 export const managePiP = (config) => {
   const pipVideoTrack = document.getElementById("pip-video-track");
   const pipAvatar = document.getElementById("pip-avatar");
@@ -381,7 +375,7 @@ export const managePiP = (config) => {
     if (config.localVideoTrack) {
       pipVideoTrack.style.display = "block"; // Show video track
       pipAvatar.style.display = "none"; // Hide avatar
-      config.localVideoTrack.play(pipVideoTrack);
+      config.localVideoTrack.play(pipVideoTrack); // Ensure camera feed plays in PiP
     } else {
       // If the user's camera is off, show the avatar in PiP
       pipVideoTrack.style.display = "none"; // Hide video track
@@ -391,8 +385,6 @@ export const managePiP = (config) => {
     console.error("PiP elements not found in the DOM.");
   }
 };
-
-
 
 
 
