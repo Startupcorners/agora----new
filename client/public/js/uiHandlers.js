@@ -72,17 +72,23 @@ export const toggleMic = async (config) => {
 };
 
 
-export const toggleCamera = async (isMuted, uid, userType, config) => {
+export const toggleCamera = async (isMuted, uid, userType) => {
   try {
-    if (config.cameraToggleInProgress) {
+    const userTrack = userTracks[uid]; // Access the correct user's track data
+
+    if (!userTrack) {
+      console.error(`User track for UID ${uid} is undefined.`);
+      return;
+    }
+
+    if (userTrack.cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
       return;
     }
 
-    config.cameraToggleInProgress = true;
+    userTrack.cameraToggleInProgress = true;
 
-    const userTrack = userTracks[uid]; // Get the user track info from the centralized object
-
+    // Define video and avatar elements
     const videoPlayer = document.querySelector(`#stream-${uid}`);
     const avatarDiv = document.querySelector(`#avatar-${uid}`);
     const pipVideoPlayer = document.getElementById(
@@ -90,63 +96,81 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
     );
     const pipAvatarDiv = document.getElementById(`${userType}-pip-avatar`);
 
-    console.log(`${userType} Video player element:`, videoPlayer);
-    console.log(`${userType} Avatar element:`, avatarDiv);
-    console.log(`${userType} PiP video player element:`, pipVideoPlayer);
-    console.log(`${userType} PiP avatar element:`, pipAvatarDiv);
+    console.log("Video player element:", videoPlayer);
+    console.log("Avatar element:", avatarDiv);
+    console.log("PiP video player element:", pipVideoPlayer);
+    console.log("PiP avatar element:", pipAvatarDiv);
 
+    // If no video or avatar elements are found, exit
     if (!videoPlayer || !avatarDiv) {
-      console.error(
-        `${userType} Video player or avatar not found for user ${uid}`
-      );
-      config.cameraToggleInProgress = false;
+      console.error(`Video player or avatar not found for user ${uid}`);
+      userTrack.cameraToggleInProgress = false;
       return;
     }
 
     if (isMuted) {
-      // Camera is currently on, turn it off
+      // Camera is currently on, so we turn it off
       if (userTrack.videoTrack) {
-        console.log(`${userType} Turning off the camera...`);
+        console.log("Turning off the camera...");
 
         // Unpublish and stop the video track
-        await config.client.unpublish([userTrack.videoTrack]);
+        await userTrack.client.unpublish([userTrack.videoTrack]);
         userTrack.videoTrack.stop();
         userTrack.videoTrack.setEnabled(false); // Disable the track but keep it
-        userTrack.cameraMuted = true; // ** Mark camera as muted **
-        console.log(
-          `${userType} Camera turned off and unpublished for user:`,
-          uid
-        );
+        userTrack.cameraMuted = true; // Mark camera as muted
 
-        // Show avatar and hide video in both the video stage and PiP
-        manageCameraState(uid, userType);
+        console.log("Camera turned off and unpublished for user:", uid);
+
+        // Show avatar and hide video in both video stage and PiP if screen sharing is enabled
+        if (userTrack.screenShareEnabled && pipVideoPlayer && pipAvatarDiv) {
+          console.log("Showing PiP avatar since camera is off.");
+          toggleVideoOrAvatar(uid, null, pipAvatarDiv, pipVideoPlayer);
+        } else {
+          console.log("Showing main avatar since camera is off.");
+          toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
+        }
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
       }
     } else {
-      // Camera is off, turn it on
-      console.log(`${userType} Turning on the camera...`);
+      // Camera is off, so we turn it on
+      console.log("Turning on the camera...");
 
-      // Check if the video track exists or create a new one
+      // Create a new video track if one doesn't exist
       if (!userTrack.videoTrack) {
-        console.log(`${userType} Creating a new camera video track.`);
+        console.log("Creating a new camera video track.");
         userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
       } else {
-        console.log(`${userType} Using existing camera video track.`);
+        console.log("Using existing camera video track.");
       }
 
       await userTrack.videoTrack.setEnabled(true);
-      await config.client.publish([userTrack.videoTrack]);
-      userTrack.cameraMuted = false; // ** Mark camera as unmuted **
-      console.log(
-        `${userType} Video track enabled and published for user:`,
-        uid
-      );
+      await userTrack.client.publish([userTrack.videoTrack]);
+      userTrack.cameraMuted = false; // Mark camera as unmuted
 
-      // Play video in the correct location depending on screen sharing
-      manageCameraState(uid, userType);
+      console.log("Video track enabled and published for user:", uid);
+
+      // Play video in the correct location depending on whether screen sharing is active
+      if (userTrack.screenShareEnabled) {
+        console.log("Screen sharing is active. Playing video in PiP.");
+        if (pipVideoPlayer && pipAvatarDiv) {
+          toggleVideoOrAvatar(
+            uid,
+            userTrack.videoTrack,
+            pipAvatarDiv,
+            pipVideoPlayer
+          );
+        } else {
+          console.warn("PiP elements not found.");
+        }
+      } else {
+        console.log(
+          "Screen sharing is not active. Playing video in main stage."
+        );
+        toggleVideoOrAvatar(uid, userTrack.videoTrack, avatarDiv, videoPlayer);
+      }
 
       if (typeof bubble_fn_isCamOn === "function") {
         bubble_fn_isCamOn(true);
@@ -155,7 +179,7 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
   } catch (error) {
     console.error(`Error in toggleCamera for ${userType}:`, error);
   } finally {
-    config.cameraToggleInProgress = false;
+    userTrack.cameraToggleInProgress = false;
   }
 };
 
