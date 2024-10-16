@@ -79,8 +79,12 @@ export const toggleMic = async (config) => {
 
 export const toggleCamera = async (isMuted, config) => {
   try {
-    const uid = config.uid; // Get the actual uid from config
-    const userTrack = userTracks[uid] || userTracks.local; // Use correct userTrack for local or remote
+    if (!config || !config.uid) {
+      throw new Error("Config object or UID is missing.");
+    }
+
+    const uid = config.uid; // Get UID from config
+    const userTrack = userTracks[uid] || userTracks.local; // Use the correct user track
 
     if (!userTrack) {
       console.error(`User track for UID ${uid} is undefined.`);
@@ -141,11 +145,11 @@ export const toggleCamera = async (isMuted, config) => {
   } catch (error) {
     console.error("Error in toggleCamera:", error);
   } finally {
-    userTrack.cameraToggleInProgress = false;
+    if (userTrack) {
+      userTrack.cameraToggleInProgress = false;
+    }
   }
 };
-
-
 
 
 
