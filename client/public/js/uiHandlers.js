@@ -125,6 +125,8 @@ export const toggleCamera = async (isMuted, config) => {
       if (!userTrack.videoTrack) {
         console.log("Creating a new camera video track.");
         userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
+        // Update userTrack with the new videoTrack
+        userTracks[uid].videoTrack = userTrack.videoTrack;
       } else {
         console.log("Using existing camera video track.");
       }
