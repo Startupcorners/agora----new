@@ -181,10 +181,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
     } else {
       await stopScreenShare(config); // Stop screen sharing
     }
-
-    if (typeof bubble_fn_isScreenOn === "function") {
-      bubble_fn_isScreenOn(isEnabled);
-    }
   } catch (error) {
     console.error("Error during screen sharing toggle:", error);
   }
@@ -209,6 +205,11 @@ const startScreenShare = async (config) => {
 
     // Mark screen sharing as enabled
     config.localScreenShareEnabled = true;
+
+    // Call the function to indicate screen sharing is on
+    if (typeof bubble_fn_isScreenOn === "function") {
+      bubble_fn_isScreenOn(true); // Indicate screen is on
+    }
 
     // Handle track-ended event
     config.localScreenShareTrack.on("track-ended", async () => {
@@ -241,6 +242,11 @@ const stopScreenShare = async (config) => {
 
     // Mark screen sharing as disabled
     config.localScreenShareEnabled = false;
+
+    // Call the function to indicate screen sharing is off
+    if (typeof bubble_fn_isScreenOn === "function") {
+      bubble_fn_isScreenOn(false); // Indicate screen is off
+    }
   } catch (error) {
     console.error("Error stopping screen share:", error);
     throw error;
