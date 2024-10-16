@@ -269,7 +269,7 @@ const startScreenShare = async (config) => {
     } else {
       // Handle other errors
       console.error("Error creating screen share track:", error);
-      throw error;
+      // Instead of throwing the error, we log it and stop further execution.
     }
   }
 };
