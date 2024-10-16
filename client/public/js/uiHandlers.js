@@ -76,6 +76,8 @@ export const toggleMic = async (config) => {
 };
 
 
+import { playCameraVideo, showAvatar } from "./videoHandlers"; // Import your generalized functions
+
 export const toggleCamera = async (isMuted, uid, userType, config) => {
   try {
     console.log("Config object in toggleCamera:", config);
@@ -114,6 +116,8 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
+      } else {
+        console.warn("No video track found to turn off.");
       }
     } else {
       // Camera is off, turn it on
@@ -122,12 +126,15 @@ export const toggleCamera = async (isMuted, uid, userType, config) => {
       // Check if the video track exists or create a new one
       if (!userTrack.videoTrack) {
         console.log("Creating a new camera video track.");
-        userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
-
-        // Update the userTracks with the new video track
-        userTracks[uid].videoTrack = userTrack.videoTrack; // Ensure userTracks is updated properly
+        userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack().catch(
+          (error) => {
+            console.error("Error creating camera video track:", error);
+            return null; // Return null if the creation fails
+          }
+        );
       }
 
+      // Check if the video track was successfully created
       if (!userTrack.videoTrack) {
         console.error("Error: Unable to create or access video track.");
         return;
