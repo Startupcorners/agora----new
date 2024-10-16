@@ -189,28 +189,21 @@ export const toggleScreenShare = async (isEnabled, config) => {
 
 const startScreenShare = async (config) => {
   try {
-    // Check if config and its essential properties are defined
-    if (!config || !config.client) {
-      console.error("startScreenShare: config or client is undefined.");
-      return; // Exit early to prevent further errors
-    }
-
     // Create the screen share track
     config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack();
     console.log("Screen share track created:", config.localScreenShareTrack);
 
-    // Play the screen share track in the screen share stage
+    // Play the screen share track
     const screenShareElement = document.getElementById("screen-share-content");
-    if (!screenShareElement) {
-      throw new Error("Screen share content element not found.");
-    }
     config.localScreenShareTrack.play(screenShareElement);
 
     // Set the RTM attributes for screen sharing
     await setRTMAttributes(config);
 
-    // Switch to screen share stage and manage PiP for the camera feed (if the camera is on)
-    toggleStages(true, config); // Ensure we pass config to avoid undefined errors
+    // Switch to screen share stage
+    toggleStages(true, config); // Show screen-share stage and hide video stage
+
+    // Manage PiP for the camera feed (if the camera is on)
     manageCameraState(config.localVideoTrack !== null, config);
 
     // Mark screen sharing as enabled
@@ -221,7 +214,7 @@ const startScreenShare = async (config) => {
       bubble_fn_isScreenOn(true); // Indicate screen is on
     }
 
-    // Handle track-ended event triggered by the browser
+    // Handle track-ended event triggered by browser
     config.localScreenShareTrack.on("track-ended", async () => {
       console.log(
         "Screen share track ended by browser. Stopping screen share."
@@ -231,7 +224,8 @@ const startScreenShare = async (config) => {
       await stopScreenShare(config);
     });
   } catch (error) {
-    console.error("Error during screen sharing start:", error);
+    console.error("Error creating screen share track:", error);
+    throw error;
   }
 };
 
@@ -276,11 +270,9 @@ const stopScreenShare = async (config) => {
 
 const manageCameraState = (isCameraOn, config) => {
   if (isCameraOn) {
-    // Play the camera video in the appropriate stage (main or PiP)
-    playCameraVideo(config.localVideoTrack, config);
+    playCameraVideo(config.localVideoTrack, config); // If camera is on, play the video
   } else {
-    // Show the avatar in the appropriate stage (main or PiP)
-    showAvatar(config);
+    showAvatar(config); // If camera is off, show the avatar
   }
 };
 
@@ -291,22 +283,22 @@ const playCameraVideo = (videoTrack, config) => {
   const pipAvatarDiv = document.getElementById("pip-avatar");
 
   if (config.localScreenShareEnabled) {
-    // Play in PiP
+    // If screen is being shared, play camera in PiP
     if (pipVideoPlayer) {
       videoTrack.play(pipVideoPlayer);
-      pipVideoPlayer.style.display = "block"; // Ensure the PiP video player is visible
+      pipVideoPlayer.style.display = "block"; // Ensure PiP video player is visible
     }
     if (pipAvatarDiv) {
-      pipAvatarDiv.style.display = "none"; // Hide PiP avatar
+      pipAvatarDiv.style.display = "none"; // Hide PiP avatar if the camera is on
     }
   } else {
-    // Play in main video stage when screen sharing stops
+    // Play the camera feed in the main video stage
     if (videoPlayer) {
       videoTrack.play(videoPlayer);
-      videoPlayer.style.display = "block"; // Ensure the main video player is visible
+      videoPlayer.style.display = "block"; // Ensure main video player is visible
     }
     if (avatarDiv) {
-      avatarDiv.style.display = "none"; // Hide main avatar
+      avatarDiv.style.display = "none"; // Hide avatar in the main video stage
     }
   }
 };
@@ -318,17 +310,17 @@ const showAvatar = (config) => {
   const pipVideoPlayer = document.getElementById("pip-video-track");
 
   if (config.localScreenShareEnabled) {
-    // Show PiP avatar when screen is being shared
+    // Show avatar in PiP
     if (pipAvatarDiv) {
-      pipAvatarDiv.style.display = "block";
+      pipAvatarDiv.style.display = "block"; // Show PiP avatar
     }
     if (pipVideoPlayer) {
       pipVideoPlayer.style.display = "none"; // Hide PiP video player
     }
   } else {
-    // Show main avatar when screen sharing stops
+    // Show avatar in the main video stage
     if (avatarDiv) {
-      avatarDiv.style.display = "block";
+      avatarDiv.style.display = "block"; // Show main avatar
     }
     if (videoPlayer) {
       videoPlayer.style.display = "none"; // Hide main video player
