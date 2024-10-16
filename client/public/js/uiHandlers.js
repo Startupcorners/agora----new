@@ -246,30 +246,42 @@ export const toggleScreenShare = async (isEnabled, config) => {
       );
       config.localScreenShareTrack.play(screenShareElement);
 
-      // Play the camera video track in the PiP (small window)
+      // Handle PiP (Picture-in-Picture)
       const screenShareVideoElement =
         document.getElementById("screen-share-video");
-
-      const pipAvatar = document.getElementById("pip-avatar");
       const pipVideoTrack = document.getElementById("pip-video-track");
-
-      // Check if pipAvatar and pipVideoTrack exist before trying to modify them
-      if (!pipAvatar || !pipVideoTrack) {
-        console.error("PiP elements not found in the DOM.");
-        return;
-      }
+      const pipAvatar = document.getElementById("pip-avatar");
 
       // Clear the PiP video element before adding the camera track
-      screenShareVideoElement.innerHTML = "";
+      screenShareVideoElement.innerHTML = ""; // Clear PiP
 
-      // Toggle PiP based on the camera's current state
-      if (config.localVideoTrack && !config.localVideoTrackMuted) {
-        config.localVideoTrack.play(pipVideoTrack);
-        pipVideoTrack.style.display = "block";
-        pipAvatar.style.display = "none"; // Hide avatar when video is on
+      // Check if the user's camera is on or off
+      if (config.localVideoTrack) {
+        // If the camera is on, play the video track in PiP
+        if (!pipVideoTrack) {
+          // Create the PiP video track element if not already created
+          const newVideoTrack = document.createElement("div");
+          newVideoTrack.id = "pip-video-track";
+          newVideoTrack.className = "video-player";
+          newVideoTrack.style.width = "100%";
+          newVideoTrack.style.height = "100%";
+          newVideoTrack.style.objectFit = "cover";
+          screenShareVideoElement.appendChild(newVideoTrack);
+          config.localVideoTrack.play(newVideoTrack);
+        }
       } else {
-        pipVideoTrack.style.display = "none"; // Hide video if the camera is off
-        pipAvatar.style.display = "block"; // Show avatar if the camera is off
+        // If the camera is off, show the avatar in PiP
+        if (!pipAvatar) {
+          const newAvatar = document.createElement("img");
+          newAvatar.id = "pip-avatar";
+          newAvatar.className = "user-avatar";
+          newAvatar.src = config.user.avatar || "default-avatar-url";
+          newAvatar.style.width = "100px";
+          newAvatar.style.height = "100px";
+          newAvatar.style.borderRadius = "50%";
+          newAvatar.style.objectFit = "cover";
+          screenShareVideoElement.appendChild(newAvatar);
+        }
       }
 
       // Handle track-ended event
@@ -303,23 +315,6 @@ export const toggleScreenShare = async (isEnabled, config) => {
       // Show the video stage and hide the screen share stage by setting inline styles
       document.querySelector("#video-stage").style.display = "flex";
       document.querySelector("#screen-share-stage").style.display = "none";
-
-      // Reset the PiP state when screen sharing ends
-      const pipAvatar = document.getElementById("pip-avatar");
-      const pipVideoTrack = document.getElementById("pip-video-track");
-
-      if (pipAvatar && pipVideoTrack) {
-        if (config.localVideoTrack && !config.localVideoTrackMuted) {
-          config.localVideoTrack.play(pipVideoTrack);
-          pipVideoTrack.style.display = "block"; // Show PiP video if camera is on
-          pipAvatar.style.display = "none"; // Hide avatar when video is on
-        } else {
-          pipVideoTrack.style.display = "none"; // Hide PiP video if camera is off
-          pipAvatar.style.display = "block"; // Show avatar if camera is off
-        }
-      } else {
-        console.error("PiP elements not found when stopping screen share.");
-      }
 
       // Mark screen sharing as disabled
       config.localScreenShareEnabled = false;
