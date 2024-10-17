@@ -43,7 +43,7 @@ const newMainApp = function (initConfig) {
   config = { ...config, ...initConfig };
 
   // Initialize AgoraRTC client
-  config.client = AgoraRTC.createClient({ mode: "live", codec: "vp8" });
+  config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
   // Ensure required config parameters are present
   if (
