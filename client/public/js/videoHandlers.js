@@ -184,12 +184,15 @@ export const startScreenShare = async (uid, config) => {
 
     // Check if the camera is on (video track exists)
     if (!userTrack.videoTrack) {
-      console.log(`Camera is off during screen share.`); // Handle it as a normal state
+      console.log(
+        `Camera is off during screen share, managing state accordingly.`
+      );
     } else {
-      console.log(`Video track found, proceeding to manage PiP...`);
-      // Manage PiP for the camera feed (if the camera is on)
-      manageCameraState(uid);
+      console.log(`Camera is on during screen share, managing PiP...`);
     }
+
+    // Always call manageCameraState regardless of camera status
+    manageCameraState(uid);
 
     // Mark screen sharing as enabled **before** managing PiP or camera
     userTrack.screenShareEnabled = true;
