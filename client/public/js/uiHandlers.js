@@ -108,6 +108,13 @@ export const toggleCamera = async (isMuted, config) => {
     userTrack.cameraToggleInProgress = true;
     console.log("Camera toggle in progress for user:", uid);
 
+    const isScreenSharing = !!userTrack.screenShareTrack;
+    if (isScreenSharing) {
+      console.log(
+        `Screen sharing is active for user ${uid}. Managing camera and screen share independently.`
+      );
+    }
+
     if (isMuted) {
       // Camera is currently on, turn it off
       if (userTrack.videoTrack) {
@@ -135,7 +142,7 @@ export const toggleCamera = async (isMuted, config) => {
         userTracks[uid] = { ...userTrack };
         console.log("Camera turned off and unpublished for user:", uid);
 
-        // Use generalized function to manage the camera state
+        // Manage camera and screen share state
         manageCameraState(uid);
 
         if (typeof bubble_fn_isCamOn === "function") {
@@ -175,7 +182,7 @@ export const toggleCamera = async (isMuted, config) => {
           uid
         );
 
-        // Use generalized function to manage the camera state
+        // Manage camera and screen share state
         manageCameraState(uid);
 
         if (typeof bubble_fn_isCamOn === "function") {
