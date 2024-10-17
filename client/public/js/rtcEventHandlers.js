@@ -20,26 +20,18 @@ export const handleUserPublished = async (user, mediaType, config) => {
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
-  // Fetch RTM attributes if they are not already available
-  if (!config.rtmAttributes || !config.rtmAttributes.uidSharingScreen) {
-    try {
-      const rtmAttributes = await config.clientRTM.getUserAttributes(userUid);
-      config.rtmAttributes = rtmAttributes;
-      console.log(`Fetched RTM Attributes for user ${userUid}:`, rtmAttributes);
-    } catch (error) {
-      console.error(
-        `Failed to fetch RTM attributes for user ${userUid}:`,
-        error
-      );
-    }
+  // Fetch RTM attributes if not already available
+  try {
+    const rtmAttributes = await config.clientRTM.getUserAttributes(userUid);
+    config.rtmAttributes = rtmAttributes;
+    console.log(`Fetched RTM Attributes for user ${userUid}:`, rtmAttributes);
+  } catch (error) {
+    console.error(`Failed to fetch RTM attributes for user ${userUid}:`, error);
   }
 
-  const screenShareRtmUid = config.rtmAttributes?.uidSharingScreen || "Not set";
-  console.log(
-    `RTC UID: ${userUid}, RTM uidSharingScreen: ${screenShareRtmUid}, Current RTC UID: ${config.uid}`
-  );
+  const isScreenSharing = config.rtmAttributes?.uidSharingScreen === userUid;
 
-  // Skip subscribing to the local user's own media (camera and screen share)
+  // Skip subscribing to the local user's own media
   if (userUid === config.uid.toString()) {
     console.log("Skipping subscription to local user's own media.");
     return;
@@ -47,66 +39,40 @@ export const handleUserPublished = async (user, mediaType, config) => {
 
   // Ensure userTracks is initialized for the user
   if (!userTracks[userUid]) {
-    userTracks[userUid] = {}; // Initialize a new track object for the user
+    userTracks[userUid] = {}; // Initialize user track object
   }
 
-  // Handle screen sharing for other users (if the screen share UID matches)
-  if (userUid === config.screenShareUid?.toString()) {
-    let screenShareElement = document.querySelector("#screen-share-content");
-    let screenShareVideo = document.querySelector("#screen-share-video"); // For PiP
-
-    if (!screenShareElement) {
-      console.log("Screen share element not found.");
-      return;
-    }
-
-    if (mediaType === "video") {
-      try {
-        await config.client.subscribe(user, mediaType);
-        if (user.videoTrack && typeof user.videoTrack.play === "function") {
-          console.log(`Playing screen share track for user ${userUid}`);
-
-          // Play the screen share video in the main screen share area
-          user.videoTrack.play(screenShareElement);
-
-          // Update userTracks with the screen share track
-          userTracks[userUid].screenShareTrack = user.videoTrack;
-
-          // Play the PiP video (person sharing their screen) in the bottom-right
-          if (screenShareVideo && user.videoTrack) {
-            console.log(
-              `Playing PiP video for screen share of user ${userUid}`
-            );
-            user.videoTrack.play(screenShareVideo); // Play PiP
-          }
-
-          // Switch to screen share stage and hide video stage
-          toggleStages(true, userUid);
-        }
-      } catch (error) {
-        console.error(
-          `Error subscribing to screen share track for user ${userUid}:`,
-          error
-        );
-      }
-    }
-    return; // Exit after handling screen share
-  }
-
-  // Handle regular media publishing (non-screen share)
   if (mediaType === "video") {
     try {
       await config.client.subscribe(user, mediaType);
       if (user.videoTrack && typeof user.videoTrack.play === "function") {
         console.log(`Playing video track for user ${userUid}`);
-        // Play video track
-        user.videoTrack.play(`#stream-${userUid}`);
 
-        // Update userTracks with the video track
-        userTracks[userUid].videoTrack = user.videoTrack;
+        if (isScreenSharing) {
+          console.log(`User ${userUid} is sharing their screen`);
 
-        // Manage the camera state for this user (show/hide avatar, play video)
-        manageCameraState(userUid);
+          // Play the screen share track in the screen share element
+          const screenShareElement = document.getElementById(
+            "screen-share-content"
+          );
+          if (screenShareElement) {
+            user.videoTrack.play(screenShareElement);
+            userTracks[userUid].screenShareTrack = user.videoTrack;
+            toggleStages(true, userUid); // Switch to screen share stage
+          } else {
+            console.warn("Screen share element not found.");
+          }
+        } else {
+          // Handle regular video track
+          const videoPlayer = document.querySelector(`#stream-${userUid}`);
+          if (videoPlayer) {
+            user.videoTrack.play(videoPlayer);
+            userTracks[userUid].videoTrack = user.videoTrack;
+            manageCameraState(userUid); // Manage avatar and camera state
+          } else {
+            console.warn(`Video player not found for user ${userUid}`);
+          }
+        }
       }
     } catch (error) {
       console.error(

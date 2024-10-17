@@ -81,16 +81,30 @@ export const setupRTMMessageListener = (clientRTM, config) => {
         if (parsedMessage.type === "screenshare") {
           const { action, uid } = parsedMessage;
 
+          // Ensure userTracks[uid] is initialized
+          if (!userTracks[uid]) {
+            userTracks[uid] = {};
+          }
+
           if (action === "start") {
             console.log(`User ${uid} started screen sharing.`);
+
+            // Update userTracks to reflect that the user is screen sharing
+            userTracks[uid].isScreenSharing = true;
+
             // Trigger the screen share start flow
             toggleStages(true, uid);
-            manageCameraState(uid); // Call the generalized camera state management function
+            manageCameraState(uid); // Update the UI elements
           } else if (action === "stop") {
             console.log(`User ${uid} stopped screen sharing.`);
+
+            // Update userTracks to reflect that the user stopped screen sharing
+            userTracks[uid].isScreenSharing = false;
+            userTracks[uid].screenShareTrack = null; // Clear screen share track
+
             // Trigger the screen share stop flow
             toggleStages(false, uid);
-            manageCameraState(uid); // Update the camera state post screen share
+            manageCameraState(uid); // Update the UI elements
           }
         }
       } catch (error) {
