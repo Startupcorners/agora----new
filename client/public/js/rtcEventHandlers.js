@@ -41,7 +41,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
 
     if (mediaType === "video") {
       if (user.videoTrack) {
-        user.videoTrack.play(`#stream-${userUid}`);
+        user.videoTrack.play(`stream-${userUid}`);
         userTracks[userUid].videoTrack = user.videoTrack;
         console.log(`Video track played and stored for user ${userUid}`);
       } else {
