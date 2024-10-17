@@ -260,38 +260,42 @@ export const stopScreenShare = async (uid, config) => {
 };
 
 
-const toggleStages = (isScreenSharing, config) => {
+const toggleStages = (isScreenSharing, uid) => {
   const videoStage = document.getElementById("video-stage");
   const screenShareStage = document.getElementById("screen-share-stage");
 
-  if (!config || !config.uid) {
-    console.error("toggleStages: config or config.uid is undefined.");
+  if (!uid) {
+    console.error("toggleStages: uid is undefined.");
     return; // Exit early to prevent further errors
   }
 
-  if (isScreenSharing) {
-    console.log(
-      `Toggling to screen share stage for user with UID: ${config.uid}`
+  if (!videoStage || !screenShareStage) {
+    console.error(
+      "toggleStages: video or screen share stage element not found."
     );
+    return; // Exit early if elements are not found
+  }
+
+  if (isScreenSharing) {
+    console.log(`Toggling to screen share stage for user with UID: ${uid}`);
     videoStage.style.display = "none";
     screenShareStage.style.display = "block";
   } else {
-    console.log(
-      `Toggling back to video stage for user with UID: ${config.uid}`
-    );
+    console.log(`Toggling back to video stage for user with UID: ${uid}`);
     videoStage.style.display = "flex";
     screenShareStage.style.display = "none";
 
     // Ensure that after returning to the video stage, the avatar is shown if the camera is off
-    const avatarDiv = document.querySelector(`#avatar-${config.uid}`);
+    const avatarDiv = document.querySelector(`#avatar-${uid}`);
     if (avatarDiv) {
       avatarDiv.style.display = "block"; // Force avatar visibility if camera is off
-      console.log(`Avatar for UID ${config.uid} is displayed.`);
+      console.log(`Avatar for UID ${uid} is displayed.`);
     } else {
-      console.warn(`Avatar for UID ${config.uid} not found.`);
+      console.warn(`Avatar for UID ${uid} not found.`);
     }
   }
 };
+
 
 const setRTMAttributes = async (uid, clientRTM) => {
   if (clientRTM) {
