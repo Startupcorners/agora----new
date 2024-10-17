@@ -260,7 +260,13 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
 
     await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
+    // Join RTM channel
     await config.channelRTM.join();
+
+    // Setup RTM message listener after successfully joining RTM
+    setupRTMMessageListener(config.clientRTM, config); // Add the listener here
+
+    console.log("Successfully joined RTM channel and initialized listener.");
   } catch (error) {
     if (error.code === 5 && retryCount < 3) {
       await new Promise((resolve) => setTimeout(resolve, 2000));

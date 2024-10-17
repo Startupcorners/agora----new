@@ -6,6 +6,15 @@ import {
   handleUserLeft,
   handleVolumeIndicator,
 } from "./rtcEventHandlers.js";
+import {
+  startScreenShare,
+  stopScreenShare,
+  manageCameraState,
+  playCameraVideo,
+  showAvatar,
+  toggleStages,
+} from "./videoHandlers.js";
+import { userTracks } from "./state.js"; 
 
 
 export const setupEventListeners = (config) => {
@@ -41,3 +50,33 @@ export const setupEventListeners = (config) => {
   });
 };
 
+export const setupRTMMessageListener = (clientRTM, config) => {
+  clientRTM.on("MessageFromPeer", async (message, peerId) => {
+    try {
+      // Parse the received message
+      const parsedMessage = JSON.parse(message.text);
+      console.log(`Received RTM message from peer ${peerId}:`, parsedMessage);
+
+      // Handle screen share events
+      if (parsedMessage.type === "screen-share") {
+        const { action, uid } = parsedMessage;
+
+        if (action === "start") {
+          console.log(`User ${uid} started screen sharing.`);
+          // Trigger the generalized function to handle screen share start
+          toggleStages(true, uid); // Show screen-share stage
+          manageCameraState(uid); // Handle camera and avatar display logic
+        } else if (action === "stop") {
+          console.log(`User ${uid} stopped screen sharing.`);
+          // Trigger the generalized function to handle screen share stop
+          toggleStages(false, uid); // Switch back to video stage
+          manageCameraState(uid); // Handle camera and avatar display logic
+        }
+      }
+    } catch (error) {
+      console.error("Error handling RTM message:", error);
+    }
+  });
+
+  console.log("RTM message listener set up successfully.");
+};

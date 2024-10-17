@@ -182,20 +182,16 @@ export const startScreenShare = async (uid, config) => {
       console.warn(`Screen share element not found.`);
     }
 
-    // Check if the camera is on (video track exists)
-    if (!userTrack.videoTrack) {
-      console.log(
-        `Camera is off during screen share, managing state accordingly.`
-      );
-    } else {
-      console.log(`Camera is on during screen share, managing PiP...`);
-    }
-
     // Always call manageCameraState regardless of camera status
     manageCameraState(uid);
 
     // Mark screen sharing as enabled **before** managing PiP or camera
     userTrack.screenShareEnabled = true;
+
+    // Send RTM message to notify others that screen sharing has started
+    const message = { type: "screen-share", action: "start", uid: uid };
+    await config.clientRTM.sendMessage({ text: JSON.stringify(message) });
+    console.log(`Screen sharing started and RTM message sent for UID: ${uid}`);
 
     // Set RTM attributes for screen sharing
     console.log(`Setting RTM attributes for screen sharing...`);
@@ -254,6 +250,11 @@ export const stopScreenShare = async (uid, config) => {
     } else {
       console.warn(`No active screen share track found to stop.`);
     }
+
+    // Send RTM message to notify others that screen sharing has stopped
+    const message = { type: "screen-share", action: "stop", uid: uid };
+    await config.clientRTM.sendMessage({ text: JSON.stringify(message) });
+    console.log(`Screen sharing stopped and RTM message sent for UID: ${uid}`);
 
     // Clear the RTM attributes for screen sharing
     console.log(`Clearing RTM attributes for screen sharing...`);
