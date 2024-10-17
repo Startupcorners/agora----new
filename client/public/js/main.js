@@ -163,20 +163,12 @@ const subscribeToExistingUsers = async (config) => {
           // Call handleUserJoined to update participant list
           await handleUserJoined(remoteUser, config, attributes);
 
-          // Check and subscribe to video and audio tracks only if they exist
-          if (remoteUser.videoTrack) {
-            console.log(`Subscribing to video track of user ${remoteUser.uid}`);
-            await handleUserPublished(remoteUser, "video", config);
-          } else {
-            console.log(`User ${remoteUser.uid} has no video track.`);
-          }
+          // Always attempt to subscribe to both video and audio tracks
+          console.log(`Subscribing to video track of user ${remoteUser.uid}`);
+          await handleUserPublished(remoteUser, "video", config, config.client);
 
-          if (remoteUser.audioTrack) {
-            console.log(`Subscribing to audio track of user ${remoteUser.uid}`);
-            await handleUserPublished(remoteUser, "audio", config);
-          } else {
-            console.log(`User ${remoteUser.uid} has no audio track.`);
-          }
+          console.log(`Subscribing to audio track of user ${remoteUser.uid}`);
+          await handleUserPublished(remoteUser, "audio", config, config.client);
         }
       }
     }

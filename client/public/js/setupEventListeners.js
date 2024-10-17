@@ -22,9 +22,9 @@ export const setupEventListeners = (config) => {
 
   // Handle when a user publishes their media (audio/video)
   client.on("user-published", async (user, mediaType) => {
-    console.log("useruser",user)
+    console.log(`user-published event received for user: ${user.uid}, mediaType: ${mediaType}`);
     await handleUserPublished(user, mediaType, config, client);
-  });
+});
 
   // Handle when a user stops publishing their media
   client.on("user-unpublished", async (user, mediaType) => {
