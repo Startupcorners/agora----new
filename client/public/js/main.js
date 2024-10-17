@@ -108,13 +108,11 @@ const join = async () => {
     console.log("config.uid before setting up listeners", config.uid);
     setupEventListeners(config); // Setup RTC listeners
 
-    // If the user is a host, join the video stage
+    // If the user is a host, proceed with video and screen share setup
     if (config.user.role === "host") {
+      // Call function to join the video stage, including screen share
       await joinToVideoStage(config);
     }
-
-    // Subscribe to existing remote users' media tracks (video/audio)
-    //await subscribeToExistingUsers(config);
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
@@ -254,22 +252,32 @@ const joinToVideoStage = async (config) => {
       console.log("Video track created but kept muted and unpublished");
     }
 
-    // Publish only the local audio track
-    console.log("Publishing local audio track");
-    await client.publish([config.localAudioTrack]);
+    // Create screen share track
+    if (!config.localScreenShareTrack) {
+      console.log("Creating screen share video track");
+      config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack({
+        encoderConfig: "720p",
+      });
+      console.log("Screen share track created successfully");
+    }
 
-    console.log("Successfully published local audio track");
-    console.log("Checking uid:", uid);
+    // Publish the audio track and screen share track (camera video track remains unpublished initially)
+    console.log("Publishing local audio and screen share tracks");
+    await client.publish([
+      config.localAudioTrack,
+      config.localScreenShareTrack,
+    ]);
+    console.log("Successfully published local audio and screen share tracks");
 
-    // Update the userTrack object to reflect the "camera off" state
+    // Update the userTrack object to reflect the "camera off" and screen sharing state
     let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
 
     updatedUserTrack = {
       ...updatedUserTrack,
       videoTrack: null, // Initially set to null (camera off state)
-      screenShareTrack: config.localScreenShareTrack || null,
+      screenShareTrack: config.localScreenShareTrack, // Screen sharing is on
       isVideoMuted: true, // Camera is off initially
-      isScreenSharing: false,
+      isScreenSharing: true, // Screen sharing is active
     };
 
     // Reassign the updated user track back to the global userTracks object
@@ -298,11 +306,16 @@ const joinToVideoStage = async (config) => {
     toggleMicIcon(uid, isMuted);
 
     console.log("Joined the video stage with the camera off and active audio");
+
+    // Listen for when the screen share track ends
+    config.localScreenShareTrack.on("track-ended", async () => {
+      console.log("Screen share track ended. Stopping screen share.");
+      await stopScreenShare(uid, config); // Stop screen share when track ends
+    });
   } catch (error) {
     console.error("Error in joinToVideoStage", error);
   }
 };
-
 
 
 
