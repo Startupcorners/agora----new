@@ -211,7 +211,7 @@ export const startScreenShare = async (uid, config) => {
     console.log("Screen share track published with screen share client");
 
     // Manage the camera state (now handles playing the screen share track)
-    manageCameraState(uid);
+    manageCameraState(uid, config);
 
     // Mark the user as screen sharing
     userTrack.screenShareEnabled = true;
@@ -284,7 +284,7 @@ export const stopScreenShare = async (uid, config) => {
     toggleStages(false, config.uid); // Switch back from screen-share to video stage
 
     // Manage camera state to ensure the camera is active again (if needed)
-    manageCameraState(config.uid);
+    manageCameraState(config.uid, config);
 
     // Call the function to indicate screen sharing is off
     if (typeof bubble_fn_isScreenOn === "function") {
