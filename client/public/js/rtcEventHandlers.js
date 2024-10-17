@@ -15,13 +15,13 @@ import { userTracks } from "./state.js";
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config) => {
-  const userUid = user.uid.toString();
+  const userUid = user.uid; // Keep uid as a number
   console.log(
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
   // Skip subscribing to your own media
-  if (userUid === config.uid.toString()) {
+  if (userUid === config.uid) {
     console.log("Skipping subscription to local user's own media.");
     return;
   }
@@ -75,7 +75,6 @@ export const handleUserPublished = async (user, mediaType, config) => {
     }
   }
 };
-
 
 
 
