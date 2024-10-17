@@ -120,10 +120,13 @@ export const toggleCamera = async (isMuted, config) => {
         userTrack.videoTrack.stop();
         userTrack.isVideoMuted = true;
 
+        // **Update userTracks[uid] with the modified userTrack**
+        userTracks[uid] = { ...userTrack };
+
         console.log("Camera turned off and unpublished for user:", uid);
 
         // Use generalized function to manage the camera state
-        manageCameraState(uid);
+        manageCameraState(uid, "local"); // Pass 'local' as userType
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
@@ -138,7 +141,6 @@ export const toggleCamera = async (isMuted, config) => {
         console.log("Creating a new camera video track.");
         userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
         // Update the track in userTrack
-        userTrack = { ...userTrack, videoTrack: userTrack.videoTrack };
       } else {
         console.log("Using existing camera video track.");
       }
@@ -147,10 +149,13 @@ export const toggleCamera = async (isMuted, config) => {
       await config.client.publish([userTrack.videoTrack]);
       userTrack.isVideoMuted = false;
 
+      // **Update userTracks[uid] with the modified userTrack**
+      userTracks[uid] = { ...userTrack };
+
       console.log("Video track enabled and published for user:", uid);
 
       // Use generalized function to manage the camera state
-      manageCameraState(uid);
+      manageCameraState(uid, "local"); // Pass 'local' as userType
 
       if (typeof bubble_fn_isCamOn === "function") {
         bubble_fn_isCamOn(true);
@@ -164,9 +169,6 @@ export const toggleCamera = async (isMuted, config) => {
       userTracks[uid].cameraToggleInProgress = false;
     }
   }
-
-  // Update the global userTracks with the modified userTrack
-  userTracks[uid] = { ...userTrack };
 };
 
 

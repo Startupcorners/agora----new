@@ -1,6 +1,6 @@
 import { userTracks } from "./state.js";
 
-export const manageCameraState = (uid) => {
+export const manageCameraState = (uid, userType) => {
   console.log(`Managing camera state for user with UID:`, uid);
 
   // Ensure that the user track exists in the global userTracks
@@ -12,15 +12,9 @@ export const manageCameraState = (uid) => {
 
   console.log(`User track for UID ${uid}:`, userTrack);
 
-  // Make a shallow copy to avoid direct mutation
-  userTrack = { ...userTrack };
-
   // Handle camera video and avatar display
-  playCameraVideo(uid);
-  showAvatar(uid);
-
-  // Update the global userTracks with the new state
-  userTracks[uid] = userTrack;
+  playCameraVideo(uid, userType);
+  showAvatar(uid, userType);
 
   console.log("Camera state management completed for UID:", uid);
 };
@@ -29,7 +23,7 @@ export const manageCameraState = (uid) => {
 
 
 export const playCameraVideo = (uid, userType) => {
-  let userTrack = userTracks[uid]; // Access user's track info from centralized object
+  const userTrack = userTracks[uid]; // Access user's track info from centralized object
   const videoTrack = userTrack ? userTrack.videoTrack : null;
 
   console.log("playCameraVideo called for", userType, "user with UID:", uid);
@@ -46,11 +40,8 @@ export const playCameraVideo = (uid, userType) => {
 
   const isCameraOn = videoTrack && !userTrack.isVideoMuted;
 
-  // Shallow copy the userTrack object to avoid direct mutation
-  userTrack = { ...userTrack, isCameraOn };
-
   if (isCameraOn) {
-    if (userTrack.screenShareEnabled) {
+    if (userTrack.isScreenSharing) {
       console.log("Screen sharing is enabled, managing PiP for", userType);
 
       // If screen is being shared, play camera in PiP
@@ -88,22 +79,22 @@ export const playCameraVideo = (uid, userType) => {
   console.log("playCameraVideo function execution completed.");
 };
 
+
+
+
 export const showAvatar = (uid, userType) => {
   console.log(`Entering showAvatar for ${userType} user with UID:`, uid);
 
-  let userTrack = userTracks[uid]; // Access user's track info from centralized object
+  const userTrack = userTracks[uid]; // Access user's track info from centralized object
   const isCameraOn =
     userTrack && userTrack.videoTrack && !userTrack.isVideoMuted;
-
-  // Update userTrack immutably
-  userTrack = { ...userTrack, isCameraOn };
 
   const avatarDiv = document.querySelector(`#avatar-${uid}`);
   const videoPlayer = document.querySelector(`#stream-${uid}`);
   const pipAvatarDiv = document.getElementById(`${userType}-pip-avatar`);
   const pipVideoPlayer = document.getElementById(`${userType}-pip-video-track`);
 
-  console.log("User screenShareEnabled:", userTrack.screenShareEnabled);
+  console.log("User isScreenSharing:", userTrack.isScreenSharing);
   console.log("Avatar div:", avatarDiv);
   console.log("Video player:", videoPlayer);
   console.log("PiP Avatar div:", pipAvatarDiv);
@@ -116,7 +107,7 @@ export const showAvatar = (uid, userType) => {
       "user."
     );
 
-    if (userTrack.screenShareEnabled) {
+    if (userTrack.isScreenSharing) {
       // Show avatar in PiP
       if (pipAvatarDiv) {
         console.log("Showing PiP avatar.");
@@ -150,7 +141,7 @@ export const showAvatar = (uid, userType) => {
   } else {
     console.log("Camera is on, hiding avatar for", userType, "user.");
 
-    if (userTrack.screenShareEnabled) {
+    if (userTrack.isScreenSharing) {
       // Hide avatar in PiP when camera is on
       if (pipAvatarDiv) {
         console.log("Hiding PiP avatar.");
@@ -177,6 +168,9 @@ export const showAvatar = (uid, userType) => {
 
   console.log("Exiting showAvatar...");
 };
+
+
+
 
 export const startScreenShare = async (uid, userType) => {
   try {
