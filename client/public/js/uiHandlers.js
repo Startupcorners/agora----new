@@ -171,7 +171,7 @@ export const toggleCamera = async (isMuted, config) => {
 };
 
 
-export const toggleScreenShare = async (isEnabled, uid, userType, config) => {
+export const toggleScreenShare = async (isEnabled, uid, config) => {
   try {
     if (!config.client) {
       console.error("Agora client is not initialized!");
@@ -181,27 +181,27 @@ export const toggleScreenShare = async (isEnabled, uid, userType, config) => {
     const userTrack = userTracks[uid]; // Access the correct userTrack
 
     if (!userTrack) {
-      console.error(
-        `No user track found for ${userType} user with UID: ${uid}`
-      );
+      console.error(`No user track found for user with UID: ${uid}`);
       return;
     }
 
-    if (userTrack.screenShareEnabled && isEnabled) {
-      console.log(`${userType} is already sharing. Stopping screen share.`);
+    // Check if the user is already screen sharing
+    const isScreenSharing = !!userTrack.screenShareTrack;
+
+    if (isScreenSharing && isEnabled) {
+      console.log(`User is already sharing. Stopping screen share.`);
       isEnabled = false; // Disable screen share
     }
 
     if (isEnabled) {
-      await startScreenShare(uid, userType); // Start screen sharing
+      await startScreenShare(uid, config); // Start screen sharing
     } else {
-      await stopScreenShare(uid, userType); // Stop screen sharing
+      await stopScreenShare(uid, config); // Stop screen sharing
     }
   } catch (error) {
-    console.error(`Error during ${userType} screen sharing toggle:`, error);
+    console.error(`Error during screen sharing toggle:`, error);
   }
 };
-
 
 
 
