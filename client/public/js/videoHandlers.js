@@ -195,17 +195,8 @@ export const startScreenShare = async (uid, config) => {
     console.log(`Screen share track created:`, userTrack.screenShareTrack);
 
     // Publish the screen share track
-    // If cameraVideoTrack exists, publish both together
-    if (userTrack.cameraVideoTrack) {
-      await config.client.publish([
-        userTrack.cameraVideoTrack,
-        screenShareTrack,
-      ]);
-      console.log("Screen share and camera video tracks published together");
-    } else {
-      await config.client.publish([screenShareTrack]);
-      console.log("Screen share track published");
-    }
+    await config.client.publish([screenShareTrack]);
+    console.log("Screen share track published");
 
     // Manage the camera state (now handles playing the screen share track)
     manageCameraState(uid);
@@ -246,7 +237,6 @@ export const startScreenShare = async (uid, config) => {
 
 
 
-
 export const stopScreenShare = async (uid, config) => {
   try {
     console.log(`Stopping screen share for user with UID:`, uid);
@@ -256,19 +246,8 @@ export const stopScreenShare = async (uid, config) => {
 
     // Unpublish and stop the screen share track
     if (userTrack.screenShareTrack) {
-      // If cameraVideoTrack exists, unpublish both together
-      if (userTrack.cameraVideoTrack) {
-        await config.client.unpublish([
-          userTrack.cameraVideoTrack,
-          userTrack.screenShareTrack,
-        ]);
-        console.log(
-          `Camera and screen share tracks unpublished from the channel.`
-        );
-      } else {
-        await config.client.unpublish([userTrack.screenShareTrack]);
-        console.log(`Screen share track unpublished from the channel.`);
-      }
+      await config.client.unpublish([userTrack.screenShareTrack]);
+      console.log(`Screen share track unpublished from the channel.`);
 
       userTrack.screenShareTrack.stop();
       userTrack.screenShareTrack.close();
@@ -277,6 +256,11 @@ export const stopScreenShare = async (uid, config) => {
     } else {
       console.warn(`No active screen share track found to stop.`);
     }
+
+    // Send RTM message to notify others that screen sharing has stopped
+    const message = { type: "screen-share", action: "stop", uid: uid };
+    await config.clientRTM.sendMessage({ text: JSON.stringify(message) });
+    console.log(`Screen sharing stopped and RTM message sent for UID: ${uid}`);
 
     // Clear the RTM attributes for screen sharing
     console.log(`Clearing RTM attributes for screen sharing...`);
@@ -298,7 +282,6 @@ export const stopScreenShare = async (uid, config) => {
     throw error;
   }
 };
-
 
 
 export const toggleStages = (isScreenSharing, uid) => {

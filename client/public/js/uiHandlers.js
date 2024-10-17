@@ -95,6 +95,9 @@ export const toggleCamera = async (isMuted, config) => {
       return;
     }
 
+    // Create a shallow copy of the userTrack to avoid direct mutation
+    userTrack = { ...userTrack };
+
     // Check if camera toggle is already in progress
     if (userTrack.cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
@@ -105,91 +108,73 @@ export const toggleCamera = async (isMuted, config) => {
     userTrack.cameraToggleInProgress = true;
     console.log("Camera toggle in progress for user:", uid);
 
-    const isScreenSharing = !!userTrack.screenShareTrack;
-    if (isScreenSharing) {
-      console.log(
-        `Screen sharing is active for user ${uid}. Managing camera and screen share independently.`
-      );
-    }
-
     if (isMuted) {
       // Camera is currently on, turn it off
-      if (userTrack.cameraVideoTrack) {
+      if (userTrack.videoTrack) {
         console.log("Turning off the camera for user:", uid);
 
         try {
-          // Unpublish and stop the camera video track
-          await config.client.unpublish([userTrack.cameraVideoTrack]);
-          console.log("Camera video track unpublished for user:", uid);
+          // Unpublish and stop the video track
+          await config.client.unpublish([userTrack.videoTrack]);
+          console.log("Video track unpublished for user:", uid);
         } catch (unpublishError) {
-          console.error(
-            `Error unpublishing camera video track for user ${uid}:`,
-            unpublishError
-          );
+          console.error(`Error unpublishing video track for user ${uid}:`, unpublishError);
         }
 
-        userTrack.cameraVideoTrack.stop();
-        console.log("Camera video track stopped for user:", uid);
+        userTrack.videoTrack.stop();
+        console.log("Video track stopped for user:", uid);
 
-        // Set cameraVideoTrack to null and update isVideoMuted
-        userTrack.cameraVideoTrack = null;
+        // Set videoTrack to null and update isVideoMuted
+        userTrack.videoTrack = null;
         userTrack.isVideoMuted = true;
 
         // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
         console.log("Camera turned off and unpublished for user:", uid);
 
-        // Manage camera and screen share state
+        // Use generalized function to manage the camera state
         manageCameraState(uid);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
       } else {
-        console.warn(
-          `No camera video track found for user ${uid} when trying to turn off the camera.`
-        );
+        console.warn(`No video track found for user ${uid} when trying to turn off the camera.`);
       }
     } else {
       // Camera is off, turn it on
       console.log("Turning on the camera for user:", uid);
 
       try {
-        // Check if the cameraVideoTrack exists or create a new one
-        if (!userTrack.cameraVideoTrack) {
+        // Check if the video track exists or create a new one
+        if (!userTrack.videoTrack) {
           console.log("Creating a new camera video track for user:", uid);
-          userTrack.cameraVideoTrack = await AgoraRTC.createCameraVideoTrack();
+          userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
           console.log("New camera video track created for user:", uid);
         } else {
           console.log("Using existing camera video track for user:", uid);
         }
 
-        await userTrack.cameraVideoTrack.setEnabled(true);
-        console.log("Camera video track enabled for user:", uid);
+        await userTrack.videoTrack.setEnabled(true);
+        console.log("Video track enabled for user:", uid);
 
-        await config.client.publish([userTrack.cameraVideoTrack]);
-        console.log("Camera video track published for user:", uid);
+        await config.client.publish([userTrack.videoTrack]);
+        console.log("Video track published for user:", uid);
 
         userTrack.isVideoMuted = false;
 
         // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
-        console.log(
-          "Camera turned on and video track published for user:",
-          uid
-        );
+        console.log("Camera turned on and video track published for user:", uid);
 
-        // Manage camera and screen share state
+        // Use generalized function to manage the camera state
         manageCameraState(uid);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(true);
         }
       } catch (cameraError) {
-        console.error(
-          `Error enabling or publishing camera video track for user ${uid}:`,
-          cameraError
-        );
+        console.error(`Error enabling or publishing video track for user ${uid}:`, cameraError);
       }
     }
   } catch (error) {
