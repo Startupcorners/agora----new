@@ -133,49 +133,6 @@ const join = async () => {
   }
 };
 
-
-const subscribeToExistingUsers = async (config) => {
-  try {
-    const remoteUsers = config.client.remoteUsers;
-
-    if (remoteUsers && remoteUsers.length > 0) {
-      console.log(`Subscribing to ${remoteUsers.length} remote users`);
-      for (const remoteUser of remoteUsers) {
-        // Skip subscription if the remote user is the current user
-        if (remoteUser.uid !== config.uid) {
-          // Get RTM attributes of the remote user if needed
-          let attributes = {};
-          try {
-            attributes = await config.clientRTM.getUserAttributes(
-              remoteUser.uid.toString()
-            );
-            console.log(
-              `Attributes for remote user ${remoteUser.uid}:`,
-              attributes
-            );
-          } catch (e) {
-            console.error(
-              `Failed to get attributes for user ${remoteUser.uid}`,
-              e
-            );
-          }
-
-          // Subscribe to both video and audio tracks
-          console.log(
-            `Subscribing to video and audio tracks for user ${remoteUser.uid}`
-          );
-          //await handleUserPublished(remoteUser, "video", config, config.client);
-          //await handleUserPublished(remoteUser, "audio", config, config.client);
-        }
-      }
-    }
-  } catch (error) {
-    console.error("Error in subscribing to existing users:", error);
-  }
-};
-
-
-
   // RTM Join function
 const joinRTM = async (rtmToken, retryCount = 0) => {
   try {
