@@ -110,9 +110,7 @@ export const toggleCamera = async (isMuted, config) => {
 
     const isScreenSharing = !!userTrack.screenShareTrack;
     if (isScreenSharing) {
-      console.log(
-        `Screen sharing is active for user ${uid}. Managing camera and screen share independently.`
-      );
+      console.log(`Screen sharing is active for user ${uid}. Managing camera and screen share independently.`);
     }
 
     if (isMuted) {
@@ -125,10 +123,7 @@ export const toggleCamera = async (isMuted, config) => {
           await config.client.unpublish([userTrack.videoTrack]);
           console.log("Video track unpublished for user:", uid);
         } catch (unpublishError) {
-          console.error(
-            `Error unpublishing video track for user ${uid}:`,
-            unpublishError
-          );
+          console.error(`Error unpublishing video track for user ${uid}:`, unpublishError);
         }
 
         userTrack.videoTrack.stop();
@@ -149,9 +144,7 @@ export const toggleCamera = async (isMuted, config) => {
           bubble_fn_isCamOn(false);
         }
       } else {
-        console.warn(
-          `No video track found for user ${uid} when trying to turn off the camera.`
-        );
+        console.warn(`No video track found for user ${uid} when trying to turn off the camera.`);
       }
     } else {
       // Camera is off, turn it on
@@ -177,10 +170,7 @@ export const toggleCamera = async (isMuted, config) => {
 
         // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
-        console.log(
-          "Camera turned on and video track published for user:",
-          uid
-        );
+        console.log("Camera turned on and video track published for user:", uid);
 
         // Manage camera and screen share state
         manageCameraState(uid);
@@ -189,10 +179,7 @@ export const toggleCamera = async (isMuted, config) => {
           bubble_fn_isCamOn(true);
         }
       } catch (cameraError) {
-        console.error(
-          `Error enabling or publishing video track for user ${uid}:`,
-          cameraError
-        );
+        console.error(`Error enabling or publishing video track for user ${uid}:`, cameraError);
       }
     }
   } catch (error) {

@@ -252,32 +252,22 @@ const joinToVideoStage = async (config) => {
       console.log("Video track created but kept muted and unpublished");
     }
 
-    // Create screen share track
-    if (!config.localScreenShareTrack) {
-      console.log("Creating screen share video track");
-      config.localScreenShareTrack = await AgoraRTC.createScreenVideoTrack({
-        encoderConfig: "720p",
-      });
-      console.log("Screen share track created successfully");
-    }
+    // Publish only the local audio track
+    console.log("Publishing local audio track");
+    await client.publish([config.localAudioTrack]);
 
-    // Publish the audio track and screen share track (camera video track remains unpublished initially)
-    console.log("Publishing local audio and screen share tracks");
-    await client.publish([
-      config.localAudioTrack,
-      config.localScreenShareTrack,
-    ]);
-    console.log("Successfully published local audio and screen share tracks");
+    console.log("Successfully published local audio track");
+    console.log("Checking uid:", uid);
 
-    // Update the userTrack object to reflect the "camera off" and screen sharing state
+    // Update the userTrack object to reflect the "camera off" state
     let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
 
     updatedUserTrack = {
       ...updatedUserTrack,
       videoTrack: null, // Initially set to null (camera off state)
-      screenShareTrack: config.localScreenShareTrack, // Screen sharing is on
+      screenShareTrack: config.localScreenShareTrack || null,
       isVideoMuted: true, // Camera is off initially
-      isScreenSharing: true, // Screen sharing is active
+      isScreenSharing: false,
     };
 
     // Reassign the updated user track back to the global userTracks object
@@ -306,16 +296,11 @@ const joinToVideoStage = async (config) => {
     toggleMicIcon(uid, isMuted);
 
     console.log("Joined the video stage with the camera off and active audio");
-
-    // Listen for when the screen share track ends
-    config.localScreenShareTrack.on("track-ended", async () => {
-      console.log("Screen share track ended. Stopping screen share.");
-      await stopScreenShare(uid, config); // Stop screen share when track ends
-    });
   } catch (error) {
     console.error("Error in joinToVideoStage", error);
   }
 };
+
 
 
 
