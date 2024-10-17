@@ -62,27 +62,34 @@ export const setupRTMMessageListener = (clientRTM, config) => {
       message
     );
 
-    try {
-      // Parse the message text as JSON
-      const parsedMessage = JSON.parse(message.text);
-      console.log("Parsed RTM message:", parsedMessage);
+    // Check if the message has text content
+    if (message && message.text) {
+      console.log(`Received message text: ${message.text}`); // Log the message text
 
-      // Check the type of action
-      if (parsedMessage.type === "screenshare") {
-        const { action, uid } = parsedMessage;
+      try {
+        // Parse the message text as JSON
+        const parsedMessage = JSON.parse(message.text);
+        console.log("Parsed RTM message:", parsedMessage);
 
-        if (action === "start") {
-          console.log(`User ${uid} started screen sharing.`);
-          // Handle screen share start (toggle stages, manage camera state, etc.)
-          toggleStages(true, uid);
-        } else if (action === "stop") {
-          console.log(`User ${uid} stopped screen sharing.`);
-          // Handle screen share stop (toggle stages, manage camera state, etc.)
-          toggleStages(false, uid);
+        // Check the type of action
+        if (parsedMessage.type === "screenshare") {
+          const { action, uid } = parsedMessage;
+
+          if (action === "start") {
+            console.log(`User ${uid} started screen sharing.`);
+            // Handle screen share start (toggle stages, manage camera state, etc.)
+            toggleStages(true, uid);
+          } else if (action === "stop") {
+            console.log(`User ${uid} stopped screen sharing.`);
+            // Handle screen share stop (toggle stages, manage camera state, etc.)
+            toggleStages(false, uid);
+          }
         }
+      } catch (error) {
+        console.error("Error parsing RTM message:", error);
       }
-    } catch (error) {
-      console.error("Error parsing RTM message:", error);
+    } else {
+      console.warn("Received a message without text content.");
     }
   });
 };
