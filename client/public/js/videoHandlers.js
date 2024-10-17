@@ -195,8 +195,17 @@ export const startScreenShare = async (uid, config) => {
     console.log(`Screen share track created:`, userTrack.screenShareTrack);
 
     // Publish the screen share track
-    await config.client.publish([screenShareTrack]);
-    console.log("Screen share track published");
+    // If cameraVideoTrack exists, publish both together
+    if (userTrack.cameraVideoTrack) {
+      await config.client.publish([
+        userTrack.cameraVideoTrack,
+        screenShareTrack,
+      ]);
+      console.log("Screen share and camera video tracks published together");
+    } else {
+      await config.client.publish([screenShareTrack]);
+      console.log("Screen share track published");
+    }
 
     // Manage the camera state (now handles playing the screen share track)
     manageCameraState(uid);
@@ -237,6 +246,7 @@ export const startScreenShare = async (uid, config) => {
 
 
 
+
 export const stopScreenShare = async (uid, config) => {
   try {
     console.log(`Stopping screen share for user with UID:`, uid);
@@ -246,8 +256,19 @@ export const stopScreenShare = async (uid, config) => {
 
     // Unpublish and stop the screen share track
     if (userTrack.screenShareTrack) {
-      await config.client.unpublish([userTrack.screenShareTrack]);
-      console.log(`Screen share track unpublished from the channel.`);
+      // If cameraVideoTrack exists, unpublish both together
+      if (userTrack.cameraVideoTrack) {
+        await config.client.unpublish([
+          userTrack.cameraVideoTrack,
+          userTrack.screenShareTrack,
+        ]);
+        console.log(
+          `Camera and screen share tracks unpublished from the channel.`
+        );
+      } else {
+        await config.client.unpublish([userTrack.screenShareTrack]);
+        console.log(`Screen share track unpublished from the channel.`);
+      }
 
       userTrack.screenShareTrack.stop();
       userTrack.screenShareTrack.close();
