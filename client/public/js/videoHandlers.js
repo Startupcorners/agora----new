@@ -3,7 +3,7 @@ import {
   setupEventListeners,
 } from "./setupEventListeners.js";
 
-export const manageCameraState = (uid) => {
+export const manageCameraState = (uid, config) => {
   console.log(`Managing camera state for user with UID:`, uid);
 
   // Ensure that the user track exists in the global userTracks
@@ -32,11 +32,12 @@ export const manageCameraState = (uid) => {
   }
 
   // Handle camera video and avatar display for the actual user UID
-  playCameraVideo(uid);
-  showAvatar(uid);
+  playCameraVideo(uid, config); // Pass config to playCameraVideo
+  showAvatar(uid, config); // Pass config to showAvatar
 
   console.log("Camera state management completed for UID:", uid);
 };
+
 
 
 
