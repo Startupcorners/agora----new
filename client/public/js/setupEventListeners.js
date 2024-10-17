@@ -50,33 +50,39 @@ export const setupEventListeners = (config) => {
   });
 };
 
-export const setupRTMMessageListener = (clientRTM, config) => {
-  clientRTM.on("MessageFromPeer", async (message, peerId) => {
-    try {
-      // Parse the received message
-      const parsedMessage = JSON.parse(message.text);
-      console.log(`Received RTM message from peer ${peerId}:`, parsedMessage);
+const setupRTMMessageListener = (clientRTM, config) => {
+  if (!clientRTM) {
+    console.error("RTM client not initialized.");
+    return;
+  }
 
-      // Handle screen share events
-      if (parsedMessage.type === "screen-share") {
+  clientRTM.on("ChannelMessage", async (message, peerId) => {
+    console.log(
+      `RTM:INFO Received a channel text message from ${peerId}`,
+      message
+    );
+
+    try {
+      // Parse the message text as JSON
+      const parsedMessage = JSON.parse(message.text);
+      console.log("Parsed RTM message:", parsedMessage);
+
+      // Check the type of action
+      if (parsedMessage.type === "screenshare") {
         const { action, uid } = parsedMessage;
 
         if (action === "start") {
           console.log(`User ${uid} started screen sharing.`);
-          // Trigger the generalized function to handle screen share start
-          toggleStages(true, uid); // Show screen-share stage
-          manageCameraState(uid); // Handle camera and avatar display logic
+          // Handle screen share start (toggle stages, manage camera state, etc.)
+          toggleStages(true, uid);
         } else if (action === "stop") {
           console.log(`User ${uid} stopped screen sharing.`);
-          // Trigger the generalized function to handle screen share stop
-          toggleStages(false, uid); // Switch back to video stage
-          manageCameraState(uid); // Handle camera and avatar display logic
+          // Handle screen share stop (toggle stages, manage camera state, etc.)
+          toggleStages(false, uid);
         }
       }
     } catch (error) {
-      console.error("Error handling RTM message:", error);
+      console.error("Error parsing RTM message:", error);
     }
   });
-
-  console.log("RTM message listener set up successfully.");
 };
