@@ -177,10 +177,6 @@ export const startScreenShare = async (uid, config) => {
     userTrack.screenShareTrack = await AgoraRTC.createScreenVideoTrack();
     console.log(`Screen share track created:`, userTrack.screenShareTrack);
 
-    // Publish the screen share track
-    await config.client.publish([userTrack.screenShareTrack]);
-    console.log(`Screen share track published to the channel.`);
-
     // Play the screen share track locally (optional)
     const screenShareElement = document.getElementById(`screen-share-content`);
     if (screenShareElement) {
@@ -189,13 +185,24 @@ export const startScreenShare = async (uid, config) => {
       console.warn(`Screen share element not found.`);
     }
 
+    // Ensure the camera is still on before managing PiP
+    if (!userTrack.videoTrack) {
+      console.error(`Video track is undefined during screen share.`);
+      return; // Stop the execution if the video track is missing
+    }
+
+    console.log(`Video track found, proceeding to manage PiP...`);
+
+    // Mark screen sharing as enabled **before** managing PiP or camera
+    userTrack.screenShareEnabled = true;
+
     // Set RTM attributes for screen sharing
     console.log(`Setting RTM attributes for screen sharing...`);
     await setRTMAttributes(uid, config.clientRTM);
 
     // Switch to screen share stage
-    console.log(`Toggling to screen-share stage...`);
-    toggleStages(true, uid);
+    console.log(`Toggling stages: switching to screen-share stage...`);
+    toggleStages(true, uid); // Show screen-share stage and hide video stage
 
     // Manage PiP for the camera feed (if the camera is on)
     manageCameraState(uid);
@@ -213,7 +220,19 @@ export const startScreenShare = async (uid, config) => {
       await stopScreenShare(uid, config);
     });
   } catch (error) {
-    console.error(`Error creating screen share track:`, error);
+    // Handle case when user cancels the screen sharing permission prompt
+    if (
+      error.name === "NotAllowedError" ||
+      error.message.includes("Permission denied")
+    ) {
+      console.log(`User canceled the screen sharing prompt.`);
+      if (typeof bubble_fn_isScreenOn === "function") {
+        bubble_fn_isScreenOn(false); // Reset screen sharing state
+      }
+    } else {
+      // Handle other errors
+      console.error(`Error creating screen share track:`, error);
+    }
   }
 };
 
@@ -244,14 +263,14 @@ export const stopScreenShare = async (uid, config) => {
 
     // Switch back to the video stage
     console.log(`Toggling back to video stage...`);
-    toggleStages(false, uid);
+    toggleStages(false, uid); // Switch back from screen-share to video stage
 
-    // Manage camera state in the main video stage
+    // Manage camera state to ensure the camera is active again (if needed)
     manageCameraState(uid);
 
     // Call the function to indicate screen sharing is off
     if (typeof bubble_fn_isScreenOn === "function") {
-      bubble_fn_isScreenOn(false); // Indicate screen is off
+      bubble_fn_isScreenOn(false); // Indicate screen sharing has ended
     }
   } catch (error) {
     console.error(`Error stopping screen share:`, error);
