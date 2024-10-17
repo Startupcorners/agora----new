@@ -20,18 +20,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
-  // Fetch RTM attributes if not already available
-  try {
-    const rtmAttributes = await config.clientRTM.getUserAttributes(userUid);
-    config.rtmAttributes = rtmAttributes;
-    console.log(`Fetched RTM Attributes for user ${userUid}:`, rtmAttributes);
-  } catch (error) {
-    console.error(`Failed to fetch RTM attributes for user ${userUid}:`, error);
-  }
-
-  const isScreenSharing = config.rtmAttributes?.uidSharingScreen === userUid;
-
-  // Skip subscribing to the local user's own media
+  // Skip subscribing to your own media
   if (userUid === config.uid.toString()) {
     console.log("Skipping subscription to local user's own media.");
     return;
@@ -39,66 +28,50 @@ export const handleUserPublished = async (user, mediaType, config) => {
 
   // Ensure userTracks is initialized for the user
   if (!userTracks[userUid]) {
-    userTracks[userUid] = {}; // Initialize user track object
+    userTracks[userUid] = {}; // Initialize a new track object for the user
   }
 
+  // Handle video media type
   if (mediaType === "video") {
-    try {
-      await config.client.subscribe(user, mediaType);
-      if (user.videoTrack && typeof user.videoTrack.play === "function") {
-        console.log(`Playing video track for user ${userUid}`);
-
-        if (isScreenSharing) {
-          console.log(`User ${userUid} is sharing their screen`);
-
-          // Play the screen share track in the screen share element
-          const screenShareElement = document.getElementById(
-            "screen-share-content"
-          );
-          if (screenShareElement) {
-            user.videoTrack.play(screenShareElement);
-            userTracks[userUid].screenShareTrack = user.videoTrack;
-            toggleStages(true, userUid); // Switch to screen share stage
-          } else {
-            console.warn("Screen share element not found.");
-          }
-        } else {
-          // Handle regular video track
-          const videoPlayer = document.querySelector(`#stream-${userUid}`);
-          if (videoPlayer) {
-            user.videoTrack.play(videoPlayer);
-            userTracks[userUid].videoTrack = user.videoTrack;
-            manageCameraState(userUid); // Manage avatar and camera state
-          } else {
-            console.warn(`Video player not found for user ${userUid}`);
-          }
-        }
+    // Check if the video track actually exists before proceeding
+    if (user.videoTrack) {
+      try {
+        await config.client.subscribe(user, mediaType);
+        console.log(
+          `Successfully subscribed to video track for user ${userUid}`
+        );
+        user.videoTrack.play(`#stream-${userUid}`);
+        userTracks[userUid].videoTrack = user.videoTrack;
+      } catch (error) {
+        console.error(
+          `Error subscribing to video track for user ${userUid}:`,
+          error
+        );
       }
-    } catch (error) {
-      console.error(
-        `Error subscribing to video track for user ${userUid}:`,
-        error
-      );
+    } else {
+      console.warn(`User ${userUid} has no active video track.`);
     }
   }
 
+  // Handle audio media type
   if (mediaType === "audio") {
-    try {
-      await config.client.subscribe(user, mediaType);
-      if (user.audioTrack && typeof user.audioTrack.play === "function") {
-        console.log(`Playing audio track for user ${userUid}`);
+    // Check if the audio track actually exists before proceeding
+    if (user.audioTrack) {
+      try {
+        await config.client.subscribe(user, mediaType);
+        console.log(
+          `Successfully subscribed to audio track for user ${userUid}`
+        );
         user.audioTrack.play();
-
-        // Update userTracks with the audio track
         userTracks[userUid].audioTrack = user.audioTrack;
-
-        toggleMicIcon(userUid, false); // Mic is on
-      } else {
-        console.error(`Audio track for user ${userUid} is invalid or missing.`);
-        toggleMicIcon(userUid, true); // Mic is off
+      } catch (error) {
+        console.error(
+          `Error subscribing to audio track for user ${userUid}:`,
+          error
+        );
       }
-    } catch (error) {
-      console.error(`Error playing audio track for user ${userUid}:`, error);
+    } else {
+      console.warn(`User ${userUid} has no active audio track.`);
     }
   }
 };
