@@ -296,25 +296,21 @@ const toggleStages = (isScreenSharing, uid, userType) => {
   }
 };
 
-const setRTMAttributes = async (uid, userType, clientRTM) => {
+const setRTMAttributes = async (uid, clientRTM) => {
   if (clientRTM) {
-    const attributes = { uidSharingScreen: uid.toString() };
-    await clientRTM.setLocalUserAttributes(attributes);
-    console.log(
-      `Screen share UID attribute set for ${userType} user with UID ${uid}`
-    );
+    const attributes = { uidSharingScreen: uid.toString() }; // Set the attribute for screen sharing
+    await clientRTM.setLocalUserAttributes(attributes); // Set attributes for RTM
+    console.log(`Screen share UID attribute set for user with UID ${uid}`);
   } else {
-    console.error(`RTM client not found for ${userType} user with UID ${uid}`);
+    console.error(`RTM client not found for user with UID ${uid}`);
   }
 };
 
-const clearRTMAttributes = async (uid, userType, clientRTM) => {
+const clearRTMAttributes = async (uid, clientRTM) => {
   if (clientRTM) {
-    await clientRTM.clearLocalUserAttributes();
-    console.log(
-      `Screen share UID attribute cleared for ${userType} user with UID ${uid}`
-    );
+    await clientRTM.clearLocalUserAttributes(); // Clear attributes for RTM
+    console.log(`Screen share UID attribute cleared for user with UID ${uid}`);
   } else {
-    console.error(`RTM client not found for ${userType} user with UID ${uid}`);
+    console.error(`RTM client not found for user with UID ${uid}`);
   }
 };
