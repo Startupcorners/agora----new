@@ -1,6 +1,6 @@
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
-import { setupEventListeners,setupRTMMessageListener } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
+import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 import { handleRenewToken, handleUserJoined, handleUserPublished } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
@@ -271,7 +271,6 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     console.log("Successfully joined RTM channel:", config.channelName);
 
     // Setup RTM message listener after successfully joining RTM
-    setupRTMMessageListener(config.clientRTM, config); // Add the listener here
 
     console.log("RTM message listener initialized.");
   } catch (error) {
