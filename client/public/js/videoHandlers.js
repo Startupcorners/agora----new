@@ -29,7 +29,7 @@ export const playCameraVideo = (uid, userType) => {
   console.log("playCameraVideo called for", userType, "user with UID:", uid);
 
   if (!videoTrack) {
-    console.error("Error: Video track is undefined. Ensure the camera is on.");
+    console.log("Camera is off or there is no video track for this user.");
     return;
   }
 
@@ -38,42 +38,36 @@ export const playCameraVideo = (uid, userType) => {
   const pipVideoPlayer = document.getElementById(`${userType}-pip-video-track`);
   const pipAvatarDiv = document.getElementById(`${userType}-pip-avatar`);
 
-  const isCameraOn = videoTrack && !userTrack.isVideoMuted;
+  if (userTrack.isScreenSharing) {
+    console.log("Screen sharing is enabled, managing PiP for", userType);
 
-  if (isCameraOn) {
-    if (userTrack.isScreenSharing) {
-      console.log("Screen sharing is enabled, managing PiP for", userType);
-
-      // If screen is being shared, play camera in PiP
-      if (pipVideoPlayer) {
-        console.log("Playing video track in PiP.");
-        videoTrack.play(pipVideoPlayer);
-        pipVideoPlayer.style.display = "block"; // Ensure PiP video player is visible
-      } else {
-        console.warn("pipVideoPlayer not found.");
-      }
-
-      if (pipAvatarDiv) {
-        console.log("Hiding PiP avatar.");
-        pipAvatarDiv.style.display = "none"; // Hide PiP avatar if the camera is on
-      }
+    // If screen is being shared, play camera in PiP
+    if (pipVideoPlayer) {
+      console.log("Playing video track in PiP.");
+      videoTrack.play(pipVideoPlayer);
+      pipVideoPlayer.style.display = "block"; // Ensure PiP video player is visible
     } else {
-      console.log(
-        "Screen sharing is not enabled, managing main video stage for",
-        userType
-      );
+      console.warn("pipVideoPlayer not found.");
+    }
 
-      // Play the camera feed in the main video stage
-      if (videoPlayer) {
-        console.log("Playing video track in main video stage.");
-        videoTrack.play(videoPlayer);
-        videoPlayer.style.display = "block"; // Ensure main video player is visible
-      } else {
-        console.warn("videoPlayer not found.");
-      }
+    if (pipAvatarDiv) {
+      console.log("Hiding PiP avatar.");
+      pipAvatarDiv.style.display = "none"; // Hide PiP avatar if the camera is on
     }
   } else {
-    console.log("Camera is off or muted for", userType, "user, skipping play.");
+    console.log(
+      "Screen sharing is not enabled, managing main video stage for",
+      userType
+    );
+
+    // Play the camera feed in the main video stage
+    if (videoPlayer) {
+      console.log("Playing video track in main video stage.");
+      videoTrack.play(videoPlayer);
+      videoPlayer.style.display = "block"; // Ensure main video player is visible
+    } else {
+      console.warn("videoPlayer not found.");
+    }
   }
 
   console.log("playCameraVideo function execution completed.");
@@ -81,13 +75,11 @@ export const playCameraVideo = (uid, userType) => {
 
 
 
-
 export const showAvatar = (uid, userType) => {
   console.log(`Entering showAvatar for ${userType} user with UID:`, uid);
 
   const userTrack = userTracks[uid]; // Access user's track info from centralized object
-  const isCameraOn =
-    userTrack && userTrack.videoTrack && !userTrack.isVideoMuted;
+  const isCameraOn = userTrack && userTrack.videoTrack; // Camera is on if videoTrack exists
 
   const avatarDiv = document.querySelector(`#avatar-${uid}`);
   const videoPlayer = document.querySelector(`#stream-${uid}`);
@@ -101,11 +93,7 @@ export const showAvatar = (uid, userType) => {
   console.log("PiP Video player:", pipVideoPlayer);
 
   if (!isCameraOn) {
-    console.log(
-      "Camera is off or muted, showing avatar for",
-      userType,
-      "user."
-    );
+    console.log("Camera is off, showing avatar for", userType, "user.");
 
     if (userTrack.isScreenSharing) {
       // Show avatar in PiP
