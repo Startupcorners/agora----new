@@ -14,7 +14,7 @@ import { userTracks } from "./state.js";
 
 
 // Handles user published event
-export const handleUserPublished = async (user, mediaType, config) => {
+export const handleUserPublished = async (user, mediaType, config, client) => {
   const userUid = user.uid; // Keep uid as a number
   console.log(
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
@@ -36,7 +36,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     // Check if the video track actually exists before proceeding
     if (user.videoTrack) {
       try {
-        await config.client.subscribe(user, mediaType);
+        await client.subscribe(user, mediaType); // Use the client passed to the function
         console.log(
           `Successfully subscribed to video track for user ${userUid}`
         );
@@ -58,7 +58,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     // Check if the audio track actually exists before proceeding
     if (user.audioTrack) {
       try {
-        await config.client.subscribe(user, mediaType);
+        await client.subscribe(user, mediaType); // Use the client passed to the function
         console.log(
           `Successfully subscribed to audio track for user ${userUid}`
         );
@@ -75,6 +75,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     }
   }
 };
+
 
 
 
