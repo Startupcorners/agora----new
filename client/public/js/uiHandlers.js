@@ -188,7 +188,6 @@ export const toggleCamera = async (isMuted, config) => {
   }
 };
 
-
 export const toggleScreenShare = async (isEnabled, uid, config) => {
   try {
     if (!config.client) {
@@ -209,11 +208,17 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
         });
         console.log("Created new screen share client");
 
-        // Join the channel with the screen share client
+        // Fetch tokens for the screen share client (UID 1)
+        const tokens = await fetchTokens(config, screenShareUid);
+        if (!tokens || !tokens.rtcToken) {
+          throw new Error("Failed to fetch RTC token for screen sharing");
+        }
+
+        // Join the channel with the screen share client using UID 1
         await config.screenShareClient.join(
           config.appId,
-          config.channel,
-          config.token,
+          config.channelName,
+          tokens.rtcToken,
           screenShareUid
         );
         console.log(
@@ -221,7 +226,8 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
           screenShareUid
         );
 
-        await startScreenShare(screenShareUid, config); // Start screen sharing with the new client
+        // Start screen sharing with the new client
+        await startScreenShare(screenShareUid, config);
       }
     } else {
       // Stop screen sharing and leave the screen-sharing client
@@ -235,10 +241,48 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       }
     }
   } catch (error) {
-    console.error(`Error during screen sharing toggle:`, error);
+    console.error("Error during screen sharing toggle:", error);
   }
 };
 
+export const joinScreenShareClient = async (config) => {
+  try {
+    const screenShareUid = 1; // UID for the screen share client
+
+    // Fetch RTC token for screen sharing (with UID 1)
+    const tokens = await fetchTokens(config, screenShareUid);
+    if (!tokens || !tokens.rtcToken)
+      throw new Error("Failed to fetch RTC token for screen sharing");
+
+    console.log("Joining RTC with screen share client");
+
+    // Join the RTC channel with the screen share client
+    await config.screenShareClient.join(
+      config.appId, // Your app ID
+      config.channelName, // Channel name
+      tokens.rtcToken, // RTC token for screen sharing
+      screenShareUid // UID 1 for screen share client
+    );
+
+    console.log("Screen share client joined RTC channel with UID 1");
+
+    // Handle token renewal for the screen-share client
+    config.screenShareClient.on("token-privilege-will-expire", async () => {
+      try {
+        // Fetch new tokens for screen sharing (again with UID 1)
+        const newTokens = await fetchTokens(config, screenShareUid);
+        await config.screenShareClient.renewToken(newTokens.rtcToken);
+        console.log("Screen share client token renewed");
+      } catch (error) {
+        console.error("Error renewing screen share token:", error);
+      }
+    });
+
+  } catch (error) {
+    console.error("Error joining screen share client:", error);
+
+  }
+};
 
 
 // const startScreenShare = async (uid, userType) => {
