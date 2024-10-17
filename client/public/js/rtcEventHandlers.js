@@ -17,9 +17,7 @@ const userJoinPromises = {};
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config, client) => {
   const userUid = user.uid;
-  console.log(
-    `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
-  );
+  console.log(`handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`);
 
   // Log the entire user object for debugging
   console.log("User object:", user);
@@ -41,41 +39,32 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
       await userJoinPromises[userUid]; // Wait for user wrapper and elements to be ready
     }
 
-    // Check if the track is published before attempting to subscribe
-    if (
-      (mediaType === "video" && user.videoTrack) ||
-      (mediaType === "audio" && user.audioTrack)
-    ) {
-      // Subscribe to the media type
-      await client.subscribe(user, mediaType);
-      console.log(
-        `Successfully subscribed to ${mediaType} track for user ${userUid}`
-      );
+    // Subscribe to the media type
+    await client.subscribe(user, mediaType);
+    console.log(`Successfully subscribed to ${mediaType} track for user ${userUid}`);
 
-      if (mediaType === "video") {
-        if (user.videoTrack) {
-          userTracks[userUid].videoTrack = user.videoTrack;
+    if (mediaType === "video") {
+      if (user.videoTrack) {
+        userTracks[userUid].videoTrack = user.videoTrack;
 
-          // Manage the camera state for the user (handles playing video and showing avatars)
-          manageCameraState(userUid);
-        }
+        // Manage the camera state for the user (handles playing video and showing avatars)
+        manageCameraState(userUid);
+      } else {
+        console.warn(`Subscribed to video track for user ${userUid}, but videoTrack is still undefined.`);
       }
+    }
 
-      if (mediaType === "audio") {
-        if (user.audioTrack) {
-          user.audioTrack.play();
-          userTracks[userUid].audioTrack = user.audioTrack;
-          console.log(`Audio track played and stored for user ${userUid}`);
-        }
+    if (mediaType === "audio") {
+      if (user.audioTrack) {
+        user.audioTrack.play();
+        userTracks[userUid].audioTrack = user.audioTrack;
+        console.log(`Audio track played and stored for user ${userUid}`);
+      } else {
+        console.warn(`Subscribed to audio track for user ${userUid}, but audioTrack is still undefined.`);
       }
-    } else {
-      console.warn(`User ${userUid} has no ${mediaType} track published.`);
     }
   } catch (error) {
-    console.error(
-      `Error subscribing to ${mediaType} track for user ${userUid}:`,
-      error
-    );
+    console.error(`Error subscribing to ${mediaType} track for user ${userUid}:`, error);
   }
 };
 
