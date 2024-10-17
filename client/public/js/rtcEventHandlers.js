@@ -15,64 +15,74 @@ import { userTracks } from "./state.js";
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config, client) => {
-  const userUid = user.uid; // Keep uid as a number
+  const userUid = user.uid;
   console.log(
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
-  // Skip subscribing to your own media
+  // Log the entire user object for debugging
+  console.log("User object:", user);
+
   if (userUid === config.uid) {
     console.log("Skipping subscription to local user's own media.");
     return;
   }
 
-  console.log("userTracks[userUid]", userTracks[userUid]);
-  // Ensure userTracks is initialized for the user
   if (!userTracks[userUid]) {
-    userTracks[userUid] = {}; // Initialize a new track object for the user
+    userTracks[userUid] = {}; // Initialize track object for the user
   }
 
-  // Handle video media type
+  // Only subscribe and play if the media type is video
   if (mediaType === "video") {
-    // Check if the video track actually exists before proceeding
-    if (user.videoTrack) {
-      try {
-        await client.subscribe(user, mediaType); // Use the client passed to the function
+    try {
+      // Log details of the video track
+      console.log("Checking if video track exists for user:", user.videoTrack);
+
+      if (user.videoTrack) {
+        await client.subscribe(user, mediaType); // Subscribe to the video track
         console.log(
           `Successfully subscribed to video track for user ${userUid}`
         );
+
+        // Play the video and store the track in userTracks
         user.videoTrack.play(`#stream-${userUid}`);
         userTracks[userUid].videoTrack = user.videoTrack;
-      } catch (error) {
-        console.error(
-          `Error subscribing to video track for user ${userUid}:`,
-          error
+      } else {
+        console.warn(`User ${userUid} has no active video track. Retrying...`);
+        // Retry subscription after 500ms to check again if the track becomes available
+        setTimeout(
+          () => handleUserPublished(user, mediaType, config, client),
+          500
         );
       }
-    } else {
-      console.warn(`User ${userUid} has no active video track.`);
+    } catch (error) {
+      console.error(
+        `Error subscribing to video track for user ${userUid}:`,
+        error
+      );
     }
   }
 
-  // Handle audio media type
+  // Handle audio media type if needed
   if (mediaType === "audio") {
-    // Check if the audio track actually exists before proceeding
-    if (user.audioTrack) {
-      try {
-        await client.subscribe(user, mediaType); // Use the client passed to the function
+    try {
+      if (user.audioTrack) {
+        await client.subscribe(user, mediaType); // Subscribe to the audio track
         console.log(
           `Successfully subscribed to audio track for user ${userUid}`
         );
+
+        // Play the audio track
         user.audioTrack.play();
         userTracks[userUid].audioTrack = user.audioTrack;
-      } catch (error) {
-        console.error(
-          `Error subscribing to audio track for user ${userUid}:`,
-          error
-        );
+      } else {
+        console.warn(`User ${userUid} has no active audio track.`);
       }
-    } else {
-      console.warn(`User ${userUid} has no active audio track.`);
+    } catch (error) {
+      console.error(
+        `Error subscribing to audio track for user ${userUid}:`,
+        error
+      );
     }
   }
 };
