@@ -260,22 +260,31 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
 
     await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
-    // Join RTM channel
+    // **Create the RTM channel and assign it to config.channelRTM**
+    if (!config.channelRTM) {
+      config.channelRTM = config.clientRTM.createChannel(config.channelName);
+      console.log("RTM channel created with name:", config.channelName);
+    }
+
+    // **Join the RTM channel**
     await config.channelRTM.join();
+    console.log("Successfully joined RTM channel:", config.channelName);
 
     // Setup RTM message listener after successfully joining RTM
     setupRTMMessageListener(config.clientRTM, config); // Add the listener here
 
-    console.log("Successfully joined RTM channel and initialized listener.");
+    console.log("RTM message listener initialized.");
   } catch (error) {
     if (error.code === 5 && retryCount < 3) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
       return joinRTM(rtmToken, retryCount + 1);
     } else {
-      throw new Error("Failed to join RTM after multiple attempts");
+      console.error("Failed to join RTM after multiple attempts:", error);
+      throw error;
     }
   }
 };
+
 
   // Join video stage function
 const joinToVideoStage = async (config) => {
