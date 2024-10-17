@@ -165,6 +165,12 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   const userUid = user.uid.toString();
   console.log("Entering handleUserJoined function for user:", userUid);
 
+  // If UID is 1 (screen share UID), skip processing
+  if (userUid === "1") {
+    console.log("Skipping handling for screen share UID (1).");
+    return;
+  }
+
   // If the user join is already in progress or completed, return the existing promise
   if (userJoinPromises[userUid]) {
     return userJoinPromises[userUid];
@@ -173,9 +179,9 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   // Create a new promise for this user
   userJoinPromises[userUid] = new Promise(async (resolve, reject) => {
     try {
-      // Prevent handling your own stream or screen share
-      if (userUid === config.uid.toString() || userUid === "1") {
-        console.log(`Skipping wrapper for own user or screen share UID: ${userUid}`);
+      // Prevent handling your own stream
+      if (userUid === config.uid.toString()) {
+        console.log(`Skipping wrapper for own user UID: ${userUid}`);
         resolve(); // Resolve the promise even if it's skipped
         return; // Exit early
       }
@@ -186,7 +192,10 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
           try {
             userAttr = await config.clientRTM.getUserAttributes(userUid);
           } catch (error) {
-            console.error(`Failed to get RTM attributes for user ${userUid}:`, error);
+            console.error(
+              `Failed to get RTM attributes for user ${userUid}:`,
+              error
+            );
             userAttr = {
               name: "Unknown",
               company: "",
@@ -195,7 +204,9 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
             };
           }
         } else {
-          console.log(`clientRTM is not initialized. Skipping attribute fetch for user ${userUid}.`);
+          console.log(
+            `clientRTM is not initialized. Skipping attribute fetch for user ${userUid}.`
+          );
           userAttr = {
             name: "Unknown",
             company: "",
@@ -214,13 +225,17 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 
       // Only proceed with wrapper if the user is a host
       if (user.role !== "host") {
-        console.warn(`User ${userUid} does not have the 'host' role. Skipping wrapper.`);
+        console.warn(
+          `User ${userUid} does not have the 'host' role. Skipping wrapper.`
+        );
         resolve(); // Resolve the promise early if not a host
         return;
       }
 
       // Check if the video-wrapper exists; if not, create it
-      let participantWrapper = document.querySelector(`#video-wrapper-${userUid}`);
+      let participantWrapper = document.querySelector(
+        `#video-wrapper-${userUid}`
+      );
       if (!participantWrapper) {
         await addUserWrapper({ uid: userUid, ...userAttr }, config); // Add the wrapper
         console.log(`Wrapper added for user: ${userUid}`);
@@ -231,7 +246,9 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       // Mark the wrapper as ready
       config.remoteTracks[userUid].wrapperReady = true;
 
-      console.log(`Host user ${userUid} joined, waiting for media to be published.`);
+      console.log(
+        `Host user ${userUid} joined, waiting for media to be published.`
+      );
 
       // Initialize or update participant list
       if (!config.participantList) {
@@ -276,6 +293,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   // Return the promise
   return userJoinPromises[userUid];
 };
+
 
 
 

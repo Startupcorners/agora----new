@@ -196,25 +196,43 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       return;
     }
 
-    const userTrack = userTracks[uid]; // Access the correct userTrack
+    let screenShareUid = 1; // Use a different UID for screen share
 
-    if (!userTrack) {
-      console.error(`No user track found for user with UID: ${uid}`);
-      return;
-    }
-
-    // Check if the user is already screen sharing
-    const isScreenSharing = !!userTrack.screenShareTrack;
-
-    if (isScreenSharing && isEnabled) {
-      console.log(`User is already sharing. Stopping screen share.`);
-      isEnabled = false; // Disable screen share
-    }
-
+    // If screen share is enabled, start the screen share process
     if (isEnabled) {
-      await startScreenShare(uid, config); // Start screen sharing
+      // Check if there's already a screen-sharing client
+      if (!config.screenShareClient) {
+        // Initialize a new client for screen sharing
+        config.screenShareClient = AgoraRTC.createClient({
+          mode: "rtc",
+          codec: "vp8",
+        });
+        console.log("Created new screen share client");
+
+        // Join the channel with the screen share client
+        await config.screenShareClient.join(
+          config.appId,
+          config.channel,
+          config.token,
+          screenShareUid
+        );
+        console.log(
+          "Screen share client joined channel with UID:",
+          screenShareUid
+        );
+
+        await startScreenShare(screenShareUid, config); // Start screen sharing with the new client
+      }
     } else {
-      await stopScreenShare(uid, config); // Stop screen sharing
+      // Stop screen sharing and leave the screen-sharing client
+      if (config.screenShareClient) {
+        await stopScreenShare(screenShareUid, config); // Stop screen sharing
+
+        // Leave the screen-sharing client from the channel and clean up
+        await config.screenShareClient.leave();
+        config.screenShareClient = null;
+        console.log("Screen share client left the channel and cleaned up");
+      }
     }
   } catch (error) {
     console.error(`Error during screen sharing toggle:`, error);
