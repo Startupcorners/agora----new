@@ -356,6 +356,7 @@ const joinToVideoStage = async (config) => {
     toggleMic,
     toggleCamera,
     toggleScreenShare,
+    userTracks,
   };
 };
 
