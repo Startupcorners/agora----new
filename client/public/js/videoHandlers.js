@@ -182,13 +182,14 @@ export const startScreenShare = async (uid, config) => {
       console.warn(`Screen share element not found.`);
     }
 
-    // Ensure the camera is still on before managing PiP
+    // Check if the camera is on (video track exists)
     if (!userTrack.videoTrack) {
-      console.error(`Video track is undefined during screen share.`);
-      return; // Stop the execution if the video track is missing
+      console.log(`Camera is off during screen share.`); // Handle it as a normal state
+    } else {
+      console.log(`Video track found, proceeding to manage PiP...`);
+      // Manage PiP for the camera feed (if the camera is on)
+      manageCameraState(uid);
     }
-
-    console.log(`Video track found, proceeding to manage PiP...`);
 
     // Mark screen sharing as enabled **before** managing PiP or camera
     userTrack.screenShareEnabled = true;
@@ -200,9 +201,6 @@ export const startScreenShare = async (uid, config) => {
     // Switch to screen share stage
     console.log(`Toggling stages: switching to screen-share stage...`);
     toggleStages(true, uid); // Show screen-share stage and hide video stage
-
-    // Manage PiP for the camera feed (if the camera is on)
-    manageCameraState(uid);
 
     // Call the function to indicate screen sharing is on
     if (typeof bubble_fn_isScreenOn === "function") {
