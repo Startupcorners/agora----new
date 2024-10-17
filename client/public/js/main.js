@@ -164,8 +164,8 @@ const subscribeToExistingUsers = async (config) => {
           console.log(
             `Subscribing to video and audio tracks for user ${remoteUser.uid}`
           );
-          await handleUserPublished(remoteUser, "video", config, config.client);
-          await handleUserPublished(remoteUser, "audio", config, config.client);
+          //await handleUserPublished(remoteUser, "video", config, config.client);
+          //await handleUserPublished(remoteUser, "audio", config, config.client);
         }
       }
     }
