@@ -160,16 +160,22 @@ const subscribeToExistingUsers = async (config) => {
             );
           }
 
-
           // Call handleUserJoined to update participant list
           await handleUserJoined(remoteUser, config, attributes);
 
-          // Agora will trigger the user-published event for already published users.
-          // Simulate this by manually calling handleUserPublished after the user has joined.
-          if (remoteUser.videoTrack || remoteUser.audioTrack) {
-            // Manually trigger handleUserPublished for already published media
+          // Check and subscribe to video and audio tracks only if they exist
+          if (remoteUser.videoTrack) {
+            console.log(`Subscribing to video track of user ${remoteUser.uid}`);
             await handleUserPublished(remoteUser, "video", config);
+          } else {
+            console.log(`User ${remoteUser.uid} has no video track.`);
+          }
+
+          if (remoteUser.audioTrack) {
+            console.log(`Subscribing to audio track of user ${remoteUser.uid}`);
             await handleUserPublished(remoteUser, "audio", config);
+          } else {
+            console.log(`User ${remoteUser.uid} has no audio track.`);
           }
         }
       }
