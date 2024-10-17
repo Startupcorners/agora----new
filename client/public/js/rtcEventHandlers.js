@@ -30,19 +30,18 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     return;
   }
 
-  // Initialize track object for the user if it doesn't exist
   if (!userTracks[userUid]) {
-    userTracks[userUid] = {};
+    userTracks[userUid] = {}; // Initialize track object for the user
   }
 
   try {
-    // Ensure handleUserJoined is completed before subscribing
+    // Ensure handleUserJoined is completed before proceeding
     if (userJoinPromises[userUid]) {
       console.log(`Waiting for handleUserJoined to finish for user ${userUid}`);
       await userJoinPromises[userUid]; // Wait for user wrapper and elements to be ready
     }
 
-    // Subscribe to the media type regardless of the current track state
+    // Subscribe to the media type
     await client.subscribe(user, mediaType);
     console.log(
       `Successfully subscribed to ${mediaType} track for user ${userUid}`
@@ -50,15 +49,10 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
 
     if (mediaType === "video") {
       if (user.videoTrack) {
-        // Ensure the video container exists
-        let videoContainer = document.getElementById(`stream-${userUid}`);
-        if (videoContainer) {
-          user.videoTrack.play(`#stream-${userUid}`);
-          userTracks[userUid].videoTrack = user.videoTrack;
-          console.log(`Video track played and stored for user ${userUid}`);
-        } else {
-          console.error(`Video container for user ${userUid} not found.`);
-        }
+        userTracks[userUid].videoTrack = user.videoTrack;
+
+        // Manage the camera state for the user (handles playing video and showing avatars)
+        manageCameraState(userUid);
       } else {
         console.warn(
           `Subscribed to video track for user ${userUid}, but videoTrack is still undefined.`
