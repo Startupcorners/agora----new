@@ -106,15 +106,26 @@ export const toggleCamera = async (isMuted, config) => {
 
     // Set camera toggle in progress
     userTrack.cameraToggleInProgress = true;
+    console.log("Camera toggle in progress for user:", uid);
 
     if (isMuted) {
       // Camera is currently on, turn it off
       if (userTrack.videoTrack) {
-        console.log("Turning off the camera...");
+        console.log("Turning off the camera for user:", uid);
 
-        // Unpublish and stop the video track
-        await config.client.unpublish([userTrack.videoTrack]);
+        try {
+          // Unpublish and stop the video track
+          await config.client.unpublish([userTrack.videoTrack]);
+          console.log("Video track unpublished for user:", uid);
+        } catch (unpublishError) {
+          console.error(
+            `Error unpublishing video track for user ${uid}:`,
+            unpublishError
+          );
+        }
+
         userTrack.videoTrack.stop();
+        console.log("Video track stopped for user:", uid);
 
         // Set videoTrack to null and update isVideoMuted
         userTrack.videoTrack = null;
@@ -122,7 +133,6 @@ export const toggleCamera = async (isMuted, config) => {
 
         // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
-
         console.log("Camera turned off and unpublished for user:", uid);
 
         // Use generalized function to manage the camera state
@@ -131,41 +141,60 @@ export const toggleCamera = async (isMuted, config) => {
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
+      } else {
+        console.warn(
+          `No video track found for user ${uid} when trying to turn off the camera.`
+        );
       }
     } else {
       // Camera is off, turn it on
-      console.log("Turning on the camera...");
+      console.log("Turning on the camera for user:", uid);
 
-      // Check if the video track exists or create a new one
-      if (!userTrack.videoTrack) {
-        console.log("Creating a new camera video track.");
-        userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
-      } else {
-        console.log("Using existing camera video track.");
-      }
+      try {
+        // Check if the video track exists or create a new one
+        if (!userTrack.videoTrack) {
+          console.log("Creating a new camera video track for user:", uid);
+          userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
+          console.log("New camera video track created for user:", uid);
+        } else {
+          console.log("Using existing camera video track for user:", uid);
+        }
 
-      await userTrack.videoTrack.setEnabled(true);
-      await config.client.publish([userTrack.videoTrack]);
-      userTrack.isVideoMuted = false;
+        await userTrack.videoTrack.setEnabled(true);
+        console.log("Video track enabled for user:", uid);
 
-      // Update userTracks[uid] with the modified userTrack
-      userTracks[uid] = { ...userTrack };
+        await config.client.publish([userTrack.videoTrack]);
+        console.log("Video track published for user:", uid);
 
-      console.log("Video track enabled and published for user:", uid);
+        userTrack.isVideoMuted = false;
 
-      // Use generalized function to manage the camera state
-      manageCameraState(uid);
+        // Update userTracks[uid] with the modified userTrack
+        userTracks[uid] = { ...userTrack };
+        console.log(
+          "Camera turned on and video track published for user:",
+          uid
+        );
 
-      if (typeof bubble_fn_isCamOn === "function") {
-        bubble_fn_isCamOn(true);
+        // Use generalized function to manage the camera state
+        manageCameraState(uid);
+
+        if (typeof bubble_fn_isCamOn === "function") {
+          bubble_fn_isCamOn(true);
+        }
+      } catch (cameraError) {
+        console.error(
+          `Error enabling or publishing video track for user ${uid}:`,
+          cameraError
+        );
       }
     }
   } catch (error) {
-    console.error("Error in toggleCamera:", error);
+    console.error("Error in toggleCamera for user:", uid, error);
   } finally {
     // Ensure toggle progress is reset
     if (userTracks[uid]) {
       userTracks[uid].cameraToggleInProgress = false;
+      console.log("Camera toggle progress reset for user:", uid);
     }
   }
 };
