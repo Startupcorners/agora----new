@@ -87,12 +87,12 @@ const join = async () => {
       throw new Error("User does not have a role assigned.");
     }
 
-    // Set RTC role based on the user's role
-    if (config.user.role === "host") {
-      await config.client.setClientRole("host");
-    } else {
-      await config.client.setClientRole("audience");
-    }
+    // Remove setClientRole as it's invalid in RTC mode
+    // if (config.user.role === "host") {
+    //   await config.client.setClientRole("host");
+    // } else {
+    //   await config.client.setClientRole("audience");
+    // }
 
     // Join RTM
     await joinRTM(tokens.rtmToken);
@@ -113,6 +113,8 @@ const join = async () => {
       // Call function to join the video stage, including screen share
       await joinToVideoStage(config);
     }
+
+    // Audience members do not publish any tracks
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
