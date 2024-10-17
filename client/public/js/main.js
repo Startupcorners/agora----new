@@ -288,38 +288,27 @@ const joinToVideoStage = async (config) => {
       console.error("Failed to create local audio track");
     }
 
-    // Create the local video track if it doesn't exist, but keep it muted and unpublished
-    if (!config.localVideoTrack) {
-      console.log("Creating camera video track (muted initially)");
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      await config.localVideoTrack.setEnabled(false); // Keep video muted initially
-      config.localVideoTrackMuted = true; // Ensure to track that the video is muted
-      console.log("Video track created but kept muted");
-    }
-
     // Publish the local audio track only
     console.log("Publishing local audio track");
     await client.publish([config.localAudioTrack]);
 
     console.log("Successfully published local audio track");
-    console.log("checking uid", uid);
+    console.log("Checking uid", uid);
 
-    // Create a shallow copy of the userTracks[uid] if it exists, or create a new object
+    // Create or update userTracks for the local user (for audio only)
     let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
 
-    // Update userTracks for the local user (using UID instead of local)
+    // Only update audio-related info, don't touch videoTrack or screenShareTrack
     updatedUserTrack = {
       ...updatedUserTrack,
-      videoTrack: config.localVideoTrack,
-      screenShareTrack: config.localScreenShareTrack,
-      isVideoMuted: config.localVideoTrackMuted,
-      isScreenSharing: config.localScreenShareEnabled,
+      isAudioMuted: config.localAudioTrack.muted || false,
+      // Leave videoTrack and screenShareTrack unchanged to be handled by toggles
     };
 
     // Reassign the updated user track back to the global userTracks object
     userTracks[uid] = updatedUserTrack;
 
-    // Add the current user wrapper (for their own video/audio stream)
+    // Add the current user wrapper (for their own audio stream)
     await addUserWrapper({ uid, ...config.user }, config);
 
     // Select the video player and avatar elements for the current user
@@ -334,14 +323,16 @@ const joinToVideoStage = async (config) => {
       return;
     }
 
-    // Show avatar and hide video initially since the video track is muted
+    // Initially show avatar and hide video since the video track is handled by toggles
     toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
 
     // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
     const isMuted = config.localAudioTrack.muted || false;
     toggleMicIcon(uid, isMuted);
 
-    console.log("Joined the video stage with muted video and active audio");
+    console.log(
+      "Joined the video stage with audio only, video track will be handled by toggles"
+    );
   } catch (error) {
     console.error("Error in joinToVideoStage", error);
   }
