@@ -278,7 +278,7 @@ export const stopScreenShare = async (uid, config) => {
 };
 
 
-const toggleStages = (isScreenSharing, uid) => {
+export const toggleStages = (isScreenSharing, uid) => {
   const videoStage = document.getElementById("video-stage");
   const screenShareStage = document.getElementById("screen-share-stage");
 
@@ -313,6 +313,7 @@ const toggleStages = (isScreenSharing, uid) => {
     }
   }
 };
+
 
 
 const setRTMAttributes = async (uid, clientRTM) => {
