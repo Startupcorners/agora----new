@@ -288,31 +288,33 @@ const joinToVideoStage = async (config) => {
       console.error("Failed to create local audio track");
     }
 
-    // Create the local video track if it doesn't exist, but keep it unpublished
+    // Create the local video track if it doesn't exist, but DO NOT publish it
     if (!config.localVideoTrack) {
-      console.log("Creating camera video track (unpublished initially)");
+      console.log(
+        "Creating camera video track (muted and unpublished initially)"
+      );
       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      console.log("Video track created but kept unpublished");
-    } else {
-      console.log("Using existing local video track, keeping it unpublished");
+      await config.localVideoTrack.setEnabled(false); // Keep video muted initially
+      config.localVideoTrackMuted = true; // Track that the video is muted
+      console.log("Video track created but kept muted and unpublished");
     }
 
-    // Publish the local audio track only
+    // Publish only the local audio track
     console.log("Publishing local audio track");
     await client.publish([config.localAudioTrack]);
 
     console.log("Successfully published local audio track");
-    console.log("checking uid", uid);
+    console.log("Checking uid:", uid);
 
-    // Create a shallow copy of the userTracks[uid] if it exists, or create a new object
+    // Update the userTrack object to reflect the "camera off" state
     let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
 
-    // Update userTracks for the local user (using UID instead of local)
     updatedUserTrack = {
       ...updatedUserTrack,
-      videoTrack: config.localVideoTrack, // Store the video track but don't publish it
-      screenShareTrack: config.localScreenShareTrack,
-      isScreenSharing: config.localScreenShareEnabled,
+      videoTrack: null, // Initially set to null (camera off state)
+      screenShareTrack: config.localScreenShareTrack || null,
+      isVideoMuted: true, // Camera is off initially
+      isScreenSharing: false,
     };
 
     // Reassign the updated user track back to the global userTracks object
@@ -333,20 +335,19 @@ const joinToVideoStage = async (config) => {
       return;
     }
 
-    // Show avatar and hide video initially since the video track is unpublished
+    // Show avatar and hide video initially since the camera is off
     toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
 
     // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
     const isMuted = config.localAudioTrack.muted || false;
     toggleMicIcon(uid, isMuted);
 
-    console.log(
-      "Joined the video stage with unpublished video and active audio"
-    );
+    console.log("Joined the video stage with the camera off and active audio");
   } catch (error) {
     console.error("Error in joinToVideoStage", error);
   }
 };
+
 
 
 
