@@ -15,18 +15,23 @@ export const manageCameraState = (uid) => {
 
   console.log(`User track for UID ${uid}:`, userTrack);
 
+  // Check for screen share track using UID 1
+  const screenShareTrack = userTracks[1]
+    ? userTracks[1].screenShareTrack
+    : null;
+
   // If screen share track exists, play it in the designated element
-  if (userTrack.screenShareTrack) {
+  if (screenShareTrack) {
     const screenShareElement = document.getElementById(`screen-share-content`);
     if (screenShareElement) {
-      userTrack.screenShareTrack.play(screenShareElement);
-      console.log(`Playing screen share track for user ${uid}`);
+      screenShareTrack.play(screenShareElement);
+      console.log(`Playing screen share track for UID 1 (screen share)`);
     } else {
       console.warn(`Screen share element not found.`);
     }
   }
 
-  // Handle camera video and avatar display
+  // Handle camera video and avatar display for the actual user UID
   playCameraVideo(uid);
   showAvatar(uid);
 
@@ -37,9 +42,11 @@ export const manageCameraState = (uid) => {
 
 
 
-
 export const playCameraVideo = (uid) => {
   const userTrack = userTracks[uid];
+  const screenShareTrack = userTracks[1]
+    ? userTracks[1].screenShareTrack
+    : null; // Use UID 1 for screen share
   const videoTrack = userTrack ? userTrack.videoTrack : null;
 
   console.log("playCameraVideo called for user with UID:", uid);
@@ -54,13 +61,13 @@ export const playCameraVideo = (uid) => {
   const pipVideoPlayer = document.getElementById(`pip-video-track`);
   const pipAvatarDiv = document.getElementById(`pip-avatar`);
 
-  // Check if the user is screen sharing
-  const isScreenSharing = !!userTrack.screenShareTrack;
+  // Check if the user is screen sharing (screen share uses UID 1)
+  const isScreenSharing = !!screenShareTrack;
 
   if (isScreenSharing) {
-    console.log("Screen sharing is enabled, managing PiP.");
+    console.log("Screen sharing is enabled, managing PiP for camera.");
 
-    // If screen is being shared, play camera in PiP
+    // If the screen is being shared, play the camera in PiP
     if (pipVideoPlayer) {
       console.log("Playing video track in PiP.");
       videoTrack.play(pipVideoPlayer);
@@ -73,8 +80,19 @@ export const playCameraVideo = (uid) => {
       console.log("Hiding PiP avatar.");
       pipAvatarDiv.style.display = "none"; // Hide PiP avatar if the camera is on
     }
+
+    // Play the screen share in the main video stage if applicable
+    if (screenShareTrack && videoPlayer) {
+      console.log("Playing screen share track in main video stage.");
+      screenShareTrack.play(videoPlayer);
+      videoPlayer.style.display = "block"; // Ensure main video player is visible
+    } else {
+      console.warn("videoPlayer or screenShareTrack not found.");
+    }
   } else {
-    console.log("Screen sharing is not enabled, managing main video stage.");
+    console.log(
+      "Screen sharing is not enabled, managing main video stage for camera."
+    );
 
     // Play the camera feed in the main video stage
     if (videoPlayer) {
@@ -94,8 +112,11 @@ export const showAvatar = (uid) => {
   console.log(`Entering showAvatar for user with UID:`, uid);
 
   const userTrack = userTracks[uid];
+  const screenShareTrack = userTracks[1]
+    ? userTracks[1].screenShareTrack
+    : null; // Use UID 1 for screen share
   const isCameraOn = userTrack && userTrack.videoTrack;
-  const isScreenSharing = !!userTrack.screenShareTrack;
+  const isScreenSharing = !!screenShareTrack;
 
   console.log("User isScreenSharing:", isScreenSharing);
 
@@ -104,8 +125,6 @@ export const showAvatar = (uid) => {
   const pipAvatarDiv = document.getElementById(`pip-avatar`);
   const pipVideoPlayer = document.getElementById(`pip-video-track`);
 
-
-  console.log("User isScreenSharing:", isScreenSharing);
   console.log("Avatar div:", avatarDiv);
   console.log("Video player:", videoPlayer);
   console.log("PiP Avatar div:", pipAvatarDiv);
@@ -128,6 +147,13 @@ export const showAvatar = (uid) => {
         pipVideoPlayer.style.display = "none"; // Hide PiP video player
       } else {
         console.warn("PiP video player not found.");
+      }
+
+      // Play the screen share in the main video player
+      if (screenShareTrack && videoPlayer) {
+        console.log("Playing screen share in the main video player.");
+        screenShareTrack.play(videoPlayer);
+        videoPlayer.style.display = "block";
       }
     } else {
       // Show avatar in the main video stage
@@ -159,6 +185,13 @@ export const showAvatar = (uid) => {
         console.log("Showing PiP video player.");
         pipVideoPlayer.style.display = "block"; // Show PiP video player
       }
+
+      // Play the screen share in the main video player
+      if (screenShareTrack && videoPlayer) {
+        console.log("Playing screen share in the main video player.");
+        screenShareTrack.play(videoPlayer);
+        videoPlayer.style.display = "block";
+      }
     } else {
       // Hide avatar in the main video stage when the camera is on
       if (avatarDiv) {
@@ -178,31 +211,33 @@ export const showAvatar = (uid) => {
 
 
 
-
 export const startScreenShare = async (uid, config) => {
   try {
     console.log(`Starting screen share process for user with UID:`, uid);
 
     // Get the userTrack information, initialize if not already done
-    if (!userTracks[uid]) {
-      userTracks[uid] = {}; // Initialize userTrack for the user if not exists
+    if (!userTracks[1]) {
+      userTracks[1] = {}; // Initialize userTrack for screen share if not exists
     }
-    const userTrack = userTracks[uid];
+    const userTrack = userTracks[1];
 
     // Create the screen share track
     const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
     userTrack.screenShareTrack = screenShareTrack;
     console.log(`Screen share track created:`, userTrack.screenShareTrack);
 
-    // Publish the screen share track
-    await config.client.publish([screenShareTrack]);
-    console.log("Screen share track published");
+    // Publish the screen share track using the existing screen share client
+    await config.screenShareClient.publish([screenShareTrack]);
+    console.log("Screen share track published with screen share client");
 
     // Manage the camera state (now handles playing the screen share track)
     manageCameraState(uid);
 
     // Mark the user as screen sharing
     userTrack.screenShareEnabled = true;
+
+    // Update the RTM attribute to indicate screen sharing
+    await updateSharingScreenAttribute(true, config);
 
     // Switch to screen share stage
     console.log(`Toggling stages: switching to screen-share stage...`);
@@ -225,12 +260,12 @@ export const startScreenShare = async (uid, config) => {
       error.name === "NotAllowedError" ||
       error.message.includes("Permission denied")
     ) {
-      console.log(`User canceled the screen sharing prompt.`);
+      console.log("User canceled the screen sharing prompt.");
       if (typeof bubble_fn_isScreenOn === "function") {
         bubble_fn_isScreenOn(false); // Reset screen sharing state
       }
     } else {
-      console.error(`Error creating screen share track:`, error);
+      console.error("Error creating screen share track:", error);
     }
   }
 };
@@ -257,16 +292,19 @@ export const stopScreenShare = async (uid, config) => {
       console.warn(`No active screen share track found to stop.`);
     }
 
-    // Clear the RTM attributes for screen sharing
+    // Update RTM attribute to indicate that screen sharing has stopped
+    await updateSharingScreenAttribute(false, config);
+
+    // Clear any other RTM attributes related to screen sharing (if needed)
     console.log(`Clearing RTM attributes for screen sharing...`);
     await clearRTMAttributes(uid, config.clientRTM);
 
     // Switch back to the video stage
     console.log(`Toggling back to video stage...`);
-    toggleStages(false, uid); // Switch back from screen-share to video stage
+    toggleStages(false, config.uid); // Switch back from screen-share to video stage
 
     // Manage camera state to ensure the camera is active again (if needed)
-    manageCameraState(uid);
+    manageCameraState(config.uid);
 
     // Call the function to indicate screen sharing is off
     if (typeof bubble_fn_isScreenOn === "function") {
@@ -277,7 +315,6 @@ export const stopScreenShare = async (uid, config) => {
     throw error;
   }
 };
-
 
 export const toggleStages = (isScreenSharing, uid) => {
   const videoStage = document.getElementById("video-stage");
@@ -317,21 +354,17 @@ export const toggleStages = (isScreenSharing, uid) => {
 
 
 
-const setRTMAttributes = async (uid, clientRTM) => {
-  if (clientRTM) {
-    const attributes = { uidSharingScreen: uid.toString() }; // Set the attribute for screen sharing
-    await clientRTM.setLocalUserAttributes(attributes); // Set attributes for RTM
-    console.log(`Screen share UID attribute set for user with UID ${uid}`);
-  } else {
-    console.error(`RTM client not found for user with UID ${uid}`);
-  }
-};
-
-const clearRTMAttributes = async (uid, clientRTM) => {
-  if (clientRTM) {
-    await clientRTM.clearLocalUserAttributes(); // Clear attributes for RTM
-    console.log(`Screen share UID attribute cleared for user with UID ${uid}`);
-  } else {
-    console.error(`RTM client not found for user with UID ${uid}`);
+export const updateSharingScreenAttribute = async (isSharing, config) => {
+  try {
+    if (config.clientRTM && config.clientRTM._logined) {
+      await config.clientRTM.setLocalUserAttributes({
+        sharingScreen: isSharing,
+      });
+      console.log(`Updated RTM attribute sharingScreen to: ${isSharing}`);
+    } else {
+      console.error("RTM client is not logged in.");
+    }
+  } catch (error) {
+    console.error("Failed to update sharingScreen attribute:", error);
   }
 };
