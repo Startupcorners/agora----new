@@ -37,90 +37,52 @@ export const handleUserPublished = async (user, mediaType, config) => {
     return;
   }
 
-  // Check if the userUid is the screen share UID (RTC) and if the current user is the one sharing
-  if (
-    userUid === config.screenShareUid?.toString() &&
-    config.uid.toString() === screenShareRtmUid
-  ) {
-    console.log("User is the current screen sharer. Skipping subscription.");
-    return; // Skip the subscription to avoid handling the screen share twice for the same user
-  }
-
   // Ensure remoteTracks is initialized
   if (!config.remoteTracks) {
     config.remoteTracks = {};
   }
 
-  // Handle screen sharing for other users (if the screen share UID matches)
-  if (userUid === config.screenShareUid?.toString()) {
-    let screenShareElement = document.querySelector("#screen-share-content");
-    let screenShareVideo = document.querySelector("#screen-share-video"); // For PiP
-
-    if (!screenShareElement) {
-      console.log("Screen share element not found.");
-      return;
-    }
-
-    if (mediaType === "video") {
-      try {
-        await config.client.subscribe(user, mediaType);
-        if (user.videoTrack && typeof user.videoTrack.play === "function") {
-          console.log(`Playing screen share track for user ${userUid}`);
-
-          // Play the screen share video in the main screen share area
-          user.videoTrack.play(screenShareElement);
-
-          // Play the PiP video (person sharing their screen) in the bottom-right
-          if (screenShareVideo && user.videoTrack) {
-            console.log(
-              `Playing PiP video for screen share of user ${userUid}`
-            );
-            user.videoTrack.play(screenShareVideo); // Play PiP
-          }
-
-          // Display the screen share stage, hide the main video stage
-          document.querySelector("#screen-share-stage").style.display = "block";
-          document.querySelector("#video-stage").style.display = "none";
-        }
-      } catch (error) {
-        console.error(
-          `Error subscribing to screen share track for user ${userUid}:`,
-          error
+  // Handle screen sharing if the RTM attribute for screen sharing matches
+  if (userUid === screenShareRtmUid) {
+    console.log(`Handling screen share for user ${userUid}.`);
+    try {
+      await config.client.subscribe(user, mediaType);
+      if (mediaType === "video" && user.videoTrack) {
+        let screenShareElement = document.querySelector(
+          "#screen-share-content"
         );
+
+        // Play screen share video in the appropriate element
+        if (screenShareElement) {
+          user.videoTrack.play(screenShareElement);
+          console.log(`Playing screen share track for user ${userUid}.`);
+        } else {
+          console.warn("Screen share element not found.");
+        }
+
+        // Switch to screen share stage and hide video stage
+        toggleStages(true, userUid);
+
+        // Manage camera state while screen sharing (PiP or main video feed)
+        manageCameraState(userUid);
       }
+    } catch (error) {
+      console.error(
+        `Error subscribing to screen share track for user ${userUid}:`,
+        error
+      );
     }
-    return; // Exit early after handling screen share
+    return; // Exit after handling screen share
   }
 
-  // Handle regular media publishing (non-screen share)
-  let videoPlayer = document.querySelector(`#stream-${userUid}`);
-  if (!videoPlayer) {
-    console.log(`Video player not found for user ${userUid}.`);
-    return;
-  }
-
+  // Handle regular video publishing (non-screen share)
   if (mediaType === "video") {
     try {
       await config.client.subscribe(user, mediaType);
       if (user.videoTrack && typeof user.videoTrack.play === "function") {
         console.log(`Playing video track for user ${userUid}`);
-        user.videoTrack.play(videoPlayer);
-
-        videoPlayer.style.display = "block"; // Show video player
-
-        const avatarDiv = document.querySelector(`#avatar-${userUid}`);
-        if (avatarDiv) {
-          avatarDiv.style.display = "none"; // Hide avatar when video is available
-        }
-      } else {
-        console.log(
-          `User ${userUid} does not have a valid video track. Showing avatar.`
-        );
-        const avatarDiv = document.querySelector(`#avatar-${userUid}`);
-        if (avatarDiv) {
-          avatarDiv.style.display = "block"; // Show avatar if no valid video track
-        }
-        videoPlayer.style.display = "none"; // Hide video player
+        user.videoTrack.play(`#stream-${userUid}`);
+        manageCameraState(userUid); // Call the generalized camera management function
       }
     } catch (error) {
       console.error(
@@ -130,6 +92,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     }
   }
 
+  // Handle audio publishing
   if (mediaType === "audio") {
     try {
       await config.client.subscribe(user, mediaType);
@@ -146,6 +109,7 @@ export const handleUserPublished = async (user, mediaType, config) => {
     }
   }
 };
+
 
 
 
