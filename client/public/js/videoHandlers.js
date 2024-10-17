@@ -1,6 +1,6 @@
 import { userTracks } from "./state.js";
 
-export const manageCameraState = (uid, userType) => {
+export const manageCameraState = (uid) => {
   console.log(`Managing camera state for user with UID:`, uid);
 
   // Ensure that the user track exists in the global userTracks
@@ -12,9 +12,9 @@ export const manageCameraState = (uid, userType) => {
 
   console.log(`User track for UID ${uid}:`, userTrack);
 
-  // Handle camera video and avatar display
-  playCameraVideo(uid, userType);
-  showAvatar(uid, userType);
+  // Handle camera video and avatar display without relying on userType
+  playCameraVideo(uid);
+  showAvatar(uid);
 
   console.log("Camera state management completed for UID:", uid);
 };
@@ -22,27 +22,28 @@ export const manageCameraState = (uid, userType) => {
 
 
 
-export const playCameraVideo = (uid, userType) => {
+
+export const playCameraVideo = (uid) => {
   const userTrack = userTracks[uid];
   const videoTrack = userTrack ? userTrack.videoTrack : null;
 
-  console.log("playCameraVideo called for", userType, "user with UID:", uid);
+  console.log("playCameraVideo called for user with UID:", uid);
 
   if (!videoTrack) {
     console.log("Camera is off or there is no video track for this user.");
     return;
   }
 
-  // Define video elements based on userType
+  // Define video elements based on UID
   const videoPlayer = document.querySelector(`#stream-${uid}`);
-  const pipVideoPlayer = document.getElementById(`${userType}-pip-video-track`);
-  const pipAvatarDiv = document.getElementById(`${userType}-pip-avatar`);
+  const pipVideoPlayer = document.getElementById(`pip-video-track`);
+  const pipAvatarDiv = document.getElementById(`pip-avatar`);
 
   // Check if the user is screen sharing
   const isScreenSharing = !!userTrack.screenShareTrack;
 
   if (isScreenSharing) {
-    console.log("Screen sharing is enabled, managing PiP for", userType);
+    console.log("Screen sharing is enabled, managing PiP.");
 
     // If screen is being shared, play camera in PiP
     if (pipVideoPlayer) {
@@ -58,10 +59,7 @@ export const playCameraVideo = (uid, userType) => {
       pipAvatarDiv.style.display = "none"; // Hide PiP avatar if the camera is on
     }
   } else {
-    console.log(
-      "Screen sharing is not enabled, managing main video stage for",
-      userType
-    );
+    console.log("Screen sharing is not enabled, managing main video stage.");
 
     // Play the camera feed in the main video stage
     if (videoPlayer) {
@@ -77,17 +75,16 @@ export const playCameraVideo = (uid, userType) => {
 };
 
 
-
-export const showAvatar = (uid, userType) => {
-  console.log(`Entering showAvatar for ${userType} user with UID:`, uid);
+export const showAvatar = (uid) => {
+  console.log(`Entering showAvatar for user with UID:`, uid);
 
   const userTrack = userTracks[uid];
   const isCameraOn = userTrack && userTrack.videoTrack;
 
   const avatarDiv = document.querySelector(`#avatar-${uid}`);
   const videoPlayer = document.querySelector(`#stream-${uid}`);
-  const pipAvatarDiv = document.getElementById(`${userType}-pip-avatar`);
-  const pipVideoPlayer = document.getElementById(`${userType}-pip-video-track`);
+  const pipAvatarDiv = document.getElementById(`pip-avatar`);
+  const pipVideoPlayer = document.getElementById(`pip-video-track`);
 
   // Check if the user is screen sharing
   const isScreenSharing = !!userTrack.screenShareTrack;
@@ -99,7 +96,7 @@ export const showAvatar = (uid, userType) => {
   console.log("PiP Video player:", pipVideoPlayer);
 
   if (!isCameraOn) {
-    console.log("Camera is off, showing avatar for", userType, "user.");
+    console.log("Camera is off, showing avatar for user with UID:", uid);
 
     if (isScreenSharing) {
       // Show avatar in PiP
@@ -133,7 +130,7 @@ export const showAvatar = (uid, userType) => {
       }
     }
   } else {
-    console.log("Camera is on, hiding avatar for", userType, "user.");
+    console.log("Camera is on, hiding avatar for user with UID:", uid);
 
     if (isScreenSharing) {
       // Hide avatar in PiP when camera is on

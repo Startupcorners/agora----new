@@ -126,7 +126,7 @@ export const toggleCamera = async (isMuted, config) => {
         console.log("Camera turned off and unpublished for user:", uid);
 
         // Use generalized function to manage the camera state
-        manageCameraState(uid, "local");
+        manageCameraState(uid);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
@@ -154,7 +154,7 @@ export const toggleCamera = async (isMuted, config) => {
       console.log("Video track enabled and published for user:", uid);
 
       // Use generalized function to manage the camera state
-      manageCameraState(uid, "local");
+      manageCameraState(uid);
 
       if (typeof bubble_fn_isCamOn === "function") {
         bubble_fn_isCamOn(true);
