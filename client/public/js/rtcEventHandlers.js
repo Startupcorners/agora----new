@@ -26,6 +26,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     return;
   }
 
+  console.log("userTracks[userUid]", userTracks[userUid]);
   // Ensure userTracks is initialized for the user
   if (!userTracks[userUid]) {
     userTracks[userUid] = {}; // Initialize a new track object for the user
