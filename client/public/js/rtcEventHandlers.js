@@ -24,6 +24,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
   // Log the entire user object for debugging
   console.log("User object:", user);
   console.log("config.clientRTM", config.clientRTM);
+  console.log("Remote users:", client.remoteUsers);
 
   // Check if the UID is 1 (indicating screen share)
   if (userUid === 1) {
