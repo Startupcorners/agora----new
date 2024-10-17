@@ -257,11 +257,6 @@ export const stopScreenShare = async (uid, config) => {
       console.warn(`No active screen share track found to stop.`);
     }
 
-    // Send RTM message to notify others that screen sharing has stopped
-    const message = { type: "screen-share", action: "stop", uid: uid };
-    await config.clientRTM.sendMessage({ text: JSON.stringify(message) });
-    console.log(`Screen sharing stopped and RTM message sent for UID: ${uid}`);
-
     // Clear the RTM attributes for screen sharing
     console.log(`Clearing RTM attributes for screen sharing...`);
     await clearRTMAttributes(uid, config.clientRTM);
@@ -282,6 +277,7 @@ export const stopScreenShare = async (uid, config) => {
     throw error;
   }
 };
+
 
 
 export const toggleStages = (isScreenSharing, uid) => {
