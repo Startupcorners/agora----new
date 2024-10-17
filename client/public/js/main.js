@@ -94,17 +94,6 @@ const join = async () => {
       await config.client.setClientRole("audience");
     }
 
-    // Initialize participantList with the local user's info
-    config.participantList = [
-      {
-        uid: config.uid,
-        name: config.user.name || "Unknown",
-        company: config.user.company || "",
-        designation: config.user.designation || "",
-        role: config.user.role || "audience", // Include role
-      },
-    ];
-
     // Join RTM
     await joinRTM(tokens.rtmToken);
 
@@ -126,25 +115,6 @@ const join = async () => {
 
     // Subscribe to existing remote users' media tracks (video/audio)
     await subscribeToExistingUsers(config);
-
-    // Notify with the list of participants' UIDs and other info
-    if (typeof bubble_fn_participantList === "function") {
-      const participantUIDs = config.participantList.map((p) =>
-        p.uid.toString()
-      );
-      const participantNames = config.participantList.map((p) => p.name);
-      const participantCompanies = config.participantList.map((p) => p.company);
-      const participantDesignations = config.participantList.map(
-        (p) => p.designation
-      );
-
-      bubble_fn_participantList({
-        outputlist1: participantUIDs, // Pass as array
-        outputlist2: participantNames,
-        outputlist3: participantCompanies,
-        outputlist4: participantDesignations,
-      });
-    }
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
@@ -186,42 +156,15 @@ const subscribeToExistingUsers = async (config) => {
             );
           }
 
-          // Extract attributes
-          const name = attributes.name || "Unknown";
-          const company = attributes.comp || "";
-          const designation = attributes.desg || "";
-          const role = attributes.role || "audience";
+          // Call handleUserJoined to update participant list
+          await handleUserJoined(remoteUser, config, attributes);
 
-          // Assign role to remoteUser
-          remoteUser.role = role;
-
-          // Check if user already exists in participantList
-          const userExists = config.participantList.some(
-            (participant) => participant.uid === remoteUser.uid
-          );
-
-          if (!userExists) {
-            // Add remote user's info to participantList
-            config.participantList.push({
-              uid: remoteUser.uid,
-              name: name,
-              company: company,
-              designation: designation,
-              role: role, // Include role
-            });
-          }
-
-          //await handleUserJoined(remoteUser, config);
-
-          // Subscribe to and handle media tracks
-          if (remoteUser.videoTrack) {
-            await config.client.subscribe(remoteUser, "video");
-            //await handleUserPublished(remoteUser, "video", config);
-          }
-
-          if (remoteUser.audioTrack) {
-            await config.client.subscribe(remoteUser, "audio");
-            //await handleUserPublished(remoteUser, "audio", config);
+          // Agora will trigger the user-published event for already published users.
+          // Simulate this by manually calling handleUserPublished after the user has joined.
+          if (remoteUser.videoTrack || remoteUser.audioTrack) {
+            // Manually trigger handleUserPublished for already published media
+            await handleUserPublished(remoteUser, "video", config);
+            await handleUserPublished(remoteUser, "audio", config);
           }
         }
       }
