@@ -357,10 +357,12 @@ export const toggleStages = (isScreenSharing, uid) => {
 export const updateSharingScreenAttribute = async (isSharing, config) => {
   try {
     if (config.clientRTM && config.clientRTM._logined) {
+      const sharingValue = isSharing ? "1" : "0"; // Set to "1" for true, "0" for false
+
       await config.clientRTM.setLocalUserAttributes({
-        sharingScreen: isSharing,
+        sharingScreen: sharingValue,
       });
-      console.log(`Updated RTM attribute sharingScreen to: ${isSharing}`);
+      console.log(`Updated RTM attribute sharingScreen to: ${sharingValue}`);
     } else {
       console.error("RTM client is not logged in.");
     }
@@ -368,3 +370,4 @@ export const updateSharingScreenAttribute = async (isSharing, config) => {
     console.error("Failed to update sharingScreen attribute:", error);
   }
 };
+

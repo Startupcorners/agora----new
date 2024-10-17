@@ -196,7 +196,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       comp: config.user.company || "",
       desg: config.user.designation || "",
       role: config.user.role || "audience",
-      sharingScreen: false,
+      sharingScreen: "0",
     };
 
     await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
@@ -269,7 +269,6 @@ const joinToVideoStage = async (config) => {
       videoTrack: null, // Initially set to null (camera off state)
       screenShareTrack: config.localScreenShareTrack || null,
       isVideoMuted: true, // Camera is off initially
-      sharingScreen: false,
     };
 
     // Reassign the updated user track back to the global userTracks object
