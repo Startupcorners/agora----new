@@ -193,16 +193,15 @@ export const startScreenShare = async (uid, config) => {
     userTrack.screenShareEnabled = true;
 
     // Send an RTM message to inform others of the screen share start
-    const message = {
-      text: JSON.stringify({
-        type: "screenshare",
-        action: "start",
-        uid: uid,
-      }),
-    };
+    // Send an RTM message to inform others of the screen share start
+    const message = JSON.stringify({
+      type: "screenshare",
+      action: "start",
+      uid: uid,
+    });
 
     if (config.channelRTM) {
-      await config.channelRTM.sendMessage({ text: message.text });
+      await config.channelRTM.sendMessage({ text: message });
       console.log("Sent screen share start message to channel.");
     } else {
       console.error("RTM channel not found.");

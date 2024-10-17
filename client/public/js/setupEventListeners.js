@@ -62,34 +62,36 @@ export const setupRTMMessageListener = (clientRTM, config) => {
       message
     );
 
-    // Check if the message has text content
+    // Ensure the message contains text content
     if (message && message.text) {
-      console.log(`Received message text: ${message.text}`); // Log the message text
-
       try {
         // Parse the message text as JSON
         const parsedMessage = JSON.parse(message.text);
         console.log("Parsed RTM message:", parsedMessage);
 
-        // Check the type of action
+        // Handle the parsed message based on type and action
         if (parsedMessage.type === "screenshare") {
           const { action, uid } = parsedMessage;
 
           if (action === "start") {
             console.log(`User ${uid} started screen sharing.`);
-            // Handle screen share start (toggle stages, manage camera state, etc.)
+            // Trigger the screen share start flow (e.g., toggle stages)
             toggleStages(true, uid);
+            manageCameraState(uid); // Call the generalized camera state management function
           } else if (action === "stop") {
             console.log(`User ${uid} stopped screen sharing.`);
-            // Handle screen share stop (toggle stages, manage camera state, etc.)
+            // Trigger the screen share stop flow
             toggleStages(false, uid);
+            manageCameraState(uid); // Update the camera state post screen share
           }
         }
       } catch (error) {
         console.error("Error parsing RTM message:", error);
       }
     } else {
-      console.warn("Received a message without text content.");
+      console.warn(
+        "Received a message without text content or unrecognized format."
+      );
     }
   });
 };
