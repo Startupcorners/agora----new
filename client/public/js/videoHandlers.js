@@ -194,6 +194,7 @@ export const startScreenShare = async (uid, config) => {
 
     // Send an RTM message to inform others of the screen share start
     // Send an RTM message to inform others of the screen share start
+    // Send an RTM message to inform others of the screen share start
     const message = JSON.stringify({
       type: "screenshare",
       action: "start",

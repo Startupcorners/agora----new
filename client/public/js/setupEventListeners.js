@@ -56,14 +56,22 @@ export const setupRTMMessageListener = (clientRTM, config) => {
     return;
   }
 
-  clientRTM.on("ChannelMessage", async (message, peerId) => {
+  if (!config.channelRTM) {
+    console.error("RTM channel not initialized.");
+    return;
+  }
+
+  // Listen for channel messages on the RTM channel
+  config.channelRTM.on("ChannelMessage", async (message, memberId) => {
     console.log(
-      `RTM:INFO Received a channel text message from ${peerId}`,
+      `RTM:INFO Received a channel text message from ${memberId}`,
       message
     );
 
     // Ensure the message contains text content
     if (message && message.text) {
+      console.log(`Received message text: ${message.text}`); // Log the message text
+
       try {
         // Parse the message text as JSON
         const parsedMessage = JSON.parse(message.text);
@@ -75,7 +83,7 @@ export const setupRTMMessageListener = (clientRTM, config) => {
 
           if (action === "start") {
             console.log(`User ${uid} started screen sharing.`);
-            // Trigger the screen share start flow (e.g., toggle stages)
+            // Trigger the screen share start flow
             toggleStages(true, uid);
             manageCameraState(uid); // Call the generalized camera state management function
           } else if (action === "stop") {
