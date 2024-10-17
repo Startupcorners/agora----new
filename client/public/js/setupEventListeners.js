@@ -50,7 +50,7 @@ export const setupEventListeners = (config) => {
   });
 };
 
-const setupRTMMessageListener = (clientRTM, config) => {
+export const setupRTMMessageListener = (clientRTM, config) => {
   if (!clientRTM) {
     console.error("RTM client not initialized.");
     return;
