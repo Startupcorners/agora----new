@@ -1,4 +1,8 @@
 import { userTracks } from "./state.js";
+import {
+  setupEventListeners,
+  setupRTMMessageListener,
+} from "./setupEventListeners.js";
 
 export const manageCameraState = (uid) => {
   console.log(`Managing camera state for user with UID:`, uid);
@@ -188,10 +192,21 @@ export const startScreenShare = async (uid, config) => {
     // Mark screen sharing as enabled **before** managing PiP or camera
     userTrack.screenShareEnabled = true;
 
-    // Send RTM message to notify others that screen sharing has started
-    const message = { type: "screen-share", action: "start", uid: uid };
-    await config.clientRTM.sendMessage({ text: JSON.stringify(message) });
-    console.log(`Screen sharing started and RTM message sent for UID: ${uid}`);
+    // Send an RTM message to inform others of the screen share start
+    const message = {
+      text: JSON.stringify({
+        type: "screenshare",
+        action: "start",
+        uid: uid,
+      }),
+    };
+
+    if (config.channelRTM) {
+      await config.channelRTM.sendMessage({ text: message.text });
+      console.log("Sent screen share start message to channel.");
+    } else {
+      console.error("RTM channel not found.");
+    }
 
     // Set RTM attributes for screen sharing
     console.log(`Setting RTM attributes for screen sharing...`);
@@ -214,7 +229,6 @@ export const startScreenShare = async (uid, config) => {
       await stopScreenShare(uid, config);
     });
   } catch (error) {
-    // Handle case when user cancels the screen sharing permission prompt
     if (
       error.name === "NotAllowedError" ||
       error.message.includes("Permission denied")
@@ -224,7 +238,6 @@ export const startScreenShare = async (uid, config) => {
         bubble_fn_isScreenOn(false); // Reset screen sharing state
       }
     } else {
-      // Handle other errors
       console.error(`Error creating screen share track:`, error);
     }
   }
