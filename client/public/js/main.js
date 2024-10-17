@@ -269,7 +269,7 @@ const joinToVideoStage = async (config) => {
       videoTrack: null, // Initially set to null (camera off state)
       screenShareTrack: config.localScreenShareTrack || null,
       isVideoMuted: true, // Camera is off initially
-      isScreenSharing: false,
+      sharingScreen: false,
     };
 
     // Reassign the updated user track back to the global userTracks object
