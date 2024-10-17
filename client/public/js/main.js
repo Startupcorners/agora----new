@@ -1,6 +1,6 @@
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
-import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
+import { setupEventListeners,setupRTMMessageListener } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 import { handleRenewToken, handleUserJoined, handleUserPublished } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
