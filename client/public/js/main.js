@@ -149,12 +149,17 @@ const subscribeToExistingUsers = async (config) => {
             attributes = await config.clientRTM.getUserAttributes(
               remoteUser.uid.toString()
             );
+            console.log(
+              `Attributes for remote user ${remoteUser.uid}:`,
+              attributes
+            );
           } catch (e) {
             console.error(
               `Failed to get attributes for user ${remoteUser.uid}`,
               e
             );
           }
+
 
           // Call handleUserJoined to update participant list
           await handleUserJoined(remoteUser, config, attributes);
