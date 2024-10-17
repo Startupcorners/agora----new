@@ -41,7 +41,6 @@ export const manageCameraState = (uid) => {
 
 
 
-
 export const playCameraVideo = async (uid, config) => {
   const userTrack = userTracks[uid];
   const videoTrack = userTrack ? userTrack.videoTrack : null;
