@@ -42,46 +42,28 @@ export const manageCameraState = (uid) => {
 
 
 
-export const playCameraVideo = (uid) => {
+export const playCameraVideo = async (uid, config) => {
   const userTrack = userTracks[uid];
-  const screenShareTrack = userTracks[1]
-    ? userTracks[1].screenShareTrack
-    : null; // Use UID 1 for screen share
   const videoTrack = userTrack ? userTrack.videoTrack : null;
 
   console.log("playCameraVideo called for user with UID:", uid);
 
-  if (!videoTrack) {
-    console.log("Camera is off or there is no video track for this user.");
-    return;
-  }
-
-  // Define video elements based on UID
   const videoPlayer = document.querySelector(`#stream-${uid}`);
   const pipVideoPlayer = document.getElementById(`pip-video-track`);
   const pipAvatarDiv = document.getElementById(`pip-avatar`);
 
-  // Check if the user is screen sharing (screen share uses UID 1)
-  const isScreenSharing = !!screenShareTrack;
+  // Fetch the user's RTM attributes to check if they are sharing their screen
+  const attributes = await config.clientRTM.getUserAttributes(uid);
+  const isScreenSharing = attributes.sharingScreen === "1";
+  const isCameraOn = !!videoTrack;
 
   if (isScreenSharing) {
     console.log("Screen sharing is enabled, managing PiP for camera.");
 
-    // If the screen is being shared, play the camera in PiP
-    if (pipVideoPlayer) {
-      console.log("Playing video track in PiP.");
-      videoTrack.play(pipVideoPlayer);
-      pipVideoPlayer.style.display = "block"; // Ensure PiP video player is visible
-    } else {
-      console.warn("pipVideoPlayer not found.");
-    }
-
-    if (pipAvatarDiv) {
-      console.log("Hiding PiP avatar.");
-      pipAvatarDiv.style.display = "none"; // Hide PiP avatar if the camera is on
-    }
-
-    // Play the screen share in the main video stage if applicable
+    // Show the screen share in the main video stage
+    const screenShareTrack = userTracks[1]
+      ? userTracks[1].screenShareTrack
+      : null;
     if (screenShareTrack && videoPlayer) {
       console.log("Playing screen share track in main video stage.");
       screenShareTrack.play(videoPlayer);
@@ -89,86 +71,90 @@ export const playCameraVideo = (uid) => {
     } else {
       console.warn("videoPlayer or screenShareTrack not found.");
     }
+
+    // Only play the camera in PiP if the camera is on
+    if (isCameraOn && pipVideoPlayer) {
+      console.log("Playing camera video track in PiP.");
+      videoTrack.play(pipVideoPlayer);
+      pipVideoPlayer.style.display = "block"; // Show PiP video player
+      pipAvatarDiv.style.display = "none"; // Hide PiP avatar
+    } else {
+      console.log("Camera is off, hiding PiP.");
+      if (pipVideoPlayer) pipVideoPlayer.style.display = "none"; // Hide PiP video player
+      if (pipAvatarDiv) pipAvatarDiv.style.display = "block"; // Show PiP avatar
+    }
   } else {
     console.log(
       "Screen sharing is not enabled, managing main video stage for camera."
     );
 
-    // Play the camera feed in the main video stage
-    if (videoPlayer) {
-      console.log("Playing video track in main video stage.");
+    // Show the camera feed in the main video stage
+    if (isCameraOn && videoPlayer) {
+      console.log("Playing camera video track in main video stage.");
       videoTrack.play(videoPlayer);
       videoPlayer.style.display = "block"; // Ensure main video player is visible
     } else {
-      console.warn("videoPlayer not found.");
+      console.log("Camera is off, hiding main video player.");
+      if (videoPlayer) videoPlayer.style.display = "none"; // Hide main video player
     }
+
+    // Hide PiP when screen sharing is not active
+    if (pipVideoPlayer) pipVideoPlayer.style.display = "none";
+    if (pipAvatarDiv) pipAvatarDiv.style.display = "block";
   }
 
   console.log("playCameraVideo function execution completed.");
 };
 
 
-export const showAvatar = (uid) => {
+export const showAvatar = async (uid, config) => {
   console.log(`Entering showAvatar for user with UID:`, uid);
 
   const userTrack = userTracks[uid];
-  const screenShareTrack = userTracks[1]
-    ? userTracks[1].screenShareTrack
-    : null; // Use UID 1 for screen share
   const isCameraOn = userTrack && userTrack.videoTrack;
-  const isScreenSharing = !!screenShareTrack;
 
-  console.log("User isScreenSharing:", isScreenSharing);
+  // Fetch the user's RTM attributes to check if they are sharing their screen
+  const attributes = await config.clientRTM.getUserAttributes(uid);
+  const isScreenSharing = attributes.sharingScreen === "1";
 
   const avatarDiv = document.querySelector(`#avatar-${uid}`);
   const videoPlayer = document.querySelector(`#stream-${uid}`);
   const pipAvatarDiv = document.getElementById(`pip-avatar`);
   const pipVideoPlayer = document.getElementById(`pip-video-track`);
 
-  console.log("Avatar div:", avatarDiv);
-  console.log("Video player:", videoPlayer);
-  console.log("PiP Avatar div:", pipAvatarDiv);
-  console.log("PiP Video player:", pipVideoPlayer);
-
   if (!isCameraOn) {
     console.log("Camera is off, showing avatar for user with UID:", uid);
 
+    // Handle PiP and screen share display
     if (isScreenSharing) {
-      // Show avatar in PiP
       if (pipAvatarDiv) {
         console.log("Showing PiP avatar.");
         pipAvatarDiv.style.display = "block"; // Show PiP avatar
-      } else {
-        console.warn("PiP avatar div not found.");
       }
 
       if (pipVideoPlayer) {
         console.log("Hiding PiP video player.");
         pipVideoPlayer.style.display = "none"; // Hide PiP video player
-      } else {
-        console.warn("PiP video player not found.");
       }
 
-      // Play the screen share in the main video player
+      const screenShareTrack = userTracks[1]
+        ? userTracks[1].screenShareTrack
+        : null;
       if (screenShareTrack && videoPlayer) {
         console.log("Playing screen share in the main video player.");
         screenShareTrack.play(videoPlayer);
-        videoPlayer.style.display = "block";
+        videoPlayer.style.display = "block"; // Ensure main video player is visible
       }
     } else {
-      // Show avatar in the main video stage
+      // Show avatar in the main video stage when no screen share
       if (avatarDiv) {
         console.log("Showing main avatar.");
         avatarDiv.style.display = "block"; // Show main avatar
-      } else {
-        console.warn("Main avatar div not found.");
       }
 
       if (videoPlayer) {
         console.log("Hiding main video player.");
         videoPlayer.style.display = "none"; // Hide main video player
-      } else {
-        console.warn("Main video player not found.");
       }
     }
   } else {
@@ -177,7 +163,6 @@ export const showAvatar = (uid) => {
     if (isScreenSharing) {
       // Hide avatar in PiP when camera is on
       if (pipAvatarDiv) {
-        console.log("Hiding PiP avatar.");
         pipAvatarDiv.style.display = "none"; // Hide PiP avatar
       }
 
@@ -186,23 +171,18 @@ export const showAvatar = (uid) => {
         pipVideoPlayer.style.display = "block"; // Show PiP video player
       }
 
-      // Play the screen share in the main video player
+      const screenShareTrack = userTracks[1]
+        ? userTracks[1].screenShareTrack
+        : null;
       if (screenShareTrack && videoPlayer) {
         console.log("Playing screen share in the main video player.");
         screenShareTrack.play(videoPlayer);
-        videoPlayer.style.display = "block";
+        videoPlayer.style.display = "block"; // Ensure main video player is visible
       }
     } else {
-      // Hide avatar in the main video stage when the camera is on
-      if (avatarDiv) {
-        console.log("Hiding main avatar.");
-        avatarDiv.style.display = "none"; // Hide main avatar
-      }
-
-      if (videoPlayer) {
-        console.log("Showing main video player.");
-        videoPlayer.style.display = "block"; // Show main video player
-      }
+      // Hide avatar and show video when camera is on and no screen sharing
+      if (avatarDiv) avatarDiv.style.display = "none"; // Hide main avatar
+      if (videoPlayer) videoPlayer.style.display = "block"; // Show main video player
     }
   }
 
@@ -356,18 +336,16 @@ export const toggleStages = (isScreenSharing, uid) => {
 
 export const updateSharingScreenAttribute = async (isSharing, config) => {
   try {
-    if (config.clientRTM && config.clientRTM._logined) {
-      const sharingValue = isSharing ? "1" : "0"; // Set to "1" for true, "0" for false
+    const sharingValue = isSharing ? "1" : "0"; // Set to "1" for true, "0" for false
 
-      await config.clientRTM.setLocalUserAttributes({
-        sharingScreen: sharingValue,
-      });
-      console.log(`Updated RTM attribute sharingScreen to: ${sharingValue}`);
-    } else {
-      console.error("RTM client is not logged in.");
-    }
+    // Update the local user's RTM attributes
+    await config.clientRTM.setLocalUserAttributes({
+      sharingScreen: sharingValue,
+    });
+    console.log(`Updated RTM attribute sharingScreen to: ${sharingValue}`);
   } catch (error) {
     console.error("Failed to update sharingScreen attribute:", error);
   }
 };
+
 
