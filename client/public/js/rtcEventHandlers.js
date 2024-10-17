@@ -2,6 +2,14 @@
 import { log, fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
+import {
+  startScreenShare,
+  stopScreenShare,
+  manageCameraState,
+  playCameraVideo,
+  showAvatar,
+} from "./videoHandlers.js";
+import { userTracks } from "./state.js"; 
 
 
 
@@ -37,52 +45,68 @@ export const handleUserPublished = async (user, mediaType, config) => {
     return;
   }
 
-  // Ensure remoteTracks is initialized
-  if (!config.remoteTracks) {
-    config.remoteTracks = {};
+  // Ensure userTracks is initialized for the user
+  if (!userTracks[userUid]) {
+    userTracks[userUid] = {}; // Initialize a new track object for the user
   }
 
-  // Handle screen sharing if the RTM attribute for screen sharing matches
-  if (userUid === screenShareRtmUid) {
-    console.log(`Handling screen share for user ${userUid}.`);
-    try {
-      await config.client.subscribe(user, mediaType);
-      if (mediaType === "video" && user.videoTrack) {
-        let screenShareElement = document.querySelector(
-          "#screen-share-content"
-        );
+  // Handle screen sharing for other users (if the screen share UID matches)
+  if (userUid === config.screenShareUid?.toString()) {
+    let screenShareElement = document.querySelector("#screen-share-content");
+    let screenShareVideo = document.querySelector("#screen-share-video"); // For PiP
 
-        // Play screen share video in the appropriate element
-        if (screenShareElement) {
+    if (!screenShareElement) {
+      console.log("Screen share element not found.");
+      return;
+    }
+
+    if (mediaType === "video") {
+      try {
+        await config.client.subscribe(user, mediaType);
+        if (user.videoTrack && typeof user.videoTrack.play === "function") {
+          console.log(`Playing screen share track for user ${userUid}`);
+
+          // Play the screen share video in the main screen share area
           user.videoTrack.play(screenShareElement);
-          console.log(`Playing screen share track for user ${userUid}.`);
-        } else {
-          console.warn("Screen share element not found.");
+
+          // Update userTracks with the screen share track
+          userTracks[userUid].screenShareTrack = user.videoTrack;
+
+          // Play the PiP video (person sharing their screen) in the bottom-right
+          if (screenShareVideo && user.videoTrack) {
+            console.log(
+              `Playing PiP video for screen share of user ${userUid}`
+            );
+            user.videoTrack.play(screenShareVideo); // Play PiP
+          }
+
+          // Switch to screen share stage and hide video stage
+          toggleStages(true, userUid);
         }
-
-        // Switch to screen share stage and hide video stage
-        toggleStages(true, userUid);
-
-        // Manage camera state while screen sharing (PiP or main video feed)
-        manageCameraState(userUid);
+      } catch (error) {
+        console.error(
+          `Error subscribing to screen share track for user ${userUid}:`,
+          error
+        );
       }
-    } catch (error) {
-      console.error(
-        `Error subscribing to screen share track for user ${userUid}:`,
-        error
-      );
     }
     return; // Exit after handling screen share
   }
 
-  // Handle regular video publishing (non-screen share)
+  // Handle regular media publishing (non-screen share)
   if (mediaType === "video") {
     try {
       await config.client.subscribe(user, mediaType);
       if (user.videoTrack && typeof user.videoTrack.play === "function") {
         console.log(`Playing video track for user ${userUid}`);
+        // Play video track
         user.videoTrack.play(`#stream-${userUid}`);
-        manageCameraState(userUid); // Call the generalized camera management function
+
+        // Update userTracks with the video track
+        userTracks[userUid].videoTrack = user.videoTrack;
+
+        // Manage the camera state for this user (show/hide avatar, play video)
+        manageCameraState(userUid);
       }
     } catch (error) {
       console.error(
@@ -92,13 +116,16 @@ export const handleUserPublished = async (user, mediaType, config) => {
     }
   }
 
-  // Handle audio publishing
   if (mediaType === "audio") {
     try {
       await config.client.subscribe(user, mediaType);
       if (user.audioTrack && typeof user.audioTrack.play === "function") {
         console.log(`Playing audio track for user ${userUid}`);
         user.audioTrack.play();
+
+        // Update userTracks with the audio track
+        userTracks[userUid].audioTrack = user.audioTrack;
+
         toggleMicIcon(userUid, false); // Mic is on
       } else {
         console.error(`Audio track for user ${userUid} is invalid or missing.`);
