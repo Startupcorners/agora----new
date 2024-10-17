@@ -160,14 +160,11 @@ const subscribeToExistingUsers = async (config) => {
             );
           }
 
-          // Call handleUserJoined to update participant list
-          await handleUserJoined(remoteUser, config, attributes);
-
-          // Always attempt to subscribe to both video and audio tracks
-          console.log(`Subscribing to video track of user ${remoteUser.uid}`);
+          // Subscribe to both video and audio tracks
+          console.log(
+            `Subscribing to video and audio tracks for user ${remoteUser.uid}`
+          );
           await handleUserPublished(remoteUser, "video", config, config.client);
-
-          console.log(`Subscribing to audio track of user ${remoteUser.uid}`);
           await handleUserPublished(remoteUser, "audio", config, config.client);
         }
       }
@@ -176,8 +173,6 @@ const subscribeToExistingUsers = async (config) => {
     console.error("Error in subscribing to existing users:", error);
   }
 };
-
-
 
 
 
