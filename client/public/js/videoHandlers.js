@@ -260,28 +260,29 @@ export const stopScreenShare = async (uid, config) => {
 };
 
 
-const toggleStages = (isScreenSharing, uid, userType) => {
-  // Select the correct video and screen share stage based on the userType
-  const videoStage = document.getElementById(`${userType}-video-stage`);
-  const screenShareStage = document.getElementById(
-    `${userType}-screen-share-stage`
-  );
+const toggleStages = (isScreenSharing, uid) => {
+  // Select the correct video and screen share stage based on the UID
+  const videoStage = document.getElementById(`video-stage-${uid}`);
+  const screenShareStage = document.getElementById(`screen-share-stage-${uid}`);
 
   if (!uid) {
     console.error("toggleStages: uid is undefined.");
     return; // Exit early to prevent further errors
   }
 
-  if (isScreenSharing) {
-    console.log(
-      `Toggling to screen share stage for ${userType} with UID: ${uid}`
+  if (!videoStage || !screenShareStage) {
+    console.error(
+      "toggleStages: Video or screen share stage element not found."
     );
+    return; // Exit early if elements are not found
+  }
+
+  if (isScreenSharing) {
+    console.log(`Toggling to screen share stage for user with UID: ${uid}`);
     videoStage.style.display = "none";
     screenShareStage.style.display = "block";
   } else {
-    console.log(
-      `Toggling back to video stage for ${userType} with UID: ${uid}`
-    );
+    console.log(`Toggling back to video stage for user with UID: ${uid}`);
     videoStage.style.display = "flex";
     screenShareStage.style.display = "none";
 
