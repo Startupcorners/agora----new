@@ -114,7 +114,7 @@ const join = async () => {
     }
 
     // Subscribe to existing remote users' media tracks (video/audio)
-    await subscribeToExistingUsers(config);
+    //await subscribeToExistingUsers(config);
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
