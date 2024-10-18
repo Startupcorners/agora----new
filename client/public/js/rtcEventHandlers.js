@@ -23,26 +23,35 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
-  // Log the entire user object for debugging
-  console.log("User object:", user);
-  console.log("config.clientRTM", config.clientRTM);
-  console.log("Remote users:", client.remoteUsers);
+  // Skip subscribing to local user's own media
+  if (userUid === config.uid) {
+    console.log("Skipping subscription to local user's own media.");
+    return;
+  }
 
-  // Check if the UID is 1 (indicating the screen share client)
-  if (userUid === 1 && mediaType === "video") {
-    console.log(`UID 1 (screen sharing client) detected.`);
+  // Handle screen share client (UID 1)
+  if (userUid === 1) {
+    console.log(`User with UID 1 (screen share client) published.`);
 
-    // Fetch the RTM attributes for UID 1 (screen-sharing user) using config.clientRTM
+    // Fetch RTM attributes for UID 1 to get 'userSharingUid'
     try {
-      const attributes = await config.clientRTM.getUserAttributes("1"); // Use "1" as a string
-      const sharingUser = attributes.sharingUser; // The actual user UID who is sharing their screen
+      const attributes = await config.clientRTM.getUserAttributes("1");
+      const userSharingUid = attributes.userSharingUid;
 
-      if (sharingUser && sharingUser !== "0") {
-        console.log(`User ${sharingUser} is currently sharing their screen.`);
+      console.log(`Screen share is from user: ${userSharingUid}`);
+
+      // If the screen share is from the local user, do not subscribe
+      if (userSharingUid === config.uid.toString()) {
+        console.log("Screen share is from local user. Not subscribing.");
+
+        // UI was already updated in 'startScreenShare', so no need to call 'manageCameraState' and 'toggleStages' again.
+
+        return;
+      } else {
+        console.log("Screen share is from remote user. Subscribing.");
 
         // Subscribe to the screen share track
         await client.subscribe(user, mediaType);
-        console.log(`Subscribed to screen share video track for UID 1.`);
 
         // Store the screen share track
         if (!userTracks[1]) {
@@ -50,87 +59,40 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
         }
         userTracks[1].screenShareTrack = user.videoTrack;
 
-        // Play the screen share track
-        const screenShareElement =
-          document.getElementById(`screen-share-content`);
-        if (screenShareElement) {
-          user.videoTrack.play(screenShareElement);
-          console.log(`Playing screen share track for UID 1.`);
-        } else {
-          console.warn(`Screen share element not found.`);
-        }
+        // Update UI accordingly using manageCameraState and toggleStages
+        manageCameraState(parseInt(userSharingUid, 10), config);
+        toggleStages(true, userSharingUid); // Show screen share stage
 
-        // Switch to screen share stage for the actual sharing user
-        console.log(`Toggling stages: switching to screen-share stage...`);
-        toggleStages(true, sharingUser); // Show screen-share stage and hide video stage
-
-        // Update UI for the sharing user's camera and avatar
-        manageCameraState(parseInt(sharingUser, 10), config);
-      } else {
-        console.log("No active screen sharing detected.");
+        return;
       }
     } catch (error) {
-      console.error(
-        "Error fetching RTM attributes for screen-share client (UID 1):",
-        error
-      );
+      console.error(`Error fetching RTM attributes for user 1:`, error);
     }
-
-    return; // Stop further execution for UID 1 (screen-sharing client)
   }
 
-  // Skip subscribing to your own media
-  if (userUid === config.uid) {
-    console.log("Skipping subscription to local user's own media.");
-    return;
-  }
-
+  // For other users, subscribe to their tracks as usual
   if (!userTracks[userUid]) {
-    userTracks[userUid] = {}; // Initialize track object for the user
+    userTracks[userUid] = {};
   }
 
   try {
-    // Ensure handleUserJoined is completed before proceeding
-    if (userJoinPromises[userUid]) {
-      console.log(`Waiting for handleUserJoined to finish for user ${userUid}`);
-      await userJoinPromises[userUid]; // Wait for user wrapper and elements to be ready
-    }
-
-    // Subscribe to the media type
     await client.subscribe(user, mediaType);
-    console.log(
-      `Successfully subscribed to ${mediaType} track for user ${userUid}`
-    );
+    console.log(`Subscribed to ${mediaType} track for user ${userUid}`);
 
     if (mediaType === "video") {
-      if (user.videoTrack) {
-        userTracks[userUid].videoTrack = user.videoTrack;
+      userTracks[userUid].videoTrack = user.videoTrack;
 
-        // Manage the camera state for the user (handles playing video and showing avatars)
-        manageCameraState(userUid, config);
-      } else {
-        console.warn(
-          `Subscribed to video track for user ${userUid}, but videoTrack is still undefined.`
-        );
-      }
-    }
+      // Update UI using manageCameraState
+      manageCameraState(userUid, config);
+    } else if (mediaType === "audio") {
+      userTracks[userUid].audioTrack = user.audioTrack;
 
-    if (mediaType === "audio") {
-      if (user.audioTrack) {
-        user.audioTrack.play();
-        userTracks[userUid].audioTrack = user.audioTrack;
-        console.log(`Audio track played and stored for user ${userUid}`);
-      } else {
-        console.warn(
-          `Subscribed to audio track for user ${userUid}, but audioTrack is still undefined.`
-        );
-      }
+      // Play audio track
+      user.audioTrack.play();
+      console.log(`Playing audio track for user ${userUid}.`);
     }
   } catch (error) {
-    console.error(
-      `Error subscribing to ${mediaType} track for user ${userUid}:`,
-      error
-    );
+    console.error(`Error subscribing to user ${userUid}:`, error);
   }
 };
 
