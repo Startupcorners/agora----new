@@ -285,6 +285,12 @@ const joinScreenShareRTM = async (
       await config.clientRTM.logout();
     }
 
+    // Ensure the UID is a string
+    if (typeof screenShareUid !== "string") {
+      console.error("RTM UID must be a string. Converting UID to string.");
+      screenShareUid = String(screenShareUid); // Convert to string if not already
+    }
+
     // Login to RTM with the screen share UID (1)
     await config.clientRTM.login({ uid: screenShareUid, token: rtmToken });
 
@@ -325,6 +331,7 @@ const joinScreenShareRTM = async (
     }
   }
 };
+
 
 
 
