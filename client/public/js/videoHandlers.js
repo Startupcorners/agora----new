@@ -250,7 +250,7 @@ export const startScreenShare = async (uid, config) => {
     // Join the channel with the unique UID
     await config.screenShareClient.join(
       config.appId,
-      config.channel,
+      config.channelName,
       config.token,
       screenShareUid
     );
