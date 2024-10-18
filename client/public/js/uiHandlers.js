@@ -196,7 +196,7 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       return;
     }
 
-    let screenShareUid = 1; // Use a different UID for screen share
+    let screenShareUid = 1001; // Use a different UID for screen share
 
     // If screen share is enabled, start the screen share process
     if (isEnabled) {
@@ -233,7 +233,7 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
 
 export const joinScreenShareClient = async (config, actualUserUid) => {
   try {
-    const screenShareUid = "1"; // UID for the screen share client as a string
+    const screenShareUid = "1001"; // UID for the screen share client as a string
 
     // Fetch RTC token for screen sharing (with UID 1)
     const tokens = await fetchTokens(config, screenShareUid);
