@@ -135,6 +135,7 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
         console.log(`Screen share was from user: ${sharingUserUid}`);
 
         // Update UI accordingly
+        config.currentScreenSharingUserUid = null;
         manageCameraState(sharingUserUid, config);
         toggleStages(false, sharingUserUid); // Hide screen share stage
 
@@ -148,8 +149,6 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
           }
         }
 
-        // **Clear the stored sharingUserUid**
-        config.currentScreenSharingUserUid = null;
       } else {
         console.error(
           "Could not determine who was sharing the screen. 'currentScreenSharingUserUid' is not set."
