@@ -53,7 +53,7 @@ export const playCameraVideo = async (uid, config) => {
   const pipAvatarDiv = document.getElementById(`pip-avatar`);
 
   // Fetch the user's RTM attributes to check if they are sharing their screen
-  const attributes = await config.clientRTM.getUserAttributes(uid);
+  const attributes = await config.clientRTM.getUserAttributes(uid.toString());
   const isScreenSharing = attributes.sharingScreen === "1";
   const isCameraOn = !!videoTrack;
 
@@ -114,7 +114,7 @@ export const showAvatar = async (uid, config) => {
   const isCameraOn = userTrack && userTrack.videoTrack;
 
   // Fetch the user's RTM attributes to check if they are sharing their screen
-  const attributes = await config.clientRTM.getUserAttributes(uid);
+  const attributes = await config.clientRTM.getUserAttributes(uid.toString());
   const isScreenSharing = attributes.sharingScreen === "1";
 
   const avatarDiv = document.querySelector(`#avatar-${uid}`);

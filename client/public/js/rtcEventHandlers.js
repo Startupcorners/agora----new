@@ -15,6 +15,7 @@ const userJoinPromises = {};
 
 
 // Handles user published event
+
 export const handleUserPublished = async (user, mediaType, config, client) => {
   const userUid = user.uid;
   console.log(
@@ -32,7 +33,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
 
     // Fetch the RTM attributes for UID 1 (screen-sharing user) using config.clientRTM
     try {
-      const attributes = await config.clientRTM.getUserAttributes("1"); // Fetch attributes for RTM uid "1"
+      const attributes = await config.clientRTM.getUserAttributes("1"); // Use "1" as a string
       const sharingUser = attributes.sharingUser; // The actual user UID who is sharing their screen
 
       if (sharingUser && sharingUser !== "0") {
@@ -119,8 +120,6 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     );
   }
 };
-
-
 
 
 
@@ -242,7 +241,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       if (!userAttr || Object.keys(userAttr).length === 0) {
         if (config.clientRTM) {
           try {
-            userAttr = await config.clientRTM.getUserAttributes(userUid);
+            userAttr = await config.clientRTM.getUserAttributes(userUid.toString());
           } catch (error) {
             console.error(
               `Failed to get RTM attributes for user ${userUid}:`,
