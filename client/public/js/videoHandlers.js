@@ -350,17 +350,9 @@ export const toggleStages = (isScreenSharing, uid) => {
     console.log(`Toggling back to video stage for user with UID: ${uid}`);
     videoStage.style.display = "flex";
     screenShareStage.style.display = "none";
-
-    // Ensure that after returning to the video stage, the avatar is shown if the camera is off
-    const avatarDiv = document.querySelector(`#avatar-${uid}`);
-    if (avatarDiv) {
-      avatarDiv.style.display = "block"; // Force avatar visibility if camera is off
-      console.log(`Avatar for UID ${uid} is displayed.`);
-    } else {
-      console.warn(`Avatar for UID ${uid} not found.`);
-    }
   }
 };
+
 
 
 
