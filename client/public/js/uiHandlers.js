@@ -246,7 +246,7 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
   }
 };
 
-export const joinScreenShareClient = async (config) => {
+export const joinScreenShareClient = async (config, actualUserUid) => {
   try {
     const screenShareUid = 1; // UID for the screen share client
 
@@ -267,6 +267,9 @@ export const joinScreenShareClient = async (config) => {
 
     console.log("Screen share client joined RTC channel with UID 1");
 
+    // Join RTM for the screen share client and assign sharingUser attribute
+    await joinScreenShareRTM(tokens.rtmToken, config, actualUserUid);
+
     // Handle token renewal for the screen-share client
     config.screenShareClient.on("token-privilege-will-expire", async () => {
       try {
@@ -278,12 +281,66 @@ export const joinScreenShareClient = async (config) => {
         console.error("Error renewing screen share token:", error);
       }
     });
-
   } catch (error) {
     console.error("Error joining screen share client:", error);
-
   }
 };
+
+const joinScreenShareRTM = async (
+  rtmToken,
+  config,
+  actualUserUid,
+  retryCount = 0
+) => {
+  try {
+    const screenShareUid = "1"; // The RTM UID for the screen-share client (must be a string)
+    console.log("Joining RTM with screen share UID:", screenShareUid);
+
+    if (config.clientRTM._logined) {
+      await config.clientRTM.logout();
+    }
+
+    // Login to RTM with the screen share UID (1)
+    await config.clientRTM.login({ uid: screenShareUid, token: rtmToken });
+
+    // Set RTM attributes for the screen share client, pointing to the actual user UID
+    const attributes = {
+      sharingUser: actualUserUid.toString(), // The actual user UID who is sharing
+    };
+
+    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM for the screen share client
+
+    // **Create the RTM channel and assign it to config.channelRTM if needed**
+    if (!config.channelRTM) {
+      config.channelRTM = config.clientRTM.createChannel(config.channelName);
+      console.log("RTM channel created with name:", config.channelName);
+    }
+
+    // **Join the RTM channel**
+    await config.channelRTM.join();
+    console.log(
+      "Screen share client successfully joined RTM channel:",
+      config.channelName
+    );
+  } catch (error) {
+    if (error.code === 5 && retryCount < 3) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return joinScreenShareRTM(
+        rtmToken,
+        config,
+        actualUserUid,
+        retryCount + 1
+      );
+    } else {
+      console.error(
+        "Failed to join RTM for screen share after multiple attempts:",
+        error
+      );
+      throw error;
+    }
+  }
+};
+
 
 
 // const startScreenShare = async (uid, userType) => {

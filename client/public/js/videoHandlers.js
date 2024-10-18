@@ -210,23 +210,9 @@ export const startScreenShare = async (uid, config) => {
     await config.screenShareClient.publish([screenShareTrack]);
     console.log("Screen share track published with screen share client");
 
-    // Manage the camera state (now handles playing the screen share track)
-    manageCameraState(uid, config);
-
     // Mark the user as screen sharing
     userTrack.screenShareEnabled = true;
 
-    // Update the RTM attribute to indicate screen sharing
-    await updateSharingScreenAttribute(true, config);
-
-    // Switch to screen share stage
-    console.log(`Toggling stages: switching to screen-share stage...`);
-    toggleStages(true, uid); // Show screen-share stage and hide video stage
-
-    // Indicate screen sharing state using Bubble or any other function
-    if (typeof bubble_fn_isScreenOn === "function") {
-      bubble_fn_isScreenOn(true); // Indicate screen is on
-    }
 
     // Handle track-ended event triggered by browser (if user stops screen sharing)
     screenShareTrack.on("track-ended", async () => {
@@ -333,19 +319,5 @@ export const toggleStages = (isScreenSharing, uid) => {
 };
 
 
-
-export const updateSharingScreenAttribute = async (isSharing, config) => {
-  try {
-    const sharingValue = isSharing ? "1" : "0"; // Set to "1" for true, "0" for false
-
-    // Update the local user's RTM attributes
-    await config.clientRTM.setLocalUserAttributes({
-      sharingScreen: sharingValue,
-    });
-    console.log(`Updated RTM attribute sharingScreen to: ${sharingValue}`);
-  } catch (error) {
-    console.error("Failed to update sharingScreen attribute:", error);
-  }
-};
 
 

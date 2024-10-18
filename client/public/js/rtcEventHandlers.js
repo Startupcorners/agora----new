@@ -30,30 +30,37 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
   if (userUid === 1) {
     console.log(`UID 1 (screen sharing user) detected.`);
 
-    // Find the user who is sharing the screen by checking RTM attributes
+    // Fetch the RTM attributes of the screen-share client (uid = 1)
     try {
-      // Get the attributes for all users (or fetch from RTM channels if needed)
-      const remoteUsers = client.remoteUsers;
-      for (const remoteUser of remoteUsers) {
-        const attributes = await config.clientRTM.getUserAttributes(
-          remoteUser.uid
-        );
-        if (attributes.sharingScreen === "1") {
-          console.log(
-            `User ${remoteUser.uid} is currently sharing their screen.`
-          );
+      const attributes = await config.clientRTM.getUserAttributes(1); // Fetch attributes for uid 1
+      const sharingUser = attributes.sharingUser; // The actual user UID who is sharing their screen
 
-          // Run manageCameraState for the user who is sharing their screen
-          manageCameraState(remoteUser.uid, config);
+      if (sharingUser && sharingUser !== "0") {
+        console.log(`User ${sharingUser} is currently sharing their screen.`);
+
+        // Check if the sharing user is the current user, skip subscription
+        if (sharingUser === config.uid.toString()) {
+          console.log(`Skipping subscription to own screen sharing media.`);
           return;
         }
+
+        // Manage camera state for the user who is sharing their screen
+        manageCameraState(sharingUser, config);
+
+        // Switch to screen share stage
+        console.log(`Toggling stages: switching to screen-share stage...`);
+        toggleStages(true, sharingUser); // Show screen-share stage and hide video stage
+      } else {
+        console.log("No active screen sharing.");
       }
     } catch (error) {
-      console.error("Error fetching RTM attributes for remote users:", error);
+      console.error(
+        "Error fetching RTM attributes for screen-share client:",
+        error
+      );
     }
 
-    console.log("No user with sharingScreen attribute set to '1' found.");
-    return; // Stop further execution if no user is found sharing the screen
+    return; // Stop further execution for UID 1 (screen sharing)
   }
 
   // Skip subscribing to your own media
