@@ -288,7 +288,7 @@ export const stopScreenShare = async (screenShareUid, config) => {
 
     if (screenShareTrack) {
       // Unpublish the screen share track
-      await config.screenShareClient.unpublish(screenShareTrack);
+      await config.screenShareClient?.unpublish(screenShareTrack);
 
       // Stop and close the track
       screenShareTrack.stop();
@@ -307,6 +307,8 @@ export const stopScreenShare = async (screenShareUid, config) => {
       await config.screenShareClient.leave();
       console.log("Screen share RTC client has left the channel.");
       config.screenShareClient = null;
+    } else {
+      console.log("No screen share RTC client to leave.");
     }
 
     // Clean up RTM client and channel
@@ -314,12 +316,16 @@ export const stopScreenShare = async (screenShareUid, config) => {
       await config.screenShareRTMChannel.leave();
       console.log("Left the RTM channel.");
       config.screenShareRTMChannel = null;
+    } else {
+      console.log("No RTM channel to leave.");
     }
 
     if (config.screenShareRTMClient) {
       await config.screenShareRTMClient.logout();
       console.log("Logged out of RTM client.");
       config.screenShareRTMClient = null;
+    } else {
+      console.log("No RTM client to log out.");
     }
 
     // Remove any remaining listeners for token renewals, etc.
