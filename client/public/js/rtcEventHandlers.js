@@ -13,24 +13,21 @@ import {
 import { userTracks } from "./state.js"; 
 const userJoinPromises = {};
 
-
-
 // Handles user published event
-
 export const handleUserPublished = async (user, mediaType, config, client) => {
-  const userUid = user.uid;
+  const userUid = user.uid.toString();
   console.log(
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
   // Skip subscribing to local user's own media
-  if (userUid === config.uid) {
+  if (userUid === config.uid.toString()) {
     console.log("Skipping subscription to local user's own media.");
     return;
   }
 
   // Handle screen share client (UID 1)
-  if (userUid === 1) {
+  if (userUid === "1") {
     console.log(`User with UID 1 (screen share client) published.`);
 
     try {
@@ -41,14 +38,14 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
       if (sharingUser) {
         console.log(`Screen share is from user: ${sharingUser}`);
 
-        // **Set currentScreenSharingUserUid regardless of who is sharing**
+        // Set currentScreenSharingUserUid regardless of who is sharing
         config.currentScreenSharingUserUid = parseInt(sharingUser, 10);
 
         // If the screen share is from the local user, do not subscribe
         if (sharingUser === config.uid.toString()) {
           console.log("Screen share is from local user. Not subscribing.");
 
-          // **Update the UI using manageCameraState and toggleStages**
+          // Update the UI using manageCameraState and toggleStages
           manageCameraState(config.uid, config);
           toggleStages(true, config.uid); // Show screen share stage
 
@@ -65,7 +62,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
           }
           userTracks[1].screenShareTrack = user.videoTrack;
 
-          // **Update UI accordingly using manageCameraState and toggleStages**
+          // Update UI accordingly using manageCameraState and toggleStages
           manageCameraState(config.currentScreenSharingUserUid, config);
           toggleStages(true, config.currentScreenSharingUserUid); // Show screen share stage
 
@@ -82,7 +79,13 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     }
   }
 
-  // For other users, subscribe to their tracks as usual
+  // **Wait for handleUserJoined to complete before proceeding**
+  if (userJoinPromises[userUid]) {
+    console.log(`Waiting for handleUserJoined to complete for user ${userUid}`);
+    await userJoinPromises[userUid]; // Wait for the promise to resolve
+  }
+
+  // Proceed with subscribing to the user's media
   if (!userTracks[userUid]) {
     userTracks[userUid] = {};
   }
@@ -107,7 +110,6 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     console.error(`Error subscribing to user ${userUid}:`, error);
   }
 };
-
 
 
 
@@ -198,11 +200,13 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   // If UID is 1 (screen share UID), skip processing
   if (userUid === "1") {
     console.log("Skipping handling for screen share UID (1).");
-    return;
+    userJoinPromises[userUid] = Promise.resolve(); // Ensure a resolved promise is set
+    return userJoinPromises[userUid];
   }
 
-  // If the user join is already in progress or completed, return the existing promise
+  // If a promise for this user already exists, return it
   if (userJoinPromises[userUid]) {
+    console.log(`User join already in progress for UID: ${userUid}`);
     return userJoinPromises[userUid];
   }
 
@@ -220,7 +224,9 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       if (!userAttr || Object.keys(userAttr).length === 0) {
         if (config.clientRTM) {
           try {
-            userAttr = await config.clientRTM.getUserAttributes(userUid.toString());
+            userAttr = await config.clientRTM.getUserAttributes(
+              userUid.toString()
+            );
           } catch (error) {
             console.error(
               `Failed to get RTM attributes for user ${userUid}:`,
@@ -323,7 +329,6 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   // Return the promise
   return userJoinPromises[userUid];
 };
-
 
 
 
