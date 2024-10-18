@@ -2,6 +2,7 @@ import { userTracks } from "./state.js";
 import {
   setupEventListeners,
 } from "./setupEventListeners.js";
+import { toggleScreenShare } from "./uiHandlers.js"; 
 
 export const manageCameraState = (uid, config) => {
   console.log(`Managing camera state for user with UID:`, uid);
