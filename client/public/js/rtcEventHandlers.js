@@ -428,9 +428,3 @@ export const handleRenewToken = async (config, client) => {
   await client.renewToken(config.token);
 };
 
-
-const sharingUserUid = parseInt(sharingUser, 10);
-if (isNaN(sharingUserUid)) {
-  console.error("Invalid sharingUser UID:", sharingUser);
-  return;
-}
