@@ -209,27 +209,12 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
         });
         console.log("Created new screen share client");
 
-        // Fetch tokens for the screen share client (UID 1)
-        const tokens = await fetchTokens(config, screenShareUid);
-        if (!tokens || !tokens.rtcToken) {
-          throw new Error("Failed to fetch RTC token for screen sharing");
-        }
-
-        // Join the channel with the screen share client using UID 1
-        await config.screenShareClient.join(
-          config.appId,
-          config.channelName,
-          tokens.rtcToken,
-          screenShareUid
-        );
-        console.log(
-          "Screen share client joined channel with UID:",
-          screenShareUid
-        );
-
-        // Start screen sharing with the new client
-        await startScreenShare(screenShareUid, config);
+        // Join RTC and RTM for the screen share client (UID 1)
+        await joinScreenShareClient(config, uid);
       }
+
+      // Start screen sharing with the new client (only after joining RTC and RTM)
+      await startScreenShare(screenShareUid, config);
     } else {
       // Stop screen sharing and leave the screen-sharing client
       if (config.screenShareClient) {
@@ -248,7 +233,7 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
 
 export const joinScreenShareClient = async (config, actualUserUid) => {
   try {
-    const screenShareUid = 1; // UID for the screen share client
+    const screenShareUid = "1"; // UID for the screen share client as a string
 
     // Fetch RTC token for screen sharing (with UID 1)
     const tokens = await fetchTokens(config, screenShareUid);
@@ -262,7 +247,7 @@ export const joinScreenShareClient = async (config, actualUserUid) => {
       config.appId, // Your app ID
       config.channelName, // Channel name
       tokens.rtcToken, // RTC token for screen sharing
-      screenShareUid // UID 1 for screen share client
+      screenShareUid // UID 1 for screen share client as string
     );
 
     console.log("Screen share client joined RTC channel with UID 1");
@@ -340,6 +325,7 @@ const joinScreenShareRTM = async (
     }
   }
 };
+
 
 
 
