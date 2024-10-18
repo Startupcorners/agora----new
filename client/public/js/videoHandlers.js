@@ -38,26 +38,16 @@ export const playCameraVideo = async (uid, config) => {
   const pipAvatarDiv = document.getElementById(`pip-avatar`);
   const screenShareElement = document.getElementById(`screen-share-content`);
 
-  // Fetch the user's RTM attributes to check if they are sharing their screen
-  const attributes = await config.clientRTM.getUserAttributes(uid.toString());
-  const isScreenSharing = attributes.sharingScreen === "1";
+  // Fetch the RTM attributes of UID 1
+  const attributes = await config.clientRTM.getUserAttributes("1");
+  const sharingUser = attributes.sharingUser;
+  const isScreenSharing = sharingUser === uid.toString();
   const isCameraOn = !!videoTrack;
-
-  // Check if the user is the local user
-  const isLocalUser = uid === config.uid;
 
   if (isScreenSharing) {
     console.log("Screen sharing is enabled, managing PiP for camera.");
 
-    let screenShareTrack;
-
-    if (isLocalUser) {
-      // Use the local screen share track
-      screenShareTrack = userTracks[1]?.screenShareTrack;
-    } else {
-      // For remote users, get the screen share track from userTracks[1]
-      screenShareTrack = userTracks[1]?.screenShareTrack;
-    }
+    const screenShareTrack = userTracks[1]?.screenShareTrack;
 
     if (screenShareTrack && screenShareElement) {
       // Play the screen share track
@@ -119,14 +109,16 @@ export const showAvatar = async (uid, config) => {
   const userTrack = userTracks[uid];
   const isCameraOn = userTrack && userTrack.videoTrack;
 
-  // Fetch the user's RTM attributes to check if they are sharing their screen
-  const attributes = await config.clientRTM.getUserAttributes(uid.toString());
-  const isScreenSharing = attributes.sharingScreen === "1";
+  // Fetch RTM attributes of UID 1 to check if the user is sharing their screen
+  const attributes = await config.clientRTM.getUserAttributes("1");
+  const sharingUser = attributes.sharingUser;
+  const isScreenSharing = sharingUser === uid.toString();
 
   const avatarDiv = document.querySelector(`#avatar-${uid}`);
   const videoPlayer = document.querySelector(`#stream-${uid}`);
   const pipAvatarDiv = document.getElementById(`pip-avatar`);
   const pipVideoPlayer = document.getElementById(`pip-video-track`);
+  const screenShareElement = document.getElementById(`screen-share-content`);
 
   if (!isCameraOn) {
     console.log("Camera is off, showing avatar for user with UID:", uid);
@@ -173,6 +165,7 @@ export const showAvatar = async (uid, config) => {
       // Hide PiP elements
       if (pipAvatarDiv) pipAvatarDiv.style.display = "none";
       if (pipVideoPlayer) pipVideoPlayer.style.display = "none";
+      if (screenShareElement) screenShareElement.style.display = "none";
     }
   } else {
     console.log("Camera is on, hiding avatar for user with UID:", uid);
@@ -216,14 +209,16 @@ export const showAvatar = async (uid, config) => {
         console.log("Hiding main avatar.");
       }
 
-      // Hide PiP elements
+      // Hide PiP elements and screen share
       if (pipAvatarDiv) pipAvatarDiv.style.display = "none";
       if (pipVideoPlayer) pipVideoPlayer.style.display = "none";
+      if (screenShareElement) screenShareElement.style.display = "none";
     }
   }
 
   console.log("Exiting showAvatar...");
 };
+
 
 
 export const startScreenShare = async (uid, config) => {
@@ -233,19 +228,17 @@ export const startScreenShare = async (uid, config) => {
     // Create the screen share track
     const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
 
+    // Publish the screen share track using the screen share client
+    await config.screenShareClient.publish(screenShareTrack);
+    console.log("Screen share track published.");
+
     // Store the screen share track
     if (!userTracks[1]) {
       userTracks[1] = {};
     }
     userTracks[1].screenShareTrack = screenShareTrack;
 
-    // Publish the screen share track using the screen share client
-    await config.screenShareClient.publish(screenShareTrack);
-    console.log("Screen share track published.");
-
-    // Update RTM attributes to indicate screen sharing has started
-    await config.clientRTM.setLocalUserAttributes({ sharingScreen: "1" });
-    console.log("Updated RTM attributes: sharingScreen set to '1'");
+    // No need to set local RTM attributes here since the screen share client (UID 1) sets the 'sharingUser' attribute
 
     // Update UI accordingly
     manageCameraState(config.uid, config);
@@ -254,7 +247,7 @@ export const startScreenShare = async (uid, config) => {
     // Handle track-ended event
     screenShareTrack.on("track-ended", async () => {
       console.log("Screen share track ended.");
-      await stopScreenShare(uid, config);
+      await toggleScreenShare(false, uid, config);
     });
   } catch (error) {
     console.error("Error starting screen share:", error);

@@ -33,36 +33,43 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
   if (userUid === 1) {
     console.log(`User with UID 1 (screen share client) published.`);
 
-    // Fetch RTM attributes for UID 1 to get 'userSharingUid'
     try {
+      // Fetch RTM attributes for UID 1 to get 'sharingUser'
       const attributes = await config.clientRTM.getUserAttributes("1");
-      const userSharingUid = attributes.userSharingUid;
+      const sharingUser = attributes.sharingUser;
 
-      console.log(`Screen share is from user: ${userSharingUid}`);
+      if (sharingUser) {
+        console.log(`Screen share is from user: ${sharingUser}`);
 
-      // If the screen share is from the local user, do not subscribe
-      if (userSharingUid === config.uid.toString()) {
-        console.log("Screen share is from local user. Not subscribing.");
+        // If the screen share is from the local user, do not subscribe
+        if (sharingUser === config.uid.toString()) {
+          console.log("Screen share is from local user. Not subscribing.");
 
-        // UI was already updated in 'startScreenShare', so no need to call 'manageCameraState' and 'toggleStages' again.
+          // UI was already updated in 'startScreenShare', so no need to call 'manageCameraState' and 'toggleStages' again.
+          return;
+        } else {
+          console.log("Screen share is from remote user. Subscribing.");
 
-        return;
-      } else {
-        console.log("Screen share is from remote user. Subscribing.");
+          // Subscribe to the screen share track
+          await client.subscribe(user, mediaType);
 
-        // Subscribe to the screen share track
-        await client.subscribe(user, mediaType);
+          // Store the screen share track
+          if (!userTracks[1]) {
+            userTracks[1] = {};
+          }
+          userTracks[1].screenShareTrack = user.videoTrack;
 
-        // Store the screen share track
-        if (!userTracks[1]) {
-          userTracks[1] = {};
+          // Update UI accordingly using manageCameraState and toggleStages
+          const sharingUserUid = parseInt(sharingUser, 10);
+          manageCameraState(sharingUserUid, config);
+          toggleStages(true, sharingUserUid); // Show screen share stage
+
+          return;
         }
-        userTracks[1].screenShareTrack = user.videoTrack;
-
-        // Update UI accordingly using manageCameraState and toggleStages
-        manageCameraState(parseInt(userSharingUid, 10), config);
-        toggleStages(true, userSharingUid); // Show screen share stage
-
+      } else {
+        console.error(
+          "Could not determine who is sharing the screen. 'sharingUser' attribute is missing."
+        );
         return;
       }
     } catch (error) {
@@ -420,3 +427,10 @@ export const handleRenewToken = async (config, client) => {
   config.token = await fetchTokens();
   await client.renewToken(config.token);
 };
+
+
+const sharingUserUid = parseInt(sharingUser, 10);
+if (isNaN(sharingUserUid)) {
+  console.error("Invalid sharingUser UID:", sharingUser);
+  return;
+}
