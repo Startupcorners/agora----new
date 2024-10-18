@@ -221,7 +221,6 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       `Screen share toggle called. isEnabled: ${isEnabled}, uid: ${uid}`
     );
 
-    // If screen share is enabled, start the screen share process
     if (isEnabled) {
       console.log("Starting screen share process...");
 
@@ -256,27 +255,13 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
     } else {
       console.log("Stopping screen share...");
 
-      // Stop screen sharing and leave the screen-sharing client
+      // Stop screen sharing and clean up
       if (config.screenShareClient) {
         console.log("Stopping the screen share track...");
         await stopScreenShare(screenShareUid, config); // Stop screen sharing
 
-        console.log("Leaving the screen share client...");
-        // Leave the screen-sharing client from the channel and clean up
-        await config.screenShareClient.leave();
-        config.screenShareClient = null;
-
-        if (config.screenShareRTMClient) {
-          console.log(
-            "Logging out and cleaning up RTM client for screen share..."
-          );
-          await config.screenShareRTMClient.logout();
-          config.screenShareRTMClient = null;
-        }
-
-        console.log(
-          "Screen share client and RTM client left the channel and cleaned up."
-        );
+        // No need to call leave() here because it's handled in stopScreenShare
+        console.log("Screen share stopped and cleaned up.");
       } else {
         console.log("No screen share client to stop.");
       }

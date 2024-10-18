@@ -287,11 +287,8 @@ export const stopScreenShare = async (screenShareUid, config) => {
     const screenShareTrack = userTracks[screenShareUid]?.screenShareTrack;
 
     if (screenShareTrack) {
-      // Unpublish the screen share track only if the client exists
-      if (config.screenShareClient) {
-        await config.screenShareClient.unpublish(screenShareTrack);
-        console.log("Screen share track unpublished.");
-      }
+      // Unpublish the screen share track
+      await config.screenShareClient.unpublish(screenShareTrack);
 
       // Stop and close the track
       screenShareTrack.stop();
@@ -307,41 +304,26 @@ export const stopScreenShare = async (screenShareUid, config) => {
 
     // Ensure the screen share client leaves the RTC channel
     if (config.screenShareClient) {
-      try {
-        await config.screenShareClient.leave();
-        console.log("Screen share RTC client has left the channel.");
-      } catch (leaveError) {
-        console.error("Error leaving screen share RTC channel:", leaveError);
-      } finally {
-        config.screenShareClient = null; // Ensure it's set to null after leaving
-      }
+      await config.screenShareClient.leave();
+      console.log("Screen share RTC client has left the channel.");
+      config.screenShareClient = null;
     } else {
       console.log("No screen share RTC client to leave.");
     }
 
     // Clean up RTM client and channel
     if (config.screenShareRTMChannel) {
-      try {
-        await config.screenShareRTMChannel.leave();
-        console.log("Left the RTM channel.");
-      } catch (leaveRtmError) {
-        console.error("Error leaving RTM channel:", leaveRtmError);
-      } finally {
-        config.screenShareRTMChannel = null; // Ensure it's set to null after leaving
-      }
+      await config.screenShareRTMChannel.leave();
+      console.log("Left the RTM channel.");
+      config.screenShareRTMChannel = null;
     } else {
       console.log("No RTM channel to leave.");
     }
 
     if (config.screenShareRTMClient) {
-      try {
-        await config.screenShareRTMClient.logout();
-        console.log("Logged out of RTM client.");
-      } catch (logoutError) {
-        console.error("Error logging out of RTM client:", logoutError);
-      } finally {
-        config.screenShareRTMClient = null; // Ensure it's set to null after logging out
-      }
+      await config.screenShareRTMClient.logout();
+      console.log("Logged out of RTM client.");
+      config.screenShareRTMClient = null;
     } else {
       console.log("No RTM client to log out.");
     }
@@ -363,6 +345,7 @@ export const stopScreenShare = async (screenShareUid, config) => {
     console.error("Error stopping screen share:", error);
   }
 };
+
 
 
 export const toggleStages = (isScreenSharing, uid) => {
