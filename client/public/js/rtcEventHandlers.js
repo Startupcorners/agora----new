@@ -30,9 +30,9 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
   if (userUid === 1) {
     console.log(`UID 1 (screen sharing client) detected.`);
 
-    // Fetch the RTM attributes for UID 1 (screen-sharing user)
+    // Fetch the RTM attributes for UID 1 using the appropriate RTM method
     try {
-      const attributes = await config.clientRTM.getUserAttributes("1"); // Fetch attributes for RTM uid "1"
+      const attributes = await client.getUserAttributes("1"); // Fetch attributes for remote user "1"
       const sharingUser = attributes.sharingUser; // The actual user UID who is sharing their screen
 
       if (sharingUser && sharingUser !== "0") {
