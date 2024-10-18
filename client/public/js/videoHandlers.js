@@ -51,6 +51,7 @@ export const playCameraVideo = async (uid, config) => {
   const videoPlayer = document.querySelector(`#stream-${uid}`);
   const pipVideoPlayer = document.getElementById(`pip-video-track`);
   const pipAvatarDiv = document.getElementById(`pip-avatar`);
+  const screenShareElement = document.getElementById(`screen-share-content`);
 
   // Fetch the user's RTM attributes to check if they are sharing their screen
   const attributes = await config.clientRTM.getUserAttributes(uid.toString());
@@ -73,12 +74,12 @@ export const playCameraVideo = async (uid, config) => {
       screenShareTrack = userTracks[1] ? userTracks[1].screenShareTrack : null;
     }
 
-    if (screenShareTrack && videoPlayer) {
-      console.log("Playing screen share track in main video stage.");
-      screenShareTrack.play(videoPlayer);
-      videoPlayer.style.display = "block"; // Ensure main video player is visible
+    if (screenShareTrack && screenShareElement) {
+      console.log("Playing screen share track in screen share element.");
+      screenShareTrack.play(screenShareElement);
+      screenShareElement.style.display = "block"; // Ensure screen share element is visible
     } else {
-      console.warn("videoPlayer or screenShareTrack not found.");
+      console.warn("screenShareElement or screenShareTrack not found.");
     }
 
     // Only play the camera in PiP if the camera is on
@@ -92,6 +93,17 @@ export const playCameraVideo = async (uid, config) => {
       if (pipVideoPlayer) pipVideoPlayer.style.display = "none"; // Hide PiP video player
       if (pipAvatarDiv) pipAvatarDiv.style.display = "block"; // Show PiP avatar
     }
+
+    // Hide main video player
+    if (videoPlayer) {
+      videoPlayer.style.display = "none";
+    }
+
+    // Show screen share stage and hide video stage
+    const videoStage = document.getElementById("video-stage");
+    const screenShareStage = document.getElementById("screen-share-stage");
+    if (videoStage) videoStage.style.display = "none";
+    if (screenShareStage) screenShareStage.style.display = "block";
   } else {
     console.log(
       "Screen sharing is not enabled, managing main video stage for camera."
@@ -110,6 +122,17 @@ export const playCameraVideo = async (uid, config) => {
     // Hide PiP when screen sharing is not active
     if (pipVideoPlayer) pipVideoPlayer.style.display = "none";
     if (pipAvatarDiv) pipAvatarDiv.style.display = "block";
+
+    // Hide screen share element when screen sharing is not active
+    if (screenShareElement) {
+      screenShareElement.style.display = "none";
+    }
+
+    // Show video stage and hide screen share stage
+    const videoStage = document.getElementById("video-stage");
+    const screenShareStage = document.getElementById("screen-share-stage");
+    if (videoStage) videoStage.style.display = "flex";
+    if (screenShareStage) screenShareStage.style.display = "none";
   }
 
   console.log("playCameraVideo function execution completed.");
