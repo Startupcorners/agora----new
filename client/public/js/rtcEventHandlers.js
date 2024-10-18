@@ -44,8 +44,6 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
         // If the screen share is from the local user, do not subscribe
         if (sharingUser === config.uid.toString()) {
           console.log("Screen share is from local user. Not subscribing.");
-
-          // UI was already updated in 'startScreenShare', so no need to call 'manageCameraState' and 'toggleStages' again.
           return;
         } else {
           console.log("Screen share is from remote user. Subscribing.");
@@ -61,6 +59,10 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
 
           // Update UI accordingly using manageCameraState and toggleStages
           const sharingUserUid = parseInt(sharingUser, 10);
+
+          // **Store the sharingUserUid in config**
+          config.currentScreenSharingUserUid = sharingUserUid;
+
           manageCameraState(sharingUserUid, config);
           toggleStages(true, sharingUserUid); // Show screen share stage
 
@@ -123,38 +125,32 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
     if (user.uid === 1) {
       console.log(`Screen share track unpublished from user with UID 1.`);
 
-      try {
-        // Fetch RTM attributes for UID 1 to get 'sharingUser'
-        const attributes = await config.clientRTM.getUserAttributes("1");
-        const sharingUser = attributes.sharingUser;
+      // Use the stored sharingUserUid
+      const sharingUserUid = config.currentScreenSharingUserUid;
 
-        if (sharingUser) {
-          const sharingUserUid = parseInt(sharingUser, 10);
-          console.log(`Screen share was from user: ${sharingUserUid}`);
+      if (sharingUserUid) {
+        console.log(`Screen share was from user: ${sharingUserUid}`);
 
-          // Update UI accordingly
-          manageCameraState(sharingUserUid, config);
-          toggleStages(false, sharingUserUid); // Hide screen share stage
+        // Update UI accordingly
+        manageCameraState(sharingUserUid, config);
+        toggleStages(false, sharingUserUid); // Hide screen share stage
 
-          // Remove the screen share track from userTracks
-          if (userTracks[1]) {
-            if (userTracks[1].screenShareTrack) {
-              userTracks[1].screenShareTrack.stop();
-              userTracks[1].screenShareTrack.close();
-              userTracks[1].screenShareTrack = null;
-              console.log("Screen share track stopped and removed.");
-            }
+        // Remove the screen share track from userTracks
+        if (userTracks[1]) {
+          if (userTracks[1].screenShareTrack) {
+            userTracks[1].screenShareTrack.stop();
+            userTracks[1].screenShareTrack.close();
+            userTracks[1].screenShareTrack = null;
+            console.log("Screen share track stopped and removed.");
           }
-
-          // Optionally, reset 'sharingUser' attribute if necessary
-          // await config.clientRTM.setLocalUserAttributes({ sharingUser: "" });
-        } else {
-          console.error(
-            "Could not determine who was sharing the screen. 'sharingUser' attribute is missing."
-          );
         }
-      } catch (error) {
-        console.error(`Error fetching RTM attributes for user 1:`, error);
+
+        // Clear the stored sharingUserUid
+        config.currentScreenSharingUserUid = null;
+      } else {
+        console.error(
+          "Could not determine who was sharing the screen. 'currentScreenSharingUserUid' is not set."
+        );
       }
     } else {
       // For other users, handle unpublishing of their video track
