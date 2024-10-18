@@ -26,26 +26,28 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
   console.log("config.clientRTM", config.clientRTM);
   console.log("Remote users:", client.remoteUsers);
 
-  // Check if the UID is 1 (indicating screen share client)
+  // Check if the UID is 1 (indicating the screen share client)
   if (userUid === 1) {
-    console.log(`UID 1 (screen sharing user) detected.`);
+    console.log(`UID 1 (screen sharing client) detected.`);
 
     // Fetch the RTM attributes for UID 1 (screen-sharing user)
     try {
       const attributes = await config.clientRTM.getUserAttributes("1"); // Fetch attributes for RTM uid "1"
-      const sharingUser = attributes.sharingUser; // The actual user UID who is sharing their screen (e.g., "12345")
+      const sharingUser = attributes.sharingUser; // The actual user UID who is sharing their screen
 
       if (sharingUser && sharingUser !== "0") {
         console.log(`User ${sharingUser} is currently sharing their screen.`);
 
-        // Check if the sharingUser UID matches the current user's UID
+        // Check if the sharing user is the local user
         if (sharingUser === config.uid.toString()) {
-          console.log(`Skipping subscription to own screen sharing media.`);
-          return; // No need to subscribe to our own screen share
+          console.log(`Sharing user is the local user, skipping subscription.`);
+          // Skip subscription to local user's own screen sharing, but still manage UI updates
+          manageCameraState(parseInt(sharingUser, 10), config); // Update UI with the actual sharing user
+          return;
         }
 
-        // If sharingUser is not the current user, manage their camera state
-        manageCameraState(sharingUser, config);
+        // If the sharing user is a remote user, continue as usual
+        manageCameraState(parseInt(sharingUser, 10), config); // Update UI with the actual sharing user
 
         // Switch to screen share stage for the actual sharing user
         console.log(`Toggling stages: switching to screen-share stage...`);
@@ -60,7 +62,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
       );
     }
 
-    return; // Stop further execution for UID 1 (screen-sharing user)
+    return; // Stop further execution for UID 1 (screen-sharing client)
   }
 
   // Skip subscribing to your own media
@@ -117,7 +119,6 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     );
   }
 };
-
 
 
 
