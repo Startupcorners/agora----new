@@ -328,6 +328,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 
 
 // Handles user left event
+// Handles user left event
 export const handleUserLeft = async (user, config) => {
   try {
     console.log(`User ${user.uid} left`);
@@ -381,12 +382,17 @@ export const handleUserLeft = async (user, config) => {
       console.warn("participantList is not initialized.");
     }
 
+    // Clear user join promise when the user leaves
+    if (userJoinPromises[user.uid]) {
+      delete userJoinPromises[user.uid];
+      console.log(`Cleared userJoinPromises for user ${user.uid}`);
+    }
+
     console.log(`User ${user.uid} successfully removed`);
   } catch (error) {
     console.error(`Error removing user ${user.uid}:`, error);
   }
 };
-
 
 
 
