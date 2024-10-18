@@ -192,6 +192,47 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 
+export const manageParticipants = (userUid, userAttr, config) => {
+  console.log(`Managing participant list for user ${userUid}`);
+
+  // Initialize or update participant list
+  if (!config.participantList) {
+    config.participantList = [];
+  }
+
+  let participant = config.participantList.find((p) => p.uid === userUid);
+  if (!participant) {
+    // If the participant doesn't exist, add them
+    participant = {
+      uid: userUid,
+      uids: [userUid],
+      name: userAttr.name || "Unknown",
+      company: userAttr.company || "",
+      designation: userAttr.designation || "",
+      role: userAttr.role || "audience", // Include role
+    };
+    config.participantList.push(participant);
+  } else if (!participant.uids.includes(userUid)) {
+    // If the participant exists, update their details
+    participant.uids.push(userUid);
+  }
+
+  // Call bubble_fn_participantList with the updated list
+  if (typeof bubble_fn_participantList === "function") {
+    const participantData = config.participantList.map((p) => ({
+      uid: p.uid,
+      uids: p.uids,
+      name: p.name,
+      company: p.company,
+      designation: p.designation,
+      role: p.role,
+    }));
+    bubble_fn_participantList({ participants: participantData });
+  }
+
+  console.log("Participant list updated.");
+};
+
 // Handles user joined event
 export const handleUserJoined = async (user, config, userAttr = {}) => {
   const userUid = user.uid.toString();
@@ -224,9 +265,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       if (!userAttr || Object.keys(userAttr).length === 0) {
         if (config.clientRTM) {
           try {
-            userAttr = await config.clientRTM.getUserAttributes(
-              userUid.toString()
-            );
+            userAttr = await config.clientRTM.getUserAttributes(userUid.toString());
           } catch (error) {
             console.error(
               `Failed to get RTM attributes for user ${userUid}:`,
@@ -286,38 +325,8 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         `Host user ${userUid} joined, waiting for media to be published.`
       );
 
-      // Initialize or update participant list
-      if (!config.participantList) {
-        config.participantList = [];
-      }
-
-      let participant = config.participantList.find((p) => p.uid === userUid);
-      if (!participant) {
-        participant = {
-          uid: userUid,
-          uids: [userUid],
-          name: userAttr.name || "Unknown",
-          company: userAttr.company || "",
-          designation: userAttr.designation || "",
-          role: user.role, // Include role
-        };
-        config.participantList.push(participant);
-      } else if (!participant.uids.includes(userUid)) {
-        participant.uids.push(userUid);
-      }
-
-      // Call bubble_fn_participantList with the updated list
-      if (typeof bubble_fn_participantList === "function") {
-        const participantData = config.participantList.map((p) => ({
-          uid: p.uid,
-          uids: p.uids,
-          name: p.name,
-          company: p.company,
-          designation: p.designation,
-          role: p.role,
-        }));
-        bubble_fn_participantList({ participants: participantData });
-      }
+      // ** Call the separate participant management function **
+      manageParticipants(userUid, userAttr, config);
 
       resolve(); // Resolve the promise when everything is done
     } catch (error) {
@@ -329,6 +338,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   // Return the promise
   return userJoinPromises[userUid];
 };
+
 
 
 

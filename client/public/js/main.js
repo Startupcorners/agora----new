@@ -1,7 +1,7 @@
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
 import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
-import { handleRenewToken, handleUserJoined, handleUserPublished } from "./rtcEventHandlers.js"; // Token renewal handler
+import { handleRenewToken } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
@@ -76,6 +76,47 @@ const newMainApp = function (initConfig) {
   config = { ...config, ...callbacks };
 
   // Join RTC and RTM
+const addCurrentUserToParticipantList = (config) => {
+  const userUid = config.uid.toString();
+  const userAttr = config.user;
+
+  console.log("Adding current user to participant list:", userUid);
+
+  // Initialize or update participant list
+  if (!config.participantList) {
+    config.participantList = [];
+  }
+
+  let participant = config.participantList.find((p) => p.uid === userUid);
+  if (!participant) {
+    participant = {
+      uid: userUid,
+      uids: [userUid],
+      name: userAttr.name || "Unknown",
+      company: userAttr.company || "",
+      designation: userAttr.designation || "",
+      role: userAttr.role || "audience", // Default role
+    };
+    config.participantList.push(participant);
+  } else if (!participant.uids.includes(userUid)) {
+    participant.uids.push(userUid);
+  }
+
+  // Call bubble_fn_participantList with the updated list
+  if (typeof bubble_fn_participantList === "function") {
+    const participantData = config.participantList.map((p) => ({
+      uid: p.uid,
+      uids: p.uids,
+      name: p.name,
+      company: p.company,
+      designation: p.designation,
+      role: p.role,
+    }));
+    bubble_fn_participantList({ participants: participantData });
+  }
+};
+
+// Main join function
 const join = async () => {
   try {
     // Fetch RTC and RTM tokens
@@ -86,13 +127,6 @@ const join = async () => {
     if (!config.user.role) {
       throw new Error("User does not have a role assigned.");
     }
-
-    // Remove setClientRole as it's invalid in RTC mode
-    // if (config.user.role === "host") {
-    //   await config.client.setClientRole("host");
-    // } else {
-    //   await config.client.setClientRole("audience");
-    // }
 
     // Join RTM
     await joinRTM(tokens.rtmToken);
@@ -110,11 +144,11 @@ const join = async () => {
 
     // If the user is a host, proceed with video and screen share setup
     if (config.user.role === "host") {
-      // Call function to join the video stage, including screen share
-      await joinToVideoStage(config);
+      await joinToVideoStage(config); // Host-only functionality
     }
 
-    // Audience members do not publish any tracks
+    // Add the current user to the participant list
+    addCurrentUserToParticipantList(config);
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
