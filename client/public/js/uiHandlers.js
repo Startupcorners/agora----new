@@ -12,7 +12,7 @@ import {
 import { userTracks } from "./state.js"; // Import userTracks from state.js
 
 
-const screenShareUid = 1001; // UID for the screen share client
+const screenShareUid = 1; // UID for the screen share client
 
 export const toggleMic = async (config) => {
   try {
