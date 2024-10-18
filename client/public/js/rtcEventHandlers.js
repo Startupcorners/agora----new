@@ -119,75 +119,73 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
   // Handle video unpublishing (including screen share)
   if (mediaType === "video") {
-    console.log(`User ${user.uid} has unpublished their video track.`);
+    // If the unpublished video is the screen share (UID 1)
+    if (user.uid === 1) {
+      console.log(`Screen share track unpublished from user with UID 1.`);
 
-    // If the unpublished video is the screen share
-    if (user.uid === config.screenShareUid) {
-      console.log(`Screen share track unpublished for user ${user.uid}.`);
+      try {
+        // Fetch RTM attributes for UID 1 to get 'sharingUser'
+        const attributes = await config.clientRTM.getUserAttributes("1");
+        const sharingUser = attributes.sharingUser;
 
-      // Hide the screen share stage and show the main video stage again
-      document.querySelector("#screen-share-stage").style.display = "none";
-      document.querySelector("#video-stage").style.display = "block";
+        if (sharingUser) {
+          const sharingUserUid = parseInt(sharingUser, 10);
+          console.log(`Screen share was from user: ${sharingUserUid}`);
 
-      // Remove the screen share video and PiP from the UI
-      const screenShareElement = document.querySelector(
-        "#screen-share-content"
-      );
-      const screenShareVideoElement = document.querySelector(
-        "#screen-share-video"
-      );
+          // Update UI accordingly
+          manageCameraState(sharingUserUid, config);
+          toggleStages(false, sharingUserUid); // Hide screen share stage
 
-      if (screenShareElement) {
-        screenShareElement.innerHTML = ""; // Clear screen share content
-      }
+          // Remove the screen share track from userTracks
+          if (userTracks[1]) {
+            if (userTracks[1].screenShareTrack) {
+              userTracks[1].screenShareTrack.stop();
+              userTracks[1].screenShareTrack.close();
+              userTracks[1].screenShareTrack = null;
+              console.log("Screen share track stopped and removed.");
+            }
+          }
 
-      if (screenShareVideoElement) {
-        screenShareVideoElement.innerHTML = ""; // Clear PiP content
-      }
-
-      console.log(`Removed screen share video for user ${user.uid}.`);
-
-      // Reset screen share status
-      config.screenShareUid = null;
-    } else {
-      // For regular video streams, remove the video tracks from the UI
-      const videoTracks = user.videoTracks || [user.videoTrack];
-      videoTracks.forEach((track, index) => {
-        const streamId = `stream-${user.uid}-${index}`;
-        const videoPlayer = document.querySelector(`#${streamId}`);
-        if (videoPlayer) {
-          track.stop();
-          videoPlayer.parentNode.removeChild(videoPlayer);
-          console.log(`Removed video track ${index} for user ${user.uid}`);
+          // Optionally, reset 'sharingUser' attribute if necessary
+          // await config.clientRTM.setLocalUserAttributes({ sharingUser: "" });
+        } else {
+          console.error(
+            "Could not determine who was sharing the screen. 'sharingUser' attribute is missing."
+          );
         }
-      });
+      } catch (error) {
+        console.error(`Error fetching RTM attributes for user 1:`, error);
+      }
+    } else {
+      // For other users, handle unpublishing of their video track
+      console.log(`User ${user.uid} has unpublished their video track.`);
 
-      // Show avatar when video is unavailable
-      const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-      if (avatarDiv) {
-        avatarDiv.style.display = "block";
+      // Remove the video track from userTracks
+      if (userTracks[user.uid] && userTracks[user.uid].videoTrack) {
+        userTracks[user.uid].videoTrack.stop();
+        userTracks[user.uid].videoTrack.close();
+        userTracks[user.uid].videoTrack = null;
+        console.log(`Removed video track for user ${user.uid}`);
       }
 
-      // Remove video tracks from remoteTracks
-      if (config.remoteTracks[user.uid]) {
-        delete config.remoteTracks[user.uid].videoTracks;
-      }
+      // Update UI accordingly
+      manageCameraState(user.uid, config);
     }
   }
 
   // Handle audio unpublishing
   if (mediaType === "audio") {
     console.log(`User ${user.uid} has unpublished their audio track.`);
+
+    // Remove the audio track from userTracks
+    if (userTracks[user.uid] && userTracks[user.uid].audioTrack) {
+      userTracks[user.uid].audioTrack.stop();
+      userTracks[user.uid].audioTrack = null;
+      console.log(`Removed audio track for user ${user.uid}`);
+    }
+
+    // Optionally update UI for audio status, like muting mic icons
     toggleMicIcon(user.uid, true); // Show muted mic icon
-
-    if (user.audioTrack) {
-      user.audioTrack.stop();
-    }
-
-    // Remove audio track from remoteTracks
-    if (config.remoteTracks[user.uid]) {
-      delete config.remoteTracks[user.uid].audioTrack;
-    }
   }
 };
 
