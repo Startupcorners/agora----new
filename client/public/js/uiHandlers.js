@@ -12,6 +12,8 @@ import {
 import { userTracks } from "./state.js"; // Import userTracks from state.js
 
 
+const screenShareUid = 1001; // UID for the screen share client
+
 export const toggleMic = async (config) => {
   try {
     // Invert the current mute state
@@ -189,14 +191,16 @@ export const toggleCamera = async (isMuted, config) => {
   }
 };
 
+// Declare screenShareUid as a numeric constant
+
+
+// toggleScreenShare function
 export const toggleScreenShare = async (isEnabled, uid, config) => {
   try {
     if (!config.client) {
       console.error("Agora client is not initialized!");
       return;
     }
-
-    let screenShareUid = 1001; // Use a different UID for screen share
 
     // If screen share is enabled, start the screen share process
     if (isEnabled) {
@@ -209,7 +213,7 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
         });
         console.log("Created new screen share client");
 
-        // Join RTC and RTM for the screen share client (UID 1)
+        // Join RTC and RTM for the screen share client (convert screenShareUid to string for RTM)
         await joinScreenShareClient(config, uid);
       }
 
@@ -233,9 +237,7 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
 
 export const joinScreenShareClient = async (config, actualUserUid) => {
   try {
-    const screenShareUid = "1001"; // UID for the screen share client as a string
-
-    // Fetch RTC token for screen sharing (with UID 1)
+    // Fetch RTC token for screen sharing (convert screenShareUid to string where necessary)
     const tokens = await fetchTokens(config, screenShareUid);
     if (!tokens || !tokens.rtcToken)
       throw new Error("Failed to fetch RTC token for screen sharing");
@@ -247,10 +249,10 @@ export const joinScreenShareClient = async (config, actualUserUid) => {
       config.appId, // Your app ID
       config.channelName, // Channel name
       tokens.rtcToken, // RTC token for screen sharing
-      screenShareUid // UID 1 for screen share client as string
+      screenShareUid // Pass screenShareUid as a number for RTC
     );
 
-    console.log("Screen share client joined RTC channel with UID 1");
+    console.log("Screen share client joined RTC channel with UID:", screenShareUid);
 
     // Join RTM for the screen share client and assign sharingUser attribute
     await joinScreenShareRTM(tokens.rtmToken, config, actualUserUid);
@@ -258,7 +260,7 @@ export const joinScreenShareClient = async (config, actualUserUid) => {
     // Handle token renewal for the screen-share client
     config.screenShareClient.on("token-privilege-will-expire", async () => {
       try {
-        // Fetch new tokens for screen sharing (again with UID 1)
+        // Fetch new tokens for screen sharing (convert screenShareUid to string where necessary)
         const newTokens = await fetchTokens(config, screenShareUid);
         await config.screenShareClient.renewToken(newTokens.rtcToken);
         console.log("Screen share client token renewed");
@@ -278,21 +280,16 @@ const joinScreenShareRTM = async (
   retryCount = 0
 ) => {
   try {
-    const screenShareUid = "1"; // The RTM UID for the screen-share client (must be a string)
-    console.log("Joining RTM with screen share UID:", screenShareUid);
+    // Convert screenShareUid to string for RTM
+    const screenShareUidString = screenShareUid.toString();
+    console.log("Joining RTM with screen share UID:", screenShareUidString);
 
     if (config.clientRTM._logined) {
       await config.clientRTM.logout();
     }
 
-    // Ensure the UID is a string
-    if (typeof screenShareUid !== "string") {
-      console.error("RTM UID must be a string. Converting UID to string.");
-      screenShareUid = String(screenShareUid); // Convert to string if not already
-    }
-
-    // Login to RTM with the screen share UID (1)
-    await config.clientRTM.login({ uid: screenShareUid, token: rtmToken });
+    // Login to RTM with the screen share UID (as a string)
+    await config.clientRTM.login({ uid: screenShareUidString, token: rtmToken });
 
     // Set RTM attributes for the screen share client, pointing to the actual user UID
     const attributes = {
@@ -331,7 +328,6 @@ const joinScreenShareRTM = async (
     }
   }
 };
-
 
 
 
