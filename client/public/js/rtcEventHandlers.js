@@ -26,41 +26,41 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
   console.log("config.clientRTM", config.clientRTM);
   console.log("Remote users:", client.remoteUsers);
 
-  // Check if the UID is 1 (indicating screen share)
+  // Check if the UID is 1 (indicating screen share client)
   if (userUid === 1) {
     console.log(`UID 1 (screen sharing user) detected.`);
 
-    // Fetch the RTM attributes of the screen-share client (uid = 1)
+    // Fetch the RTM attributes for UID 1 (screen-sharing user)
     try {
-      const attributes = await config.clientRTM.getUserAttributes(1); // Fetch attributes for uid 1
-      const sharingUser = attributes.sharingUser; // The actual user UID who is sharing their screen
+      const attributes = await config.clientRTM.getUserAttributes("1"); // Fetch attributes for RTM uid "1"
+      const sharingUser = attributes.sharingUser; // The actual user UID who is sharing their screen (e.g., "12345")
 
       if (sharingUser && sharingUser !== "0") {
         console.log(`User ${sharingUser} is currently sharing their screen.`);
 
-        // Check if the sharing user is the current user, skip subscription
+        // Check if the sharingUser UID matches the current user's UID
         if (sharingUser === config.uid.toString()) {
           console.log(`Skipping subscription to own screen sharing media.`);
-          return;
+          return; // No need to subscribe to our own screen share
         }
 
-        // Manage camera state for the user who is sharing their screen
+        // If sharingUser is not the current user, manage their camera state
         manageCameraState(sharingUser, config);
 
-        // Switch to screen share stage
+        // Switch to screen share stage for the actual sharing user
         console.log(`Toggling stages: switching to screen-share stage...`);
         toggleStages(true, sharingUser); // Show screen-share stage and hide video stage
       } else {
-        console.log("No active screen sharing.");
+        console.log("No active screen sharing detected.");
       }
     } catch (error) {
       console.error(
-        "Error fetching RTM attributes for screen-share client:",
+        "Error fetching RTM attributes for screen-share client (UID 1):",
         error
       );
     }
 
-    return; // Stop further execution for UID 1 (screen sharing)
+    return; // Stop further execution for UID 1 (screen-sharing user)
   }
 
   // Skip subscribing to your own media
