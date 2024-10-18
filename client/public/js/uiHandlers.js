@@ -121,7 +121,10 @@ export const toggleCamera = async (isMuted, config) => {
           await config.client.unpublish([userTrack.videoTrack]);
           console.log("Video track unpublished for user:", uid);
         } catch (unpublishError) {
-          console.error(`Error unpublishing video track for user ${uid}:`, unpublishError);
+          console.error(
+            `Error unpublishing video track for user ${uid}:`,
+            unpublishError
+          );
         }
 
         userTrack.videoTrack.stop();
@@ -136,13 +139,15 @@ export const toggleCamera = async (isMuted, config) => {
         console.log("Camera turned off and unpublished for user:", uid);
 
         // Use generalized function to manage the camera state
-        manageCameraState(uid, config);
+        manageCameraState(uid, config); // Ensure no screen share handling unless active
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
       } else {
-        console.warn(`No video track found for user ${uid} when trying to turn off the camera.`);
+        console.warn(
+          `No video track found for user ${uid} when trying to turn off the camera.`
+        );
       }
     } else {
       // Camera is off, turn it on
@@ -168,16 +173,22 @@ export const toggleCamera = async (isMuted, config) => {
 
         // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
-        console.log("Camera turned on and video track published for user:", uid);
+        console.log(
+          "Camera turned on and video track published for user:",
+          uid
+        );
 
         // Use generalized function to manage the camera state
-        manageCameraState(uid, config);;
+        manageCameraState(uid, config); // Ensure no screen share handling unless active
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(true);
         }
       } catch (cameraError) {
-        console.error(`Error enabling or publishing video track for user ${uid}:`, cameraError);
+        console.error(
+          `Error enabling or publishing video track for user ${uid}:`,
+          cameraError
+        );
       }
     }
   } catch (error) {
@@ -190,6 +201,7 @@ export const toggleCamera = async (isMuted, config) => {
     }
   }
 };
+
 
 // Declare screenShareUid as a numeric constant
 
