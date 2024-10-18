@@ -25,8 +25,6 @@ export const manageCameraState = (uid, config) => {
 
 
 
-
-
 export const playCameraVideo = async (uid, config) => {
   const userTrack = userTracks[uid];
   const videoTrack = userTrack ? userTrack.videoTrack : null;
@@ -38,11 +36,22 @@ export const playCameraVideo = async (uid, config) => {
   const pipAvatarDiv = document.getElementById(`pip-avatar`);
   const screenShareElement = document.getElementById(`screen-share-content`);
 
-  // Fetch the RTM attributes of UID 1
-  const attributes = await config.clientRTM.getUserAttributes("1");
-  const sharingUser = attributes.sharingUser;
-  const isScreenSharing = sharingUser === uid.toString();
+  let isScreenSharing = false;
   const isCameraOn = !!videoTrack;
+
+  if (uid === config.uid) {
+    // Local user
+    console.log("Processing local user in playCameraVideo.");
+
+    // Use local state to determine if screen sharing is active
+    isScreenSharing = config.isScreenSharing || false;
+  } else {
+    // Remote user
+    // Fetch the RTM attributes of UID 1
+    const attributes = await config.clientRTM.getUserAttributes("1");
+    const sharingUser = attributes.sharingUser;
+    isScreenSharing = sharingUser === uid.toString();
+  }
 
   if (isScreenSharing) {
     console.log("Screen sharing is enabled, managing PiP for camera.");
@@ -102,17 +111,27 @@ export const playCameraVideo = async (uid, config) => {
   console.log("playCameraVideo function execution completed.");
 };
 
-
 export const showAvatar = async (uid, config) => {
   console.log(`Entering showAvatar for user with UID:`, uid);
 
   const userTrack = userTracks[uid];
   const isCameraOn = userTrack && userTrack.videoTrack;
 
-  // Fetch RTM attributes of UID 1 to check if the user is sharing their screen
-  const attributes = await config.clientRTM.getUserAttributes("1");
-  const sharingUser = attributes.sharingUser;
-  const isScreenSharing = sharingUser === uid.toString();
+  let isScreenSharing = false;
+
+  if (uid === config.uid) {
+    // Local user
+    console.log("Processing local user in showAvatar.");
+
+    // Use local state to determine if screen sharing is active
+    isScreenSharing = config.isScreenSharing || false;
+  } else {
+    // Remote user
+    // Fetch RTM attributes of UID 1 to check if the user is sharing their screen
+    const attributes = await config.clientRTM.getUserAttributes("1");
+    const sharingUser = attributes.sharingUser;
+    isScreenSharing = sharingUser === uid.toString();
+  }
 
   const avatarDiv = document.querySelector(`#avatar-${uid}`);
   const videoPlayer = document.querySelector(`#stream-${uid}`);
@@ -220,7 +239,6 @@ export const showAvatar = async (uid, config) => {
 };
 
 
-
 export const startScreenShare = async (uid, config) => {
   try {
     console.log(`Starting screen share process for user with UID: ${uid}`);
@@ -239,6 +257,7 @@ export const startScreenShare = async (uid, config) => {
     userTracks[1].screenShareTrack = screenShareTrack;
 
     // No need to set local RTM attributes here since the screen share client (UID 1) sets the 'sharingUser' attribute
+    config.isScreenSharing = true;
 
     // Update UI accordingly
     manageCameraState(config.uid, config);
@@ -283,6 +302,8 @@ export const stopScreenShare = async (uid, config) => {
     // Update RTM attributes to indicate screen sharing has stopped
     await config.clientRTM.setLocalUserAttributes({ sharingScreen: "0" });
     console.log("Updated RTM attributes: sharingScreen set to '0'");
+
+    config.isScreenSharing = false;
 
     // Update UI accordingly
     manageCameraState(config.uid, config);
