@@ -213,7 +213,6 @@ export const startScreenShare = async (uid, config) => {
     // Mark the user as screen sharing
     userTrack.screenShareEnabled = true;
 
-
     // Handle track-ended event triggered by browser (if user stops screen sharing)
     screenShareTrack.on("track-ended", async () => {
       console.log(
@@ -243,11 +242,11 @@ export const stopScreenShare = async (uid, config) => {
     console.log(`Stopping screen share for user with UID:`, uid);
 
     // Get the userTrack information
-    const userTrack = userTracks[uid];
+    const userTrack = userTracks[1]; // Screen share client UID is 1
 
     // Unpublish and stop the screen share track
-    if (userTrack.screenShareTrack) {
-      await config.client.unpublish([userTrack.screenShareTrack]);
+    if (userTrack && userTrack.screenShareTrack) {
+      await config.screenShareClient.unpublish([userTrack.screenShareTrack]);
       console.log(`Screen share track unpublished from the channel.`);
 
       userTrack.screenShareTrack.stop();
@@ -258,19 +257,7 @@ export const stopScreenShare = async (uid, config) => {
       console.warn(`No active screen share track found to stop.`);
     }
 
-    // Update RTM attribute to indicate that screen sharing has stopped
-    await updateSharingScreenAttribute(false, config);
-
-    // Clear any other RTM attributes related to screen sharing (if needed)
-    console.log(`Clearing RTM attributes for screen sharing...`);
-    await clearRTMAttributes(uid, config.clientRTM);
-
-    // Switch back to the video stage
-    console.log(`Toggling back to video stage...`);
-    toggleStages(false, config.uid); // Switch back from screen-share to video stage
-
-    // Manage camera state to ensure the camera is active again (if needed)
-    manageCameraState(config.uid, config);
+    // Handle track-ended event is already managed in screenShareTrack.on('track-ended')
 
     // Call the function to indicate screen sharing is off
     if (typeof bubble_fn_isScreenOn === "function") {
@@ -281,6 +268,7 @@ export const stopScreenShare = async (uid, config) => {
     throw error;
   }
 };
+
 
 export const toggleStages = (isScreenSharing, uid) => {
   const videoStage = document.getElementById("video-stage");

@@ -8,6 +8,7 @@ import {
   manageCameraState,
   playCameraVideo,
   showAvatar,
+  toggleStages,
 } from "./videoHandlers.js";
 import { userTracks } from "./state.js"; 
 const userJoinPromises = {};
@@ -28,7 +29,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
   console.log("Remote users:", client.remoteUsers);
 
   // Check if the UID is 1 (indicating the screen share client)
-  if (userUid === 1) {
+  if (userUid === 1 && mediaType === "video") {
     console.log(`UID 1 (screen sharing client) detected.`);
 
     // Fetch the RTM attributes for UID 1 (screen-sharing user) using config.clientRTM
@@ -39,20 +40,32 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
       if (sharingUser && sharingUser !== "0") {
         console.log(`User ${sharingUser} is currently sharing their screen.`);
 
-        // Check if the sharing user is the local user
-        if (sharingUser === config.uid.toString()) {
-          console.log(`Sharing user is the local user, skipping subscription.`);
-          // Skip subscription to local user's own screen sharing, but still manage UI updates
-          manageCameraState(parseInt(sharingUser, 10), config); // Update UI with the actual sharing user
-          return;
-        }
+        // Subscribe to the screen share track
+        await client.subscribe(user, mediaType);
+        console.log(`Subscribed to screen share video track for UID 1.`);
 
-        // If the sharing user is a remote user, continue as usual
-        manageCameraState(parseInt(sharingUser, 10), config); // Update UI with the actual sharing user
+        // Store the screen share track
+        if (!userTracks[1]) {
+          userTracks[1] = {};
+        }
+        userTracks[1].screenShareTrack = user.videoTrack;
+
+        // Play the screen share track
+        const screenShareElement =
+          document.getElementById(`screen-share-content`);
+        if (screenShareElement) {
+          user.videoTrack.play(screenShareElement);
+          console.log(`Playing screen share track for UID 1.`);
+        } else {
+          console.warn(`Screen share element not found.`);
+        }
 
         // Switch to screen share stage for the actual sharing user
         console.log(`Toggling stages: switching to screen-share stage...`);
         toggleStages(true, sharingUser); // Show screen-share stage and hide video stage
+
+        // Update UI for the sharing user's camera and avatar
+        manageCameraState(parseInt(sharingUser, 10), config);
       } else {
         console.log("No active screen sharing detected.");
       }
@@ -120,6 +133,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     );
   }
 };
+
 
 
 
