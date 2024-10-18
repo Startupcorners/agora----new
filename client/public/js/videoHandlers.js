@@ -239,9 +239,11 @@ export const showAvatar = async (uid, config) => {
 };
 
 
-export const startScreenShare = async (uid, config) => {
+export const startScreenShare = async (screenShareUid, config) => {
   try {
-    console.log(`Starting screen share process for user with UID: ${uid}`);
+    console.log(
+      `Starting screen share process for screenShareUid: ${screenShareUid}`
+    );
 
     // Create the screen share track
     const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
@@ -251,12 +253,12 @@ export const startScreenShare = async (uid, config) => {
     console.log("Screen share track published.");
 
     // Store the screen share track
-    if (!userTracks[1]) {
-      userTracks[1] = {};
+    if (!userTracks[screenShareUid]) {
+      userTracks[screenShareUid] = {};
     }
-    userTracks[1].screenShareTrack = screenShareTrack;
+    userTracks[screenShareUid].screenShareTrack = screenShareTrack;
 
-    // No need to set local RTM attributes here since the screen share client (UID 1) sets the 'sharingUser' attribute
+    // Update local state to indicate screen sharing has started
     config.isScreenSharing = true;
 
     // Update UI accordingly
@@ -266,7 +268,7 @@ export const startScreenShare = async (uid, config) => {
     // Handle track-ended event
     screenShareTrack.on("track-ended", async () => {
       console.log("Screen share track ended.");
-      await toggleScreenShare(false, uid, config);
+      await toggleScreenShare(false, config.uid, config);
     });
   } catch (error) {
     console.error("Error starting screen share:", error);
@@ -276,12 +278,13 @@ export const startScreenShare = async (uid, config) => {
 
 
 
-export const stopScreenShare = async (uid, config) => {
+
+export const stopScreenShare = async (screenShareUid, config) => {
   try {
-    console.log(`Stopping screen share for user with UID: ${uid}`);
+    console.log(`Stopping screen share for screenShareUid: ${screenShareUid}`);
 
     // Get the screen share track
-    const screenShareTrack = userTracks[1]?.screenShareTrack;
+    const screenShareTrack = userTracks[screenShareUid]?.screenShareTrack;
 
     if (screenShareTrack) {
       // Unpublish the screen share track
@@ -292,17 +295,14 @@ export const stopScreenShare = async (uid, config) => {
       screenShareTrack.close();
 
       // Remove the track from userTracks
-      userTracks[1].screenShareTrack = null;
+      userTracks[screenShareUid].screenShareTrack = null;
 
       console.log("Screen share track stopped and unpublished.");
     } else {
       console.warn("Screen share track not found.");
     }
 
-    // Update RTM attributes to indicate screen sharing has stopped
-    await config.clientRTM.setLocalUserAttributes({ sharingScreen: "0" });
-    console.log("Updated RTM attributes: sharingScreen set to '0'");
-
+    // Update local state to indicate screen sharing has stopped
     config.isScreenSharing = false;
 
     // Update UI accordingly
