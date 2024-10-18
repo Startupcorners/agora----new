@@ -41,9 +41,17 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
       if (sharingUser) {
         console.log(`Screen share is from user: ${sharingUser}`);
 
+        // **Set currentScreenSharingUserUid regardless of who is sharing**
+        config.currentScreenSharingUserUid = parseInt(sharingUser, 10);
+
         // If the screen share is from the local user, do not subscribe
         if (sharingUser === config.uid.toString()) {
           console.log("Screen share is from local user. Not subscribing.");
+
+          // **Update the UI using manageCameraState and toggleStages**
+          manageCameraState(config.uid, config);
+          toggleStages(true, config.uid); // Show screen share stage
+
           return;
         } else {
           console.log("Screen share is from remote user. Subscribing.");
@@ -57,14 +65,9 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
           }
           userTracks[1].screenShareTrack = user.videoTrack;
 
-          // Update UI accordingly using manageCameraState and toggleStages
-          const sharingUserUid = parseInt(sharingUser, 10);
-
-          // **Store the sharingUserUid in config**
-          config.currentScreenSharingUserUid = sharingUserUid;
-
-          manageCameraState(sharingUserUid, config);
-          toggleStages(true, sharingUserUid); // Show screen share stage
+          // **Update UI accordingly using manageCameraState and toggleStages**
+          manageCameraState(config.currentScreenSharingUserUid, config);
+          toggleStages(true, config.currentScreenSharingUserUid); // Show screen share stage
 
           return;
         }
@@ -114,7 +117,7 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
   );
 
   // Skip handling for local user's own media
-  if (user.uid === config.uid) {
+  if (user.uid === config.uid && user.uid !== 1) {
     console.log("Skipping handling of local user's own media.");
     return;
   }
