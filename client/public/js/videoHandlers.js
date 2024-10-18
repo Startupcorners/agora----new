@@ -37,22 +37,10 @@ export const playCameraVideo = async (uid, config) => {
   const pipAvatarDiv = document.getElementById(`pip-avatar`);
   const screenShareElement = document.getElementById(`screen-share-content`);
 
-  let isScreenSharing = false;
   const isCameraOn = !!videoTrack;
 
-  if (uid === config.uid) {
-    // Local user
-    console.log("Processing local user in playCameraVideo.");
-
-    // Use local state to determine if screen sharing is active
-    isScreenSharing = config.isScreenSharing || false;
-  } else {
-    // Remote user
-    // Fetch the RTM attributes of UID 1
-    const attributes = await config.clientRTM.getUserAttributes("1");
-    const sharingUser = attributes.sharingUser;
-    isScreenSharing = sharingUser === uid.toString();
-  }
+  // Determine if the screen is being shared by this user
+  const isScreenSharing = config.currentScreenSharingUserUid === uid;
 
   if (isScreenSharing) {
     console.log("Screen sharing is enabled, managing PiP for camera.");
@@ -112,27 +100,16 @@ export const playCameraVideo = async (uid, config) => {
   console.log("playCameraVideo function execution completed.");
 };
 
+
+
 export const showAvatar = async (uid, config) => {
   console.log(`Entering showAvatar for user with UID:`, uid);
 
   const userTrack = userTracks[uid];
   const isCameraOn = userTrack && userTrack.videoTrack;
 
-  let isScreenSharing = false;
-
-  if (uid === config.uid) {
-    // Local user
-    console.log("Processing local user in showAvatar.");
-
-    // Use local state to determine if screen sharing is active
-    isScreenSharing = config.isScreenSharing || false;
-  } else {
-    // Remote user
-    // Fetch RTM attributes of UID 1 to check if the user is sharing their screen
-    const attributes = await config.clientRTM.getUserAttributes("1");
-    const sharingUser = attributes.sharingUser;
-    isScreenSharing = sharingUser === uid.toString();
-  }
+  // Determine if the screen is being shared by this user
+  const isScreenSharing = config.currentScreenSharingUserUid === uid;
 
   const avatarDiv = document.querySelector(`#avatar-${uid}`);
   const videoPlayer = document.querySelector(`#stream-${uid}`);

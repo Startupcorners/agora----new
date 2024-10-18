@@ -252,6 +252,11 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       // Start screen sharing with the new client (only after joining RTC and RTM)
       console.log("Starting the screen share...");
       await startScreenShare(screenShareUid, config);
+
+      // Call the Bubble function to indicate screen sharing is on
+      if (typeof bubble_fn_isScreenOn === "function") {
+        bubble_fn_isScreenOn(true);
+      }
     } else {
       console.log("Stopping screen share...");
 
@@ -260,16 +265,21 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
         console.log("Stopping the screen share track...");
         await stopScreenShare(screenShareUid, config); // Stop screen sharing
 
-        // No need to call leave() here because it's handled in stopScreenShare
         console.log("Screen share stopped and cleaned up.");
       } else {
         console.log("No screen share client to stop.");
+      }
+
+      // Call the Bubble function to indicate screen sharing is off
+      if (typeof bubble_fn_isScreenOn === "function") {
+        bubble_fn_isScreenOn(false);
       }
     }
   } catch (error) {
     console.error("Error during screen sharing toggle:", error);
   }
 };
+
 
 
 export const joinScreenShareClient = async (
