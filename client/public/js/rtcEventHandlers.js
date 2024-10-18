@@ -116,7 +116,7 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
     `handleUserUnpublished called for user: ${user.uid}, mediaType: ${mediaType}`
   );
 
-  // Skip handling for local user's own media
+  // Skip handling for local user's own media (excluding screen share client)
   if (user.uid === config.uid && user.uid !== 1) {
     console.log("Skipping handling of local user's own media.");
     return;
@@ -148,7 +148,7 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
           }
         }
 
-        // Clear the stored sharingUserUid
+        // **Clear the stored sharingUserUid**
         config.currentScreenSharingUserUid = null;
       } else {
         console.error(
