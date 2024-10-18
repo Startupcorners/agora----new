@@ -302,17 +302,43 @@ export const stopScreenShare = async (screenShareUid, config) => {
       console.warn("Screen share track not found.");
     }
 
+    // Ensure the screen share client leaves the RTC channel
+    if (config.screenShareClient) {
+      await config.screenShareClient.leave();
+      console.log("Screen share RTC client has left the channel.");
+      config.screenShareClient = null;
+    }
+
+    // Clean up RTM client and channel
+    if (config.screenShareRTMChannel) {
+      await config.screenShareRTMChannel.leave();
+      console.log("Left the RTM channel.");
+      config.screenShareRTMChannel = null;
+    }
+
+    if (config.screenShareRTMClient) {
+      await config.screenShareRTMClient.logout();
+      console.log("Logged out of RTM client.");
+      config.screenShareRTMClient = null;
+    }
+
+    // Remove any remaining listeners for token renewals, etc.
+    if (config.screenShareClient) {
+      config.screenShareClient.off("token-privilege-will-expire");
+      console.log("Removed event listeners from screen share RTC client.");
+    }
+
     // Update local state to indicate screen sharing has stopped
     config.isScreenSharing = false;
 
     // Update UI accordingly
     manageCameraState(config.uid, config);
     toggleStages(false, config.uid);
+    console.log("Screen share stopped and UI updated.");
   } catch (error) {
     console.error("Error stopping screen share:", error);
   }
 };
-
 
 
 export const toggleStages = (isScreenSharing, uid) => {
