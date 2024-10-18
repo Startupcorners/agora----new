@@ -429,8 +429,13 @@ export const handleUserLeft = async (user, config) => {
 export const handleVolumeIndicator = (result, config) => {
   result.forEach((volume) => {
     const userUID = volume.uid;
-    const audioLevel = volume.level; // The audio level, can be used to determine when the user is speaking
 
+    // Ignore UID 1 (screen share client or any other special case)
+    if (userUID === 1) {
+      return; // Skip this iteration
+    }
+
+    const audioLevel = volume.level; // The audio level, can be used to determine when the user is speaking
     const wrapper = document.querySelector(`#video-wrapper-${userUID}`);
     console.log(userUID, audioLevel);
 
