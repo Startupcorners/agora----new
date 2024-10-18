@@ -57,13 +57,22 @@ export const playCameraVideo = async (uid, config) => {
   const isScreenSharing = attributes.sharingScreen === "1";
   const isCameraOn = !!videoTrack;
 
+  // Check if the user is the local user
+  const isLocalUser = uid === config.uid;
+
   if (isScreenSharing) {
     console.log("Screen sharing is enabled, managing PiP for camera.");
 
-    // Show the screen share in the main video stage
-    const screenShareTrack = userTracks[1]
-      ? userTracks[1].screenShareTrack
-      : null;
+    let screenShareTrack;
+
+    if (isLocalUser) {
+      // For local user, use the local screen share track
+      screenShareTrack = userTracks[1] ? userTracks[1].screenShareTrack : null;
+    } else {
+      // For remote users, get the screen share track from userTracks[1]
+      screenShareTrack = userTracks[1] ? userTracks[1].screenShareTrack : null;
+    }
+
     if (screenShareTrack && videoPlayer) {
       console.log("Playing screen share track in main video stage.");
       screenShareTrack.play(videoPlayer);
@@ -77,7 +86,7 @@ export const playCameraVideo = async (uid, config) => {
       console.log("Playing camera video track in PiP.");
       videoTrack.play(pipVideoPlayer);
       pipVideoPlayer.style.display = "block"; // Show PiP video player
-      pipAvatarDiv.style.display = "none"; // Hide PiP avatar
+      if (pipAvatarDiv) pipAvatarDiv.style.display = "none"; // Hide PiP avatar
     } else {
       console.log("Camera is off, hiding PiP.");
       if (pipVideoPlayer) pipVideoPlayer.style.display = "none"; // Hide PiP video player
@@ -213,6 +222,10 @@ export const startScreenShare = async (uid, config) => {
     // Mark the user as screen sharing
     userTrack.screenShareEnabled = true;
 
+    // Update RTM attributes to indicate screen sharing has started
+    await config.clientRTM.setLocalUserAttributes({ sharingScreen: "1" });
+    console.log("Updated RTM attributes: sharingScreen set to '1'");
+
     // Handle track-ended event triggered by browser (if user stops screen sharing)
     screenShareTrack.on("track-ended", async () => {
       console.log(
@@ -257,7 +270,9 @@ export const stopScreenShare = async (uid, config) => {
       console.warn(`No active screen share track found to stop.`);
     }
 
-    // Handle track-ended event is already managed in screenShareTrack.on('track-ended')
+    // Update RTM attributes to indicate screen sharing has stopped
+    await config.clientRTM.setLocalUserAttributes({ sharingScreen: "0" });
+    console.log("Updated RTM attributes: sharingScreen set to '0'");
 
     // Call the function to indicate screen sharing is off
     if (typeof bubble_fn_isScreenOn === "function") {
