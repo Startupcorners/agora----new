@@ -224,7 +224,13 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
         });
         console.log("New screen share client created.");
 
-        // Join RTC and RTM for the screen share client (convert screenShareUid to string for RTM)
+        // Create a separate RTM client for the screen share
+        if (!config.screenShareRTMClient) {
+          config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
+          console.log("Created new RTM client for screen share.");
+        }
+
+        // Join RTC and RTM for the screen share client
         await joinScreenShareClient(config, uid);
       } else {
         console.log("Screen share client already exists.");
@@ -245,7 +251,18 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
         // Leave the screen-sharing client from the channel and clean up
         await config.screenShareClient.leave();
         config.screenShareClient = null;
-        console.log("Screen share client left the channel and cleaned up.");
+
+        if (config.screenShareRTMClient) {
+          console.log(
+            "Logging out and cleaning up RTM client for screen share..."
+          );
+          await config.screenShareRTMClient.logout();
+          config.screenShareRTMClient = null;
+        }
+
+        console.log(
+          "Screen share client and RTM client left the channel and cleaned up."
+        );
       } else {
         console.log("No screen share client to stop.");
       }
@@ -260,7 +277,7 @@ export const joinScreenShareClient = async (config, actualUserUid) => {
     // Log the actual user UID and config details for debugging
     console.log("Joining screen share client. Actual User UID:", actualUserUid);
 
-    // Fetch RTC token for screen sharing (convert screenShareUid to string where necessary)
+    // Fetch RTC token for screen sharing
     console.log("Fetching tokens for screen share UID...");
     const tokens = await fetchTokens(config, screenShareUid);
     if (!tokens || !tokens.rtcToken) {
@@ -314,14 +331,14 @@ const joinScreenShareRTM = async (
     const screenShareUidString = screenShareUid.toString();
     console.log("Joining RTM with screen share UID:", screenShareUidString);
 
-    if (config.clientRTM._logined) {
-      console.log("Client RTM already logged in. Logging out...");
-      await config.clientRTM.logout();
+    if (config.screenShareRTMClient._logined) {
+      console.log("Screen share RTM client already logged in. Logging out...");
+      await config.screenShareRTMClient.logout();
     }
 
     // Login to RTM with the screen share UID (as a string)
     console.log("Logging into RTM with the screen share UID...");
-    await config.clientRTM.login({
+    await config.screenShareRTMClient.login({
       uid: screenShareUidString,
       token: rtmToken,
     });
@@ -332,18 +349,23 @@ const joinScreenShareRTM = async (
       sharingUser: actualUserUid.toString(), // The actual user UID who is sharing
     };
 
-    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM for the screen share client
+    await config.screenShareRTMClient.setLocalUserAttributes(attributes); // Store attributes in RTM for the screen share client
 
     console.log("Checking if RTM channel already exists...");
     // **Create the RTM channel and assign it to config.channelRTM if needed**
-    if (!config.channelRTM) {
-      config.channelRTM = config.clientRTM.createChannel(config.channelName);
-      console.log("RTM channel created with name:", config.channelName);
+    if (!config.screenShareRTMChannel) {
+      config.screenShareRTMChannel = config.screenShareRTMClient.createChannel(
+        config.channelName
+      );
+      console.log(
+        "RTM channel created for screen share with name:",
+        config.channelName
+      );
     }
 
     // **Join the RTM channel**
     console.log("Joining the RTM channel...");
-    await config.channelRTM.join();
+    await config.screenShareRTMChannel.join();
     console.log(
       "Screen share client successfully joined RTM channel:",
       config.channelName
