@@ -18,55 +18,43 @@ const userJoinPromises = {};
 // Handles user published event
 
 export const handleUserPublished = async (user, mediaType, config, client) => {
-  const userUid = user.uid;
+  const userUid = user.uid.toString();
   console.log(
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
   );
 
   // Skip subscribing to local user's own media
-  if (userUid === config.uid) {
+  if (userUid === config.uid.toString()) {
     console.log("Skipping subscription to local user's own media.");
     return;
   }
 
-  // Handle screen share client (UID 1)
-  if (userUid === 1) {
-    console.log(`User with UID 1 (screen share client) published.`);
+  // Check if the UID ends with '-screenshare'
+  if (userUid.endsWith("-screenshare")) {
+    const mainUid = userUid.replace("-screenshare", "");
+    console.log(`Screen share is from user: ${mainUid}`);
 
-    // Fetch RTM attributes for UID 1 to get 'userSharingUid'
-    try {
-      const attributes = await config.clientRTM.getUserAttributes("1");
-      const userSharingUid = attributes.userSharingUid;
+    // If the screen share is from the local user, do not subscribe
+    if (mainUid === config.uid.toString()) {
+      console.log("Screen share is from local user. Not subscribing.");
+      // UI was already updated in 'startScreenShare'
+      return;
+    } else {
+      console.log("Screen share is from remote user. Subscribing.");
 
-      console.log(`Screen share is from user: ${userSharingUid}`);
+      // Subscribe to the screen share track
+      await client.subscribe(user, mediaType);
 
-      // If the screen share is from the local user, do not subscribe
-      if (userSharingUid === config.uid.toString()) {
-        console.log("Screen share is from local user. Not subscribing.");
+      // Store the screen share track
+      userTracks[userUid] = {
+        screenShareTrack: user.videoTrack,
+      };
 
-        // UI was already updated in 'startScreenShare', so no need to call 'manageCameraState' and 'toggleStages' again.
+      // Update UI accordingly using manageCameraState and toggleStages
+      manageCameraState(parseInt(mainUid, 10), config);
+      toggleStages(true, mainUid); // Show screen share stage
 
-        return;
-      } else {
-        console.log("Screen share is from remote user. Subscribing.");
-
-        // Subscribe to the screen share track
-        await client.subscribe(user, mediaType);
-
-        // Store the screen share track
-        if (!userTracks[1]) {
-          userTracks[1] = {};
-        }
-        userTracks[1].screenShareTrack = user.videoTrack;
-
-        // Update UI accordingly using manageCameraState and toggleStages
-        manageCameraState(parseInt(userSharingUid, 10), config);
-        toggleStages(true, userSharingUid); // Show screen share stage
-
-        return;
-      }
-    } catch (error) {
-      console.error(`Error fetching RTM attributes for user 1:`, error);
+      return;
     }
   }
 
@@ -83,7 +71,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
       userTracks[userUid].videoTrack = user.videoTrack;
 
       // Update UI using manageCameraState
-      manageCameraState(userUid, config);
+      manageCameraState(parseInt(userUid, 10), config);
     } else if (mediaType === "audio") {
       userTracks[userUid].audioTrack = user.audioTrack;
 
@@ -95,6 +83,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     console.error(`Error subscribing to user ${userUid}:`, error);
   }
 };
+
 
 
 
