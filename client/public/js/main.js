@@ -147,8 +147,7 @@ const join = async () => {
       await joinToVideoStage(config); // Host-only functionality
     }
 
-    // Add the current user to the participant list
-    addCurrentUserToParticipantList(config);
+     
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
