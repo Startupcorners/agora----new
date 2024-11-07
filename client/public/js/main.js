@@ -130,6 +130,7 @@ const join = async () => {
     }
 
     // **Call manageParticipants for the current user**
+    console.log("Calling manageParticipants");
     manageParticipants(userUid, userAttr, config, "join");
   } catch (error) {
     console.error("Error before joining:", error);
