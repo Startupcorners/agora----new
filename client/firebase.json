@@ -12,11 +12,7 @@
         "headers": [
           {
             "key": "Access-Control-Allow-Origin",
-            "value": "https://startupcorners.com"
-          },
-          {
-            "key": "Access-Control-Allow-Origin",
-            "value": "https://www.startupcorners.com"
+            "value": "*"
           },
           {
             "key": "Access-Control-Allow-Methods",
