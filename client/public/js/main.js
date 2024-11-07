@@ -25,6 +25,7 @@ const newMainApp = function (initConfig) {
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
       role: "", // host, speaker, audience, etc.
       company: "",
+      bubbleid: "",
       designation: "",
       profileLink: "",
       uidSharingScreen: "",
@@ -137,6 +138,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
 
     // Login to RTM
     await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
+    console.log("Successfully logged into RTM");
 
     // Set user attributes, including the role
     const attributes = {
@@ -145,22 +147,22 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       comp: config.user.company || "",
       desg: config.user.designation || "",
       role: config.user.role || "audience",
+      bubbleid: config.user.bubbleid,
       sharingScreen: "0",
     };
 
-    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
+    await config.clientRTM.setLocalUserAttributes(attributes);
 
     // **Create the RTM channel and assign it to config.channelRTM**
-    if (!config.channelRTM) {
-      config.channelRTM = config.clientRTM.createChannel(config.channelName);
-      console.log("RTM channel created with name:", config.channelName);
-    }
+    config.channelRTM = config.clientRTM.createChannel(config.channelName);
+    console.log("RTM channel created with name:", config.channelName);
 
     // **Join the RTM channel**
     await config.channelRTM.join();
     console.log("Successfully joined RTM channel:", config.channelName);
 
     // Setup RTM message listener after successfully joining RTM
+    // (Your message listener code here)
 
     console.log("RTM message listener initialized.");
   } catch (error) {
@@ -173,6 +175,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     }
   }
 };
+
 
 
   // Join video stage function
