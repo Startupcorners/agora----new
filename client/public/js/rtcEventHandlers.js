@@ -207,8 +207,9 @@ export const manageParticipants = (userUid, userAttr, config, action) => {
     action: action, // Specify 'join' or 'leave'
   };
 
+  const endpoint = `https://startupcorners.com/api/1.1/wf/participant${action}`;
   // Make API call to the endpoint
-  fetch("https://startupcorners.com/api/1.1/participantupdate", {
+  fetch(endpoint, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
