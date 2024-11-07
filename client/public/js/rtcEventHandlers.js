@@ -192,46 +192,42 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 
-export const manageParticipants = (userUid, userAttr, config) => {
-  console.log(`Managing participant list for user ${userUid}`);
+export const manageParticipants = (userUid, userAttr, config, action) => {
+  console.log(`Processing ${action} action for user ${userUid}`);
 
-  // Initialize or update participant list
-  if (!config.participantList) {
-    config.participantList = [];
-  }
+  // Prepare data to send to the API
+  const dataToSend = {
+    event: config.channelName || "",
+    id: config.user.bubbleid || "",
+    name: userAttr.name || "Unknown",
+    profile: config.user.avatar || "",
+    role: userAttr.role || "audience",
+    designation: userAttr.designation || "",
+    company: userAttr.company || "",
+    action: action, // Specify 'join' or 'leave'
+  };
 
-  let participant = config.participantList.find((p) => p.uid === userUid);
-  if (!participant) {
-    // If the participant doesn't exist, add them
-    participant = {
-      uid: userUid,
-      uids: [userUid],
-      name: userAttr.name || "Unknown",
-      company: userAttr.company || "",
-      designation: userAttr.designation || "",
-      role: userAttr.role || "audience", // Include role
-    };
-    config.participantList.push(participant);
-  } else if (!participant.uids.includes(userUid)) {
-    // If the participant exists, update their details
-    participant.uids.push(userUid);
-  }
+  // Make API call to the endpoint
+  fetch("https://startupcorners.com/api/1.1/participantupdate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      // Include any required authentication headers here
+    },
+    body: JSON.stringify(dataToSend),
+  })
+    .then((response) => response.json())
+    .then((responseData) => {
+      console.log("API call successful:", responseData);
+    })
+    .catch((error) => {
+      console.error("API call failed:", error);
+    });
 
-  // Call bubble_fn_participantList with the updated list
-  if (typeof bubble_fn_participantList === "function") {
-    const participantData = config.participantList.map((p) => ({
-      uid: p.uid,
-      uids: p.uids,
-      name: p.name,
-      company: p.company,
-      designation: p.designation,
-      role: p.role,
-    }));
-    bubble_fn_participantList({ participants: participantData });
-  }
-
-  console.log("Participant list updated.");
+  console.log(`${action} action processed for user ${userUid}`);
 };
+
+
 
 // Handles user joined event
 export const handleUserJoined = async (user, config, userAttr = {}) => {
@@ -257,38 +253,17 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       // Prevent handling your own stream
       if (userUid === config.uid.toString()) {
         console.log(`Skipping wrapper for own user UID: ${userUid}`);
-        resolve(); // Resolve the promise even if it's skipped
-        return; // Exit early
+        resolve();
+        return;
       }
 
-      // Fetch user attributes if not provided
-      if (!userAttr || Object.keys(userAttr).length === 0) {
-        if (config.clientRTM) {
-          try {
-            userAttr = await config.clientRTM.getUserAttributes(userUid.toString());
-          } catch (error) {
-            console.error(
-              `Failed to get RTM attributes for user ${userUid}:`,
-              error
-            );
-            userAttr = {
-              name: "Unknown",
-              company: "",
-              designation: "",
-              role: "audience", // Default role
-            };
-          }
-        } else {
-          console.log(
-            `clientRTM is not initialized. Skipping attribute fetch for user ${userUid}.`
-          );
-          userAttr = {
-            name: "Unknown",
-            company: "",
-            designation: "",
-            role: "audience", // Default role
-          };
-        }
+      // **Skip processing if user is in the waiting room**
+      if (userAttr.waiting === "yes") {
+        console.log(
+          `User ${userUid} is in the waiting room. Skipping join processing.`
+        );
+        resolve();
+        return;
       }
 
       // Assign role and initialize remoteTracks if needed
@@ -303,7 +278,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         console.warn(
           `User ${userUid} does not have the 'host' role. Skipping wrapper.`
         );
-        resolve(); // Resolve the promise early if not a host
+        resolve();
         return;
       }
 
@@ -324,14 +299,10 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       console.log(
         `Host user ${userUid} joined, waiting for media to be published.`
       );
-
-      // ** Call the separate participant management function **
-      manageParticipants(userUid, userAttr, config);
-
-      resolve(); // Resolve the promise when everything is done
+      resolve();
     } catch (error) {
       console.error(`Error in handleUserJoined for user ${userUid}:`, error);
-      reject(error); // Reject the promise on error
+      reject(error);
     }
   });
 
@@ -342,7 +313,8 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 
 
 
-// Handles user left event
+
+
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
   try {
@@ -365,37 +337,8 @@ export const handleUserLeft = async (user, config) => {
       console.log(`No tracks found for user ${user.uid}`);
     }
 
-    // Remove the user from participantList
-    if (config.participantList) {
-      // Filter out the user who left
-      config.participantList = config.participantList.filter(
-        (participant) => participant.uid !== user.uid
-      );
-
-      console.log(`User ${user.uid} removed from participantList`);
-
-      // Extract the updated participant information
-      const participantUIDs = config.participantList.map((p) =>
-        p.uid.toString()
-      );
-      const participantNames = config.participantList.map((p) => p.name);
-      const participantCompanies = config.participantList.map((p) => p.company);
-      const participantDesignations = config.participantList.map(
-        (p) => p.designation
-      );
-
-      // Pass the arrays directly to bubble_fn_participantList
-      if (typeof bubble_fn_participantList === "function") {
-        bubble_fn_participantList({
-          outputlist1: participantUIDs, // Pass as array
-          outputlist2: participantNames,
-          outputlist3: participantCompanies,
-          outputlist4: participantDesignations,
-        });
-      }
-    } else {
-      console.warn("participantList is not initialized.");
-    }
+    // Use manageParticipants to update the participant list
+    manageParticipants(user.uid, null, config, "leave");
 
     // Clear user join promise when the user leaves
     if (userJoinPromises[user.uid]) {

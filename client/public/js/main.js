@@ -24,6 +24,7 @@ const newMainApp = function (initConfig) {
       avatar:
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
       role: "", // host, speaker, audience, etc.
+      waiting: "",
       company: "",
       bubbleid: "",
       designation: "",
@@ -107,15 +108,29 @@ const join = async () => {
       await joinToVideoStage(config); // Host-only functionality
     }
 
-     
-
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
+
+    // **Define userUid and userAttr for manageParticipants**
+    const userUid = config.uid.toString();
+    const userAttr = {
+      name: config.user.name || "Unknown",
+      avatar: config.user.avatar || "default-avatar-url",
+      comp: config.user.company || "Unknown",
+      designation: config.user.designation || "Unknown",
+      role: config.user.role || "audience",
+      bubbleid: config.user.bubbleid,
+      waiting: config.user.waiting,
+      // Include any other attributes you need
+    };
 
     // Notify success using bubble_fn_joining
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Joined");
     }
+
+    // **Call manageParticipants for the current user**
+    manageParticipants(userUid, userAttr, config, "join");
   } catch (error) {
     console.error("Error before joining:", error);
 
@@ -148,6 +163,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       designation: config.user.designation || "Unknown",
       role: config.user.role || "audience",
       bubbleid: config.user.bubbleid,
+      waiting: config.user.waiting,
       sharingScreen: "0",
     };
 
