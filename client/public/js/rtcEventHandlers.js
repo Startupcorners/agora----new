@@ -200,14 +200,18 @@ export const manageParticipants = (userUid, userAttr, config, action) => {
     event: config.channelName || "",
     id: config.user.bubbleid || "",
     name: userAttr.name || "Unknown",
-    profile: config.user.avatar || "",
+    profile: userAttr.avatar || "default-avatar-url",
     role: userAttr.role || "audience",
     designation: userAttr.designation || "",
     company: userAttr.company || "",
     action: action, // Specify 'join' or 'leave'
   };
 
+  // Log the data being sent via the API
+  console.log(`Data sent to API for ${action}:`, dataToSend);
+
   const endpoint = `https://startupcorners.com/api/1.1/wf/participant${action}`;
+
   // Make API call to the endpoint
   fetch(endpoint, {
     method: "POST",
