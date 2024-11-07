@@ -144,8 +144,8 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     const attributes = {
       name: config.user.name || "Unknown",
       avatar: config.user.avatar || "default-avatar-url",
-      comp: config.user.company || "",
-      desg: config.user.designation || "",
+      comp: config.user.company || "Unknown",
+      designation: config.user.designation || "Unknown",
       role: config.user.role || "audience",
       bubbleid: config.user.bubbleid,
       sharingScreen: "0",
