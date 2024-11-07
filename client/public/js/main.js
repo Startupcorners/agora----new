@@ -1,7 +1,7 @@
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
 import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
-import { handleRenewToken } from "./rtcEventHandlers.js"; // Token renewal handler
+import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
@@ -25,6 +25,7 @@ const newMainApp = function (initConfig) {
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
       role: "", // host, speaker, audience, etc.
       company: "",
+      bubbleid: "",
       designation: "",
       profileLink: "",
       uidSharingScreen: "",
@@ -74,47 +75,6 @@ const newMainApp = function (initConfig) {
   // Initialize event callbacks with clientRTM passed
   const callbacks = eventCallbacks(config, config.clientRTM);
   config = { ...config, ...callbacks };
-
-  // Join RTC and RTM
-const addCurrentUserToParticipantList = (config) => {
-  const userUid = config.uid.toString();
-  const userAttr = config.user;
-
-  console.log("Adding current user to participant list:", userUid);
-
-  // Initialize or update participant list
-  if (!config.participantList) {
-    config.participantList = [];
-  }
-
-  let participant = config.participantList.find((p) => p.uid === userUid);
-  if (!participant) {
-    participant = {
-      uid: userUid,
-      uids: [userUid],
-      name: userAttr.name || "Unknown",
-      company: userAttr.company || "",
-      designation: userAttr.designation || "",
-      role: userAttr.role || "audience", // Default role
-    };
-    config.participantList.push(participant);
-  } else if (!participant.uids.includes(userUid)) {
-    participant.uids.push(userUid);
-  }
-
-  // Call bubble_fn_participantList with the updated list
-  if (typeof bubble_fn_participantList === "function") {
-    const participantData = config.participantList.map((p) => ({
-      uid: p.uid,
-      uids: p.uids,
-      name: p.name,
-      company: p.company,
-      designation: p.designation,
-      role: p.role,
-    }));
-    bubble_fn_participantList({ participants: participantData });
-  }
-};
 
 // Main join function
 const join = async () => {
