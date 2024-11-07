@@ -1,7 +1,7 @@
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
 import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
-import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
+import { handleRenewToken } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
@@ -24,7 +24,6 @@ const newMainApp = function (initConfig) {
       avatar:
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
       role: "", // host, speaker, audience, etc.
-      waiting: "",
       company: "",
       bubbleid: "",
       designation: "",
@@ -77,6 +76,47 @@ const newMainApp = function (initConfig) {
   const callbacks = eventCallbacks(config, config.clientRTM);
   config = { ...config, ...callbacks };
 
+  // Join RTC and RTM
+const addCurrentUserToParticipantList = (config) => {
+  const userUid = config.uid.toString();
+  const userAttr = config.user;
+
+  console.log("Adding current user to participant list:", userUid);
+
+  // Initialize or update participant list
+  if (!config.participantList) {
+    config.participantList = [];
+  }
+
+  let participant = config.participantList.find((p) => p.uid === userUid);
+  if (!participant) {
+    participant = {
+      uid: userUid,
+      uids: [userUid],
+      name: userAttr.name || "Unknown",
+      company: userAttr.company || "",
+      designation: userAttr.designation || "",
+      role: userAttr.role || "audience", // Default role
+    };
+    config.participantList.push(participant);
+  } else if (!participant.uids.includes(userUid)) {
+    participant.uids.push(userUid);
+  }
+
+  // Call bubble_fn_participantList with the updated list
+  if (typeof bubble_fn_participantList === "function") {
+    const participantData = config.participantList.map((p) => ({
+      uid: p.uid,
+      uids: p.uids,
+      name: p.name,
+      company: p.company,
+      designation: p.designation,
+      role: p.role,
+    }));
+    bubble_fn_participantList({ participants: participantData });
+  }
+};
+
 // Main join function
 const join = async () => {
   try {
@@ -108,30 +148,15 @@ const join = async () => {
       await joinToVideoStage(config); // Host-only functionality
     }
 
+     
+
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
-
-    // **Define userUid and userAttr for manageParticipants**
-    const userUid = config.uid.toString();
-    const userAttr = {
-      name: config.user.name || "Unknown",
-      avatar: config.user.avatar || "default-avatar-url",
-      comp: config.user.company || "Unknown",
-      designation: config.user.designation || "Unknown",
-      role: config.user.role || "audience",
-      bubbleid: config.user.bubbleid,
-      waiting: config.user.waiting,
-      // Include any other attributes you need
-    };
 
     // Notify success using bubble_fn_joining
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Joined");
     }
-
-    // **Call manageParticipants for the current user**
-    console.log("Calling manageParticipants");
-    manageParticipants(userUid, userAttr, config, "join");
   } catch (error) {
     console.error("Error before joining:", error);
 
@@ -154,32 +179,30 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
 
     // Login to RTM
     await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
-    console.log("Successfully logged into RTM");
 
     // Set user attributes, including the role
     const attributes = {
       name: config.user.name || "Unknown",
       avatar: config.user.avatar || "default-avatar-url",
-      comp: config.user.company || "Unknown",
-      designation: config.user.designation || "Unknown",
+      comp: config.user.company || "",
+      desg: config.user.designation || "",
       role: config.user.role || "audience",
-      bubbleid: config.user.bubbleid,
-      waiting: config.user.waiting,
       sharingScreen: "0",
     };
 
-    await config.clientRTM.setLocalUserAttributes(attributes);
+    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
     // **Create the RTM channel and assign it to config.channelRTM**
-    config.channelRTM = config.clientRTM.createChannel(config.channelName);
-    console.log("RTM channel created with name:", config.channelName);
+    if (!config.channelRTM) {
+      config.channelRTM = config.clientRTM.createChannel(config.channelName);
+      console.log("RTM channel created with name:", config.channelName);
+    }
 
     // **Join the RTM channel**
     await config.channelRTM.join();
     console.log("Successfully joined RTM channel:", config.channelName);
 
     // Setup RTM message listener after successfully joining RTM
-    // (Your message listener code here)
 
     console.log("RTM message listener initialized.");
   } catch (error) {
@@ -192,7 +215,6 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     }
   }
 };
-
 
 
   // Join video stage function
