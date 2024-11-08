@@ -195,10 +195,15 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 export const manageParticipants = (userUid, userAttr, actionType) => {
-  console.log(`Managing participant list for user ${userUid} with action ${actionType}`);
+  console.log(
+    `Managing participant list for user ${userUid} with action ${actionType}`
+  );
 
   // Log the participant list before update
-  console.log("Participant list before update:", JSON.stringify(participantList, null, 2));
+  console.log(
+    "Participant list before update:",
+    JSON.stringify(participantList, null, 2)
+  );
 
   if (actionType === "join") {
     // Check if the participant already exists
@@ -235,13 +240,21 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
   }
 
   // Log the participant list after update
-  console.log("Participant list after update:", JSON.stringify(participantList, null, 2));
+  console.log(
+    "Participant list after update:",
+    JSON.stringify(participantList, null, 2)
+  );
 
   // Separate participants by role
   const speakers = participantList.filter((p) => p.roleInTheCall === "speaker");
-  const audiences = participantList.filter((p) => p.roleInTheCall === "audience");
+  const audiences = participantList.filter(
+    (p) => p.roleInTheCall === "audience"
+  );
   const hosts = participantList.filter((p) => p.roleInTheCall === "host");
   const waiting = participantList.filter((p) => p.roleInTheCall === "waiting");
+  const audienceOnStage = participantList.filter(
+    (p) => p.roleInTheCall === "audienceOnStage"
+  );
 
   // Helper to format data for Bubble
   const formatForBubble = (participants) => ({
@@ -272,6 +285,15 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
   if (typeof bubble_fn_waiting === "function") {
     console.log("Sending waiting data to Bubble:", formatForBubble(waiting));
     bubble_fn_waiting(formatForBubble(waiting));
+  }
+
+  // Send audienceOnStage data to Bubble if the function exists
+  if (typeof bubble_fn_audienceOnStage === "function") {
+    console.log(
+      "Sending audienceOnStage data to Bubble:",
+      formatForBubble(audienceOnStage)
+    );
+    bubble_fn_audienceOnStage(formatForBubble(audienceOnStage));
   }
 
   console.log("Participant list updated.");
