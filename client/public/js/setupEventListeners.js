@@ -19,6 +19,7 @@ import { userTracks } from "./state.js";
 
 
 
+
 export const setupEventListeners = (config) => {
   const client = config.client;
 
@@ -63,6 +64,8 @@ export const setupRTMMessageListener = (
     console.warn("RTM channel is not initialized.");
     return;
   }
+
+  console.log("Current user's rtmUid:", config.user.rtmUid); // Log the current user's rtmUid
 
   // Listen for messages on the RTM channel
   channelRTM.on("ChannelMessage", async (message, memberId) => {
@@ -116,7 +119,7 @@ export const setupRTMMessageListener = (
         app
           .join()
           .then(() => {
-            console.log("Joined successfully due to role change.");
+            console.log("Joined successfully due to role change."); // Log successful join
           })
           .catch((error) => {
             console.error("Error joining after role change:", error);
