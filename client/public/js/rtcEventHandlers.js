@@ -255,6 +255,9 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
   const audienceOnStage = participantList.filter(
     (p) => p.roleInTheCall === "audienceOnStage"
   );
+  const meetingParticipants = participantList.filter(
+    (p) => p.roleInTheCall === "meetingParticipant"
+  );
 
   // Helper to format data for Bubble
   const formatForBubble = (participants) => ({
@@ -287,7 +290,6 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
     bubble_fn_waiting(formatForBubble(waiting));
   }
 
-  // Send audienceOnStage data to Bubble if the function exists
   if (typeof bubble_fn_audienceOnStage === "function") {
     console.log(
       "Sending audienceOnStage data to Bubble:",
@@ -296,9 +298,17 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
     bubble_fn_audienceOnStage(formatForBubble(audienceOnStage));
   }
 
+  // Send meetingParticipant data to Bubble if the function exists
+  if (typeof bubble_fn_meetingParticipant === "function") {
+    console.log(
+      "Sending meetingParticipant data to Bubble:",
+      formatForBubble(meetingParticipants)
+    );
+    bubble_fn_meetingParticipant(formatForBubble(meetingParticipants));
+  }
+
   console.log("Participant list updated.");
 };
-
 
 
 // Handles user joined event
