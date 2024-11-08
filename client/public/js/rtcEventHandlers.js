@@ -194,18 +194,11 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 
-export const manageParticipants = async (userUid, userAttr, actionType) => {
+export const manageParticipants = async (userUid, userAttr, actionType,) => {
   console.log(
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
 
-  try {
-    // Set RTM attributes for the user in Agora
-    await config.clientRTM.setLocalUserAttributes(userAttr);
-    console.log("RTM attributes updated for user", userUid);
-  } catch (error) {
-    console.error("Failed to update RTM attributes for user", userUid, error);
-  }
 
   // Log the participant list before update
   console.log(

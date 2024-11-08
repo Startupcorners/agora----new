@@ -112,6 +112,22 @@ const join = async () => {
       );
       alreadyLoggedIn = true;
       console.log("Already logged in to RTM. Attributes:", attributes);
+
+      // Update attributes if already logged in
+      const updatedAttributes = {
+        name: config.user.name || "Unknown",
+        avatar: config.user.avatar || "default-avatar-url",
+        company: config.user.company || "Unknown",
+        designation: config.user.designation || "Unknown",
+        role: config.user.role || "audience",
+        rtmUid: config.uid.toString(),
+        bubbleid: config.user.bubbleid,
+        isRaisingHand: config.user.isRaisingHand,
+        sharingScreen: "0",
+        roleInTheCall: config.user.roleInTheCall || "audience",
+      };
+      await config.clientRTM.setLocalUserAttributes(updatedAttributes);
+      console.log("RTM attributes updated:", updatedAttributes);
     } catch (error) {
       console.log("Not logged in to RTM, proceeding to join RTM.");
     }
@@ -167,6 +183,7 @@ const join = async () => {
     }
   }
 };
+
 
 
 
