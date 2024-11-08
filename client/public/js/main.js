@@ -85,81 +85,66 @@ const newMainApp = function (initConfig) {
   config = { ...config, ...callbacks };
 
   // Main join function
-  // Main join function
-  const join = async () => {
-    try {
-      // Fetch RTC and RTM tokens
-      const tokens = await fetchTokens(config);
-      if (!tokens) throw new Error("Failed to fetch token");
+const join = async () => {
+  try {
+    // Fetch RTC and RTM tokens
+    const tokens = await fetchTokens(config);
+    if (!tokens) throw new Error("Failed to fetch token");
 
-      // Ensure the user has a role assigned
-      if (!config.user.role) {
-        throw new Error("User does not have a role assigned.");
-      }
-
-      // Join RTM
-      await joinRTM(tokens.rtmToken);
-
-      // Check if the user is in the waiting room
-      if (config.user.roleInTheCall === "waiting") {
-        console.log("User is in the waiting room; skipping RTC join.");
-
-        
-        // Send a message via RTM to indicate the user is in the waiting room
-        await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
-        await sendRTMMessage("trigger_manage_participants");
-
-        return; // Exit the function without joining RTC
-      }
-
-      console.log("config.uid before joining RTC", config.uid);
-      await config.client.join(
-        config.appId,
-        config.channelName,
-        tokens.rtcToken,
-        config.uid
-      );
-
-      console.log("config.uid before setting up listeners", config.uid);
-      setupEventListeners(config); // Setup RTC listeners
-
-      // If the user is a host, proceed with video and screen share setup
-      if (config.user.role === "host") {
-        await joinToVideoStage(config); // Host-only functionality
-      }
-
-      manageParticipants(config.uid, config.user, config, "join");
-
-      // Handle token renewal
-      config.client.on("token-privilege-will-expire", handleRenewToken);
-
-      // Notify success using bubble_fn_joining
-      if (typeof bubble_fn_joining === "function") {
-        bubble_fn_joining("Joined");
-      }
-    } catch (error) {
-      console.error("Error before joining:", error);
-
-      // Notify error using bubble_fn_joining
-      if (typeof bubble_fn_joining === "function") {
-        bubble_fn_joining("Error");
-      }
+    // Ensure the user has a role assigned
+    if (!config.user.role) {
+      throw new Error("User does not have a role assigned.");
     }
-  };
 
-  // Function to send an RTM message to the channel
-  const sendRTMMessage = async (message) => {
-    try {
-      if (config.channelRTM) {
-        await config.channelRTM.sendMessage({ text: message });
-        console.log("Message sent to RTM channel:", message);
-      } else {
-        console.warn("RTM channel is not initialized.");
-      }
-    } catch (error) {
-      console.error("Failed to send RTM message:", error);
+    // Join RTM
+    await joinRTM(tokens.rtmToken);
+
+    // Check if the user is in the waiting room
+    if (config.user.roleInTheCall === "waiting") {
+      console.log("User is in the waiting room; skipping RTC join.");
+
+      // Send a message via RTM to indicate the user is in the waiting room
+      await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
+      await sendRTMMessage("trigger_manage_participants");
+
+      return; // Exit the function without joining RTC
     }
-  };
+
+    console.log("config.uid before joining RTC", config.uid);
+    await config.client.join(
+      config.appId,
+      config.channelName,
+      tokens.rtcToken,
+      config.uid
+    );
+
+    console.log("config.uid before setting up listeners", config.uid);
+    setupEventListeners(config); // Setup RTC listeners
+
+    // If the user is a host, proceed with video and screen share setup
+    if (config.user.role === "host") {
+      await joinToVideoStage(config); // Host-only functionality
+    }
+
+    // Call manageParticipants without the config parameter
+    manageParticipants(config.uid, config.user, "join");
+
+    // Handle token renewal
+    config.client.on("token-privilege-will-expire", handleRenewToken);
+
+    // Notify success using bubble_fn_joining
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Joined");
+    }
+  } catch (error) {
+    console.error("Error before joining:", error);
+
+    // Notify error using bubble_fn_joining
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Error");
+    }
+  }
+};
 
   // RTM Join function
 const joinRTM = async (rtmToken, retryCount = 0) => {

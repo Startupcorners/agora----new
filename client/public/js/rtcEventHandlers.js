@@ -389,7 +389,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 
 
 // Handles user left event
-export const handleUserLeft = async (user, config) => {
+export const handleUserLeft = async (user) => {
   try {
     console.log(`User ${user.uid} left`);
 
@@ -410,8 +410,8 @@ export const handleUserLeft = async (user, config) => {
       console.log(`No tracks found for user ${user.uid}`);
     }
 
-    // Use manageParticipants to remove the user from participantList
-    manageParticipants(user.uid, {}, config, "leave");
+    // Call manageParticipants without the config parameter to remove the user from participantList
+    manageParticipants(user.uid, {}, "leave");
 
     // Clear user join promise when the user leaves
     if (userJoinPromises[user.uid]) {
