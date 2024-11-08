@@ -415,7 +415,7 @@ const joinScreenShareRTM = async (
 };
 
 
-export const changeUserRole = async (userUid, newRole, newRoleInTheCall) => {
+export const changeUserRole = async (userUid, newRole, newRoleInTheCall, config) => {
   console.log(
     `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
