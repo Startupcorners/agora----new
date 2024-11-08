@@ -173,10 +173,20 @@ const join = async () => {
 const joinRTM = async (rtmToken, retryCount = 0) => {
   try {
     const rtmUid = config.uid.toString();
-    console.log("rtmuid value", rtmUid);
+    console.log("RTM UID value:", rtmUid);
 
-    if (config.clientRTM._logined) {
+    // Check connection state before attempting to log in
+    const connectionState = config.clientRTM.getConnectionState();
+    if (connectionState === "CONNECTED") {
       await config.clientRTM.logout();
+    } else if (
+      connectionState === "CONNECTING" ||
+      connectionState === "RECONNECTING"
+    ) {
+      console.warn(
+        "RTM is currently connecting/reconnecting; waiting before retrying login."
+      );
+      return;
     }
 
     // Login to RTM
@@ -196,15 +206,13 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       roleInTheCall: config.user.roleInTheCall || "audience",
     };
 
-    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
+    await config.clientRTM.setLocalUserAttributes(attributes);
 
-    // **Create the RTM channel and assign it to config.channelRTM**
+    // Create and join the RTM channel if not already done
     if (!config.channelRTM) {
       config.channelRTM = config.clientRTM.createChannel(config.channelName);
       console.log("RTM channel created with name:", config.channelName);
     }
-
-    // **Join the RTM channel**
     await config.channelRTM.join();
     console.log("Successfully joined RTM channel:", config.channelName);
   } catch (error) {
@@ -217,6 +225,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     }
   }
 };
+
 
   // Join video stage function
   const joinToVideoStage = async (config) => {
