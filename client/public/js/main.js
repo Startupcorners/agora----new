@@ -28,7 +28,6 @@ const newMainApp = function (initConfig) {
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
       role: "", // host, audience (for rtc and rtm)
       company: "",
-      bubbleid: "",
       designation: "",
       profileLink: "",
       uidSharingScreen: "",
