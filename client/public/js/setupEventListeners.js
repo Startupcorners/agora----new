@@ -108,7 +108,8 @@ export const setupRTMMessageListener = (
       manageParticipants(userUid, updatedAttributes, "join");
 
       // If the role change is for the current user, call the join function
-      if (userUid === config.uid) {
+      if (userUid === config.user.rtmUid) {
+        // Direct comparison with config.user.rtmUid
         console.log(
           "Role change is for the current user. Running the join function."
         );
