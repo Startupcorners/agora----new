@@ -98,12 +98,15 @@ export const setupRTMMessageListener = (
         `Received role change for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
       );
 
+      // Combine role changes with existing user attributes
+      const updatedAttributes = {
+        ...userAttributes,
+        role: newRole,
+        roleInTheCall: newRoleInTheCall,
+      };
+
       // Update the user’s role and roleInTheCall on the local client
-      manageParticipants(
-        userUid,
-        { role: newRole, roleInTheCall: newRoleInTheCall },
-        "join"
-      );
+      manageParticipants(userUid, updatedAttributes, "join");
     } else if (
       parsedMessage.text &&
       parsedMessage.text.includes("waiting room")
@@ -119,3 +122,4 @@ export const setupRTMMessageListener = (
 
   console.log("RTM message listener initialized.");
 };
+
