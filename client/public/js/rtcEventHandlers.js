@@ -210,6 +210,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
       company: userAttr.company || "",
       designation: userAttr.designation || "",
       role: userAttr.role || "audience", // Include role
+      roleInTheCall: userAttr.roleInTheCall || "audience",
     };
     config.participantList.push(participant);
   } else if (!participant.uids.includes(userUid)) {
@@ -217,21 +218,28 @@ export const manageParticipants = (userUid, userAttr, config) => {
     participant.uids.push(userUid);
   }
 
+  // Prepare the data to send to Bubble
+  const participantData = config.participantList.map((p) => ({
+    uid: p.uid,
+    uids: p.uids,
+    name: p.name,
+    company: p.company,
+    designation: p.designation,
+    role: p.role,
+    roleInTheCall: p.roleInTheCall,
+  }));
+
+  // Log the data being sent to Bubble
+  console.log("Sending participant data to Bubble:", participantData);
+
   // Call bubble_fn_participantList with the updated list
   if (typeof bubble_fn_participantList === "function") {
-    const participantData = config.participantList.map((p) => ({
-      uid: p.uid,
-      uids: p.uids,
-      name: p.name,
-      company: p.company,
-      designation: p.designation,
-      role: p.role,
-    }));
     bubble_fn_participantList({ participants: participantData });
   }
 
   console.log("Participant list updated.");
 };
+
 
 // Handles user joined event
 export const handleUserJoined = async (user, config, userAttr = {}) => {
