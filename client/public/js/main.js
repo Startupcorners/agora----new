@@ -16,6 +16,7 @@ import {
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 import { userTracks } from "./state.js";
 
+
 const newMainApp = function (initConfig) {
   let config = {
     debugEnabled: true,
@@ -72,28 +73,15 @@ const newMainApp = function (initConfig) {
   AgoraRTC.onCameraChanged = (info) => config.onCameraChanged(info);
   AgoraRTC.onMicrophoneChanged = (info) => config.onMicrophoneChanged(info);
   AgoraRTC.onPlaybackDeviceChanged = (info) => config.onSpeakerChanged(info);
-  if (typeof AgoraRTM !== "undefined") {
-    console.log("Agora RTM SDK loaded successfully.");
-    console.log("Using Agora RTM SDK Version: 2.2.0"); // Indirect confirmation based on imported script
-  } else {
-    console.error("Agora RTM SDK is not loaded.");
-  }
 
   // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
- const logConfig = new RtmLogConfig();
- logConfig.level = RtmLogLevel.INFO;
+  config.clientRTM = AgoraRTM.createInstance(config.appId, {
+    enableLogUpload: false,
+    logFilter: config.debugEnabled
+      ? AgoraRTM.LOG_FILTER_INFO
+      : AgoraRTM.LOG_FILTER_OFF,
+  });
 
- const rtmConfig = new RtmConfig.Builder(config.appId, config.user.id)
-   .setLogConfig(logConfig)
-   .build();
-
- try {
-   // Initialize AgoraRTM client using RtmClient.create
-   config.clientRTM = RtmClient.create(rtmConfig);
-   console.log("RTM client successfully created:", config.clientRTM);
- } catch (error) {
-   console.error("Failed to create RTM client:", error);
- }
   // Initialize RTM Channel
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
   setupRTMMessageListener(config.channelRTM, manageParticipants, config);
@@ -103,67 +91,69 @@ const newMainApp = function (initConfig) {
   config = { ...config, ...callbacks };
 
   // Main join function
-  const join = async () => {
-    bubble_fn_role(config.user.roleInTheCall);
-    try {
-      // Fetch RTC and RTM tokens
-      const tokens = await fetchTokens(config);
-      if (!tokens) throw new Error("Failed to fetch token");
+const join = async () => {
+  bubble_fn_role(config.user.roleInTheCall);
+  try {
+    // Fetch RTC and RTM tokens
+    const tokens = await fetchTokens(config);
+    if (!tokens) throw new Error("Failed to fetch token");
 
-      // Ensure the user has a role assigned
-      if (!config.user.role) {
-        throw new Error("User does not have a role assigned.");
-      }
-
-      // Join RTM
-      await joinRTM(tokens.rtmToken);
-
-      // Check if the user is in the waiting room
-      if (config.user.roleInTheCall === "waiting") {
-        console.log("User is in the waiting room; skipping RTC join.");
-
-        // Send a message via RTM to indicate the user is in the waiting room
-        await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
-        await sendRTMMessage("trigger_manage_participants");
-
-        return; // Exit the function without joining RTC
-      }
-
-      console.log("config.uid before joining RTC", config.uid);
-      await config.client.join(
-        config.appId,
-        config.channelName,
-        tokens.rtcToken,
-        config.uid
-      );
-
-      console.log("config.uid before setting up listeners", config.uid);
-      setupEventListeners(config); // Setup RTC listeners
-
-      // If the user is a host, proceed with video and screen share setup
-      if (config.user.role === "host") {
-        await joinToVideoStage(config); // Host-only functionality
-      }
-
-      // Call manageParticipants without the config parameter
-      manageParticipants(config.uid, config.user, "join");
-
-      // Handle token renewal
-      config.client.on("token-privilege-will-expire", handleRenewToken);
-
-      // Notify success using bubble_fn_joining
-      if (typeof bubble_fn_joining === "function") {
-        bubble_fn_joining("Joined");
-      }
-    } catch (error) {
-      console.error("Error before joining:", error);
-
-      // Notify error using bubble_fn_joining
-      if (typeof bubble_fn_joining === "function") {
-        bubble_fn_joining("Error");
-      }
+    // Ensure the user has a role assigned
+    if (!config.user.role) {
+      throw new Error("User does not have a role assigned.");
     }
-  };
+
+    // Join RTM
+    await joinRTM(tokens.rtmToken);
+
+    // Check if the user is in the waiting room
+    if (config.user.roleInTheCall === "waiting") {
+      console.log("User is in the waiting room; skipping RTC join.");
+
+      // Send a message via RTM to indicate the user is in the waiting room
+      await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
+      await sendRTMMessage("trigger_manage_participants");
+
+      return; // Exit the function without joining RTC
+    }
+
+    console.log("config.uid before joining RTC", config.uid);
+    await config.client.join(
+      config.appId,
+      config.channelName,
+      tokens.rtcToken,
+      config.uid
+    );
+
+    console.log("config.uid before setting up listeners", config.uid);
+    setupEventListeners(config); // Setup RTC listeners
+
+    // If the user is a host, proceed with video and screen share setup
+    if (config.user.role === "host") {
+      await joinToVideoStage(config); // Host-only functionality
+    }
+
+    // Call manageParticipants without the config parameter
+    manageParticipants(config.uid, config.user, "join");
+
+    // Handle token renewal
+    config.client.on("token-privilege-will-expire", handleRenewToken);
+
+    // Notify success using bubble_fn_joining
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Joined");
+
+    }
+  } catch (error) {
+    console.error("Error before joining:", error);
+
+    // Notify error using bubble_fn_joining
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Error");
+    }
+  }
+};
+
 
   // Function to send an RTM message to the channel
   const sendRTMMessage = async (message) => {
@@ -180,53 +170,53 @@ const newMainApp = function (initConfig) {
   };
 
   // RTM Join function
-  const joinRTM = async (rtmToken, retryCount = 0) => {
-    try {
-      const rtmUid = config.uid.toString();
-      console.log("rtmuid value", rtmUid);
+const joinRTM = async (rtmToken, retryCount = 0) => {
+  try {
+    const rtmUid = config.uid.toString();
+    console.log("rtmuid value", rtmUid);
 
-      if (config.clientRTM.getConnectionState() === "CONNECTED") {
-        await config.clientRTM.logout();
-      }
-
-      // Login to RTM
-      await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
-
-      // Set user attributes, including the role
-      const attributes = {
-        name: config.user.name || "Unknown",
-        avatar: config.user.avatar || "default-avatar-url",
-        company: config.user.company || "Unknown",
-        designation: config.user.designation || "Unknown",
-        role: config.user.role || "audience",
-        rtmUid: rtmUid,
-        bubbleid: config.user.bubbleid,
-        isRaisingHand: config.user.isRaisingHand,
-        sharingScreen: "0",
-        roleInTheCall: config.user.roleInTheCall || "audience",
-      };
-
-      await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
-
-      // **Create the RTM channel and assign it to config.channelRTM**
-      if (!config.channelRTM) {
-        config.channelRTM = config.clientRTM.createChannel(config.channelName);
-        console.log("RTM channel created with name:", config.channelName);
-      }
-
-      // **Join the RTM channel**
-      await config.channelRTM.join();
-      console.log("Successfully joined RTM channel:", config.channelName);
-    } catch (error) {
-      if (error.code === 5 && retryCount < 3) {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        return joinRTM(rtmToken, retryCount + 1);
-      } else {
-        console.error("Failed to join RTM after multiple attempts:", error);
-        throw error;
-      }
+    if (config.clientRTM._logined) {
+      await config.clientRTM.logout();
     }
-  };
+
+    // Login to RTM
+    await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
+
+    // Set user attributes, including the role
+    const attributes = {
+      name: config.user.name || "Unknown",
+      avatar: config.user.avatar || "default-avatar-url",
+      company: config.user.company || "Unknown",
+      designation: config.user.designation || "Unknown",
+      role: config.user.role || "audience",
+      rtmUid: rtmUid,
+      bubbleid: config.user.bubbleid,
+      isRaisingHand: config.user.isRaisingHand,
+      sharingScreen: "0",
+      roleInTheCall: config.user.roleInTheCall || "audience",
+    };
+
+    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
+
+    // **Create the RTM channel and assign it to config.channelRTM**
+    if (!config.channelRTM) {
+      config.channelRTM = config.clientRTM.createChannel(config.channelName);
+      console.log("RTM channel created with name:", config.channelName);
+    }
+
+    // **Join the RTM channel**
+    await config.channelRTM.join();
+    console.log("Successfully joined RTM channel:", config.channelName);
+  } catch (error) {
+    if (error.code === 5 && retryCount < 3) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return joinRTM(rtmToken, retryCount + 1);
+    } else {
+      console.error("Failed to join RTM after multiple attempts:", error);
+      throw error;
+    }
+  }
+};
 
   // Join video stage function
   const joinToVideoStage = async (config) => {
@@ -319,3 +309,6 @@ const newMainApp = function (initConfig) {
 };
 
 window["newMainApp"] = newMainApp;
+
+
+

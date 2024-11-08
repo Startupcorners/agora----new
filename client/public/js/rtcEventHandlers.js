@@ -195,15 +195,10 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 export const manageParticipants = (userUid, userAttr, actionType) => {
-  console.log(
-    `Managing participant list for user ${userUid} with action ${actionType}`
-  );
+  console.log(`Managing participant list for user ${userUid} with action ${actionType}`);
 
   // Log the participant list before update
-  console.log(
-    "Participant list before update:",
-    JSON.stringify(participantList, null, 2)
-  );
+  console.log("Participant list before update:", JSON.stringify(participantList, null, 2));
 
   if (actionType === "join") {
     // Check if the participant already exists
@@ -213,7 +208,7 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
       // Add new participant if they don't exist in the list
       const newParticipant = {
         uid: userUid,
-        rtmUid: userAttr.rtmUid || "", // Add rtmUid attribute here
+        rtmUid: userAttr.rtmUid || "",  // Add rtmUid attribute here
         name: userAttr.name || "Unknown",
         company: userAttr.company || "",
         designation: userAttr.designation || "",
@@ -241,24 +236,15 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
   }
 
   // Log the participant list after update
-  console.log(
-    "Participant list after update:",
-    JSON.stringify(participantList, null, 2)
-  );
+  console.log("Participant list after update:", JSON.stringify(participantList, null, 2));
 
   // Separate participants by role
   const speakers = participantList.filter((p) => p.roleInTheCall === "speaker");
-  const audiences = participantList.filter(
-    (p) => p.roleInTheCall === "audience"
-  );
+  const audiences = participantList.filter((p) => p.roleInTheCall === "audience");
   const hosts = participantList.filter((p) => p.roleInTheCall === "host");
   const waiting = participantList.filter((p) => p.roleInTheCall === "waiting");
-  const audienceOnStage = participantList.filter(
-    (p) => p.roleInTheCall === "audienceOnStage"
-  );
-  const meetingParticipants = participantList.filter(
-    (p) => p.roleInTheCall === "meetingParticipant"
-  );
+  const audienceOnStage = participantList.filter((p) => p.roleInTheCall === "audienceOnStage");
+  const meetingParticipants = participantList.filter((p) => p.roleInTheCall === "meetingParticipant");
 
   // Helper to format data for Bubble, including rtmUid
   const formatForBubble = (participants) => ({
@@ -293,18 +279,12 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
   }
 
   if (typeof bubble_fn_audienceOnStage === "function") {
-    console.log(
-      "Sending audienceOnStage data to Bubble:",
-      formatForBubble(audienceOnStage)
-    );
+    console.log("Sending audienceOnStage data to Bubble:", formatForBubble(audienceOnStage));
     bubble_fn_audienceOnStage(formatForBubble(audienceOnStage));
   }
 
   if (typeof bubble_fn_meetingParticipant === "function") {
-    console.log(
-      "Sending meetingParticipant data to Bubble:",
-      formatForBubble(meetingParticipants)
-    );
+    console.log("Sending meetingParticipant data to Bubble:", formatForBubble(meetingParticipants));
     bubble_fn_meetingParticipant(formatForBubble(meetingParticipants));
   }
 
