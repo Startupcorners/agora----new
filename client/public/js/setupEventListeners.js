@@ -15,7 +15,7 @@ import {
   toggleStages,
 } from "./videoHandlers.js";
 import { userTracks } from "./state.js"; 
-import { join } from "./main.js"; 
+
 
 
 
@@ -117,7 +117,8 @@ export const setupRTMMessageListener = (
         console.log(
           "Role change is for the current user. Running the join function."
         );
-        join()
+        window.app
+          .join()
           .then(() => {
             console.log("Joined successfully due to role change."); // Log successful join
           })
