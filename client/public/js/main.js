@@ -74,8 +74,7 @@ const newMainApp = function (initConfig) {
   AgoraRTC.onPlaybackDeviceChanged = (info) => config.onSpeakerChanged(info);
 
   // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
-  config.clientRTM = AgoraRTM.createClient({
-    appId: config.appId,
+  config.clientRTM = AgoraRTM.createInstance(config.appId, {
     logLevel: config.debugEnabled ? "INFO" : "OFF",
   });
 
