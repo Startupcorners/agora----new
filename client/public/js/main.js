@@ -80,10 +80,20 @@ const newMainApp = function (initConfig) {
   }
 
   // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
-  config.clientRTM = AgoraRTM.createInstance(config.appId, {
-    logLevel: config.debugEnabled ? "INFO" : "OFF",
-  });
+ const logConfig = new RtmLogConfig();
+ logConfig.level = RtmLogLevel.INFO;
 
+ const rtmConfig = new RtmConfig.Builder(config.appId, config.user.id)
+   .setLogConfig(logConfig)
+   .build();
+
+ try {
+   // Initialize AgoraRTM client using RtmClient.create
+   config.clientRTM = RtmClient.create(rtmConfig);
+   console.log("RTM client successfully created:", config.clientRTM);
+ } catch (error) {
+   console.error("Failed to create RTM client:", error);
+ }
   // Initialize RTM Channel
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
   setupRTMMessageListener(config.channelRTM, manageParticipants, config);
