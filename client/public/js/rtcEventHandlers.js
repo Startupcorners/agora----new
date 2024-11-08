@@ -13,6 +13,8 @@ import {
 import { userTracks } from "./state.js"; 
 const userJoinPromises = {};
 
+let participantList = [];
+
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config, client) => {
   const userUid = user.uid.toString();
@@ -192,27 +194,15 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 
-export const manageParticipants = (userUid, userAttr, config, actionType) => {
-  console.log(
-    `Managing participant list for user ${userUid} with action ${actionType}`
-  );
+export const manageParticipants = (userUid, userAttr, actionType) => {
+  console.log(`Managing participant list for user ${userUid} with action ${actionType}`);
 
   // Log the participant list before update
-  console.log(
-    "Participant list before update:",
-    JSON.stringify(config.participantList, null, 2)
-  );
-
-  // Initialize participant list if it doesn't exist
-  if (!config.participantList) {
-    config.participantList = [];
-  }
+  console.log("Participant list before update:", JSON.stringify(participantList, null, 2));
 
   if (actionType === "join") {
     // Check if the participant already exists
-    let participantIndex = config.participantList.findIndex(
-      (p) => p.uid === userUid
-    );
+    let participantIndex = participantList.findIndex((p) => p.uid === userUid);
 
     if (participantIndex === -1) {
       // Add new participant if they don't exist in the list
@@ -227,19 +217,17 @@ export const manageParticipants = (userUid, userAttr, config, actionType) => {
         isRaisingHand: userAttr.isRaisingHand || false,
         roleInTheCall: userAttr.roleInTheCall || "audience",
       };
-      config.participantList.push(newParticipant);
+      participantList.push(newParticipant);
     } else {
       // Update existing participant details if they exist
-      config.participantList[participantIndex] = {
-        ...config.participantList[participantIndex],
+      participantList[participantIndex] = {
+        ...participantList[participantIndex],
         ...userAttr,
       };
     }
   } else if (actionType === "leave") {
     // Remove the participant if they are leaving
-    config.participantList = config.participantList.filter(
-      (p) => p.uid !== userUid
-    );
+    participantList = participantList.filter((p) => p.uid !== userUid);
     console.log(`Participant ${userUid} has left.`);
   } else {
     console.warn(`Unknown action type: ${actionType}`);
@@ -247,24 +235,13 @@ export const manageParticipants = (userUid, userAttr, config, actionType) => {
   }
 
   // Log the participant list after update
-  console.log(
-    "Participant list after update:",
-    JSON.stringify(config.participantList, null, 2)
-  );
+  console.log("Participant list after update:", JSON.stringify(participantList, null, 2));
 
   // Separate participants by role
-  const speakers = config.participantList.filter(
-    (p) => p.roleInTheCall === "speaker"
-  );
-  const audiences = config.participantList.filter(
-    (p) => p.roleInTheCall === "audience"
-  );
-  const hosts = config.participantList.filter(
-    (p) => p.roleInTheCall === "host"
-  );
-  const waiting = config.participantList.filter(
-    (p) => p.roleInTheCall === "waiting"
-  );
+  const speakers = participantList.filter((p) => p.roleInTheCall === "speaker");
+  const audiences = participantList.filter((p) => p.roleInTheCall === "audience");
+  const hosts = participantList.filter((p) => p.roleInTheCall === "host");
+  const waiting = participantList.filter((p) => p.roleInTheCall === "waiting");
 
   // Helper to format data for Bubble
   const formatForBubble = (participants) => ({
