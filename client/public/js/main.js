@@ -1,6 +1,9 @@
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
-import { setupEventListeners } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
+import {
+  setupEventListeners,
+  setupRTMMessageListener,
+} from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
@@ -69,68 +72,94 @@ const newMainApp = function (initConfig) {
   // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
   config.clientRTM = AgoraRTM.createInstance(config.appId, {
     enableLogUpload: false,
-    logFilter: config.debugEnabled ? AgoraRTM.LOG_FILTER_INFO : AgoraRTM.LOG_FILTER_OFF,
+    logFilter: config.debugEnabled
+      ? AgoraRTM.LOG_FILTER_INFO
+      : AgoraRTM.LOG_FILTER_OFF,
   });
 
   // Initialize RTM Channel
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
+  setupRTMMessageListener(config.channelRTM, manageParticipants, config);
 
   // Initialize event callbacks with clientRTM passed
   const callbacks = eventCallbacks(config, config.clientRTM);
   config = { ...config, ...callbacks };
 
+  // Main join function
+  // Main join function
+  const join = async () => {
+    try {
+      // Fetch RTC and RTM tokens
+      const tokens = await fetchTokens(config);
+      if (!tokens) throw new Error("Failed to fetch token");
 
-// Main join function
-const join = async () => {
-  try {
-    // Fetch RTC and RTM tokens
-    const tokens = await fetchTokens(config);
-    if (!tokens) throw new Error("Failed to fetch token");
+      // Ensure the user has a role assigned
+      if (!config.user.role) {
+        throw new Error("User does not have a role assigned.");
+      }
 
-    // Ensure the user has a role assigned
-    if (!config.user.role) {
-      throw new Error("User does not have a role assigned.");
+      // Join RTM
+      await joinRTM(tokens.rtmToken);
+
+      // Check if the user is in the waiting room
+      if (config.user.roleInTheCall === "waiting") {
+        console.log("User is in the waiting room; skipping RTC join.");
+
+        
+        // Send a message via RTM to indicate the user is in the waiting room
+        await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
+
+        return; // Exit the function without joining RTC
+      }
+
+      console.log("config.uid before joining RTC", config.uid);
+      await config.client.join(
+        config.appId,
+        config.channelName,
+        tokens.rtcToken,
+        config.uid
+      );
+
+      console.log("config.uid before setting up listeners", config.uid);
+      setupEventListeners(config); // Setup RTC listeners
+
+      // If the user is a host, proceed with video and screen share setup
+      if (config.user.role === "host") {
+        await joinToVideoStage(config); // Host-only functionality
+      }
+
+      manageParticipants(config.uid, config.user, config);
+
+      // Handle token renewal
+      config.client.on("token-privilege-will-expire", handleRenewToken);
+
+      // Notify success using bubble_fn_joining
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Joined");
+      }
+    } catch (error) {
+      console.error("Error before joining:", error);
+
+      // Notify error using bubble_fn_joining
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Error");
+      }
     }
+  };
 
-    // Join RTM
-    await joinRTM(tokens.rtmToken);
-
-    console.log("config.uid before joining RTC", config.uid);
-    await config.client.join(
-      config.appId,
-      config.channelName,
-      tokens.rtcToken,
-      config.uid
-    );
-
-    console.log("config.uid before setting up listeners", config.uid);
-    setupEventListeners(config); // Setup RTC listeners
-
-    // If the user is a host, proceed with video and screen share setup
-    if (config.user.role === "host") {
-      await joinToVideoStage(config); // Host-only functionality
+  // Function to send an RTM message to the channel
+  const sendRTMMessage = async (message) => {
+    try {
+      if (config.channelRTM) {
+        await config.channelRTM.sendMessage({ text: message });
+        console.log("Message sent to RTM channel:", message);
+      } else {
+        console.warn("RTM channel is not initialized.");
+      }
+    } catch (error) {
+      console.error("Failed to send RTM message:", error);
     }
-
-    manageParticipants(config.uid, config.user, config);
-
-     
-
-    // Handle token renewal
-    config.client.on("token-privilege-will-expire", handleRenewToken);
-
-    // Notify success using bubble_fn_joining
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Joined");
-    }
-  } catch (error) {
-    console.error("Error before joining:", error);
-
-    // Notify error using bubble_fn_joining
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Error");
-    }
-  }
-};
+  };
 
   // RTM Join function
 const joinRTM = async (rtmToken, retryCount = 0) => {
@@ -155,7 +184,6 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       bubbleid: config.user.bubbleid,
       isRaisingHand: config.user.isRaisingHand,
       sharingScreen: "0",
-
       roleInTheCall: config.user.roleInTheCall || "audience",
     };
 
@@ -170,10 +198,6 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     // **Join the RTM channel**
     await config.channelRTM.join();
     console.log("Successfully joined RTM channel:", config.channelName);
-
-    // Setup RTM message listener after successfully joining RTM
-
-    console.log("RTM message listener initialized.");
   } catch (error) {
     if (error.code === 5 && retryCount < 3) {
       await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -185,85 +209,83 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
   }
 };
 
-
   // Join video stage function
-const joinToVideoStage = async (config) => {
-  try {
-    const { client, uid } = config;
+  const joinToVideoStage = async (config) => {
+    try {
+      const { client, uid } = config;
 
-    // Create and publish the local audio track if it doesn't exist
-    if (!config.localAudioTrack) {
-      console.log("Creating microphone audio track");
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    }
+      // Create and publish the local audio track if it doesn't exist
+      if (!config.localAudioTrack) {
+        console.log("Creating microphone audio track");
+        config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      }
 
-    if (config.localAudioTrack) {
-      console.log("Microphone audio track created successfully");
-    } else {
-      console.error("Failed to create local audio track");
-    }
+      if (config.localAudioTrack) {
+        console.log("Microphone audio track created successfully");
+      } else {
+        console.error("Failed to create local audio track");
+      }
 
-    // Create the local video track if it doesn't exist, but DO NOT publish it
-    if (!config.localVideoTrack) {
+      // Create the local video track if it doesn't exist, but DO NOT publish it
+      if (!config.localVideoTrack) {
+        console.log(
+          "Creating camera video track (muted and unpublished initially)"
+        );
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        await config.localVideoTrack.setEnabled(false); // Keep video muted initially
+        config.localVideoTrackMuted = true; // Track that the video is muted
+        console.log("Video track created but kept muted and unpublished");
+      }
+
+      // Publish only the local audio track
+      console.log("Publishing local audio track");
+      await client.publish([config.localAudioTrack]);
+
+      console.log("Successfully published local audio track");
+      console.log("Checking uid:", uid);
+
+      // Update the userTrack object to reflect the "camera off" state
+      let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
+
+      updatedUserTrack = {
+        ...updatedUserTrack,
+        videoTrack: null, // Initially set to null (camera off state)
+        screenShareTrack: config.localScreenShareTrack || null,
+        isVideoMuted: true, // Camera is off initially
+      };
+
+      // Reassign the updated user track back to the global userTracks object
+      userTracks[uid] = updatedUserTrack;
+
+      // Add the current user wrapper (for their own video/audio stream)
+      await addUserWrapper({ uid, ...config.user }, config);
+
+      // Select the video player and avatar elements for the current user
+      const videoPlayer = document.querySelector(`#stream-${uid}`);
+      const avatarDiv = document.querySelector(`#avatar-${uid}`);
+
+      // Ensure the video player and avatar elements are found
+      if (!videoPlayer || !avatarDiv) {
+        console.error(
+          "Video player or avatar elements not found for current user"
+        );
+        return;
+      }
+
+      // Show avatar and hide video initially since the camera is off
+      toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
+
+      // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
+      const isMuted = config.localAudioTrack.muted || false;
+      toggleMicIcon(uid, isMuted);
+
       console.log(
-        "Creating camera video track (muted and unpublished initially)"
+        "Joined the video stage with the camera off and active audio"
       );
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      await config.localVideoTrack.setEnabled(false); // Keep video muted initially
-      config.localVideoTrackMuted = true; // Track that the video is muted
-      console.log("Video track created but kept muted and unpublished");
+    } catch (error) {
+      console.error("Error in joinToVideoStage", error);
     }
-
-    // Publish only the local audio track
-    console.log("Publishing local audio track");
-    await client.publish([config.localAudioTrack]);
-
-    console.log("Successfully published local audio track");
-    console.log("Checking uid:", uid);
-
-    // Update the userTrack object to reflect the "camera off" state
-    let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
-
-    updatedUserTrack = {
-      ...updatedUserTrack,
-      videoTrack: null, // Initially set to null (camera off state)
-      screenShareTrack: config.localScreenShareTrack || null,
-      isVideoMuted: true, // Camera is off initially
-    };
-
-    // Reassign the updated user track back to the global userTracks object
-    userTracks[uid] = updatedUserTrack;
-
-    // Add the current user wrapper (for their own video/audio stream)
-    await addUserWrapper({ uid, ...config.user }, config);
-
-    // Select the video player and avatar elements for the current user
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${uid}`);
-
-    // Ensure the video player and avatar elements are found
-    if (!videoPlayer || !avatarDiv) {
-      console.error(
-        "Video player or avatar elements not found for current user"
-      );
-      return;
-    }
-
-    // Show avatar and hide video initially since the camera is off
-    toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
-
-    // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
-    const isMuted = config.localAudioTrack.muted || false;
-    toggleMicIcon(uid, isMuted);
-
-    console.log("Joined the video stage with the camera off and active audio");
-  } catch (error) {
-    console.error("Error in joinToVideoStage", error);
-  }
-};
-
-
-
+  };
 
   return {
     config,

@@ -231,6 +231,9 @@ export const manageParticipants = (userUid, userAttr, config) => {
   const hosts = config.participantList.filter(
     (p) => p.roleInTheCall === "host"
   );
+  const waiting = config.participantList.filter(
+    (p) => p.roleInTheCall === "waiting"
+  );
 
   // Function to map participant data
   const mapParticipantData = (participants) => ({
@@ -247,6 +250,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
   const speakerData = mapParticipantData(speakers);
   const audienceData = mapParticipantData(audiences);
   const hostData = mapParticipantData(hosts);
+  const waitingData = mapParticipantData(waiting);
 
   // Log data and send to respective Bubble functions
   if (typeof bubble_fn_speaker === "function") {
@@ -288,9 +292,21 @@ export const manageParticipants = (userUid, userAttr, config) => {
     });
   }
 
+  if (typeof bubble_fn_waiting === "function") {
+    console.log("Sending waiting data to Bubble:", waitingData);
+    bubble_fn_waiting({
+      outputlist1: waitingData.uids,
+      outputlist2: waitingData.names,
+      outputlist3: waitingData.companies,
+      outputlist4: waitingData.designations,
+      outputlist5: waitingData.avatars,
+      outputlist6: waitingData.bubbleids,
+      outputlist7: waitingData.isRaisingHand,
+    });
+  }
+
   console.log("Participant list updated.");
 };
-
 
 
 

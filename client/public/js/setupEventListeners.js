@@ -51,3 +51,24 @@ export const setupEventListeners = (config) => {
   });
 };
 
+// eventListeners.js
+
+export const setupRTMMessageListener = (channelRTM, manageParticipants, config) => {
+  if (!channelRTM) {
+    console.warn("RTM channel is not initialized.");
+    return;
+  }
+
+  // Listen for messages on the RTM channel
+  channelRTM.on("ChannelMessage", (message, memberId) => {
+    console.log("Received RTM message:", message.text);
+
+    // Check if the message text matches our trigger for managing participants
+    if (message.text === "trigger_manage_participants") {
+      console.log("Triggering manageParticipants for user:", memberId);
+      manageParticipants(config.uid, config.user, config);
+    }
+  });
+
+  console.log("RTM message listener initialized.");
+};
