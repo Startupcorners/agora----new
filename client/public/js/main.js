@@ -162,6 +162,9 @@ const newMainApp = function (initConfig) {
 
   // RTM Join function
 const joinRTM = async (rtmToken, retryCount = 0) => {
+  if (config.user.roleInTheCall === "waiting") {
+    await sendRTMMessage("trigger_manage_participants");
+  }
   try {
     const rtmUid = config.uid.toString();
     console.log("rtmuid value", rtmUid);
