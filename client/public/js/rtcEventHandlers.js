@@ -252,7 +252,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
       outputlist2: speakerData.names,
       outputlist3: speakerData.companies,
       outputlist4: speakerData.designations,
-      outputlist6: speakerData.bubbleids,
+      outputlist5: speakerData.bubbleids,
     });
   }
 
@@ -263,7 +263,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
       outputlist2: audienceData.names,
       outputlist3: audienceData.companies,
       outputlist4: audienceData.designations,
-      outputlist6: audienceData.bubbleids,
+      outputlist5: audienceData.bubbleids,
     });
   }
 
@@ -274,12 +274,13 @@ export const manageParticipants = (userUid, userAttr, config) => {
       outputlist2: hostData.names,
       outputlist3: hostData.companies,
       outputlist4: hostData.designations,
-      outputlist6: hostData.bubbleids,
+      outputlist5: hostData.bubbleids,
     });
   }
 
   console.log("Participant list updated.");
 };
+
 
 
 // Handles user joined event
