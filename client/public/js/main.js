@@ -86,6 +86,7 @@ const newMainApp = function (initConfig) {
 
   // Main join function
 const join = async () => {
+  bubble_fn_role(config.user.roleInTheCall);
   try {
     // Fetch RTC and RTM tokens
     const tokens = await fetchTokens(config);
@@ -135,6 +136,7 @@ const join = async () => {
     // Notify success using bubble_fn_joining
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Joined");
+
     }
   } catch (error) {
     console.error("Error before joining:", error);
