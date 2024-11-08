@@ -69,26 +69,26 @@ export const setupRTMMessageListener = (
   channelRTM.on("ChannelMessage", async (message, memberId) => {
     console.log("Received RTM message:", message.text);
 
-    // Retrieve and log the attributes of the user who sent the message
-    let userAttributes = {};
+    let parsedMessage;
     try {
-      userAttributes = await config.clientRTM.getUserAttributes(memberId);
-      console.log(`Attributes for user ${memberId}:`, userAttributes);
+      parsedMessage = JSON.parse(message.text);
     } catch (error) {
-      console.error(
-        `Failed to retrieve attributes for user ${memberId}:`,
-        error
-      );
+      console.error("Failed to parse RTM message:", error);
+      return;
     }
 
-    // Check if the message text contains "waiting room"
-    if (message.text.includes("waiting room")) {
+    if (parsedMessage.type === "roleChange") {
+      const { userUid, newRole, newRoleInTheCall } = parsedMessage;
       console.log(
-        "Triggering manageParticipants for user in the waiting room:",
-        memberId
+        `Received role change for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
       );
-      // Call manageParticipants without relying on config for participantList
-      manageParticipants(memberId, userAttributes, "join");
+
+      // Update the user’s role and roleInTheCall on the local client
+      manageParticipants(
+        userUid,
+        { role: newRole, roleInTheCall: newRoleInTheCall },
+        "join"
+      );
     }
   });
 

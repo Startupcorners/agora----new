@@ -2,6 +2,7 @@
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { toggleMicIcon} from "./updateWrappers.js";
 import { fetchTokens } from "./helperFunctions.js";
+import { manageParticipants } from "./rtcEventHandlers.js"; 
 import {
   startScreenShare,
   stopScreenShare,
@@ -412,6 +413,41 @@ const joinScreenShareRTM = async (
     }
   }
 };
+
+
+export const changeUserRole = async (userUid, newRole, newRoleInTheCall) => {
+  console.log(
+    `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
+  );
+
+  // Prepare the updated attributes
+  const updatedAttributes = {
+    role: newRole,
+    roleInTheCall: newRoleInTheCall,
+  };
+
+  // Call manageParticipants to update the user locally
+  manageParticipants(userUid, updatedAttributes, "join");
+
+  // Broadcast the role change to others in the RTM channel
+  if (config.channelRTM) {
+    const message = JSON.stringify({
+      type: "roleChange",
+      userUid: userUid,
+      newRole: newRole,
+      newRoleInTheCall: newRoleInTheCall,
+    });
+    await config.channelRTM.sendMessage({ text: message });
+    console.log(`Role change message sent to RTM channel: ${message}`);
+  } else {
+    console.warn("RTM channel is not initialized.");
+  }
+
+  console.log(
+    `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
+  );
+};
+
 
 
 
