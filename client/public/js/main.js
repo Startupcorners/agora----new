@@ -1,4 +1,3 @@
-import AgoraRTM from "agora-rtm-sdk";
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
 import {
