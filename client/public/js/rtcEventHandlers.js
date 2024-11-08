@@ -235,9 +235,8 @@ export const manageParticipants = (userUid, userAttr, config) => {
     (p) => p.roleInTheCall === "waiting"
   );
 
-  // Function to map participant data
+  // Function to map participant data (excluding uids)
   const mapParticipantData = (participants) => ({
-    uids: participants.map((p) => p.uid),
     names: participants.map((p) => p.name),
     companies: participants.map((p) => p.company),
     designations: participants.map((p) => p.designation),
@@ -252,56 +251,52 @@ export const manageParticipants = (userUid, userAttr, config) => {
   const hostData = mapParticipantData(hosts);
   const waitingData = mapParticipantData(waiting);
 
-  // Log data and send to respective Bubble functions
+  // Log data and send to respective Bubble functions without uids
   if (typeof bubble_fn_speaker === "function") {
     console.log("Sending speaker data to Bubble:", speakerData);
     bubble_fn_speaker({
-      outputlist1: speakerData.uids,
-      outputlist2: speakerData.names,
-      outputlist3: speakerData.companies,
-      outputlist4: speakerData.designations,
-      outputlist5: speakerData.avatars,
-      outputlist6: speakerData.bubbleids,
-      outputlist7: speakerData.isRaisingHand,
+      outputlist1: speakerData.names,
+      outputlist2: speakerData.companies,
+      outputlist3: speakerData.designations,
+      outputlist4: speakerData.avatars,
+      outputlist5: speakerData.bubbleids,
+      outputlist6: speakerData.isRaisingHand,
     });
   }
 
   if (typeof bubble_fn_audience === "function") {
     console.log("Sending audience data to Bubble:", audienceData);
     bubble_fn_audience({
-      outputlist1: audienceData.uids,
-      outputlist2: audienceData.names,
-      outputlist3: audienceData.companies,
-      outputlist4: audienceData.designations,
-      outputlist5: audienceData.avatars,
-      outputlist6: audienceData.bubbleids,
-      outputlist7: audienceData.isRaisingHand,
+      outputlist1: audienceData.names,
+      outputlist2: audienceData.companies,
+      outputlist3: audienceData.designations,
+      outputlist4: audienceData.avatars,
+      outputlist5: audienceData.bubbleids,
+      outputlist6: audienceData.isRaisingHand,
     });
   }
 
   if (typeof bubble_fn_host === "function") {
     console.log("Sending host data to Bubble:", hostData);
     bubble_fn_host({
-      outputlist1: hostData.uids,
-      outputlist2: hostData.names,
-      outputlist3: hostData.companies,
-      outputlist4: hostData.designations,
-      outputlist5: hostData.avatars,
-      outputlist6: hostData.bubbleids,
-      outputlist7: hostData.isRaisingHand,
+      outputlist1: hostData.names,
+      outputlist2: hostData.companies,
+      outputlist3: hostData.designations,
+      outputlist4: hostData.avatars,
+      outputlist5: hostData.bubbleids,
+      outputlist6: hostData.isRaisingHand,
     });
   }
 
   if (typeof bubble_fn_waiting === "function") {
     console.log("Sending waiting data to Bubble:", waitingData);
     bubble_fn_waiting({
-      outputlist1: waitingData.uids,
-      outputlist2: waitingData.names,
-      outputlist3: waitingData.companies,
-      outputlist4: waitingData.designations,
-      outputlist5: waitingData.avatars,
-      outputlist6: waitingData.bubbleids,
-      outputlist7: waitingData.isRaisingHand,
+      outputlist1: waitingData.names,
+      outputlist2: waitingData.companies,
+      outputlist3: waitingData.designations,
+      outputlist4: waitingData.avatars,
+      outputlist5: waitingData.bubbleids,
+      outputlist6: waitingData.isRaisingHand,
     });
   }
 
