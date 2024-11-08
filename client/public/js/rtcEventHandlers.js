@@ -209,6 +209,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
       name: userAttr.name || "Unknown",
       company: userAttr.company || "",
       designation: userAttr.designation || "",
+      avatar: userAttr.avatar,
       role: userAttr.role || "audience",
       bubbleid: userAttr.bubbleid,
       roleInTheCall: userAttr.roleInTheCall || "audience",
@@ -236,6 +237,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
     names: participants.map((p) => p.name),
     companies: participants.map((p) => p.company),
     designations: participants.map((p) => p.designation),
+    avatars: participants.map((p) => p.avatar),
     bubbleids: participants.map((p) => p.bubbleid),
   });
 
@@ -252,7 +254,8 @@ export const manageParticipants = (userUid, userAttr, config) => {
       outputlist2: speakerData.names,
       outputlist3: speakerData.companies,
       outputlist4: speakerData.designations,
-      outputlist5: speakerData.bubbleids,
+      outputlist5: speakerData.avatars,
+      outputlist6: speakerData.bubbleids,
     });
   }
 
@@ -263,7 +266,8 @@ export const manageParticipants = (userUid, userAttr, config) => {
       outputlist2: audienceData.names,
       outputlist3: audienceData.companies,
       outputlist4: audienceData.designations,
-      outputlist5: audienceData.bubbleids,
+      outputlist5: audienceData.avatars,
+      outputlist6: audienceData.bubbleids,
     });
   }
 
@@ -274,12 +278,14 @@ export const manageParticipants = (userUid, userAttr, config) => {
       outputlist2: hostData.names,
       outputlist3: hostData.companies,
       outputlist4: hostData.designations,
-      outputlist5: hostData.bubbleids,
+      outputlist5: hostData.avatars,
+      outputlist6: hostData.bubbleids,
     });
   }
 
   console.log("Participant list updated.");
 };
+
 
 
 
