@@ -431,14 +431,25 @@ export const changeUserRole = async (userUid, newRole, newRoleInTheCall, config)
 
   // Broadcast the role change to others in the RTM channel
   if (config.channelRTM) {
-    const message = JSON.stringify({
-      type: "roleChange",
-      userUid: userUid,
-      newRole: newRole,
-      newRoleInTheCall: newRoleInTheCall,
-    });
-    await config.channelRTM.sendMessage({ text: message });
-    console.log(`Role change message sent to RTM channel: ${message}`);
+    // Construct the message object
+    const message = {
+      text: JSON.stringify({
+        type: "roleChange",
+        userUid: userUid,
+        newRole: newRole,
+        newRoleInTheCall: newRoleInTheCall,
+      }),
+      // Optional: specify the message type
+      // messageType: 'TEXT',
+    };
+
+    try {
+      // Send the message to the RTM channel
+      await config.channelRTM.sendMessage(message);
+      console.log(`Role change message sent to RTM channel: ${message.text}`);
+    } catch (error) {
+      console.error("Failed to send role change message:", error);
+    }
   } else {
     console.warn("RTM channel is not initialized.");
   }
@@ -447,6 +458,7 @@ export const changeUserRole = async (userUid, newRole, newRoleInTheCall, config)
     `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
 };
+
 
 
 

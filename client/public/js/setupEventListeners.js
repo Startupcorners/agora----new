@@ -14,21 +14,18 @@ import {
   showAvatar,
   toggleStages,
 } from "./videoHandlers.js";
-import { userTracks } from "./state.js"; 
-
-
-
-
-
+import { userTracks } from "./state.js";
 
 export const setupEventListeners = (config) => {
   const client = config.client;
 
   // Handle when a user publishes their media (audio/video)
   client.on("user-published", async (user, mediaType) => {
-    console.log(`user-published event received for user: ${user.uid}, mediaType: ${mediaType}`);
+    console.log(
+      `user-published event received for user: ${user.uid}, mediaType: ${mediaType}`
+    );
     await handleUserPublished(user, mediaType, config, client);
-});
+  });
 
   // Handle when a user stops publishing their media
   client.on("user-unpublished", async (user, mediaType) => {
@@ -37,13 +34,13 @@ export const setupEventListeners = (config) => {
 
   // Handle when a user joins the session
   client.on("user-joined", async (user) => {
-    console.log(`User joined: ${user.uid}`); // Add this log to check if the event is triggered
-    await handleUserJoined(user, config); // Directly use the handler
+    console.log(`User joined: ${user.uid}`);
+    await handleUserJoined(user, config);
   });
 
   // Handle when a user leaves the session
   client.on("user-left", async (user) => {
-    await handleUserLeft(user, config); // Directly use the handler
+    await handleUserLeft(user, config);
   });
 
   // Enable the audio volume indicator
@@ -51,7 +48,7 @@ export const setupEventListeners = (config) => {
 
   // Handle volume indicator changes
   client.on("volume-indicator", async (volumes) => {
-    await handleVolumeIndicator(volumes, config); // Directly use the handler
+    await handleVolumeIndicator(volumes, config);
   });
 };
 
@@ -66,10 +63,10 @@ export const setupRTMMessageListener = (
     return;
   }
 
-  console.log("Current user's rtmUid:", config); // Log the current user's rtmUid
+  console.log("Current user's rtmUid:", config.user.rtmUid); // Corrected to show rtmUid
 
   // Listen for messages on the RTM channel
-  channelRTM.on("ChannelMessage", async (message, memberId) => {
+  channelRTM.on("ChannelMessage", async (message, memberId, messagePros) => {
     console.log("Received RTM message:", message.text);
 
     // Retrieve and log the attributes of the user who sent the message
@@ -113,14 +110,13 @@ export const setupRTMMessageListener = (
 
       // If the role change is for the current user, call the join function
       if (userUid === config.user.rtmUid) {
-        // Direct comparison with config.user.rtmUid
         console.log(
           "Role change is for the current user. Running the join function."
         );
         window.app
           .join()
           .then(() => {
-            console.log("Joined successfully due to role change."); // Log successful join
+            console.log("Joined successfully due to role change.");
           })
           .catch((error) => {
             console.error("Error joining after role change:", error);
