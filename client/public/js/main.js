@@ -302,6 +302,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     joinToVideoStage,
     toggleMic,
     toggleCamera,
+    changeUserRole,
     toggleScreenShare,
     userTracks,
   };
