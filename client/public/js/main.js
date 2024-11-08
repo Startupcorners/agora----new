@@ -103,8 +103,13 @@ const join = async () => {
       throw new Error("User does not have a role assigned.");
     }
 
-    // Join RTM
-    await joinRTM(tokens.rtmToken);
+    // Check if RTM is already connected
+    if (!config.clientRTM._logined) {
+      // Join RTM
+      await joinRTM(tokens.rtmToken);
+    } else {
+      console.log("RTM client already logged in; skipping joinRTM.");
+    }
 
     // Check if the user is in the waiting room
     if (config.user.roleInTheCall === "waiting") {
@@ -142,7 +147,6 @@ const join = async () => {
     // Notify success using bubble_fn_joining
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Joined");
-
     }
   } catch (error) {
     console.error("Error before joining:", error);
@@ -153,6 +157,7 @@ const join = async () => {
     }
   }
 };
+
 
 
   // Function to send an RTM message to the channel
