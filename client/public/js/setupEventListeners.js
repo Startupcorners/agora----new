@@ -55,11 +55,7 @@ export const setupEventListeners = (config) => {
 
 // eventListeners.js
 
-export const setupRTMMessageListener = (
-  channelRTM,
-  manageParticipants,
-  config
-) => {
+export const setupRTMMessageListener = (channelRTM, manageParticipants) => {
   if (!channelRTM) {
     console.warn("RTM channel is not initialized.");
     return;
@@ -87,7 +83,8 @@ export const setupRTMMessageListener = (
         "Triggering manageParticipants for user in the waiting room:",
         memberId
       );
-      manageParticipants(memberId, userAttributes, config, "join");
+      // Call manageParticipants without the config parameter
+      manageParticipants(memberId, userAttributes, "join");
     }
   });
 
