@@ -146,6 +146,21 @@ const join = async () => {
   }
 };
 
+
+  // Function to send an RTM message to the channel
+  const sendRTMMessage = async (message) => {
+    try {
+      if (config.channelRTM) {
+        await config.channelRTM.sendMessage({ text: message });
+        console.log("Message sent to RTM channel:", message);
+      } else {
+        console.warn("RTM channel is not initialized.");
+      }
+    } catch (error) {
+      console.error("Failed to send RTM message:", error);
+    }
+  };
+
   // RTM Join function
 const joinRTM = async (rtmToken, retryCount = 0) => {
   try {
