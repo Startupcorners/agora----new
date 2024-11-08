@@ -53,19 +53,37 @@ export const setupEventListeners = (config) => {
 
 // eventListeners.js
 
-export const setupRTMMessageListener = (channelRTM, manageParticipants, config) => {
+export const setupRTMMessageListener = (
+  channelRTM,
+  manageParticipants,
+  config
+) => {
   if (!channelRTM) {
     console.warn("RTM channel is not initialized.");
     return;
   }
 
   // Listen for messages on the RTM channel
-  channelRTM.on("ChannelMessage", (message, memberId) => {
+  channelRTM.on("ChannelMessage", async (message, memberId) => {
     console.log("Received RTM message:", message.text);
 
-    // Check if the message text matches our trigger for managing participants
-    if (message.text === "trigger_manage_participants") {
-      console.log("Triggering manageParticipants for user:", memberId);
+    // Retrieve and log the attributes of the user who sent the message
+    try {
+      const userAttributes = await config.clientRTM.getUserAttributes(memberId);
+      console.log(`Attributes for user ${memberId}:`, userAttributes);
+    } catch (error) {
+      console.error(
+        `Failed to retrieve attributes for user ${memberId}:`,
+        error
+      );
+    }
+
+    // Check if the message text contains "waiting room"
+    if (message.text.includes("waiting room")) {
+      console.log(
+        "Triggering manageParticipants for user in the waiting room:",
+        memberId
+      );
       manageParticipants(config.uid, config.user, config);
     }
   });
