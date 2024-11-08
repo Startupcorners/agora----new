@@ -69,15 +69,30 @@ export const setupRTMMessageListener = (
   channelRTM.on("ChannelMessage", async (message, memberId) => {
     console.log("Received RTM message:", message.text);
 
+    // Retrieve and log the attributes of the user who sent the message
+    let userAttributes = {};
+    try {
+      userAttributes = await config.clientRTM.getUserAttributes(memberId);
+      console.log(`Attributes for user ${memberId}:`, userAttributes);
+    } catch (error) {
+      console.error(
+        `Failed to retrieve attributes for user ${memberId}:`,
+        error
+      );
+    }
+
+    // Parse the message text as JSON if it contains structured data
     let parsedMessage;
     try {
       parsedMessage = JSON.parse(message.text);
     } catch (error) {
-      console.error("Failed to parse RTM message:", error);
-      return;
+      // If parsing fails, it's likely a plain text message (e.g., "waiting room")
+      parsedMessage = { text: message.text };
     }
 
+    // Handle different types of messages
     if (parsedMessage.type === "roleChange") {
+      // Handle role change messages
       const { userUid, newRole, newRoleInTheCall } = parsedMessage;
       console.log(
         `Received role change for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
@@ -89,6 +104,16 @@ export const setupRTMMessageListener = (
         { role: newRole, roleInTheCall: newRoleInTheCall },
         "join"
       );
+    } else if (
+      parsedMessage.text &&
+      parsedMessage.text.includes("waiting room")
+    ) {
+      // Handle waiting room messages
+      console.log(
+        "Triggering manageParticipants for user in the waiting room:",
+        memberId
+      );
+      manageParticipants(memberId, userAttributes, "join");
     }
   });
 
