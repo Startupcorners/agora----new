@@ -65,7 +65,7 @@ export const setupRTMMessageListener = (
     return;
   }
 
-  console.log("Current user's rtmUid:", config.user.rtmUid); // Log the current user's rtmUid
+  console.log("Current user's rtmUid:", config); // Log the current user's rtmUid
 
   // Listen for messages on the RTM channel
   channelRTM.on("ChannelMessage", async (message, memberId) => {
