@@ -128,7 +128,7 @@ const newMainApp = function (initConfig) {
         await joinToVideoStage(config); // Host-only functionality
       }
 
-      manageParticipants(config.uid, config.user, config);
+      manageParticipants(config.uid, config.user, config, "join");
 
       // Handle token renewal
       config.client.on("token-privilege-will-expire", handleRenewToken);

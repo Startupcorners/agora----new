@@ -85,7 +85,7 @@ export const setupRTMMessageListener = (
         "Triggering manageParticipants for user in the waiting room:",
         memberId
       );
-      manageParticipants(memberId, userAttributes, config);
+      manageParticipants(memberId, userAttributes, config, "join");
     }
   });
 

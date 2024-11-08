@@ -192,36 +192,55 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 
-export const manageParticipants = (userUid, userAttr, config) => {
-  console.log(`Managing participant list for user ${userUid}`);
+export const manageParticipants = (userUid, userAttr, config, actionType) => {
+  console.log(
+    `Managing participant list for user ${userUid} with action ${actionType}`
+  );
 
-  // Initialize or update participant list
+  // Initialize participant list if it doesn't exist
   if (!config.participantList) {
     config.participantList = [];
   }
 
-  let participant = config.participantList.find((p) => p.uid === userUid);
-  if (!participant) {
-    // If the participant doesn't exist, add them
-    participant = {
-      uid: userUid,
-      uids: [userUid],
-      name: userAttr.name || "Unknown",
-      company: userAttr.company || "",
-      designation: userAttr.designation || "",
-      avatar: userAttr.avatar,
-      role: userAttr.role || "audience",
-      bubbleid: userAttr.bubbleid,
-      isRaisingHand: userAttr.isRaisingHand,
-      roleInTheCall: userAttr.roleInTheCall || "audience",
-    };
-    config.participantList.push(participant);
-  } else if (!participant.uids.includes(userUid)) {
-    // If the participant exists, update their details
-    participant.uids.push(userUid);
+  if (actionType === "join") {
+    // Check if the participant already exists
+    let participantIndex = config.participantList.findIndex(
+      (p) => p.uid === userUid
+    );
+
+    if (participantIndex === -1) {
+      // Add new participant if they don't exist in the list
+      const newParticipant = {
+        uid: userUid,
+        name: userAttr.name || "Unknown",
+        company: userAttr.company || "",
+        designation: userAttr.designation || "",
+        avatar: userAttr.avatar,
+        role: userAttr.role || "audience",
+        bubbleid: userAttr.bubbleid,
+        isRaisingHand: userAttr.isRaisingHand || false,
+        roleInTheCall: userAttr.roleInTheCall || "audience",
+      };
+      config.participantList.push(newParticipant);
+    } else {
+      // Update existing participant details if they exist
+      config.participantList[participantIndex] = {
+        ...config.participantList[participantIndex],
+        ...userAttr,
+      };
+    }
+  } else if (actionType === "leave") {
+    // Remove the participant if they are leaving
+    config.participantList = config.participantList.filter(
+      (p) => p.uid !== userUid
+    );
+    console.log(`Participant ${userUid} has left.`);
+  } else {
+    console.warn(`Unknown action type: ${actionType}`);
+    return;
   }
 
-  // Separate lists for each role
+  // Separate participants by role
   const speakers = config.participantList.filter(
     (p) => p.roleInTheCall === "speaker"
   );
@@ -235,73 +254,40 @@ export const manageParticipants = (userUid, userAttr, config) => {
     (p) => p.roleInTheCall === "waiting"
   );
 
-  // Function to map participant data (excluding uids)
-  const mapParticipantData = (participants) => ({
-    names: participants.map((p) => p.name),
-    companies: participants.map((p) => p.company),
-    designations: participants.map((p) => p.designation),
-    avatars: participants.map((p) => p.avatar),
-    bubbleids: participants.map((p) => p.bubbleid),
-    isRaisingHand: participants.map((p) => p.isRaisingHand),
+  // Helper to format data for Bubble
+  const formatForBubble = (participants) => ({
+    outputlist1: participants.map((p) => p.name),
+    outputlist2: participants.map((p) => p.company),
+    outputlist3: participants.map((p) => p.designation),
+    outputlist4: participants.map((p) => p.avatar),
+    outputlist5: participants.map((p) => p.bubbleid),
+    outputlist6: participants.map((p) => p.isRaisingHand),
   });
 
-  // Prepare data for each role group
-  const speakerData = mapParticipantData(speakers);
-  const audienceData = mapParticipantData(audiences);
-  const hostData = mapParticipantData(hosts);
-  const waitingData = mapParticipantData(waiting);
-
-  // Log data and send to respective Bubble functions without uids
+  // Send data to Bubble functions
   if (typeof bubble_fn_speaker === "function") {
-    console.log("Sending speaker data to Bubble:", speakerData);
-    bubble_fn_speaker({
-      outputlist1: speakerData.names,
-      outputlist2: speakerData.companies,
-      outputlist3: speakerData.designations,
-      outputlist4: speakerData.avatars,
-      outputlist5: speakerData.bubbleids,
-      outputlist6: speakerData.isRaisingHand,
-    });
+    console.log("Sending speaker data to Bubble:", formatForBubble(speakers));
+    bubble_fn_speaker(formatForBubble(speakers));
   }
 
   if (typeof bubble_fn_audience === "function") {
-    console.log("Sending audience data to Bubble:", audienceData);
-    bubble_fn_audience({
-      outputlist1: audienceData.names,
-      outputlist2: audienceData.companies,
-      outputlist3: audienceData.designations,
-      outputlist4: audienceData.avatars,
-      outputlist5: audienceData.bubbleids,
-      outputlist6: audienceData.isRaisingHand,
-    });
+    console.log("Sending audience data to Bubble:", formatForBubble(audiences));
+    bubble_fn_audience(formatForBubble(audiences));
   }
 
   if (typeof bubble_fn_host === "function") {
-    console.log("Sending host data to Bubble:", hostData);
-    bubble_fn_host({
-      outputlist1: hostData.names,
-      outputlist2: hostData.companies,
-      outputlist3: hostData.designations,
-      outputlist4: hostData.avatars,
-      outputlist5: hostData.bubbleids,
-      outputlist6: hostData.isRaisingHand,
-    });
+    console.log("Sending host data to Bubble:", formatForBubble(hosts));
+    bubble_fn_host(formatForBubble(hosts));
   }
 
   if (typeof bubble_fn_waiting === "function") {
-    console.log("Sending waiting data to Bubble:", waitingData);
-    bubble_fn_waiting({
-      outputlist1: waitingData.names,
-      outputlist2: waitingData.companies,
-      outputlist3: waitingData.designations,
-      outputlist4: waitingData.avatars,
-      outputlist5: waitingData.bubbleids,
-      outputlist6: waitingData.isRaisingHand,
-    });
+    console.log("Sending waiting data to Bubble:", formatForBubble(waiting));
+    bubble_fn_waiting(formatForBubble(waiting));
   }
 
   console.log("Participant list updated.");
 };
+
 
 
 
@@ -415,7 +401,6 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 
 
 // Handles user left event
-// Handles user left event
 export const handleUserLeft = async (user, config) => {
   try {
     console.log(`User ${user.uid} left`);
@@ -437,37 +422,8 @@ export const handleUserLeft = async (user, config) => {
       console.log(`No tracks found for user ${user.uid}`);
     }
 
-    // Remove the user from participantList
-    if (config.participantList) {
-      // Filter out the user who left
-      config.participantList = config.participantList.filter(
-        (participant) => participant.uid !== user.uid
-      );
-
-      console.log(`User ${user.uid} removed from participantList`);
-
-      // Extract the updated participant information
-      const participantUIDs = config.participantList.map((p) =>
-        p.uid.toString()
-      );
-      const participantNames = config.participantList.map((p) => p.name);
-      const participantCompanies = config.participantList.map((p) => p.company);
-      const participantDesignations = config.participantList.map(
-        (p) => p.designation
-      );
-
-      // Pass the arrays directly to bubble_fn_participantList
-      if (typeof bubble_fn_participantList === "function") {
-        bubble_fn_participantList({
-          outputlist1: participantUIDs, // Pass as array
-          outputlist2: participantNames,
-          outputlist3: participantCompanies,
-          outputlist4: participantDesignations,
-        });
-      }
-    } else {
-      console.warn("participantList is not initialized.");
-    }
+    // Use manageParticipants to remove the user from participantList
+    manageParticipants(user.uid, {}, config, "leave");
 
     // Clear user join promise when the user leaves
     if (userJoinPromises[user.uid]) {
@@ -480,7 +436,6 @@ export const handleUserLeft = async (user, config) => {
     console.error(`Error removing user ${user.uid}:`, error);
   }
 };
-
 
 
 // Handles volume indicator change
