@@ -107,6 +107,7 @@ const newMainApp = function (initConfig) {
         
         // Send a message via RTM to indicate the user is in the waiting room
         await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
+        await sendRTMMessage("trigger_manage_participants");
 
         return; // Exit the function without joining RTC
       }
@@ -162,9 +163,6 @@ const newMainApp = function (initConfig) {
 
   // RTM Join function
 const joinRTM = async (rtmToken, retryCount = 0) => {
-  if (config.user.roleInTheCall === "waiting") {
-    await sendRTMMessage("trigger_manage_participants");
-  }
   try {
     const rtmUid = config.uid.toString();
     console.log("rtmuid value", rtmUid);
