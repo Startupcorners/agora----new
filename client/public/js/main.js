@@ -8,7 +8,12 @@ import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; //
 import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
-import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
+import {
+  toggleMic,
+  toggleCamera,
+  toggleScreenShare,
+  changeUserRole,
+} from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 import { userTracks } from "./state.js";
 
 
