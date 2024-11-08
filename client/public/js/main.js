@@ -147,8 +147,8 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     const attributes = {
       name: config.user.name || "Unknown",
       avatar: config.user.avatar || "default-avatar-url",
-      comp: config.user.company || "",
-      desg: config.user.designation || "",
+      comp: config.user.company || "Unknown",
+      desg: config.user.designation || "Unknown",
       role: config.user.role || "audience",
       sharingScreen: "0",
       roleInTheCall: config.user.roleInTheCall || "audience",
