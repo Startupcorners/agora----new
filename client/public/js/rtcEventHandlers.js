@@ -212,6 +212,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
       avatar: userAttr.avatar,
       role: userAttr.role || "audience",
       bubbleid: userAttr.bubbleid,
+      isRaisingHand: userAttr.isRaisingHand,
       roleInTheCall: userAttr.roleInTheCall || "audience",
     };
     config.participantList.push(participant);
@@ -239,6 +240,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
     designations: participants.map((p) => p.designation),
     avatars: participants.map((p) => p.avatar),
     bubbleids: participants.map((p) => p.bubbleid),
+    isRaisingHand: participants.map((p) => p.isRaisingHand),
   });
 
   // Prepare data for each role group
@@ -256,6 +258,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
       outputlist4: speakerData.designations,
       outputlist5: speakerData.avatars,
       outputlist6: speakerData.bubbleids,
+      outputlist7: speakerData.isRaisingHand,
     });
   }
 
@@ -268,6 +271,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
       outputlist4: audienceData.designations,
       outputlist5: audienceData.avatars,
       outputlist6: audienceData.bubbleids,
+      outputlist7: audienceData.isRaisingHand,
     });
   }
 
@@ -280,6 +284,7 @@ export const manageParticipants = (userUid, userAttr, config) => {
       outputlist4: hostData.designations,
       outputlist5: hostData.avatars,
       outputlist6: hostData.bubbleids,
+      outputlist7: hostData.isRaisingHand,
     });
   }
 
