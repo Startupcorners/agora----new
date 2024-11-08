@@ -54,7 +54,6 @@ export const setupEventListeners = (config) => {
 };
 
 // eventListeners.js
-
 export const setupRTMMessageListener = (
   channelRTM,
   manageParticipants,
@@ -107,6 +106,21 @@ export const setupRTMMessageListener = (
 
       // Update the user’s role and roleInTheCall on the local client
       manageParticipants(userUid, updatedAttributes, "join");
+
+      // If the role change is for the current user, call the join function
+      if (userUid === config.uid) {
+        console.log(
+          "Role change is for the current user. Running the join function."
+        );
+        app
+          .join()
+          .then(() => {
+            console.log("Joined successfully due to role change.");
+          })
+          .catch((error) => {
+            console.error("Error joining after role change:", error);
+          });
+      }
     } else if (
       parsedMessage.text &&
       parsedMessage.text.includes("waiting room")
@@ -122,4 +136,3 @@ export const setupRTMMessageListener = (
 
   console.log("RTM message listener initialized.");
 };
-
