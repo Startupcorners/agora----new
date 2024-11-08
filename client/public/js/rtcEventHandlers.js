@@ -213,6 +213,7 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
       // Add new participant if they don't exist in the list
       const newParticipant = {
         uid: userUid,
+        rtmUid: userAttr.rtmUid || "", // Add rtmUid attribute here
         name: userAttr.name || "Unknown",
         company: userAttr.company || "",
         designation: userAttr.designation || "",
@@ -259,7 +260,7 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
     (p) => p.roleInTheCall === "meetingParticipant"
   );
 
-  // Helper to format data for Bubble
+  // Helper to format data for Bubble, including rtmUid
   const formatForBubble = (participants) => ({
     outputlist1: participants.map((p) => p.name),
     outputlist2: participants.map((p) => p.company),
@@ -267,6 +268,7 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
     outputlist4: participants.map((p) => p.avatar),
     outputlist5: participants.map((p) => p.bubbleid),
     outputlist6: participants.map((p) => p.isRaisingHand),
+    outputlist7: participants.map((p) => p.rtmUid), // New list for rtmUid
   });
 
   // Send data to Bubble functions
@@ -298,7 +300,6 @@ export const manageParticipants = (userUid, userAttr, actionType) => {
     bubble_fn_audienceOnStage(formatForBubble(audienceOnStage));
   }
 
-  // Send meetingParticipant data to Bubble if the function exists
   if (typeof bubble_fn_meetingParticipant === "function") {
     console.log(
       "Sending meetingParticipant data to Bubble:",

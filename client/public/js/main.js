@@ -28,6 +28,7 @@ const newMainApp = function (initConfig) {
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
       role: "", // host, audience (for rtc and rtm)
       company: "",
+      rtmUid: "",
       designation: "",
       profileLink: "",
       uidSharingScreen: "",
@@ -183,6 +184,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       company: config.user.company || "Unknown",
       designation: config.user.designation || "Unknown",
       role: config.user.role || "audience",
+      rtmUid: rtmUid,
       bubbleid: config.user.bubbleid,
       isRaisingHand: config.user.isRaisingHand,
       sharingScreen: "0",
