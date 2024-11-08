@@ -68,8 +68,9 @@ export const setupRTMMessageListener = (
     console.log("Received RTM message:", message.text);
 
     // Retrieve and log the attributes of the user who sent the message
+    let userAttributes = {};
     try {
-      const userAttributes = await config.clientRTM.getUserAttributes(memberId);
+      userAttributes = await config.clientRTM.getUserAttributes(memberId);
       console.log(`Attributes for user ${memberId}:`, userAttributes);
     } catch (error) {
       console.error(
@@ -84,7 +85,7 @@ export const setupRTMMessageListener = (
         "Triggering manageParticipants for user in the waiting room:",
         memberId
       );
-      manageParticipants(config.uid, config.user, config);
+      manageParticipants(memberId, userAttributes, config);
     }
   });
 
