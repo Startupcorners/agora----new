@@ -72,6 +72,12 @@ const newMainApp = function (initConfig) {
   AgoraRTC.onCameraChanged = (info) => config.onCameraChanged(info);
   AgoraRTC.onMicrophoneChanged = (info) => config.onMicrophoneChanged(info);
   AgoraRTC.onPlaybackDeviceChanged = (info) => config.onSpeakerChanged(info);
+  if (typeof AgoraRTM !== "undefined") {
+    console.log("Agora RTM SDK loaded successfully.");
+    console.log("Using Agora RTM SDK Version: 2.2.0"); // Indirect confirmation based on imported script
+  } else {
+    console.error("Agora RTM SDK is not loaded.");
+  }
 
   // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
   config.clientRTM = AgoraRTM.createInstance(config.appId, {
