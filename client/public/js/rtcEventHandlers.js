@@ -209,7 +209,8 @@ export const manageParticipants = (userUid, userAttr, config) => {
       name: userAttr.name || "Unknown",
       company: userAttr.company || "",
       designation: userAttr.designation || "",
-      role: userAttr.role || "audience", // Include role
+      role: userAttr.role || "audience",
+      bubbleid: userAttr.bubbleid,
       roleInTheCall: userAttr.roleInTheCall || "audience",
     };
     config.participantList.push(participant);
@@ -218,23 +219,63 @@ export const manageParticipants = (userUid, userAttr, config) => {
     participant.uids.push(userUid);
   }
 
-  // Prepare the data to send to Bubble
-  const participantData = config.participantList.map((p) => ({
-    uid: p.uid,
-    uids: p.uids,
-    name: p.name,
-    company: p.company,
-    designation: p.designation,
-    role: p.role,
-    roleInTheCall: p.roleInTheCall,
-  }));
+  // Separate lists for each role
+  const speakers = config.participantList.filter(
+    (p) => p.roleInTheCall === "speaker"
+  );
+  const audiences = config.participantList.filter(
+    (p) => p.roleInTheCall === "audience"
+  );
+  const hosts = config.participantList.filter(
+    (p) => p.roleInTheCall === "host"
+  );
 
-  // Log the data being sent to Bubble
-  console.log("Sending participant data to Bubble:", participantData);
+  // Function to map participant data
+  const mapParticipantData = (participants) => ({
+    uids: participants.map((p) => p.uid),
+    names: participants.map((p) => p.name),
+    companies: participants.map((p) => p.company),
+    designations: participants.map((p) => p.designation),
+    bubbleids: participants.map((p) => p.bubbleid),
+  });
 
-  // Call bubble_fn_participantList with the updated list
-  if (typeof bubble_fn_participantList === "function") {
-    bubble_fn_participantList({ participants: participantData });
+  // Prepare data for each role group
+  const speakerData = mapParticipantData(speakers);
+  const audienceData = mapParticipantData(audiences);
+  const hostData = mapParticipantData(hosts);
+
+  // Log data and send to respective Bubble functions
+  if (typeof bubble_fn_speaker === "function") {
+    console.log("Sending speaker data to Bubble:", speakerData);
+    bubble_fn_speaker({
+      outputlist1: speakerData.uids,
+      outputlist2: speakerData.names,
+      outputlist3: speakerData.companies,
+      outputlist4: speakerData.designations,
+      outputlist6: speakerData.bubbleids,
+    });
+  }
+
+  if (typeof bubble_fn_audience === "function") {
+    console.log("Sending audience data to Bubble:", audienceData);
+    bubble_fn_audience({
+      outputlist1: audienceData.uids,
+      outputlist2: audienceData.names,
+      outputlist3: audienceData.companies,
+      outputlist4: audienceData.designations,
+      outputlist6: audienceData.bubbleids,
+    });
+  }
+
+  if (typeof bubble_fn_host === "function") {
+    console.log("Sending host data to Bubble:", hostData);
+    bubble_fn_host({
+      outputlist1: hostData.uids,
+      outputlist2: hostData.names,
+      outputlist3: hostData.companies,
+      outputlist4: hostData.designations,
+      outputlist6: hostData.bubbleids,
+    });
   }
 
   console.log("Participant list updated.");

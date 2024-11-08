@@ -29,6 +29,7 @@ const newMainApp = function (initConfig) {
       designation: "",
       profileLink: "",
       uidSharingScreen: "",
+      bubbleid: "",
       roleInTheCall: "", // host, speaker, audience (for ui)
     },
     serverUrl: "https://agora-new.vercel.app",
@@ -150,7 +151,9 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
       comp: config.user.company || "Unknown",
       desg: config.user.designation || "Unknown",
       role: config.user.role || "audience",
+      bubbleid: config.user.bubbleid,
       sharingScreen: "0",
+
       roleInTheCall: config.user.roleInTheCall || "audience",
     };
 
