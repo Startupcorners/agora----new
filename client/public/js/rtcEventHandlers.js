@@ -197,6 +197,12 @@ export const manageParticipants = (userUid, userAttr, config, actionType) => {
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
 
+  // Log the participant list before update
+  console.log(
+    "Participant list before update:",
+    JSON.stringify(config.participantList, null, 2)
+  );
+
   // Initialize participant list if it doesn't exist
   if (!config.participantList) {
     config.participantList = [];
@@ -239,6 +245,12 @@ export const manageParticipants = (userUid, userAttr, config, actionType) => {
     console.warn(`Unknown action type: ${actionType}`);
     return;
   }
+
+  // Log the participant list after update
+  console.log(
+    "Participant list after update:",
+    JSON.stringify(config.participantList, null, 2)
+  );
 
   // Separate participants by role
   const speakers = config.participantList.filter(
@@ -287,7 +299,6 @@ export const manageParticipants = (userUid, userAttr, config, actionType) => {
 
   console.log("Participant list updated.");
 };
-
 
 
 
