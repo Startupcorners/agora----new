@@ -63,13 +63,13 @@ export const setupRTMMessageListener = (
     return;
   }
 
-  console.log("Current user's rtmUid:", config.user.rtmUid); // Corrected to show rtmUid
+  console.log("Current user's rtmUid:", config.user.rtmUid);
 
   // Listen for messages on the RTM channel
   channelRTM.on("ChannelMessage", async (message, memberId, messagePros) => {
     console.log("Received RTM message:", message.text);
 
-    // Retrieve and log the attributes of the user who sent the message
+    // Retrieve the attributes of the user who sent the message
     let userAttributes = {};
     try {
       userAttributes = await config.clientRTM.getUserAttributes(memberId);
@@ -105,15 +105,29 @@ export const setupRTMMessageListener = (
         roleInTheCall: newRoleInTheCall,
       };
 
-      // Update the user’s role and roleInTheCall on the local client
+      // Update the user's role and roleInTheCall on the local client
       manageParticipants(userUid, updatedAttributes, "join");
 
-      // If the role change is for the current user, call the join function
+      // If the role change is for the current user, update local config and re-join
       if (userUid === config.user.rtmUid) {
         console.log(
-          "Role change is for the current user. Running the join function."
+          "Role change is for the current user. Updating local config and re-joining."
         );
-        window.app
+
+        // Update local user config
+        config.user.role = newRole;
+        config.user.roleInTheCall = newRoleInTheCall;
+
+        // Update local RTM attributes
+        try {
+          await config.clientRTM.setLocalUserAttributes(updatedAttributes);
+          console.log("Local RTM attributes updated:", updatedAttributes);
+        } catch (error) {
+          console.error("Failed to update local RTM attributes:", error);
+        }
+
+        // Re-run the join function to apply new role
+        config
           .join()
           .then(() => {
             console.log("Joined successfully due to role change.");
