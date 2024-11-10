@@ -423,7 +423,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 
 
 // Handles user left event
-export const handleUserLeft = async (user) => {
+export const handleUserLeft = async (user, config) => {
   try {
     console.log(`User ${user.uid} left`);
 
@@ -448,8 +448,8 @@ export const handleUserLeft = async (user) => {
     manageParticipants(user.uid, {}, "leave");
 
     // Clear user join promise when the user leaves
-    if (userJoinPromises[user.uid]) {
-      delete userJoinPromises[user.uid];
+    if (config.userJoinPromises && config.userJoinPromises[user.uid]) {
+      delete config.userJoinPromises[user.uid];
       console.log(`Cleared userJoinPromises for user ${user.uid}`);
     }
 
