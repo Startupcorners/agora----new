@@ -1,11 +1,11 @@
-// templates.js
-
 export const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
-  flex: 1 1 calc(25%); /* Resize flexibly, taking 25% of the space */
+  flex: 1 1 auto; /* Flexible resizing */
   width: 100%;
-  min-width: 280px; /* Ensure the minimum width is retained */
-  max-width: 800px;
-  aspect-ratio: 16/9;
+  min-width: 150px; /* Ensure a reasonable minimum width */
+  max-width: 300px; /* Cap the size to avoid getting too large */
+  min-height: 100px; /* Minimum height to ensure visibility */
+  max-height: 200px; /* Cap height to keep proportions consistent */
+  aspect-ratio: 16/9; /* Maintain consistent aspect ratio */
   display: flex;
   justify-content: center;
   align-items: center;
