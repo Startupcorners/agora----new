@@ -1,19 +1,4 @@
-export const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" style="
-  flex: 1 1 auto; /* Allow flexible resizing */
-  width: 100%;
-  min-width: 150px; /* Ensure a reasonable minimum width */
-  aspect-ratio: 16/9; /* Maintain consistent aspect ratio */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin: 0; /* Remove margin */
-  background-color: #3c4043;
-  overflow: hidden;
-  position: relative;
-  box-sizing: border-box;
-  border: 4px solid transparent; /* Border will change color when the user speaks */
-  transition: border-color 0.3s ease; /* Smooth transition for border color change */
-" data-uid="{{uid}}">
+export const templateVideoParticipant = `<div id="video-wrapper-{{uid}}" class="video-participant" data-uid="{{uid}}">
   <!-- Video Player -->
   <div id="stream-{{uid}}" class="video-player" style="
     width: 100%;
