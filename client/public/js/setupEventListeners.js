@@ -127,7 +127,7 @@ export const setupRTMMessageListener = (
         }
 
         // Re-run the join function to apply new role
-        config
+        window.app
           .join()
           .then(() => {
             console.log("Joined successfully due to role change.");
