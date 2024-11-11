@@ -405,7 +405,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       );
 
       // ** Call the separate participant management function **
-      manageParticipants(userUid, userAttr, config);
+      manageParticipants(userUid, userAttr, config, "join");
 
       resolve(); // Resolve the promise when everything is done
     } catch (error) {
