@@ -173,7 +173,7 @@ const join = async () => {
     // Notify success using bubble_fn_joining
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Joined");
-      bubble_fn_updateLayout();
+      updateLayout();
     }
   } catch (error) {
     console.error("Error before joining:", error);
