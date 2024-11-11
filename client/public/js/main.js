@@ -165,7 +165,7 @@ const join = async () => {
     }
 
     // Call manageParticipants without the config parameter
-    manageParticipants(config);
+    manageParticipants(config.uid, config.user, "join");
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);

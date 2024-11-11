@@ -194,146 +194,122 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 
-export const manageParticipants = async (config) => {
-  console.log("Synchronizing the full participant list with RTC...");
+export const manageParticipants = async (userUid, userAttr, actionType) => {
+  console.log(
+    `Managing participant list for user ${userUid} with action ${actionType}`
+  );
 
-  try {
-    // Step 1: Fetch current RTC participants and convert their UIDs to strings
-    const rtcUsers = await config.client.getUsers();
-    const rtmUIDs = rtcUsers.map((user) => user.uid.toString()); // Convert RTC UIDs to strings for RTM compatibility
+  // Log the participant list before update
+  console.log(
+    "Participant list before update:",
+    JSON.stringify(participantList, null, 2)
+  );
 
-    // Step 2: Fetch attributes for each RTC (RTM) participant and build a fresh list
-    const updatedParticipantList = await Promise.all(
-      rtmUIDs.map(async (uid) => {
-        const userAttr = await config.clientRTM.getUserAttributes(uid);
-        return {
-          uid,
-          rtmUid: uid,
-          role: userAttr.role || "audience",
-          isRaisingHand: userAttr.isRaisingHand || false,
-          roleInTheCall: userAttr.roleInTheCall || "audience",
-        };
-      })
-    );
+  if (actionType === "join") {
+    // Find the participant in the list
+    let participantIndex = participantList.findIndex((p) => p.uid === userUid);
 
-    // Step 3: Synchronize `participantList`
-    const localUIDs = participantList.map((p) => p.uid);
-    const newUIDs = rtmUIDs.filter((uid) => !localUIDs.includes(uid));
-    const removedUIDs = localUIDs.filter((uid) => !rtmUIDs.includes(uid));
-    const commonUIDs = rtmUIDs.filter((uid) => localUIDs.includes(uid));
-
-    // Add new participants
-    for (const uid of newUIDs) {
-      const newParticipant = updatedParticipantList.find((p) => p.uid === uid);
+    if (participantIndex === -1) {
+      // Add new participant if they don't exist in the list
+      const newParticipant = {
+        uid: userUid,
+        rtmUid: userAttr.rtmUid || "", // Add rtmUid attribute here
+        name: userAttr.name || "Unknown",
+        company: userAttr.company || "",
+        designation: userAttr.designation || "",
+        avatar: userAttr.avatar,
+        role: userAttr.role || "audience",
+        bubbleid: userAttr.bubbleid,
+        isRaisingHand: userAttr.isRaisingHand || false,
+        roleInTheCall: userAttr.roleInTheCall || "audience",
+      };
       participantList.push(newParticipant);
-      console.log(`Added participant: ${uid}`);
+    } else {
+      // Update existing participant details if they exist
+      participantList[participantIndex] = {
+        ...participantList[participantIndex],
+        ...userAttr,
+      };
     }
-
-    // Update only the fields that might change (role, isRaisingHand, roleInTheCall) for existing participants
-    for (const uid of commonUIDs) {
-      const updatedData = updatedParticipantList.find((p) => p.uid === uid);
-      const participantIndex = participantList.findIndex((p) => p.uid === uid);
-
-      if (participantIndex !== -1) {
-        const existingParticipant = participantList[participantIndex];
-
-        // Update only if these fields have changed
-        if (
-          existingParticipant.role !== updatedData.role ||
-          existingParticipant.isRaisingHand !== updatedData.isRaisingHand ||
-          existingParticipant.roleInTheCall !== updatedData.roleInTheCall
-        ) {
-          participantList[participantIndex] = {
-            ...existingParticipant,
-            role: updatedData.role,
-            isRaisingHand: updatedData.isRaisingHand,
-            roleInTheCall: updatedData.roleInTheCall,
-          };
-          console.log(`Updated participant: ${uid}`);
-        }
-      }
-    }
-
-    // Remove participants not in RTC
-    participantList = participantList.filter(
-      (p) => !removedUIDs.includes(p.uid)
-    );
-    removedUIDs.forEach((uid) => console.log(`Removed participant: ${uid}`));
-
-    // Log the updated participant list
-    console.log(
-      "Updated participant list:",
-      JSON.stringify(participantList, null, 2)
-    );
-
-    // Step 4: Format and send the updated data to Bubble
-    const formatForBubble = (participants) => ({
-      outputlist1: participants.map((p) => p.name),
-      outputlist2: participants.map((p) => p.company),
-      outputlist3: participants.map((p) => p.designation),
-      outputlist4: participants.map((p) => p.avatar),
-      outputlist5: participants.map((p) => p.bubbleid),
-      outputlist6: participants.map((p) => p.isRaisingHand),
-      outputlist7: participants.map((p) => p.rtmUid),
-    });
-
-    // Send data to Bubble functions
-    if (typeof bubble_fn_speaker === "function") {
-      bubble_fn_speaker(
-        formatForBubble(
-          participantList.filter((p) => p.roleInTheCall === "speaker")
-        )
-      );
-    }
-
-    if (typeof bubble_fn_audience === "function") {
-      bubble_fn_audience(
-        formatForBubble(
-          participantList.filter((p) => p.roleInTheCall === "audience")
-        )
-      );
-    }
-
-    if (typeof bubble_fn_host === "function") {
-      bubble_fn_host(
-        formatForBubble(
-          participantList.filter((p) => p.roleInTheCall === "host")
-        )
-      );
-    }
-
-    if (typeof bubble_fn_waiting === "function") {
-      bubble_fn_waiting(
-        formatForBubble(
-          participantList.filter((p) => p.roleInTheCall === "waiting")
-        )
-      );
-    }
-
-    if (typeof bubble_fn_audienceOnStage === "function") {
-      bubble_fn_audienceOnStage(
-        formatForBubble(
-          participantList.filter((p) => p.roleInTheCall === "audienceOnStage")
-        )
-      );
-    }
-
-    if (typeof bubble_fn_meetingParticipant === "function") {
-      bubble_fn_meetingParticipant(
-        formatForBubble(
-          participantList.filter(
-            (p) => p.roleInTheCall === "meetingParticipant"
-          )
-        )
-      );
-    }
-
-    console.log("Participant list synchronized with Bubble.");
-  } catch (error) {
-    console.error("Error synchronizing participant list:", error);
+  } else if (actionType === "leave") {
+    // Remove the participant if they are leaving
+    participantList = participantList.filter((p) => p.uid !== userUid);
+    console.log(`Participant ${userUid} has left.`);
+  } else {
+    console.warn(`Unknown action type: ${actionType}`);
+    return;
   }
-};
 
+  // Log the participant list after update
+  console.log(
+    "Participant list after update:",
+    JSON.stringify(participantList, null, 2)
+  );
+
+  // Separate participants by role
+  const speakers = participantList.filter((p) => p.roleInTheCall === "speaker");
+  const audiences = participantList.filter(
+    (p) => p.roleInTheCall === "audience"
+  );
+  const hosts = participantList.filter((p) => p.roleInTheCall === "host");
+  const waiting = participantList.filter((p) => p.roleInTheCall === "waiting");
+  const audienceOnStage = participantList.filter(
+    (p) => p.roleInTheCall === "audienceOnStage"
+  );
+  const meetingParticipants = participantList.filter(
+    (p) => p.roleInTheCall === "meetingParticipant"
+  );
+
+  // Helper to format data for Bubble, including rtmUid
+  const formatForBubble = (participants) => ({
+    outputlist1: participants.map((p) => p.name),
+    outputlist2: participants.map((p) => p.company),
+    outputlist3: participants.map((p) => p.designation),
+    outputlist4: participants.map((p) => p.avatar),
+    outputlist5: participants.map((p) => p.bubbleid),
+    outputlist6: participants.map((p) => p.isRaisingHand),
+    outputlist7: participants.map((p) => p.rtmUid), // New list for rtmUid
+  });
+
+  // Send data to Bubble functions
+  if (typeof bubble_fn_speaker === "function") {
+    console.log("Sending speaker data to Bubble:", formatForBubble(speakers));
+    bubble_fn_speaker(formatForBubble(speakers));
+  }
+
+  if (typeof bubble_fn_audience === "function") {
+    console.log("Sending audience data to Bubble:", formatForBubble(audiences));
+    bubble_fn_audience(formatForBubble(audiences));
+  }
+
+  if (typeof bubble_fn_host === "function") {
+    console.log("Sending host data to Bubble:", formatForBubble(hosts));
+    bubble_fn_host(formatForBubble(hosts));
+  }
+
+  if (typeof bubble_fn_waiting === "function") {
+    console.log("Sending waiting data to Bubble:", formatForBubble(waiting));
+    bubble_fn_waiting(formatForBubble(waiting));
+  }
+
+  if (typeof bubble_fn_audienceOnStage === "function") {
+    console.log(
+      "Sending audienceOnStage data to Bubble:",
+      formatForBubble(audienceOnStage)
+    );
+    bubble_fn_audienceOnStage(formatForBubble(audienceOnStage));
+  }
+
+  if (typeof bubble_fn_meetingParticipant === "function") {
+    console.log(
+      "Sending meetingParticipant data to Bubble:",
+      formatForBubble(meetingParticipants)
+    );
+    bubble_fn_meetingParticipant(formatForBubble(meetingParticipants));
+  }
+
+  console.log("Participant list updated.");
+};
 
 
 // Handles user joined event
@@ -429,7 +405,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       );
 
       // ** Call the separate participant management function **
-      manageParticipants(config);
+      manageParticipants(userUid, userAttr, config);
 
       resolve(); // Resolve the promise when everything is done
     } catch (error) {
@@ -468,7 +444,7 @@ export const handleUserLeft = async (user, config) => {
     }
 
     // Call manageParticipants without the config parameter to remove the user from participantList
-    manageParticipants(config);
+    manageParticipants(user.uid, {}, "leave");
 
     // Clear user join promise when the user leaves
     if (config.userJoinPromises && config.userJoinPromises[user.uid]) {
