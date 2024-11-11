@@ -393,6 +393,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       );
       if (!participantWrapper) {
         await addUserWrapper({ uid: userUid, ...userAttr }, config); // Add the wrapper
+        updateLayout();
         console.log(`Wrapper added for user: ${userUid}`);
       } else {
         console.log(`Wrapper already exists for user: ${userUid}`);
@@ -454,6 +455,7 @@ export const handleUserLeft = async (user, config) => {
     }
 
     console.log(`User ${user.uid} successfully removed`);
+    updateLayout();
   } catch (error) {
     console.error(`Error removing user ${user.uid}:`, error);
   }
