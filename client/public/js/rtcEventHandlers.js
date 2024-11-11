@@ -463,31 +463,45 @@ export const handleUserLeft = async (user, config) => {
 
 
 // Handles volume indicator change
-export const handleVolumeIndicator = (result, config) => {
-  result.forEach((volume) => {
+export const handleVolumeIndicator = async (result, config) => {
+  for (const volume of result) {
     const userUID = volume.uid;
 
     // Ignore UID 1 (screen share client or any other special case)
     if (userUID === 1) {
-      return; // Skip this iteration
+      continue; // Skip this iteration
     }
 
-    const audioLevel = volume.level; // The audio level, can be used to determine when the user is speaking
-    const wrapper = document.querySelector(`#video-wrapper-${userUID}`);
+    const audioLevel = volume.level; // The audio level, used to determine when the user is speaking
+    let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
     console.log(userUID, audioLevel);
 
+    if (!wrapper) {
+      // Wrapper not found, create it
+      console.warn(`Wrapper for user ${userUID} not found, creating wrapper.`);
+      
+      // Assuming addUserWrapper is an async function
+      await addUserWrapper({ uid: userUID, ...config.userAttr }, config); // Add the wrapper
+      
+      // Re-select the wrapper after adding it
+      wrapper = document.querySelector(`#video-wrapper-${userUID}`);
+      
+      // Update the layout
+      bubble_fn_updateLayout();
+      console.log(`Wrapper added for user: ${userUID}`);
+    }
+
+    // Apply audio level indicator styles if the wrapper is now available
     if (wrapper) {
-      if (audioLevel > 60) {
-        // Adjust the threshold based on your needs
+      if (audioLevel > 60) { // Adjust the threshold based on your needs
         wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
       } else {
         wrapper.style.borderColor = "transparent"; // Transparent when not speaking
       }
-    } else {
-      console.warn(`Wrapper for user ${userUID} not found`);
     }
-  });
+  }
 };
+
 
 
 // Handles token renewal
