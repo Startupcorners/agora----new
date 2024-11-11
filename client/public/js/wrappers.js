@@ -34,6 +34,7 @@ export const addUserWrapper = async (user, config) => {
       .insertAdjacentHTML("beforeend", playerHTML);
 
     console.log(`Added wrapper for user: ${user.uid}`);
+    bubble_fn_updateLayout();
 
     // Hide video player and show avatar initially
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);

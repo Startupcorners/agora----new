@@ -393,7 +393,6 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       );
       if (!participantWrapper) {
         await addUserWrapper({ uid: userUid, ...userAttr }, config); // Add the wrapper
-        bubble_fn_updateLayout();
         console.log(`Wrapper added for user: ${userUid}`);
       } else {
         console.log(`Wrapper already exists for user: ${userUid}`);
@@ -487,7 +486,6 @@ export const handleVolumeIndicator = async (result, config) => {
       wrapper = document.querySelector(`#video-wrapper-${userUID}`);
       
       // Update the layout
-      bubble_fn_updateLayout();
       console.log(`Wrapper added for user: ${userUID}`);
     }
 
