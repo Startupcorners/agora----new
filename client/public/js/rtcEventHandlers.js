@@ -213,7 +213,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
       // Add new participant if they don't exist in the list
       const newParticipant = {
         uid: userUid,
-        rtmUid: userAttr.rtmUid || "", // Add rtmUid attribute here
+        rtmUid: userAttr.rtmUid || "",
         name: userAttr.name || "Unknown",
         company: userAttr.company || "",
         designation: userAttr.designation || "",
@@ -268,7 +268,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     outputlist4: participants.map((p) => p.avatar),
     outputlist5: participants.map((p) => p.bubbleid),
     outputlist6: participants.map((p) => p.isRaisingHand),
-    outputlist7: participants.map((p) => p.rtmUid), // New list for rtmUid
+    outputlist7: participants.map((p) => p.rtmUid),
   });
 
   // Send data to Bubble functions
@@ -443,8 +443,8 @@ export const handleUserLeft = async (user, config) => {
       console.log(`No tracks found for user ${user.uid}`);
     }
 
-    // Call manageParticipants without the config parameter to remove the user from participantList
-    manageParticipants(user.uid, {}, "leave");
+    // Convert user.uid to a string when calling manageParticipants
+    manageParticipants(String(user.uid), {}, "leave");
 
     // Clear user join promise when the user leaves
     if (config.userJoinPromises && config.userJoinPromises[user.uid]) {
