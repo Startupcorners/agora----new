@@ -195,76 +195,70 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
 
 export const manageParticipants = async (config) => {
-  console.log("Synchronizing the full participant list with RTM...");
+  console.log("Synchronizing the full participant list with RTC...");
 
   try {
-    // Fetch current RTM participants (assuming `getChannelMembers` fetches all participant UIDs)
-    const rtmParticipants = await config.clientRTM.getChannelMembers(); // Modify as needed for your RTM API
-    const rtmUIDs = rtmParticipants.map((p) => p.uid);
+    // Step 1: Fetch current RTC participants and convert their UIDs to strings
+    const rtcUsers = await config.client.getUsers();
+    const rtmUIDs = rtcUsers.map((user) => user.uid.toString()); // Convert RTC UIDs to strings for RTM compatibility
 
-    // Check for participants to add, update, or remove
+    // Step 2: Fetch attributes for each RTC (RTM) participant and build a fresh list
+    const updatedParticipantList = await Promise.all(
+      rtmUIDs.map(async (uid) => {
+        const userAttr = await config.clientRTM.getUserAttributes(uid);
+        return {
+          uid,
+          rtmUid: uid,
+          role: userAttr.role || "audience",
+          isRaisingHand: userAttr.isRaisingHand || false,
+          roleInTheCall: userAttr.roleInTheCall || "audience",
+        };
+      })
+    );
+
+    // Step 3: Synchronize `participantList`
     const localUIDs = participantList.map((p) => p.uid);
-    const missingUIDs = rtmUIDs.filter((uid) => !localUIDs.includes(uid)); // UIDs in RTM but not in local
-    const extraUIDs = localUIDs.filter((uid) => !rtmUIDs.includes(uid)); // UIDs in local but not in RTM
-    const commonUIDs = rtmUIDs.filter((uid) => localUIDs.includes(uid)); // UIDs in both RTM and local
+    const newUIDs = rtmUIDs.filter((uid) => !localUIDs.includes(uid));
+    const removedUIDs = localUIDs.filter((uid) => !rtmUIDs.includes(uid));
+    const commonUIDs = rtmUIDs.filter((uid) => localUIDs.includes(uid));
 
-    // Add missing participants from RTM to local list
-    for (const uid of missingUIDs) {
-      const userAttr = await config.clientRTM.getUserAttributes(uid.toString());
-      const newParticipant = {
-        uid,
-        rtmUid: userAttr.rtmUid || "",
-        name: userAttr.name || "Unknown",
-        company: userAttr.company || "",
-        designation: userAttr.designation || "",
-        avatar: userAttr.avatar || "",
-        role: userAttr.role || "audience",
-        bubbleid: userAttr.bubbleid || "",
-        isRaisingHand: userAttr.isRaisingHand || false,
-        roleInTheCall: userAttr.roleInTheCall || "audience",
-      };
+    // Add new participants
+    for (const uid of newUIDs) {
+      const newParticipant = updatedParticipantList.find((p) => p.uid === uid);
       participantList.push(newParticipant);
       console.log(`Added participant: ${uid}`);
     }
 
-    // Update attributes for participants that exist in both RTM and local
+    // Update only the fields that might change (role, isRaisingHand, roleInTheCall) for existing participants
     for (const uid of commonUIDs) {
-      const userAttr = await config.clientRTM.getUserAttributes(uid.toString());
+      const updatedData = updatedParticipantList.find((p) => p.uid === uid);
       const participantIndex = participantList.findIndex((p) => p.uid === uid);
 
       if (participantIndex !== -1) {
         const existingParticipant = participantList[participantIndex];
 
-        // Check if any attributes have changed, and update if necessary
-        const updatedParticipant = {
-          ...existingParticipant,
-          rtmUid: userAttr.rtmUid || existingParticipant.rtmUid,
-          name: userAttr.name || existingParticipant.name,
-          company: userAttr.company || existingParticipant.company,
-          designation: userAttr.designation || existingParticipant.designation,
-          avatar: userAttr.avatar || existingParticipant.avatar,
-          role: userAttr.role || existingParticipant.role,
-          bubbleid: userAttr.bubbleid || existingParticipant.bubbleid,
-          isRaisingHand:
-            userAttr.isRaisingHand || existingParticipant.isRaisingHand,
-          roleInTheCall:
-            userAttr.roleInTheCall || existingParticipant.roleInTheCall,
-        };
-
-        // Update participant if there are any changes
+        // Update only if these fields have changed
         if (
-          JSON.stringify(updatedParticipant) !==
-          JSON.stringify(existingParticipant)
+          existingParticipant.role !== updatedData.role ||
+          existingParticipant.isRaisingHand !== updatedData.isRaisingHand ||
+          existingParticipant.roleInTheCall !== updatedData.roleInTheCall
         ) {
-          participantList[participantIndex] = updatedParticipant;
+          participantList[participantIndex] = {
+            ...existingParticipant,
+            role: updatedData.role,
+            isRaisingHand: updatedData.isRaisingHand,
+            roleInTheCall: updatedData.roleInTheCall,
+          };
           console.log(`Updated participant: ${uid}`);
         }
       }
     }
 
-    // Remove extra participants from the local list that aren't in RTM
-    participantList = participantList.filter((p) => !extraUIDs.includes(p.uid));
-    extraUIDs.forEach((uid) => console.log(`Removed participant: ${uid}`));
+    // Remove participants not in RTC
+    participantList = participantList.filter(
+      (p) => !removedUIDs.includes(p.uid)
+    );
+    removedUIDs.forEach((uid) => console.log(`Removed participant: ${uid}`));
 
     // Log the updated participant list
     console.log(
@@ -272,7 +266,7 @@ export const manageParticipants = async (config) => {
       JSON.stringify(participantList, null, 2)
     );
 
-    // Format and send the updated data to Bubble
+    // Step 4: Format and send the updated data to Bubble
     const formatForBubble = (participants) => ({
       outputlist1: participants.map((p) => p.name),
       outputlist2: participants.map((p) => p.company),
