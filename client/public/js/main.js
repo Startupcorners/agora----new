@@ -72,7 +72,6 @@ const newMainApp = function (initConfig) {
 
      // Ensure 'extension' and 'config' are declared beforehand, or declare them if needed
      let extension = new VirtualBackgroundExtension();
-     let config = config || {}; // ensure config is initialized if not already
 
      // Check for compatibility before proceeding
      console.log("Checking for compatibility...");
