@@ -6,18 +6,13 @@ export const templateVideoParticipant = `
     <!-- User Avatar (shown when video is off) -->
     <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" />
 
-    <!-- User Name -->
+    <!-- User Name with Mic Icon -->
     <div id="name-{{uid}}" class="user-name">
       {{name}}
-    </div>
-
-    <!-- Participant Status Indicators -->
-    <div class="status-indicators">
-      <!-- Microphone Status Icon -->
-      <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted">
+      <!-- Microphone Status Icon within user name -->
+      <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" style="display: none; margin-left: 5px;">
         <img src="https://startupcorners-df3e7.web.app/icons/mic-muted.svg" alt="Mic Muted Icon" class="mic-icon" />
       </span>
-
     </div>
   </div>
 `;
