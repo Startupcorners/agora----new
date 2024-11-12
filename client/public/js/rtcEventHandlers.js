@@ -462,9 +462,9 @@ export const handleUserLeft = async (user, config) => {
 
 // Handles volume indicator change
 export const handleVolumeIndicator = (() => {
-  let lastMutedStatus = null; // Store the last muted status ("yes" or "no")
+  let lastMutedStatus = "no"; // Store the last muted status ("yes" or "no")
 
-  return async (result, config) => {
+  return async (result) => {
     for (const volume of result) {
       const userUID = volume.uid;
 
@@ -477,22 +477,15 @@ export const handleVolumeIndicator = (() => {
       let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
       console.log(userUID, audioLevel);
 
-      // Find the user to check if audio is published
-      const user = config.client.remoteUsers.find(
-        (user) => user.uid === userUID
-      );
+      const currentStatus = audioLevel === 0 ? "yes" : "no";
 
-      if (user && user.hasAudio) {
-        const currentStatus = audioLevel === 0 ? "yes" : "no";
-
-        // Only send if the status has changed
-        if (currentStatus !== lastMutedStatus) {
-          console.log(
-            `Sending to bubble: bubble_fn_systemmuted("${currentStatus}")`
-          );
-          bubble_fn_systemmuted(currentStatus);
-          lastMutedStatus = currentStatus; // Update the last status
-        }
+      // Only send to Bubble if the status has changed
+      if (currentStatus !== lastMutedStatus) {
+        console.log(
+          `Sending to bubble: bubble_fn_systemmuted("${currentStatus}")`
+        );
+        bubble_fn_systemmuted(currentStatus);
+        lastMutedStatus = currentStatus; // Update the last status
       }
 
       // Apply audio level indicator styles if the wrapper is available
