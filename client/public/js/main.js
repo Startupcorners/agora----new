@@ -9,9 +9,7 @@ import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 import {
-  enableVirtualBackgroundBlur,
-  enableVirtualBackgroundImage,
-  disableVirtualBackground,
+  toggleVirtualBackground,
 } from "./virtualBackgroundHandlers.js";
 import {
   toggleMic,
@@ -426,9 +424,7 @@ const newMainApp = function (initConfig) {
     joinToVideoStage,
     getAvailableDevices,
     toggleMic,
-    enableVirtualBackgroundBlur,
-    enableVirtualBackgroundImage,
-    disableVirtualBackground,
+    toggleVirtualBackground,
     toggleCamera,
     changeUserRole,
     toggleScreenShare,
