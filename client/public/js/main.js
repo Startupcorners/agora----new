@@ -302,19 +302,6 @@ const joinToVideoStage = async (config) => {
 
     if (config.localAudioTrack) {
       console.log("Microphone audio track created successfully");
-
-      // Get the device ID and label of the in-use microphone
-      const micDeviceId = config.localAudioTrack
-        .getTrack()
-        .getSettings().deviceId;
-      const micLabel = config.localAudioTrack.getTrack().label || "Microphone";
-
-      // Send microphone information to Bubble
-      if (typeof bubble_fn_selectedMic === "function") {
-        bubble_fn_selectedMic({ id: micDeviceId, label: micLabel });
-      }
-
-      console.log(`Using microphone: ${micLabel} (ID: ${micDeviceId})`);
     } else {
       console.error("Failed to create local audio track");
     }
@@ -377,6 +364,7 @@ const joinToVideoStage = async (config) => {
     console.error("Error in joinToVideoStage", error);
   }
 };
+
 
   return {
     config,
