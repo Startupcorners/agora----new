@@ -3,12 +3,12 @@ export const toggleVirtualBackground = async (config, imageSrc = "") => {
   console.log("toggleVirtualBackground called with imageSrc:", imageSrc);
 
   // Check if the virtual background is already enabled
-  if (config.isVirtualBackGroundEnabled) {
-    console.log("Virtual background is currently enabled. Disabling it...");
+  if (config.currentVirtualBackground === imageSrc) {
+    console.log("Virtual background is image source");
     await disableVirtualBackground(config);
   } else {
     // Virtual background is currently disabled
-    if (imageSrc) {
+    if (imageSrc !== "blur") {
       // If imageSrc is provided, enable virtual background with the image
       console.log("Enabling virtual background with image.");
       await enableVirtualBackgroundImage(config, imageSrc);
@@ -83,7 +83,7 @@ export const enableVirtualBackgroundImage = async (config, imageSrc) => {
 
     // Update config to indicate that virtual background is enabled
     config.isVirtualBackGroundEnabled = true;
-    config.currentVirtualBackground = "image"; // Track current background type
+    config.currentVirtualBackground = imageSrc; // Track current background type
   };
 
   // Convert the image source to base64 to load it properly
