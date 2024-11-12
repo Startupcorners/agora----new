@@ -1,9 +1,27 @@
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 // Wrapper for adding users (current or remote) to the video stage
+// Debounce function to limit function calls
+// Track whether addUserWrapper is currently running
+let addUserWrapperRunning = false;
+
 export const addUserWrapper = async (user, config) => {
+  // If already running, skip this execution
+  if (addUserWrapperRunning) {
+    console.log(`addUserWrapper is already running for user: ${user.uid}`);
+    return;
+  }
+
+  // Set running state to true
+  addUserWrapperRunning = true;
+
   try {
-    // Convert UID to string for RTM operations
     const rtmUid = user.uid.toString();
+
+    // Check if the wrapper already exists
+    if (document.querySelector(`#video-wrapper-${user.uid}`)) {
+      console.log(`Wrapper already exists for user: ${user.uid}`);
+      return;
+    }
 
     // Fetch user attributes from RTM (name, avatar)
     let userAttr = {};
@@ -11,10 +29,7 @@ export const addUserWrapper = async (user, config) => {
       try {
         userAttr = await config.clientRTM.getUserAttributes(rtmUid);
       } catch (error) {
-        console.error(
-          `Failed to fetch user attributes for ${user.uid}:`,
-          error
-        );
+        console.error(`Failed to fetch user attributes for ${user.uid}:`, error);
         userAttr = {
           name: "Unknown",
           avatar: "default-avatar-url",
@@ -34,7 +49,7 @@ export const addUserWrapper = async (user, config) => {
       .insertAdjacentHTML("beforeend", playerHTML);
 
     console.log(`Added wrapper for user: ${user.uid}`);
-    bubble_fn_updateLayout();
+    updateLayout();
 
     // Hide video player and show avatar initially
     const videoPlayer = document.querySelector(`#stream-${user.uid}`);
@@ -61,8 +76,12 @@ export const addUserWrapper = async (user, config) => {
     }
   } catch (error) {
     console.error("Error in addUserWrapper:", error);
+  } finally {
+    // Set running state to false after completion
+    addUserWrapperRunning = false;
   }
 };
+
 
 
 // Wrapper for removing users from the video stage
