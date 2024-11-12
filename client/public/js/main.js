@@ -9,6 +9,11 @@ import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 import {
+  enableVirtualBackgroundBlur,
+  enableVirtualBackgroundImage,
+  disableVirtualBackground,
+} from "./virtualBackgroundHandlers.js";
+import {
   toggleMic,
   toggleCamera,
   toggleScreenShare,
@@ -384,6 +389,9 @@ const joinToVideoStage = async (config) => {
     joinToVideoStage,
     getAvailableDevices,
     toggleMic,
+    enableVirtualBackgroundBlur,
+    enableVirtualBackgroundImage,
+    disableVirtualBackground,
     toggleCamera,
     changeUserRole,
     toggleScreenShare,
