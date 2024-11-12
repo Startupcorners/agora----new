@@ -73,10 +73,21 @@ export const disableVirtualBackground = async (config) => {
 
   config.isVirtualBackGroundEnabled = false;
 };
-
 export const getProcessorInstance = async (config) => {
-  if (!config.processor && config.localVideoTrack) {
+  if (
+    !config.processor &&
+    config.localVideoTrack &&
+    config.extensionVirtualBackground
+  ) {
     try {
+      // Ensure the extension is properly initialized
+      if (!config.extensionVirtualBackground.createProcessor) {
+        console.error(
+          "Virtual Background extension is not properly initialized or unavailable."
+        );
+        return null;
+      }
+
       config.processor = config.extensionVirtualBackground.createProcessor();
       console.log("Processor created:", config.processor);
 
@@ -94,6 +105,7 @@ export const getProcessorInstance = async (config) => {
   }
   return config.processor;
 };
+
 
 export const imageUrlToBase64 = async (url) => {
   try {

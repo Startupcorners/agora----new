@@ -64,13 +64,28 @@ const newMainApp = function (initConfig) {
   // Initialize AgoraRTC client
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-  config.extensionVirtualBackground = AgoraRTC.createExtension("VirtualBackground");
-
+  // Initialize the Virtual Background extension
   (async () => {
     try {
-      // Ensure the virtual background extension is initialized
-      await config.extensionVirtualBackground.init();
+      const { VirtualBackgroundExtension } = AgoraRTC;
+      const extension = new VirtualBackgroundExtension();
+
+      // Check for compatibility before proceeding
+      if (!extension.checkCompatibility()) {
+        console.error("Browser does not support Virtual Background.");
+        return;
+      }
+
+      // Register the extension and attach to config
+      AgoraRTC.registerExtensions([extension]);
+      console.log("Virtual Background extension registered successfully.");
+
+      // Initialize the extension
+      await extension.init();
       console.log("Virtual Background extension initialized successfully.");
+
+      // Attach the extension to the config
+      config.extensionVirtualBackground = extension;
     } catch (error) {
       console.error(
         "Failed to initialize the Virtual Background extension:",
@@ -113,156 +128,152 @@ const newMainApp = function (initConfig) {
   config = { ...config, ...callbacks };
 
   // Function to get available microphones, cameras, and speakers
-const getAvailableDevices = async () => {
-  try {
-    console.log("Fetching available media devices...");
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    console.log("All devices enumerated:", devices);
+  const getAvailableDevices = async () => {
+    try {
+      console.log("Fetching available media devices...");
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      console.log("All devices enumerated:", devices);
 
-    // Filter and map each device type
-    const microphones = devices
-      .filter((device) => device.kind === "audioinput")
-      .map((mic) => mic.label || "Microphone");
-    console.log("Filtered microphone labels:", microphones);
+      // Filter and map each device type
+      const microphones = devices
+        .filter((device) => device.kind === "audioinput")
+        .map((mic) => mic.label || "Microphone");
+      console.log("Filtered microphone labels:", microphones);
 
-    const cameras = devices
-      .filter((device) => device.kind === "videoinput")
-      .map((cam) => cam.label || "Camera");
-    console.log("Filtered camera labels:", cameras);
+      const cameras = devices
+        .filter((device) => device.kind === "videoinput")
+        .map((cam) => cam.label || "Camera");
+      console.log("Filtered camera labels:", cameras);
 
-    const speakers = devices
-      .filter((device) => device.kind === "audiooutput")
-      .map((speaker) => speaker.label || "Speaker");
-    console.log("Filtered speaker labels:", speakers);
+      const speakers = devices
+        .filter((device) => device.kind === "audiooutput")
+        .map((speaker) => speaker.label || "Speaker");
+      console.log("Filtered speaker labels:", speakers);
 
-    // Get the default devices' labels
-    const defaultMic = microphones.length ? microphones[0] : null;
-    const defaultCam = cameras.length ? cameras[0] : null;
-    const defaultSpeaker = speakers.length ? speakers[0] : null;
+      // Get the default devices' labels
+      const defaultMic = microphones.length ? microphones[0] : null;
+      const defaultCam = cameras.length ? cameras[0] : null;
+      const defaultSpeaker = speakers.length ? speakers[0] : null;
 
-    console.log("Default microphone label:", defaultMic);
-    console.log("Default camera label:", defaultCam);
-    console.log("Default speaker label:", defaultSpeaker);
+      console.log("Default microphone label:", defaultMic);
+      console.log("Default camera label:", defaultCam);
+      console.log("Default speaker label:", defaultSpeaker);
 
-    // Send device lists (labels only) to Bubble
-    if (typeof bubble_fn_micDevices === "function") {
-      console.log("Sending microphone labels to Bubble:", microphones);
-      bubble_fn_micDevices(microphones);
+      // Send device lists (labels only) to Bubble
+      if (typeof bubble_fn_micDevices === "function") {
+        console.log("Sending microphone labels to Bubble:", microphones);
+        bubble_fn_micDevices(microphones);
+      }
+      if (typeof bubble_fn_camDevices === "function") {
+        console.log("Sending camera labels to Bubble:", cameras);
+        bubble_fn_camDevices(cameras);
+      }
+      if (typeof bubble_fn_speakerDevices === "function") {
+        console.log("Sending speaker labels to Bubble:", speakers);
+        bubble_fn_speakerDevices(speakers);
+      }
+
+      // Send default device labels to Bubble
+      if (defaultMic && typeof bubble_fn_selectedMic === "function") {
+        console.log("Sending default microphone label to Bubble:", defaultMic);
+        bubble_fn_selectedMic(defaultMic);
+      }
+      if (defaultCam && typeof bubble_fn_selectedCam === "function") {
+        console.log("Sending default camera label to Bubble:", defaultCam);
+        bubble_fn_selectedCam(defaultCam);
+      }
+      if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function") {
+        console.log("Sending default speaker label to Bubble:", defaultSpeaker);
+        bubble_fn_selectedSpeaker(defaultSpeaker);
+      }
+
+      return {
+        microphones,
+        cameras,
+        speakers,
+        defaultMic,
+        defaultCam,
+        defaultSpeaker,
+      };
+    } catch (error) {
+      console.error("Error fetching devices:", error);
+      return { microphones: [], cameras: [], speakers: [] };
     }
-    if (typeof bubble_fn_camDevices === "function") {
-      console.log("Sending camera labels to Bubble:", cameras);
-      bubble_fn_camDevices(cameras);
-    }
-    if (typeof bubble_fn_speakerDevices === "function") {
-      console.log("Sending speaker labels to Bubble:", speakers);
-      bubble_fn_speakerDevices(speakers);
-    }
-
-    // Send default device labels to Bubble
-    if (defaultMic && typeof bubble_fn_selectedMic === "function") {
-      console.log("Sending default microphone label to Bubble:", defaultMic);
-      bubble_fn_selectedMic(defaultMic);
-    }
-    if (defaultCam && typeof bubble_fn_selectedCam === "function") {
-      console.log("Sending default camera label to Bubble:", defaultCam);
-      bubble_fn_selectedCam(defaultCam);
-    }
-    if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function") {
-      console.log("Sending default speaker label to Bubble:", defaultSpeaker);
-      bubble_fn_selectedSpeaker(defaultSpeaker);
-    }
-
-    return {
-      microphones,
-      cameras,
-      speakers,
-      defaultMic,
-      defaultCam,
-      defaultSpeaker,
-    };
-  } catch (error) {
-    console.error("Error fetching devices:", error);
-    return { microphones: [], cameras: [], speakers: [] };
-  }
-};
-
-
+  };
 
   // Modified join function
-const join = async () => {
-  bubble_fn_role(config.user.roleInTheCall);
-  try {
-    // Fetch RTC and RTM tokens
-    const tokens = await fetchTokens(config);
-    if (!tokens) throw new Error("Failed to fetch token");
-
-    // Ensure the user has a role assigned
-    if (!config.user.role) {
-      throw new Error("User does not have a role assigned.");
-    }
-
-    // Logout of RTM if already logged in, then join RTM
+  const join = async () => {
+    bubble_fn_role(config.user.roleInTheCall);
     try {
-      const attributes = await config.clientRTM.getUserAttributes(
-        config.uid.toString()
+      // Fetch RTC and RTM tokens
+      const tokens = await fetchTokens(config);
+      if (!tokens) throw new Error("Failed to fetch token");
+
+      // Ensure the user has a role assigned
+      if (!config.user.role) {
+        throw new Error("User does not have a role assigned.");
+      }
+
+      // Logout of RTM if already logged in, then join RTM
+      try {
+        const attributes = await config.clientRTM.getUserAttributes(
+          config.uid.toString()
+        );
+        console.log("Already logged in to RTM. Attributes:", attributes);
+        await config.clientRTM.logout();
+        console.log("User logged out of RTM for a fresh join.");
+      } catch {
+        console.log("Not logged in to RTM, proceeding to join RTM.");
+      }
+      await joinRTM(tokens.rtmToken);
+
+      // Check if the user is in the waiting room
+      if (config.user.roleInTheCall === "waiting") {
+        console.log("User is in the waiting room; skipping RTC join.");
+        await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
+        await sendRTMMessage("trigger_manage_participants");
+        return; // Exit without joining RTC
+      }
+
+      // Join RTC
+      console.log("config.uid before joining RTC", config.uid);
+      await config.client.join(
+        config.appId,
+        config.channelName,
+        tokens.rtcToken,
+        config.uid
       );
-      console.log("Already logged in to RTM. Attributes:", attributes);
-      await config.clientRTM.logout();
-      console.log("User logged out of RTM for a fresh join.");
-    } catch {
-      console.log("Not logged in to RTM, proceeding to join RTM.");
+      setupEventListeners(config);
+
+      // Fetch available devices after joining RTC
+      const { microphones, cameras, speakers } = await getAvailableDevices();
+      console.log("Available Microphones:", microphones);
+      console.log("Available Cameras:", cameras);
+      console.log("Available Speakers:", speakers);
+
+      // Additional host setup
+      if (config.user.role === "host") {
+        await joinToVideoStage(config);
+      }
+
+      // Track user join and handle token renewal
+      manageParticipants(config.uid, config.user, "join");
+      config.client.on("token-privilege-will-expire", handleRenewToken);
+
+      // Notify Bubble of successful join
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Joined");
+        updateLayout();
+      }
+    } catch (error) {
+      console.error("Error joining channel:", error);
+
+      // Notify Bubble of error
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Error");
+      }
     }
-    await joinRTM(tokens.rtmToken);
-
-    // Check if the user is in the waiting room
-    if (config.user.roleInTheCall === "waiting") {
-      console.log("User is in the waiting room; skipping RTC join.");
-      await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
-      await sendRTMMessage("trigger_manage_participants");
-      return; // Exit without joining RTC
-    }
-
-    // Join RTC
-    console.log("config.uid before joining RTC", config.uid);
-    await config.client.join(
-      config.appId,
-      config.channelName,
-      tokens.rtcToken,
-      config.uid
-    );
-    setupEventListeners(config);
-
-    // Fetch available devices after joining RTC
-    const { microphones, cameras, speakers } = await getAvailableDevices();
-    console.log("Available Microphones:", microphones);
-    console.log("Available Cameras:", cameras);
-    console.log("Available Speakers:", speakers);
-
-   
-    // Additional host setup
-    if (config.user.role === "host") {
-      await joinToVideoStage(config);
-    }
-
-    // Track user join and handle token renewal
-    manageParticipants(config.uid, config.user, "join");
-    config.client.on("token-privilege-will-expire", handleRenewToken);
-
-    // Notify Bubble of successful join
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Joined");
-      updateLayout();
-    }
-  } catch (error) {
-    console.error("Error joining channel:", error);
-
-    // Notify Bubble of error
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Error");
-    }
-  }
-};
-
+  };
 
   // Function to send an RTM message to the channel
   const sendRTMMessage = async (message) => {
@@ -324,81 +335,82 @@ const join = async () => {
   };
 
   // Join video stage function
-const joinToVideoStage = async (config) => {
-  try {
-    const { client, uid } = config;
+  const joinToVideoStage = async (config) => {
+    try {
+      const { client, uid } = config;
 
-    // Create and publish the local audio track if it doesn't exist
-    if (!config.localAudioTrack) {
-      console.log("Creating microphone audio track");
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    }
+      // Create and publish the local audio track if it doesn't exist
+      if (!config.localAudioTrack) {
+        console.log("Creating microphone audio track");
+        config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      }
 
-    if (config.localAudioTrack) {
-      console.log("Microphone audio track created successfully");
-    } else {
-      console.error("Failed to create local audio track");
-    }
+      if (config.localAudioTrack) {
+        console.log("Microphone audio track created successfully");
+      } else {
+        console.error("Failed to create local audio track");
+      }
 
-    // Create the local video track if it doesn't exist, but DO NOT publish it
-    if (!config.localVideoTrack) {
+      // Create the local video track if it doesn't exist, but DO NOT publish it
+      if (!config.localVideoTrack) {
+        console.log(
+          "Creating camera video track (muted and unpublished initially)"
+        );
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        await config.localVideoTrack.setEnabled(false); // Keep video muted initially
+        config.localVideoTrackMuted = true; // Track that the video is muted
+        console.log("Video track created but kept muted and unpublished");
+      }
+
+      // Publish only the local audio track
+      console.log("Publishing local audio track");
+      await client.publish([config.localAudioTrack]);
+
+      console.log("Successfully published local audio track");
+      console.log("Checking uid:", uid);
+
+      // Update the userTrack object to reflect the "camera off" state
+      let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
+
+      updatedUserTrack = {
+        ...updatedUserTrack,
+        videoTrack: null, // Initially set to null (camera off state)
+        screenShareTrack: config.localScreenShareTrack || null,
+        isVideoMuted: true, // Camera is off initially
+      };
+
+      // Reassign the updated user track back to the global userTracks object
+      userTracks[uid] = updatedUserTrack;
+
+      // Add the current user wrapper (for their own video/audio stream)
+      await addUserWrapper({ uid, ...config.user }, config);
+
+      // Select the video player and avatar elements for the current user
+      const videoPlayer = document.querySelector(`#stream-${uid}`);
+      const avatarDiv = document.querySelector(`#avatar-${uid}`);
+
+      // Ensure the video player and avatar elements are found
+      if (!videoPlayer || !avatarDiv) {
+        console.error(
+          "Video player or avatar elements not found for current user"
+        );
+        return;
+      }
+
+      // Show avatar and hide video initially since the camera is off
+      toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
+
+      // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
+      const isMuted = config.localAudioTrack.muted || false;
+      toggleMicIcon(uid, isMuted);
+
       console.log(
-        "Creating camera video track (muted and unpublished initially)"
+        "Joined the video stage with the camera off and active audio"
       );
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-      await config.localVideoTrack.setEnabled(false); // Keep video muted initially
-      config.localVideoTrackMuted = true; // Track that the video is muted
-      console.log("Video track created but kept muted and unpublished");
+    } catch (error) {
+      console.error("Error in joinToVideoStage", error);
     }
-
-    // Publish only the local audio track
-    console.log("Publishing local audio track");
-    await client.publish([config.localAudioTrack]);
-
-    console.log("Successfully published local audio track");
-    console.log("Checking uid:", uid);
-
-    // Update the userTrack object to reflect the "camera off" state
-    let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
-
-    updatedUserTrack = {
-      ...updatedUserTrack,
-      videoTrack: null, // Initially set to null (camera off state)
-      screenShareTrack: config.localScreenShareTrack || null,
-      isVideoMuted: true, // Camera is off initially
-    };
-
-    // Reassign the updated user track back to the global userTracks object
-    userTracks[uid] = updatedUserTrack;
-
-    // Add the current user wrapper (for their own video/audio stream)
-    await addUserWrapper({ uid, ...config.user }, config);
-
-    // Select the video player and avatar elements for the current user
-    const videoPlayer = document.querySelector(`#stream-${uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${uid}`);
-
-    // Ensure the video player and avatar elements are found
-    if (!videoPlayer || !avatarDiv) {
-      console.error(
-        "Video player or avatar elements not found for current user"
-      );
-      return;
-    }
-
-    // Show avatar and hide video initially since the camera is off
-    toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
-
-    // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
-    const isMuted = config.localAudioTrack.muted || false;
-    toggleMicIcon(uid, isMuted);
-
-    console.log("Joined the video stage with the camera off and active audio");
-  } catch (error) {
-    console.error("Error in joinToVideoStage", error);
-  }
-};
-
+  };
 
   return {
     config,
