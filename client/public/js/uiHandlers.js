@@ -426,9 +426,6 @@ export const changeUserRole = async (userUid, newRole, newRoleInTheCall, config)
     roleInTheCall: newRoleInTheCall,
   };
 
-  // Call manageParticipants to update the user locally
-  manageParticipants(userUid, updatedAttributes, "join");
-
   // Broadcast the role change to others in the RTM channel
   if (config.channelRTM) {
     const message = JSON.stringify({

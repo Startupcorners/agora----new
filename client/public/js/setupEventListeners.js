@@ -98,39 +98,34 @@ export const setupRTMMessageListener = (
         `Received role change for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
       );
 
-      // Combine role changes with existing user attributes
-      const updatedAttributes = {
-        ...userAttributes,
-        role: newRole,
-        roleInTheCall: newRoleInTheCall,
-      };
-
-      // Update the user's role and roleInTheCall on the local client
-      manageParticipants(userUid, updatedAttributes, "join");
-
-      // If the role change is for the current user, update local config and re-join
+      // If the role change is for the current user, log out and reinitialize app with new role
       if (userUid === config.user.rtmUid) {
         console.log(
-          "Role change is for the current user. Updating local config and re-joining."
+          "Role change is for the current user. Logging out of RTM and reinitializing app with new role."
         );
 
-        // Update local user config
+        // Update local user config with new role and roleInTheCall
         config.user.role = newRole;
         config.user.roleInTheCall = newRoleInTheCall;
 
-        // Update local RTM attributes
         try {
-          await config.clientRTM.setLocalUserAttributes(updatedAttributes);
-          console.log("Local RTM attributes updated:", updatedAttributes);
+          // Log out of RTM to ensure a clean state
+          await config.clientRTM.logout();
+          console.log("Logged out of RTM successfully.");
         } catch (error) {
-          console.error("Failed to update local RTM attributes:", error);
+          console.error(
+            "Failed to log out of RTM before reinitialization:",
+            error
+          );
         }
 
-        // Re-run the join function to apply new role
-        window.app
+        // Reinitialize the app with newMainApp to apply the new role configuration
+        const newAppInstance = newMainApp(config);
+        window.app = newAppInstance;
+        newAppInstance
           .join()
           .then(() => {
-            console.log("Joined successfully due to role change.");
+            console.log("Successfully joined with updated role.");
           })
           .catch((error) => {
             console.error("Error joining after role change:", error);

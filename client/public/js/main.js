@@ -113,29 +113,15 @@ const join = async () => {
       alreadyLoggedIn = true;
       console.log("Already logged in to RTM. Attributes:", attributes);
 
-      // Update attributes if already logged in
-      const updatedAttributes = {
-        name: config.user.name || "Unknown",
-        avatar: config.user.avatar || "default-avatar-url",
-        company: config.user.company || "Unknown",
-        designation: config.user.designation || "Unknown",
-        role: config.user.role || "audience",
-        rtmUid: config.uid.toString(),
-        bubbleid: config.user.bubbleid,
-        isRaisingHand: config.user.isRaisingHand,
-        sharingScreen: "0",
-        roleInTheCall: config.user.roleInTheCall || "audience",
-      };
-      await config.clientRTM.setLocalUserAttributes(updatedAttributes);
-      console.log("RTM attributes updated:", updatedAttributes);
+      // Logout of RTM to ensure a fresh login
+      await config.clientRTM.logout();
+      console.log("User logged out of RTM for a fresh join.");
     } catch (error) {
       console.log("Not logged in to RTM, proceeding to join RTM.");
     }
 
-    // Join RTM only if not already logged in
-    if (!alreadyLoggedIn) {
-      await joinRTM(tokens.rtmToken);
-    }
+    // Now join RTM as user is definitely logged out
+    await joinRTM(tokens.rtmToken);
 
     // Check if the user is in the waiting room
     if (config.user.roleInTheCall === "waiting") {
@@ -163,25 +149,8 @@ const join = async () => {
     if (config.user.role === "host") {
       await joinToVideoStage(config); // Host-only functionality
     }
-
-    // Call manageParticipants without the config parameter
-    manageParticipants(config.uid, config.user, "join");
-
-    // Handle token renewal
-    config.client.on("token-privilege-will-expire", handleRenewToken);
-
-    // Notify success using bubble_fn_joining
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Joined");
-      updateLayout();
-    }
   } catch (error) {
-    console.error("Error before joining:", error);
-
-    // Notify error using bubble_fn_joining
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Error");
-    }
+    console.error("Error joining channel:", error);
   }
 };
 
@@ -209,10 +178,6 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     const rtmUid = config.uid.toString();
     console.log("rtmuid value", rtmUid);
 
-    if (config.clientRTM._logined) {
-      await config.clientRTM.logout();
-    }
-
     // Login to RTM
     await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
 
@@ -232,13 +197,13 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
 
     await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
-    // **Create the RTM channel and assign it to config.channelRTM**
+    // Create the RTM channel and assign it to config.channelRTM if it doesn't exist
     if (!config.channelRTM) {
       config.channelRTM = config.clientRTM.createChannel(config.channelName);
       console.log("RTM channel created with name:", config.channelName);
     }
 
-    // **Join the RTM channel**
+    // Join the RTM channel
     await config.channelRTM.join();
     console.log("Successfully joined RTM channel:", config.channelName);
   } catch (error) {
@@ -251,6 +216,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     }
   }
 };
+
 
   // Join video stage function
   const joinToVideoStage = async (config) => {
