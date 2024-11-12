@@ -66,33 +66,46 @@ const newMainApp = function (initConfig) {
 
   // Initialize the Virtual Background extension
   // Initialize the Virtual Background extension
-  (async () => {
-    try {
-      extension = new VirtualBackgroundExtension();
+ (async () => {
+   try {
+     console.log("Initializing Virtual Background Extension...");
 
-      // Check for compatibility before proceeding
-      if (!extension.checkCompatibility()) {
-        console.error("Browser does not support Virtual Background.");
-        return;
-      }
+     // Ensure 'extension' and 'config' are declared beforehand, or declare them if needed
+     let extension = new VirtualBackgroundExtension();
+     let config = config || {}; // ensure config is initialized if not already
 
-      // Register the extension
-      AgoraRTC.registerExtensions([extension]);
-      console.log("Virtual Background extension registered successfully.");
+     // Check for compatibility before proceeding
+     console.log("Checking for compatibility...");
+     if (!extension.checkCompatibility()) {
+       console.error("Browser does not support Virtual Background.");
+       return;
+     }
+     console.log("Browser is compatible with Virtual Background.");
 
-      // Initialize the extension with the path to the WASM files
-      processor = extension.createProcessor();
+     // Register the extension
+     console.log("Registering Virtual Background extension...");
+     AgoraRTC.registerExtensions([extension]);
+     console.log("Virtual Background extension registered successfully.");
 
-      // Attach the extension to the config
-      config.extensionVirtualBackground = extension;
-      config.processor = processor;
-    } catch (error) {
-      console.error(
-        "Failed to initialize the Virtual Background extension:",
-        error
-      );
-    }
-  })();
+     // Initialize the extension with the path to the WASM files if needed
+     console.log("Creating Virtual Background processor...");
+     let processor =
+       extension.createProcessor(/* optional WASM path here if needed */);
+     console.log("Processor created successfully.");
+
+     // Attach the extension to the config
+     console.log("Attaching extension and processor to config...");
+     config.extensionVirtualBackground = extension;
+     config.processor = processor;
+     console.log("Extension and processor attached to config.");
+   } catch (error) {
+     console.error(
+       "Failed to initialize the Virtual Background extension:",
+       error
+     );
+   }
+ })();
+
 
   // Ensure required config parameters are present
   if (
