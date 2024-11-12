@@ -346,10 +346,12 @@ export const toggleStages = (isScreenSharing, uid) => {
     console.log(`Toggling to screen share stage for user with UID: ${uid}`);
     videoStage.style.display = "none";
     screenShareStage.style.display = "block";
+    updateLayout();
   } else {
     console.log(`Toggling back to video stage for user with UID: ${uid}`);
     videoStage.style.display = "flex";
     screenShareStage.style.display = "none";
+    updateLayout();
   }
 };
 

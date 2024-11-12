@@ -198,6 +198,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
   console.log(
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
+  updateLayout();
 
   // Log the participant list before update
   console.log(
@@ -453,7 +454,6 @@ export const handleUserLeft = async (user, config) => {
     }
 
     console.log(`User ${user.uid} successfully removed`);
-    bubble_fn_updateLayout();
   } catch (error) {
     console.error(`Error removing user ${user.uid}:`, error);
   }
