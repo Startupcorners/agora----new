@@ -100,56 +100,53 @@ const getAvailableDevices = async () => {
     // Filter and map each device type
     const microphones = devices
       .filter((device) => device.kind === "audioinput")
-      .map((mic) => ({ id: mic.deviceId, label: mic.label || "Microphone" }));
-    console.log("Filtered microphones:", microphones);
+      .map((mic) => mic.label || "Microphone");
+    console.log("Filtered microphone labels:", microphones);
 
     const cameras = devices
       .filter((device) => device.kind === "videoinput")
-      .map((cam) => ({ id: cam.deviceId, label: cam.label || "Camera" }));
-    console.log("Filtered cameras:", cameras);
+      .map((cam) => cam.label || "Camera");
+    console.log("Filtered camera labels:", cameras);
 
     const speakers = devices
       .filter((device) => device.kind === "audiooutput")
-      .map((speaker) => ({
-        id: speaker.deviceId,
-        label: speaker.label || "Speaker",
-      }));
-    console.log("Filtered speakers:", speakers);
+      .map((speaker) => speaker.label || "Speaker");
+    console.log("Filtered speaker labels:", speakers);
 
-    // Set the first item as the default device in each category
+    // Get the default devices' labels
     const defaultMic = microphones.length ? microphones[0] : null;
     const defaultCam = cameras.length ? cameras[0] : null;
     const defaultSpeaker = speakers.length ? speakers[0] : null;
 
-    console.log("Default microphone:", defaultMic);
-    console.log("Default camera:", defaultCam);
-    console.log("Default speaker:", defaultSpeaker);
+    console.log("Default microphone label:", defaultMic);
+    console.log("Default camera label:", defaultCam);
+    console.log("Default speaker label:", defaultSpeaker);
 
-    // Send device lists to Bubble
+    // Send device lists (labels only) to Bubble
     if (typeof bubble_fn_micDevices === "function") {
-      console.log("Sending microphone list to Bubble:", microphones);
+      console.log("Sending microphone labels to Bubble:", microphones);
       bubble_fn_micDevices(microphones);
     }
     if (typeof bubble_fn_camDevices === "function") {
-      console.log("Sending camera list to Bubble:", cameras);
+      console.log("Sending camera labels to Bubble:", cameras);
       bubble_fn_camDevices(cameras);
     }
     if (typeof bubble_fn_speakerDevices === "function") {
-      console.log("Sending speaker list to Bubble:", speakers);
+      console.log("Sending speaker labels to Bubble:", speakers);
       bubble_fn_speakerDevices(speakers);
     }
 
-    // Send default device info to Bubble
+    // Send default device labels to Bubble
     if (defaultMic && typeof bubble_fn_selectedMic === "function") {
-      console.log("Sending default microphone to Bubble:", defaultMic);
+      console.log("Sending default microphone label to Bubble:", defaultMic);
       bubble_fn_selectedMic(defaultMic);
     }
     if (defaultCam && typeof bubble_fn_selectedCam === "function") {
-      console.log("Sending default camera to Bubble:", defaultCam);
+      console.log("Sending default camera label to Bubble:", defaultCam);
       bubble_fn_selectedCam(defaultCam);
     }
     if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function") {
-      console.log("Sending default speaker to Bubble:", defaultSpeaker);
+      console.log("Sending default speaker label to Bubble:", defaultSpeaker);
       bubble_fn_selectedSpeaker(defaultSpeaker);
     }
 
