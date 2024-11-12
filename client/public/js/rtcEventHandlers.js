@@ -461,41 +461,50 @@ export const handleUserLeft = async (user, config) => {
 
 
 // Handles volume indicator change
-export const handleVolumeIndicator = async (result, config) => {
-  for (const volume of result) {
-    const userUID = volume.uid;
+export const handleVolumeIndicator = (() => {
+  let lastMutedStatus = null; // Store the last muted status ("yes" or "no")
 
-    // Ignore UID 1 (screen share client or any other special case)
-    if (userUID === 1) {
-      continue; // Skip this iteration
-    }
+  return async (result, config) => {
+    for (const volume of result) {
+      const userUID = volume.uid;
 
-    const audioLevel = volume.level; // The audio level, used to determine when the user is speaking
-    let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
-    console.log(userUID, audioLevel);
+      // Ignore UID 1 (screen share client or any other special case)
+      if (userUID === 1) {
+        continue; // Skip this iteration
+      }
 
-    // Find the user to check if audio is published
-    const user = config.client.remoteUsers.find((user) => user.uid === userUID);
+      const audioLevel = volume.level; // The audio level, used to determine when the user is speaking
+      let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
+      console.log(userUID, audioLevel);
 
-    if (user && user.hasAudio) {
-      if (audioLevel === 0) {
-        bubble_fn_systemmuted("yes");
-      } else {
-        bubble_fn_systemmuted("no");
+      // Find the user to check if audio is published
+      const user = config.client.remoteUsers.find(
+        (user) => user.uid === userUID
+      );
+
+      if (user && user.hasAudio) {
+        const currentStatus = audioLevel === 0 ? "yes" : "no";
+
+        // Only send if the status has changed
+        if (currentStatus !== lastMutedStatus) {
+          bubble_fn_systemmuted(currentStatus);
+          lastMutedStatus = currentStatus; // Update the last status
+        }
+      }
+
+      // Apply audio level indicator styles if the wrapper is available
+      if (wrapper) {
+        if (audioLevel > 60) {
+          // Adjust the threshold based on your needs
+          wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
+        } else {
+          wrapper.style.borderColor = "transparent"; // Transparent when not speaking
+        }
       }
     }
+  };
+})();
 
-    // Apply audio level indicator styles if the wrapper is available
-    if (wrapper) {
-      if (audioLevel > 60) {
-        // Adjust the threshold based on your needs
-        wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
-      } else {
-        wrapper.style.borderColor = "transparent"; // Transparent when not speaking
-      }
-    }
-  }
-};
 
 
 
