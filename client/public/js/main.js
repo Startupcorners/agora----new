@@ -149,8 +149,25 @@ const join = async () => {
     if (config.user.role === "host") {
       await joinToVideoStage(config); // Host-only functionality
     }
+
+    // Call manageParticipants to track the user joining
+    manageParticipants(config.uid, config.user, "join");
+
+    // Handle token renewal
+    config.client.on("token-privilege-will-expire", handleRenewToken);
+
+    // Notify success to Bubble and update layout
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Joined");
+      updateLayout();
+    }
   } catch (error) {
     console.error("Error joining channel:", error);
+
+    // Notify error to Bubble
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Error");
+    }
   }
 };
 
