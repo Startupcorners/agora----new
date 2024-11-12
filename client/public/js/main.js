@@ -53,7 +53,9 @@ const newMainApp = function (initConfig) {
     localVideoTrackMuted: true,
     isVirtualBackGroundEnabled: false,
     cameraToggleInProgress: false,
-    // Remove localVideoTrack, localAudioTrack, etc.
+    localAudioTrack: null, // Ensure local tracks are initialized as null initially
+    localVideoTrack: null,
+    extensionVirtualBackground: null, // Add the virtual background extension here
   };
 
   // Apply initial config
