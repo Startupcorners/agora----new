@@ -14,10 +14,10 @@ export const templateVideoParticipant = `
     <!-- Participant Status Indicators -->
     <div class="status-indicators">
       <!-- Microphone Status Icon -->
-      <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted"></span>
+      <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted">
+        <img src="https://startupcorners-df3e7.web.app/icons/mic-muted.svg" alt="Mic Muted Icon" class="mic-icon" />
+      </span>
 
-      <!-- Camera Status Icon -->
-      <span id="cam-status-{{uid}}" class="cam-status" title="Camera is off"></span>
     </div>
   </div>
 `;

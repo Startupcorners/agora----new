@@ -474,20 +474,6 @@ export const handleVolumeIndicator = async (result, config) => {
     let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
     console.log(userUID, audioLevel);
 
-    if (!wrapper) {
-      // Wrapper not found, create it
-      console.warn(`Wrapper for user ${userUID} not found, creating wrapper.`);
-      
-      // Assuming addUserWrapper is an async function
-      await addUserWrapper({ uid: userUID, ...config.userAttr }, config); // Add the wrapper
-      
-      // Re-select the wrapper after adding it
-      wrapper = document.querySelector(`#video-wrapper-${userUID}`);
-      
-      // Update the layout
-      console.log(`Wrapper added for user: ${userUID}`);
-    }
-
     // Apply audio level indicator styles if the wrapper is now available
     if (wrapper) {
       if (audioLevel > 60) { // Adjust the threshold based on your needs
