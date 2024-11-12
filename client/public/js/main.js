@@ -48,6 +48,7 @@ const newMainApp = function (initConfig) {
     serverUrl: "https://agora-new.vercel.app",
     token: null,
     channelName: null,
+    processor: null,
     localAudioTrackMuted: false, // These are needed in config
     localVideoTrackMuted: true,
     isVirtualBackGroundEnabled: false,
@@ -67,7 +68,7 @@ const newMainApp = function (initConfig) {
   // Initialize the Virtual Background extension
   (async () => {
     try {
-      const extension = new VirtualBackgroundExtension();
+      extension = new VirtualBackgroundExtension();
 
       // Check for compatibility before proceeding
       if (!extension.checkCompatibility()) {
@@ -80,13 +81,11 @@ const newMainApp = function (initConfig) {
       console.log("Virtual Background extension registered successfully.");
 
       // Initialize the extension with the path to the WASM files
-      await extension.initialize(
-        "https://cdn.agora.io/extension/virtual-background/wasms"
-      );
-      console.log("Virtual Background extension initialized successfully.");
+      processor = extension.createProcessor();
 
       // Attach the extension to the config
       config.extensionVirtualBackground = extension;
+      config.processor = processor;
     } catch (error) {
       console.error(
         "Failed to initialize the Virtual Background extension:",
