@@ -1,7 +1,11 @@
 export const enableVirtualBackgroundBlur = async (config) => {
   if (config.localVideoTrack) {
     console.log("Enabling virtual background blur...");
-    let processor = await getProcessorInstance(config);
+    const processor = await getProcessorInstance(config);
+    if (!processor) {
+      console.error("Failed to obtain processor instance for blur.");
+      return;
+    }
     console.log("Processor instance obtained for blur effect:", processor);
 
     processor.setOptions({ type: "blur", blurDegree: 2 });
@@ -28,7 +32,13 @@ export const enableVirtualBackgroundImage = async (config, imageSrc) => {
   imgElement.onload = async () => {
     console.log("Image loaded for virtual background.");
 
-    let processor = await getProcessorInstance();
+    const processor = await getProcessorInstance(config);
+    if (!processor) {
+      console.error(
+        "Failed to obtain processor instance for image background."
+      );
+      return;
+    }
     console.log("Processor instance obtained for image background:", processor);
 
     processor.setOptions({ type: "img", source: imgElement });
@@ -51,7 +61,11 @@ export const enableVirtualBackgroundImage = async (config, imageSrc) => {
 export const disableVirtualBackground = async (config) => {
   console.log("Disabling virtual background...");
 
-  let processor = await getProcessorInstance(config);
+  const processor = await getProcessorInstance(config);
+  if (!processor) {
+    console.error("Failed to obtain processor instance for disabling.");
+    return;
+  }
   console.log("Processor instance obtained for disabling:", processor);
 
   await processor.disable();
@@ -62,31 +76,37 @@ export const disableVirtualBackground = async (config) => {
 
 export const getProcessorInstance = async (config) => {
   if (!config.processor && config.localVideoTrack) {
-    config.processor = config.extensionVirtualBackground.createProcessor();
-
     try {
+      config.processor = config.extensionVirtualBackground.createProcessor();
+      console.log("Processor created:", config.processor);
+
       await config.processor.init();
+      console.log("Processor initialized successfully.");
+
+      config.localVideoTrack
+        .pipe(config.processor)
+        .pipe(config.localVideoTrack.processorDestination);
     } catch (e) {
-      console.error("Fail to load WASM resource!");
+      console.error("Failed to initialize the processor. Error:", e);
+      config.processor = null;
       return null;
     }
-    config.localVideoTrack
-      .pipe(config.processor)
-      .pipe(config.localVideoTrack.processorDestination);
   }
   return config.processor;
 };
 
 export const imageUrlToBase64 = async (url) => {
-  const data = await fetch(url);
-  const blob = await data.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(blob);
-    reader.onloadend = () => {
-      const base64data = reader.result;
-      resolve(base64data);
-    };
-    reader.onerror = reject;
-  });
+  try {
+    const data = await fetch(url);
+    const blob = await data.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      reader.onloadend = () => resolve(reader.result);
+      reader.onerror = reject;
+    });
+  } catch (error) {
+    console.error("Failed to convert image URL to base64. Error:", error);
+    throw error;
+  }
 };
