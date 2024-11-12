@@ -487,6 +487,9 @@ export const handleVolumeIndicator = (() => {
 
         // Only send if the status has changed
         if (currentStatus !== lastMutedStatus) {
+          console.log(
+            `Sending to bubble: bubble_fn_systemmuted("${currentStatus}")`
+          );
           bubble_fn_systemmuted(currentStatus);
           lastMutedStatus = currentStatus; // Update the last status
         }
