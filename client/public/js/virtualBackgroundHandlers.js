@@ -73,13 +73,31 @@ export const disableVirtualBackground = async (config) => {
 
   config.isVirtualBackGroundEnabled = false;
 };
+
+
 export const getProcessorInstance = async (config) => {
+  // Log the current state of config properties
+  console.log("getProcessorInstance called with config:", config);
+
+  if (!config) {
+    console.error("Config is undefined or null.");
+    return null;
+  }
+
+  // Check if processor, localVideoTrack, and extensionVirtualBackground are defined
   if (
     !config.processor &&
     config.localVideoTrack &&
     config.extensionVirtualBackground
   ) {
     try {
+      // Log the state of localVideoTrack and extensionVirtualBackground
+      console.log("localVideoTrack present:", config.localVideoTrack);
+      console.log(
+        "extensionVirtualBackground present:",
+        config.extensionVirtualBackground
+      );
+
       // Ensure the extension is properly initialized
       if (!config.extensionVirtualBackground.createProcessor) {
         console.error(
@@ -88,21 +106,44 @@ export const getProcessorInstance = async (config) => {
         return null;
       }
 
+      // Create the processor
       config.processor = config.extensionVirtualBackground.createProcessor();
-      console.log("Processor created:", config.processor);
+      console.log("Processor created successfully:", config.processor);
 
+      // Initialize the processor
       await config.processor.init();
       console.log("Processor initialized successfully.");
 
+      // Pipe the processor to the local video track
       config.localVideoTrack
         .pipe(config.processor)
         .pipe(config.localVideoTrack.processorDestination);
+      console.log("Processor successfully piped to local video track.");
     } catch (e) {
+      // Log detailed error information
       console.error("Failed to initialize the processor. Error:", e);
       config.processor = null;
       return null;
     }
+  } else {
+    // Log why processor initialization was skipped
+    if (config.processor) {
+      console.log("Processor already exists, skipping initialization.");
+    }
+    if (!config.localVideoTrack) {
+      console.warn(
+        "localVideoTrack is missing, unable to initialize processor."
+      );
+    }
+    if (!config.extensionVirtualBackground) {
+      console.warn(
+        "extensionVirtualBackground is missing, unable to initialize processor."
+      );
+    }
   }
+
+  // Log the final state of config.processor before returning
+  console.log("Returning processor:", config.processor);
   return config.processor;
 };
 
