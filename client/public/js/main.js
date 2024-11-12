@@ -95,7 +95,7 @@ const getAvailableDevices = async () => {
   try {
     const devices = await navigator.mediaDevices.enumerateDevices();
 
-    // Organize devices into categories
+    // Filter and map each device type
     const microphones = devices
       .filter((device) => device.kind === "audioinput")
       .map((mic) => ({ id: mic.deviceId, label: mic.label || "Microphone" }));
@@ -111,23 +111,47 @@ const getAvailableDevices = async () => {
         label: speaker.label || "Speaker",
       }));
 
+    // Set the first item as the default device in each category
+    const defaultMic = microphones.length ? microphones[0] : null;
+    const defaultCam = cameras.length ? cameras[0] : null;
+    const defaultSpeaker = speakers.length ? speakers[0] : null;
+
     // Send device lists to Bubble
-    if (typeof bubble_fn_mics === "function") {
+    if (typeof bubble_fn_micDevices === "function") {
       bubble_fn_micDevices(microphones);
     }
-    if (typeof bubble_fn_cams === "function") {
+    if (typeof bubble_fn_camDevices === "function") {
       bubble_fn_camDevices(cameras);
     }
-    if (typeof bubble_fn_speakers === "function") {
+    if (typeof bubble_fn_speakerDevices === "function") {
       bubble_fn_speakerDevices(speakers);
     }
 
-    return { microphones, cameras, speakers };
+    // Send default device info to Bubble
+    if (defaultMic && typeof bubble_fn_selectedMic === "function") {
+      bubble_fn_selectedMic(defaultMic);
+    }
+    if (defaultCam && typeof bubble_fn_selectedCam === "function") {
+      bubble_fn_selectedCam(defaultCam);
+    }
+    if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function") {
+      bubble_fn_selectedSpeaker(defaultSpeaker);
+    }
+
+    return {
+      microphones,
+      cameras,
+      speakers,
+      defaultMic,
+      defaultCam,
+      defaultSpeaker,
+    };
   } catch (error) {
     console.error("Error fetching devices:", error);
     return { microphones: [], cameras: [], speakers: [] };
   }
 };
+
 
 
   // Modified join function
@@ -358,6 +382,7 @@ const joinToVideoStage = async (config) => {
     config,
     join,
     joinToVideoStage,
+    getAvailableDevices,
     toggleMic,
     toggleCamera,
     changeUserRole,
