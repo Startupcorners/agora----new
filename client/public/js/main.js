@@ -64,6 +64,40 @@ const newMainApp = function (initConfig) {
   // Initialize AgoraRTC client
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
+  // Initialize the Virtual Background extension
+  // Initialize the Virtual Background extension
+ (async () => {
+   try {
+     console.log("Initializing Virtual Background Extension...");
+
+     // Ensure 'extension' and 'config' are declared beforehand, or declare them if needed
+     let extension = new VirtualBackgroundExtension();
+
+     // Check for compatibility before proceeding
+     console.log("Checking for compatibility...");
+     if (!extension.checkCompatibility()) {
+       console.error("Browser does not support Virtual Background.");
+       return;
+     }
+     console.log("Browser is compatible with Virtual Background.");
+
+     // Register the extension
+     console.log("Registering Virtual Background extension...");
+     AgoraRTC.registerExtensions([extension]);
+     console.log("Virtual Background extension registered successfully.");
+
+     // Attach the extension to the config
+     console.log("Attaching extension and processor to config...");
+     config.extensionVirtualBackground = extension;
+     console.log("Extension and processor attached to config.");
+   } catch (error) {
+     console.error(
+       "Failed to initialize the Virtual Background extension:",
+       error
+     );
+   }
+ })();
+
 
   // Ensure required config parameters are present
   if (
