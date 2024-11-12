@@ -90,7 +90,46 @@ const newMainApp = function (initConfig) {
   const callbacks = eventCallbacks(config, config.clientRTM);
   config = { ...config, ...callbacks };
 
-  // Main join function
+  // Function to get available microphones, cameras, and speakers
+  const getAvailableDevices = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+
+      // Filter and map each device type
+      const microphones = devices
+        .filter((device) => device.kind === "audioinput")
+        .map((mic) => ({ id: mic.deviceId, label: mic.label || "Microphone" }));
+
+      const cameras = devices
+        .filter((device) => device.kind === "videoinput")
+        .map((cam) => ({ id: cam.deviceId, label: cam.label || "Camera" }));
+
+      const speakers = devices
+        .filter((device) => device.kind === "audiooutput")
+        .map((speaker) => ({
+          id: speaker.deviceId,
+          label: speaker.label || "Speaker",
+        }));
+
+      // Send device lists to Bubble
+      if (typeof bubble_fn_mics === "function") {
+        bubble_fn_micDevices(microphones);
+      }
+      if (typeof bubble_fn_cams === "function") {
+        bubble_fn_camDevices(cameras);
+      }
+      if (typeof bubble_fn_speakers === "function") {
+        bubble_fn_speakerDevices(speakers);
+      }
+
+      return { microphones, cameras, speakers };
+    } catch (error) {
+      console.error("Error fetching devices:", error);
+      return { microphones: [], cameras: [], speakers: [] };
+    }
+  };
+
+  // Modified join function
 const join = async () => {
   bubble_fn_role(config.user.roleInTheCall);
   try {
@@ -103,37 +142,28 @@ const join = async () => {
       throw new Error("User does not have a role assigned.");
     }
 
-    // Attempt to get user attributes to check if already logged in
-    let alreadyLoggedIn = false;
+    // Logout of RTM if already logged in, then join RTM
     try {
-      // Attempt to fetch your own user attributes
       const attributes = await config.clientRTM.getUserAttributes(
         config.uid.toString()
       );
-      alreadyLoggedIn = true;
       console.log("Already logged in to RTM. Attributes:", attributes);
-
-      // Logout of RTM to ensure a fresh login
       await config.clientRTM.logout();
       console.log("User logged out of RTM for a fresh join.");
-    } catch (error) {
+    } catch {
       console.log("Not logged in to RTM, proceeding to join RTM.");
     }
-
-    // Now join RTM as user is definitely logged out
     await joinRTM(tokens.rtmToken);
 
     // Check if the user is in the waiting room
     if (config.user.roleInTheCall === "waiting") {
       console.log("User is in the waiting room; skipping RTC join.");
-
-      // Send a message via RTM to indicate the user is in the waiting room
       await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
       await sendRTMMessage("trigger_manage_participants");
-
-      return; // Exit the function without joining RTC
+      return; // Exit without joining RTC
     }
 
+    // Join RTC
     console.log("config.uid before joining RTC", config.uid);
     await config.client.join(
       config.appId,
@@ -141,22 +171,29 @@ const join = async () => {
       tokens.rtcToken,
       config.uid
     );
+    setupEventListeners(config);
 
-    console.log("config.uid before setting up listeners", config.uid);
-    setupEventListeners(config); // Setup RTC listeners
+    // Fetch available devices after joining RTC
+    const { microphones, cameras, speakers } = await getAvailableDevices();
+    console.log("Available Microphones:", microphones);
+    console.log("Available Cameras:", cameras);
+    console.log("Available Speakers:", speakers);
 
-    // If the user is a host, proceed with video and screen share setup
-    if (config.user.role === "host") {
-      await joinToVideoStage(config); // Host-only functionality
+    // Send devices list to Bubble
+    if (typeof bubble_fn_updateDevices === "function") {
+      bubble_fn_updateDevices({ microphones, cameras, speakers });
     }
 
-    // Call manageParticipants to track the user joining
-    manageParticipants(config.uid, config.user, "join");
+    // Additional host setup
+    if (config.user.role === "host") {
+      await joinToVideoStage(config);
+    }
 
-    // Handle token renewal
+    // Track user join and handle token renewal
+    manageParticipants(config.uid, config.user, "join");
     config.client.on("token-privilege-will-expire", handleRenewToken);
 
-    // Notify success to Bubble and update layout
+    // Notify Bubble of successful join
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Joined");
       updateLayout();
@@ -164,15 +201,12 @@ const join = async () => {
   } catch (error) {
     console.error("Error joining channel:", error);
 
-    // Notify error to Bubble
+    // Notify Bubble of error
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Error");
     }
   }
 };
-
-
-
 
 
   // Function to send an RTM message to the channel
@@ -190,50 +224,49 @@ const join = async () => {
   };
 
   // RTM Join function
-const joinRTM = async (rtmToken, retryCount = 0) => {
-  try {
-    const rtmUid = config.uid.toString();
-    console.log("rtmuid value", rtmUid);
+  const joinRTM = async (rtmToken, retryCount = 0) => {
+    try {
+      const rtmUid = config.uid.toString();
+      console.log("rtmuid value", rtmUid);
 
-    // Login to RTM
-    await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
+      // Login to RTM
+      await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
 
-    // Set user attributes, including the role
-    const attributes = {
-      name: config.user.name || "Unknown",
-      avatar: config.user.avatar || "default-avatar-url",
-      company: config.user.company || "Unknown",
-      designation: config.user.designation || "Unknown",
-      role: config.user.role || "audience",
-      rtmUid: rtmUid,
-      bubbleid: config.user.bubbleid,
-      isRaisingHand: config.user.isRaisingHand,
-      sharingScreen: "0",
-      roleInTheCall: config.user.roleInTheCall || "audience",
-    };
+      // Set user attributes, including the role
+      const attributes = {
+        name: config.user.name || "Unknown",
+        avatar: config.user.avatar || "default-avatar-url",
+        company: config.user.company || "Unknown",
+        designation: config.user.designation || "Unknown",
+        role: config.user.role || "audience",
+        rtmUid: rtmUid,
+        bubbleid: config.user.bubbleid,
+        isRaisingHand: config.user.isRaisingHand,
+        sharingScreen: "0",
+        roleInTheCall: config.user.roleInTheCall || "audience",
+      };
 
-    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
+      await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
-    // Create the RTM channel and assign it to config.channelRTM if it doesn't exist
-    if (!config.channelRTM) {
-      config.channelRTM = config.clientRTM.createChannel(config.channelName);
-      console.log("RTM channel created with name:", config.channelName);
+      // Create the RTM channel and assign it to config.channelRTM if it doesn't exist
+      if (!config.channelRTM) {
+        config.channelRTM = config.clientRTM.createChannel(config.channelName);
+        console.log("RTM channel created with name:", config.channelName);
+      }
+
+      // Join the RTM channel
+      await config.channelRTM.join();
+      console.log("Successfully joined RTM channel:", config.channelName);
+    } catch (error) {
+      if (error.code === 5 && retryCount < 3) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        return joinRTM(rtmToken, retryCount + 1);
+      } else {
+        console.error("Failed to join RTM after multiple attempts:", error);
+        throw error;
+      }
     }
-
-    // Join the RTM channel
-    await config.channelRTM.join();
-    console.log("Successfully joined RTM channel:", config.channelName);
-  } catch (error) {
-    if (error.code === 5 && retryCount < 3) {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      return joinRTM(rtmToken, retryCount + 1);
-    } else {
-      console.error("Failed to join RTM after multiple attempts:", error);
-      throw error;
-    }
-  }
-};
-
+  };
 
   // Join video stage function
   const joinToVideoStage = async (config) => {
