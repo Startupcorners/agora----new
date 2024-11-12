@@ -474,9 +474,21 @@ export const handleVolumeIndicator = async (result, config) => {
     let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
     console.log(userUID, audioLevel);
 
-    // Apply audio level indicator styles if the wrapper is now available
+    // Find the user to check if audio is published
+    const user = config.client.remoteUsers.find((user) => user.uid === userUID);
+
+    if (user && user.hasAudio) {
+      if (audioLevel === 0) {
+        bubble_fn_systemmuted("yes");
+      } else {
+        bubble_fn_systemmuted("no");
+      }
+    }
+
+    // Apply audio level indicator styles if the wrapper is available
     if (wrapper) {
-      if (audioLevel > 60) { // Adjust the threshold based on your needs
+      if (audioLevel > 60) {
+        // Adjust the threshold based on your needs
         wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
       } else {
         wrapper.style.borderColor = "transparent"; // Transparent when not speaking
@@ -484,6 +496,7 @@ export const handleVolumeIndicator = async (result, config) => {
     }
   }
 };
+
 
 
 
