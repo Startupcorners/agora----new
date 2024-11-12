@@ -1,5 +1,4 @@
 import { templateVideoParticipant } from "./templates.js"; // Import the template
-import VirtualBackgroundExtension from "agora-extension-virtual-background";
 import { eventCallbacks } from "./eventCallbacks.js";
 import {
   setupEventListeners,
@@ -21,7 +20,6 @@ import {
   changeUserRole,
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 import { userTracks } from "./state.js";
-
 
 const newMainApp = function (initConfig) {
   let config = {
@@ -66,34 +64,33 @@ const newMainApp = function (initConfig) {
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
   // Initialize the Virtual Background extension
-  
-(async () => {
-  try {
-    const extension = new VirtualBackgroundExtension();
+  (async () => {
+    try {
+      const extension = new AgoraRTC.VirtualBackgroundExtension();
 
-    // Check for compatibility before proceeding
-    if (!extension.checkCompatibility()) {
-      console.error("Browser does not support Virtual Background.");
-      return;
+      // Check for compatibility before proceeding
+      if (!extension.checkCompatibility()) {
+        console.error("Browser does not support Virtual Background.");
+        return;
+      }
+
+      // Register the extension and attach to config
+      AgoraRTC.registerExtensions([extension]);
+      console.log("Virtual Background extension registered successfully.");
+
+      // Initialize the extension
+      await extension.init();
+      console.log("Virtual Background extension initialized successfully.");
+
+      // Attach the extension to the config
+      config.extensionVirtualBackground = extension;
+    } catch (error) {
+      console.error(
+        "Failed to initialize the Virtual Background extension:",
+        error
+      );
     }
-
-    // Register the extension and attach to config
-    AgoraRTC.registerExtensions([extension]);
-    console.log("Virtual Background extension registered successfully.");
-
-    // Initialize the extension
-    await extension.init();
-    console.log("Virtual Background extension initialized successfully.");
-
-    // Attach the extension to the config
-    config.extensionVirtualBackground = extension;
-  } catch (error) {
-    console.error(
-      "Failed to initialize the Virtual Background extension:",
-      error
-    );
-  }
-})();
+  })();
 
   // Ensure required config parameters are present
   if (
@@ -105,6 +102,7 @@ const newMainApp = function (initConfig) {
   ) {
     throw new Error("Required config parameters are missing.");
   }
+  // Continue with the rest of your code
 
   // Initialize AgoraRTC event listeners
   AgoraRTC.setLogLevel(config.debugEnabled ? 0 : 4); // 0 for debug, 4 for none
