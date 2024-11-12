@@ -64,10 +64,10 @@ const newMainApp = function (initConfig) {
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
   // Initialize the Virtual Background extension
+  // Initialize the Virtual Background extension
   (async () => {
     try {
       const extension = new VirtualBackgroundExtension();
-      
 
       // Check for compatibility before proceeding
       if (!extension.checkCompatibility()) {
@@ -75,12 +75,14 @@ const newMainApp = function (initConfig) {
         return;
       }
 
-      // Register the extension and attach to config
+      // Register the extension
       AgoraRTC.registerExtensions([extension]);
       console.log("Virtual Background extension registered successfully.");
 
-      // Initialize the extension
-      await extension.init();
+      // Initialize the extension with the path to the WASM files
+      await extension.initialize(
+        "https://cdn.agora.io/extension/virtual-background/wasms"
+      );
       console.log("Virtual Background extension initialized successfully.");
 
       // Attach the extension to the config
