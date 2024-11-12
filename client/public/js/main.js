@@ -66,7 +66,8 @@ const newMainApp = function (initConfig) {
   // Initialize the Virtual Background extension
   (async () => {
     try {
-      const extension = new AgoraRTC.VirtualBackgroundExtension();
+      const extension = new VirtualBackgroundExtension();
+      
 
       // Check for compatibility before proceeding
       if (!extension.checkCompatibility()) {
