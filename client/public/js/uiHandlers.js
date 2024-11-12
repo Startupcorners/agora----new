@@ -135,6 +135,9 @@ export const toggleCamera = async (isMuted, config) => {
         userTrack.videoTrack = null;
         userTrack.isVideoMuted = true;
 
+        // Also update config.localVideoTrack to null
+        config.localVideoTrack = null;
+
         // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
         console.log("Camera turned off and unpublished for user:", uid);
@@ -171,6 +174,9 @@ export const toggleCamera = async (isMuted, config) => {
         console.log("Video track published for user:", uid);
 
         userTrack.isVideoMuted = false;
+
+        // Update config.localVideoTrack to reflect the current video track
+        config.localVideoTrack = userTrack.videoTrack;
 
         // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
