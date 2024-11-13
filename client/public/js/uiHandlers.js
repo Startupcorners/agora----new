@@ -111,49 +111,30 @@ export const toggleCamera = async (isMuted, config) => {
 
     if (isMuted) {
       if (userTrack.videoTrack) {
-        console.log("Turning off the camera for user:", uid);
+        console.log("Disabling the camera for user:", uid);
 
-        try {
-          await config.client.unpublish([userTrack.videoTrack]);
-          console.log("Video track unpublished for user:", uid);
-        } catch (unpublishError) {
-          console.error(
-            `Error unpublishing video track for user ${uid}:`,
-            unpublishError
-          );
-        }
+        await userTrack.videoTrack.setEnabled(false);
+        console.log("Video track disabled for user:", uid);
 
-        userTrack.videoTrack.stop();
-        console.log("Video track stopped for user:", uid);
-
-        userTrack.videoTrack = null;
         userTrack.isVideoMuted = true;
-
-        config.localVideoTrack = null;
-
-        userTracks[uid] = { ...userTrack };
-        console.log("Camera turned off and unpublished for user:", uid);
-
-        manageCameraState(uid, config);
+        config.isVirtualBackGroundEnabled = false; // Temporarily disable virtual background
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
       } else {
         console.warn(
-          `No video track found for user ${uid} when trying to turn off the camera.`
+          `No video track found for user ${uid} when trying to disable the camera.`
         );
       }
     } else {
-      console.log("Turning on the camera for user:", uid);
+      console.log("Enabling the camera for user:", uid);
 
       try {
         if (!userTrack.videoTrack) {
           console.log("Creating a new camera video track for user:", uid);
           userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
           console.log("New camera video track created for user:", uid);
-        } else {
-          console.log("Using existing camera video track for user:", uid);
         }
 
         await userTrack.videoTrack.setEnabled(true);
@@ -164,43 +145,25 @@ export const toggleCamera = async (isMuted, config) => {
 
         userTrack.isVideoMuted = false;
 
-        config.localVideoTrack = userTrack.videoTrack;
-
-        userTracks[uid] = { ...userTrack };
-        console.log(
-          "Camera turned on and video track published for user:",
-          uid
-        );
-
-        manageCameraState(uid, config);
-
-        if (typeof bubble_fn_isCamOn === "function") {
-          bubble_fn_isCamOn(true);
-        }
-
-        // Check if a virtual background is enabled and reapply it
+        // Apply virtual background if enabled
         if (config.isVirtualBackGroundEnabled) {
-          console.log(
-            "Virtual background is enabled. Reapplying virtual background effect."
-          );
+          console.log("Reapplying virtual background effect.");
           if (config.currentVirtualBackground === "blur") {
-            console.log("Reapplying blur effect as virtual background.");
             await enableVirtualBackgroundBlur(config);
           } else if (typeof config.currentVirtualBackground === "string") {
-            console.log(
-              `Reapplying image effect as virtual background with source: ${config.currentVirtualBackground}`
-            );
             await enableVirtualBackgroundImage(
               config,
               config.currentVirtualBackground
             );
           }
-        } else {
-          console.log("No virtual background enabled.");
+        }
+
+        if (typeof bubble_fn_isCamOn === "function") {
+          bubble_fn_isCamOn(true);
         }
       } catch (cameraError) {
         console.error(
-          `Error enabling or publishing video track for user ${uid}:`,
+          `Error enabling video track for user ${uid}:`,
           cameraError
         );
       }
@@ -214,6 +177,7 @@ export const toggleCamera = async (isMuted, config) => {
     }
   }
 };
+
 
 
 
