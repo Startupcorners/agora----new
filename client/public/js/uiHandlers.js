@@ -133,6 +133,7 @@ export const toggleCamera = async (isMuted, config) => {
         console.log("Video track disabled for user:", uid);
 
         // Update userTrack's isVideoMuted status
+        userTrack.videoTrack = null;
         userTrack.isVideoMuted = true;
         userTracks[uid] = { ...userTrack };
 
