@@ -243,6 +243,11 @@ export const switchSpeaker = async (config, newSpeakerDeviceId) => {
 
             // Send the updated speaker to Bubble with full label
             if (typeof bubble_fn_selectedSpeaker === "function") {
+              console.log(
+                "sending selected speaker to bubble",
+                newSpeakerDeviceId,
+                audioElement.label
+              );
               bubble_fn_selectedSpeaker({
                 output1: newSpeakerDeviceId,
                 output2: audioElement.label || "No label",
