@@ -106,10 +106,14 @@ export const getProcessorInstance = async (config) => {
     return null;
   }
 
-  // If a processor already exists, disable and reset it before reinitializing
+  // If a processor already exists, unpipe, disable, and reset it before reinitializing
   if (config.processor) {
     console.log("Processor already exists, reinitializing.");
     try {
+      // Unpipe the processor from the video track
+      config.localVideoTrack.unpipe(config.processor);
+      console.log("Processor unpiped from local video track.");
+
       await config.processor.disable();
       console.log("Existing processor disabled.");
     } catch (disableError) {
@@ -170,6 +174,7 @@ export const getProcessorInstance = async (config) => {
   console.log("Returning processor:", config.processor);
   return config.processor;
 };
+
 
 
 export const imageUrlToBase64 = async (url) => {
