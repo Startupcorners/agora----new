@@ -15,6 +15,12 @@ import {
   toggleStages,
 } from "./videoHandlers.js";
 import { userTracks } from "./state.js";
+import {
+  fetchTokens,
+  switchCamera,
+  switchMicrophone,
+  switchSpeaker,
+} from "./helperFunctions.js";
 
 export const setupEventListeners = (config) => {
   const client = config.client;
@@ -188,41 +194,44 @@ export const getAvailableDevices = async (config) => {
         kind: device.kind,
       }));
 
-    // Check if selected devices are still available and update if necessary
+    // Check if selected microphone is still available and switch if necessary
     if (!microphones.find((mic) => mic.deviceId === config.selectedMic)) {
+      console.log(
+        `Selected microphone "${config.selectedMic}" not available, switching to default.`
+      );
       const defaultMic = microphones[0] || null;
-      config.selectedMic = defaultMic ? defaultMic.deviceId : null;
-      if (defaultMic && typeof bubble_fn_selectedMic === "function") {
-        bubble_fn_selectedMic({
-          output1: config.selectedMic,
-          output2: defaultMic.label || "No label",
-        });
+      if (defaultMic) {
+        config.selectedMic = defaultMic.deviceId;
+        await switchMicrophone(config, defaultMic.deviceId);
       }
     }
 
+    // Check if selected camera is still available and switch if necessary
     if (!cameras.find((cam) => cam.deviceId === config.selectedCam)) {
+      console.log(
+        `Selected camera "${config.selectedCam}" not available, switching to default.`
+      );
       const defaultCam = cameras[0] || null;
-      config.selectedCam = defaultCam ? defaultCam.deviceId : null;
-      if (defaultCam && typeof bubble_fn_selectedCam === "function") {
-        bubble_fn_selectedCam({
-          output1: config.selectedCam,
-          output2: defaultCam.label || "No label",
-        });
+      if (defaultCam) {
+        config.selectedCam = defaultCam.deviceId;
+        await switchCamera(config, userTracks, defaultCam.deviceId);
       }
     }
 
+    // Check if selected speaker is still available and switch if necessary
     if (!speakers.find((spk) => spk.deviceId === config.selectedSpeaker)) {
+      console.log(
+        `Selected speaker "${config.selectedSpeaker}" not available, switching to default.`
+      );
       const defaultSpeaker = speakers[0] || null;
-      config.selectedSpeaker = defaultSpeaker ? defaultSpeaker.deviceId : null;
-      if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function") {
-        bubble_fn_selectedSpeaker({
-          output1: config.selectedSpeaker,
-          output2: defaultSpeaker.label || "No label",
-        });
+      if (defaultSpeaker) {
+        config.selectedSpeaker = defaultSpeaker.deviceId;
+        await switchSpeaker(config, defaultSpeaker.deviceId);
       }
     }
 
     // Send all device lists to Bubble
+    console.log("Sending device lists to Bubble.");
     sendDeviceDataToBubble("microphone", microphones);
     sendDeviceDataToBubble("camera", cameras);
     sendDeviceDataToBubble("speaker", speakers);
