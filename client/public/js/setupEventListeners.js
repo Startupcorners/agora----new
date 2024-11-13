@@ -152,20 +152,61 @@ export const initializeDeviceChangeListener = (config) => {
   navigator.mediaDevices.ondevicechange = async () => {
     console.log("Device change detected. Refreshing device list...");
 
-    // Fetch the updated list of devices
-    const { microphones, cameras, speakers } = await getAvailableDevices(
-      config
-    );
+    // Call getAvailableDevices, which will handle fetching, deduplication, and sending to Bubble
+    await getAvailableDevices(config);
+  };
+};
 
-    // Check if selected devices are still available; if not, update to default devices
-    if (
-      config.selectedMic &&
-      !microphones.find((mic) => mic.deviceId === config.selectedMic)
-    ) {
-      console.warn(
-        `Selected microphone "${config.selectedMic}" is no longer available.`
-      );
-      const defaultMic = microphones.length ? microphones[0] : null;
+
+export const getAvailableDevices = async (config) => {
+  try {
+    console.log("Fetching available media devices...");
+    const devices = await navigator.mediaDevices.enumerateDevices();
+
+    const normalizeLabel = (label) => {
+      const parts = label.split(" - ");
+      return parts.length > 1 ? parts[1].trim() : parts[0].trim() || "No label";
+    };
+
+    const deduplicateDevices = (deviceList) => {
+      const uniqueLabels = new Set();
+      return deviceList.filter((device) => {
+        const normalizedLabel = normalizeLabel(device.label);
+        if (uniqueLabels.has(normalizedLabel)) {
+          return false;
+        }
+        uniqueLabels.add(normalizedLabel);
+        return true;
+      });
+    };
+
+    const microphones = deduplicateDevices(
+      devices.filter((device) => device.kind === "audioinput")
+    ).map((device) => ({
+      deviceId: device.deviceId,
+      label: normalizeLabel(device.label),
+      kind: device.kind,
+    }));
+
+    const cameras = deduplicateDevices(
+      devices.filter((device) => device.kind === "videoinput")
+    ).map((device) => ({
+      deviceId: device.deviceId,
+      label: normalizeLabel(device.label),
+      kind: device.kind,
+    }));
+
+    const speakers = deduplicateDevices(
+      devices.filter((device) => device.kind === "audiooutput")
+    ).map((device) => ({
+      deviceId: device.deviceId,
+      label: normalizeLabel(device.label),
+      kind: device.kind,
+    }));
+
+    // Check if selected devices are still available and update if necessary
+    if (!microphones.find((mic) => mic.deviceId === config.selectedMic)) {
+      const defaultMic = microphones[0] || null;
       config.selectedMic = defaultMic ? defaultMic.deviceId : null;
       if (defaultMic && typeof bubble_fn_selectedMic === "function") {
         bubble_fn_selectedMic({
@@ -175,14 +216,8 @@ export const initializeDeviceChangeListener = (config) => {
       }
     }
 
-    if (
-      config.selectedCam &&
-      !cameras.find((cam) => cam.deviceId === config.selectedCam)
-    ) {
-      console.warn(
-        `Selected camera "${config.selectedCam}" is no longer available.`
-      );
-      const defaultCam = cameras.length ? cameras[0] : null;
+    if (!cameras.find((cam) => cam.deviceId === config.selectedCam)) {
+      const defaultCam = cameras[0] || null;
       config.selectedCam = defaultCam ? defaultCam.deviceId : null;
       if (defaultCam && typeof bubble_fn_selectedCam === "function") {
         bubble_fn_selectedCam({
@@ -192,14 +227,8 @@ export const initializeDeviceChangeListener = (config) => {
       }
     }
 
-    if (
-      config.selectedSpeaker &&
-      !speakers.find((spk) => spk.deviceId === config.selectedSpeaker)
-    ) {
-      console.warn(
-        `Selected speaker "${config.selectedSpeaker}" is no longer available.`
-      );
-      const defaultSpeaker = speakers.length ? speakers[0] : null;
+    if (!speakers.find((spk) => spk.deviceId === config.selectedSpeaker)) {
+      const defaultSpeaker = speakers[0] || null;
       config.selectedSpeaker = defaultSpeaker ? defaultSpeaker.deviceId : null;
       if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function") {
         bubble_fn_selectedSpeaker({
@@ -209,123 +238,14 @@ export const initializeDeviceChangeListener = (config) => {
       }
     }
 
-    // Helper function to format device lists for Bubble
-    const formatDeviceListForBubble = (devices) => ({
-      outputlist1: devices.map((d) => d.deviceId),
-      outputlist2: devices.map((d) => d.label || "No label"),
-      outputlist3: devices.map((d) => d.kind || "Unknown"),
-    });
+    // Send deduplicated device lists to Bubble
+    sendDeviceDataToBubble("microphone", microphones);
+    sendDeviceDataToBubble("camera", cameras);
+    sendDeviceDataToBubble("speaker", speakers);
 
-    // Send the updated device lists to Bubble
-    if (typeof bubble_fn_micDevices === "function") {
-      bubble_fn_micDevices(formatDeviceListForBubble(microphones));
-    }
-    if (typeof bubble_fn_camDevices === "function") {
-      bubble_fn_camDevices(formatDeviceListForBubble(cameras));
-    }
-    if (typeof bubble_fn_speakerDevices === "function") {
-      bubble_fn_speakerDevices(formatDeviceListForBubble(speakers));
-    }
-  };
-};
-
-
-export const getAvailableDevices = async (config = {}) => {
-  try {
-    console.log("Fetching available media devices...");
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    console.log("All devices enumerated:", devices);
-
-    // Normalize label by splitting on " - " and keeping the second part if available
-    const normalizeLabel = (label) => {
-      const parts = label.split(" - ");
-      return parts.length > 1 ? parts[1].trim() : parts[0].trim() || "No label";
-    };
-
-    // Filter devices by kind and deduplicate within each category
-    const microphones = devices
-      .filter((device) => device.kind === "audioinput")
-      .map((device) => ({
-        deviceId: device.deviceId,
-        label: normalizeLabel(device.label),
-        kind: device.kind,
-      }));
-    const cameras = devices
-      .filter((device) => device.kind === "videoinput")
-      .map((device) => ({
-        deviceId: device.deviceId,
-        label: normalizeLabel(device.label),
-        kind: device.kind,
-      }));
-    const speakers = devices
-      .filter((device) => device.kind === "audiooutput")
-      .map((device) => ({
-        deviceId: device.deviceId,
-        label: normalizeLabel(device.label),
-        kind: device.kind,
-      }));
-
-    console.log("Filtered and unique microphone labels:", microphones);
-    console.log("Filtered and unique camera labels:", cameras);
-    console.log("Filtered and unique speaker labels:", speakers);
-
-    // Set default devices if available
-    const defaultMic = microphones.length ? microphones[0] : null;
-    const defaultCam = cameras.length ? cameras[0] : null;
-    const defaultSpeaker = speakers.length ? speakers[0] : null;
-
-    // Update config only if selected values are empty
-    if (!config.selectedMic && defaultMic) {
-      config.selectedMic = defaultMic.deviceId;
-      if (typeof bubble_fn_selectedMic === "function") {
-        bubble_fn_selectedMic({
-          output1: defaultMic.deviceId,
-          output2: defaultMic.label,
-        });
-      }
-    }
-    if (!config.selectedCam && defaultCam) {
-      config.selectedCam = defaultCam.deviceId;
-      if (typeof bubble_fn_selectedCam === "function") {
-        bubble_fn_selectedCam({
-          output1: defaultCam.deviceId,
-          output2: defaultCam.label,
-        });
-      }
-    }
-    if (!config.selectedSpeaker && defaultSpeaker) {
-      config.selectedSpeaker = defaultSpeaker.deviceId;
-      if (typeof bubble_fn_selectedSpeaker === "function") {
-        bubble_fn_selectedSpeaker({
-          output1: defaultSpeaker.deviceId,
-          output2: defaultSpeaker.label,
-        });
-      }
-    }
-
-    // Helper function to format device lists for Bubble
-    const formatDeviceListForBubble = (devices) => ({
-      outputlist1: devices.map((d) => d.deviceId),
-      outputlist2: devices.map((d) => d.label || "No label"),
-      outputlist3: devices.map((d) => d.kind || "Unknown"),
-    });
-
-    // Send device lists to Bubble with IDs, labels, and kinds
-    if (typeof bubble_fn_micDevices === "function") {
-      bubble_fn_micDevices(formatDeviceListForBubble(microphones));
-    }
-    if (typeof bubble_fn_camDevices === "function") {
-      bubble_fn_camDevices(formatDeviceListForBubble(cameras));
-    }
-    if (typeof bubble_fn_speakerDevices === "function") {
-      bubble_fn_speakerDevices(formatDeviceListForBubble(speakers));
-    }
-
-    // Return the device lists for further use
     return { microphones, cameras, speakers };
   } catch (error) {
     console.error("Error fetching available devices:", error);
-    return { microphones: [], cameras: [], speakers: [] }; // Return empty lists in case of error
+    return { microphones: [], cameras: [], speakers: [] };
   }
 };
-
