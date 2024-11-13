@@ -15,47 +15,56 @@ export const toggleVirtualBackground = async (config, imageSrc = "") => {
     } else {
       // If no imageSrc is provided, enable virtual background with blur effect
       console.log("Enabling virtual background with blur effect.");
-      await enableVirtualBackgroundBlur(config, 2); // Assuming blur degree of 2
+      await enableVirtualBackgroundBlur(config); // Assuming blur degree of 2
     }
   }
 };
 
 export const enableVirtualBackgroundBlur = async (config) => {
-  if (config.localVideoTrack) {
-    console.log("Enabling virtual background blur...");
-    const processor = await getProcessorInstance(config);
-    if (!processor) {
-      console.error("Failed to obtain processor instance for blur.");
-      return;
-    }
-    console.log("Processor instance obtained for blur effect:", processor);
-
-    // Set blur options with a default blur degree
-    processor.setOptions({ type: "blur", blurDegree: 2 });
-    console.log("Processor options set for blur effect:", {
-      type: "blur",
-      blurDegree: 2,
-    });
-
-    // Enable the processor to apply the blur effect
-    await processor.enable();
-    console.log("Virtual background blur enabled successfully.");
-    bubble_fn_background("blur");
-
-    // Update config to indicate that virtual background is enabled
-    config.isVirtualBackGroundEnabled = true;
-    config.currentVirtualBackground = "blur"; // Track current background type
-  } else {
+  if (!config.localVideoTrack) {
     console.warn(
-      "Local video track not found; cannot enable virtual background blur."
+      "Local video track not found; only updating config and calling bubble function."
     );
+    config.isVirtualBackGroundEnabled = true;
+    config.currentVirtualBackground = "blur";
+    bubble_fn_background("blur");
+    return;
   }
+
+  console.log("Enabling virtual background blur...");
+  const processor = await getProcessorInstance(config);
+  if (!processor) {
+    console.error("Failed to obtain processor instance for blur.");
+    return;
+  }
+  console.log("Processor instance obtained for blur effect:", processor);
+
+  processor.setOptions({ type: "blur", blurDegree: 2 });
+  console.log("Processor options set for blur effect:", {
+    type: "blur",
+    blurDegree: 2,
+  });
+
+  await processor.enable();
+  console.log("Virtual background blur enabled successfully.");
+  bubble_fn_background("blur");
+
+  config.isVirtualBackGroundEnabled = true;
+  config.currentVirtualBackground = "blur";
 };
 
 export const enableVirtualBackgroundImage = async (config, imageSrc) => {
-  console.log("Enabling virtual background with image source:", imageSrc);
+  if (!config.localVideoTrack) {
+    console.warn(
+      "Local video track not found; only updating config and calling bubble function."
+    );
+    config.isVirtualBackGroundEnabled = true;
+    config.currentVirtualBackground = imageSrc;
+    bubble_fn_background(imageSrc);
+    return;
+  }
 
-  // Create an image element to load the image for processing
+  console.log("Enabling virtual background with image source:", imageSrc);
   const imgElement = document.createElement("img");
   imgElement.onload = async () => {
     console.log("Image loaded for virtual background.");
@@ -69,32 +78,37 @@ export const enableVirtualBackgroundImage = async (config, imageSrc) => {
     }
     console.log("Processor instance obtained for image background:", processor);
 
-    // Set processor options with the loaded image as the background
     processor.setOptions({ type: "img", source: imgElement });
     console.log("Processor options set for image background:", {
       type: "img",
       source: imgElement,
     });
 
-    // Enable the processor to apply the image background
     await processor.enable();
     console.log("Virtual background image enabled successfully.");
     bubble_fn_background(imageSrc);
 
-    // Update config to indicate that virtual background is enabled
     config.isVirtualBackGroundEnabled = true;
-    config.currentVirtualBackground = imageSrc; // Track current background type
+    config.currentVirtualBackground = imageSrc;
   };
 
-  // Convert the image source to base64 to load it properly
   const base64 = await imageUrlToBase64(imageSrc);
   console.log("Image source converted to base64 for processing.");
   imgElement.src = base64;
 };
 
 export const disableVirtualBackground = async (config) => {
-  console.log("Disabling virtual background...");
+  if (!config.localVideoTrack) {
+    console.warn(
+      "Local video track not found; only updating config and calling bubble function."
+    );
+    config.isVirtualBackGroundEnabled = false;
+    config.currentVirtualBackground = null;
+    bubble_fn_background("none");
+    return;
+  }
 
+  console.log("Disabling virtual background...");
   const processor = await getProcessorInstance(config);
   if (!processor) {
     console.error("Failed to obtain processor instance for disabling.");
@@ -102,15 +116,14 @@ export const disableVirtualBackground = async (config) => {
   }
   console.log("Processor instance obtained for disabling:", processor);
 
-  // Disable the processor to remove any virtual background effects
   await processor.disable();
   console.log("Virtual background disabled successfully.");
   bubble_fn_background("none");
 
-  // Update config to indicate that virtual background is disabled
   config.isVirtualBackGroundEnabled = false;
-  config.currentVirtualBackground = null; // Clear current background type
+  config.currentVirtualBackground = null;
 };
+
 
 
 export const getProcessorInstance = async (config) => {

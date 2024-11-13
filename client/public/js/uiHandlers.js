@@ -3,6 +3,7 @@ import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging an
 import { toggleMicIcon} from "./updateWrappers.js";
 import { fetchTokens } from "./helperFunctions.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; 
+import { enableVirtualBackgroundBlur, enableVirtualBackgroundBlur } from "./virtualBackgroundHandlers.js";
 import {
   startScreenShare,
   stopScreenShare,
@@ -84,13 +85,12 @@ export const toggleCamera = async (isMuted, config) => {
   let userTrack;
 
   try {
-    // Ensure config and uid are defined
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
     }
 
-    uid = config.uid; // Assign UID from config
-    console.log("User's UID:", uid); // Confirm UID is set
+    uid = config.uid;
+    console.log("User's UID:", uid);
 
     userTrack = userTracks[uid];
 
@@ -99,26 +99,21 @@ export const toggleCamera = async (isMuted, config) => {
       return;
     }
 
-    // Create a shallow copy of the userTrack to avoid direct mutation
     userTrack = { ...userTrack };
 
-    // Check if camera toggle is already in progress
     if (userTrack.cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
       return;
     }
 
-    // Set camera toggle in progress
     userTrack.cameraToggleInProgress = true;
     console.log("Camera toggle in progress for user:", uid);
 
     if (isMuted) {
-      // Camera is currently on, turn it off
       if (userTrack.videoTrack) {
         console.log("Turning off the camera for user:", uid);
 
         try {
-          // Unpublish and stop the video track
           await config.client.unpublish([userTrack.videoTrack]);
           console.log("Video track unpublished for user:", uid);
         } catch (unpublishError) {
@@ -131,19 +126,15 @@ export const toggleCamera = async (isMuted, config) => {
         userTrack.videoTrack.stop();
         console.log("Video track stopped for user:", uid);
 
-        // Set videoTrack to null and update isVideoMuted
         userTrack.videoTrack = null;
         userTrack.isVideoMuted = true;
 
-        // Also update config.localVideoTrack to null
         config.localVideoTrack = null;
 
-        // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
         console.log("Camera turned off and unpublished for user:", uid);
 
-        // Use generalized function to manage the camera state
-        manageCameraState(uid, config); // Ensure no screen share handling unless active
+        manageCameraState(uid, config);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
@@ -154,11 +145,9 @@ export const toggleCamera = async (isMuted, config) => {
         );
       }
     } else {
-      // Camera is off, turn it on
       console.log("Turning on the camera for user:", uid);
 
       try {
-        // Check if the video track exists or create a new one
         if (!userTrack.videoTrack) {
           console.log("Creating a new camera video track for user:", uid);
           userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
@@ -175,21 +164,30 @@ export const toggleCamera = async (isMuted, config) => {
 
         userTrack.isVideoMuted = false;
 
-        // Update config.localVideoTrack to reflect the current video track
         config.localVideoTrack = userTrack.videoTrack;
 
-        // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
         console.log(
           "Camera turned on and video track published for user:",
           uid
         );
 
-        // Use generalized function to manage the camera state
-        manageCameraState(uid, config); // Ensure no screen share handling unless active
+        manageCameraState(uid, config);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(true);
+        }
+
+        // Check if a virtual background is enabled and apply it
+        if (config.isVirtualBackGroundEnabled) {
+          if (config.currentVirtualBackground === "blur") {
+            await enableVirtualBackgroundBlur(config);
+          } else if (typeof config.currentVirtualBackground === "string") {
+            await enableVirtualBackgroundImage(
+              config,
+              config.currentVirtualBackground
+            );
+          }
         }
       } catch (cameraError) {
         console.error(
@@ -201,13 +199,13 @@ export const toggleCamera = async (isMuted, config) => {
   } catch (error) {
     console.error("Error in toggleCamera for user:", uid, error);
   } finally {
-    // Ensure toggle progress is reset
     if (userTracks[uid]) {
       userTracks[uid].cameraToggleInProgress = false;
       console.log("Camera toggle progress reset for user:", uid);
     }
   }
 };
+
 
 
 // Declare screenShareUid as a numeric constant
