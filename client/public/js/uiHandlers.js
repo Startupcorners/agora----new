@@ -3,7 +3,7 @@ import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging an
 import { toggleMicIcon} from "./updateWrappers.js";
 import { fetchTokens } from "./helperFunctions.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; 
-import { enableVirtualBackgroundBlur, enableVirtualBackgroundBlur } from "./virtualBackgroundHandlers.js";
+import { enableVirtualBackgroundBlur, enableVirtualBackgroundImage } from "./virtualBackgroundHandlers.js";
 import {
   startScreenShare,
   stopScreenShare,
