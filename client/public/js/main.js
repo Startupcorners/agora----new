@@ -51,6 +51,9 @@ const newMainApp = function (initConfig) {
     localVideoTrackMuted: true,
     isVirtualBackGroundEnabled: false,
     cameraToggleInProgress: false,
+    selectedMic: null,
+    selectedCam: null,
+    selectedSpeaker: null,
     isVirtualBackGroundEnabled: false,
     localAudioTrack: null, // Ensure local tracks are initialized as null initially
     localVideoTrack: null,
@@ -133,8 +136,59 @@ const newMainApp = function (initConfig) {
   const callbacks = eventCallbacks(config, config.clientRTM);
   config = { ...config, ...callbacks };
 
-  // Function to get available microphones, cameras, and speakers
-const getAvailableDevices = async () => {
+  
+
+  const initializeDeviceChangeListener = (config) => {
+    navigator.mediaDevices.ondevicechange = async () => {
+      console.log("Device change detected. Refreshing device list...");
+
+      // Fetch the updated list of devices
+      const { microphones, cameras, speakers } = await getAvailableDevices(
+        config
+      );
+
+      // Check if selected devices are still available; if not, update to default devices
+      if (config.selectedMic && !microphones.includes(config.selectedMic)) {
+        console.warn(
+          `Selected microphone "${config.selectedMic}" is no longer available.`
+        );
+        config.selectedMic = microphones.length ? microphones[0] : null;
+        if (typeof bubble_fn_selectedMic === "function")
+          bubble_fn_selectedMic(config.selectedMic);
+      }
+
+      if (config.selectedCam && !cameras.includes(config.selectedCam)) {
+        console.warn(
+          `Selected camera "${config.selectedCam}" is no longer available.`
+        );
+        config.selectedCam = cameras.length ? cameras[0] : null;
+        if (typeof bubble_fn_selectedCam === "function")
+          bubble_fn_selectedCam(config.selectedCam);
+      }
+
+      if (
+        config.selectedSpeaker &&
+        !speakers.includes(config.selectedSpeaker)
+      ) {
+        console.warn(
+          `Selected speaker "${config.selectedSpeaker}" is no longer available.`
+        );
+        config.selectedSpeaker = speakers.length ? speakers[0] : null;
+        if (typeof bubble_fn_selectedSpeaker === "function")
+          bubble_fn_selectedSpeaker(config.selectedSpeaker);
+      }
+
+      // Optionally, you can update the available devices shown in the UI
+      if (typeof bubble_fn_micDevices === "function")
+        bubble_fn_micDevices(microphones);
+      if (typeof bubble_fn_camDevices === "function")
+        bubble_fn_camDevices(cameras);
+      if (typeof bubble_fn_speakerDevices === "function")
+        bubble_fn_speakerDevices(speakers);
+    };
+  };
+
+const getAvailableDevices = async (config) => {
   try {
     console.log("Fetching available media devices...");
     const devices = await navigator.mediaDevices.enumerateDevices();
@@ -172,25 +226,41 @@ const getAvailableDevices = async () => {
     console.log("Filtered and unique camera labels:", cameras);
     console.log("Filtered and unique speaker labels:", speakers);
 
-    // Send device lists to Bubble (if needed)
-    if (typeof bubble_fn_micDevices === "function")
-      bubble_fn_micDevices(microphones);
-    if (typeof bubble_fn_camDevices === "function")
-      bubble_fn_camDevices(cameras);
-    if (typeof bubble_fn_speakerDevices === "function")
-      bubble_fn_speakerDevices(speakers);
-
-    // Set and send default devices if available (if needed)
+    // Set default devices if available
     const defaultMic = microphones.length ? microphones[0] : null;
     const defaultCam = cameras.length ? cameras[0] : null;
     const defaultSpeaker = speakers.length ? speakers[0] : null;
 
-    if (defaultMic && typeof bubble_fn_selectedMic === "function")
-      bubble_fn_selectedMic(defaultMic);
-    if (defaultCam && typeof bubble_fn_selectedCam === "function")
-      bubble_fn_selectedCam(defaultCam);
-    if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function")
-      bubble_fn_selectedSpeaker(defaultSpeaker);
+    // Update config only if selected values are empty
+    if (!config.selectedMic && defaultMic) {
+      config.selectedMic = defaultMic;
+      if (typeof bubble_fn_selectedMic === "function") {
+        bubble_fn_selectedMic(config.selectedMic);
+      }
+    }
+    if (!config.selectedCam && defaultCam) {
+      config.selectedCam = defaultCam;
+      if (typeof bubble_fn_selectedCam === "function") {
+        bubble_fn_selectedCam(config.selectedCam);
+      }
+    }
+    if (!config.selectedSpeaker && defaultSpeaker) {
+      config.selectedSpeaker = defaultSpeaker;
+      if (typeof bubble_fn_selectedSpeaker === "function") {
+        bubble_fn_selectedSpeaker(config.selectedSpeaker);
+      }
+    }
+
+    // Send device lists to Bubble if needed
+    if (typeof bubble_fn_micDevices === "function") {
+      bubble_fn_micDevices(microphones);
+    }
+    if (typeof bubble_fn_camDevices === "function") {
+      bubble_fn_camDevices(cameras);
+    }
+    if (typeof bubble_fn_speakerDevices === "function") {
+      bubble_fn_speakerDevices(speakers);
+    }
 
     // Return the device lists for further use
     return { microphones, cameras, speakers };
@@ -201,6 +271,7 @@ const getAvailableDevices = async () => {
 };
 
 
+initializeDeviceChangeListener(config);
 
   // Modified join function
   const join = async () => {
@@ -423,6 +494,7 @@ const getAvailableDevices = async () => {
     toggleCamera,
     changeUserRole,
     toggleScreenShare,
+    initializeDeviceChangeListener,
     userTracks,
   };
 };
