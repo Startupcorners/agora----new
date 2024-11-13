@@ -162,24 +162,37 @@ export const getAvailableDevices = async (config) => {
   try {
     console.log("Fetching available media devices...");
     const devices = await navigator.mediaDevices.enumerateDevices();
+    console.log("Devices enumerated:", devices);
 
     const normalizeLabel = (label) => {
+      console.log("Normalizing label:", label);
       const parts = label.split(" - ");
-      return parts.length > 1 ? parts[1].trim() : parts[0].trim() || "No label";
+      const normalized =
+        parts.length > 1 ? parts[1].trim() : parts[0].trim() || "No label";
+      console.log("Normalized label:", normalized);
+      return normalized;
     };
 
     const deduplicateDevices = (deviceList) => {
+      console.log("Deduplicating device list:", deviceList);
       const uniqueLabels = new Set();
-      return deviceList.filter((device) => {
+      const deduplicatedList = deviceList.filter((device) => {
         const normalizedLabel = normalizeLabel(device.label);
-        if (uniqueLabels.has(normalizedLabel)) {
-          return false;
+        const isDuplicate = uniqueLabels.has(normalizedLabel);
+        if (!isDuplicate) {
+          uniqueLabels.add(normalizedLabel);
         }
-        uniqueLabels.add(normalizedLabel);
-        return true;
+        console.log("Checking if device is duplicate:", {
+          device,
+          isDuplicate,
+        });
+        return !isDuplicate;
       });
+      console.log("Deduplicated devices:", deduplicatedList);
+      return deduplicatedList;
     };
 
+    console.log("Filtering and deduplicating microphones...");
     const microphones = deduplicateDevices(
       devices.filter((device) => device.kind === "audioinput")
     ).map((device) => ({
@@ -187,7 +200,9 @@ export const getAvailableDevices = async (config) => {
       label: normalizeLabel(device.label),
       kind: device.kind,
     }));
+    console.log("Filtered microphones:", microphones);
 
+    console.log("Filtering and deduplicating cameras...");
     const cameras = deduplicateDevices(
       devices.filter((device) => device.kind === "videoinput")
     ).map((device) => ({
@@ -195,7 +210,9 @@ export const getAvailableDevices = async (config) => {
       label: normalizeLabel(device.label),
       kind: device.kind,
     }));
+    console.log("Filtered cameras:", cameras);
 
+    console.log("Filtering and deduplicating speakers...");
     const speakers = deduplicateDevices(
       devices.filter((device) => device.kind === "audiooutput")
     ).map((device) => ({
@@ -203,11 +220,13 @@ export const getAvailableDevices = async (config) => {
       label: normalizeLabel(device.label),
       kind: device.kind,
     }));
+    console.log("Filtered speakers:", speakers);
 
-    // Check if selected devices are still available and update if necessary
+    console.log("Checking selected microphone availability...");
     if (!microphones.find((mic) => mic.deviceId === config.selectedMic)) {
       const defaultMic = microphones[0] || null;
       config.selectedMic = defaultMic ? defaultMic.deviceId : null;
+      console.log("Updated selected microphone:", config.selectedMic);
       if (defaultMic && typeof bubble_fn_selectedMic === "function") {
         bubble_fn_selectedMic({
           output1: defaultMic.deviceId,
@@ -216,9 +235,11 @@ export const getAvailableDevices = async (config) => {
       }
     }
 
+    console.log("Checking selected camera availability...");
     if (!cameras.find((cam) => cam.deviceId === config.selectedCam)) {
       const defaultCam = cameras[0] || null;
       config.selectedCam = defaultCam ? defaultCam.deviceId : null;
+      console.log("Updated selected camera:", config.selectedCam);
       if (defaultCam && typeof bubble_fn_selectedCam === "function") {
         bubble_fn_selectedCam({
           output1: defaultCam.deviceId,
@@ -227,9 +248,11 @@ export const getAvailableDevices = async (config) => {
       }
     }
 
+    console.log("Checking selected speaker availability...");
     if (!speakers.find((spk) => spk.deviceId === config.selectedSpeaker)) {
       const defaultSpeaker = speakers[0] || null;
       config.selectedSpeaker = defaultSpeaker ? defaultSpeaker.deviceId : null;
+      console.log("Updated selected speaker:", config.selectedSpeaker);
       if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function") {
         bubble_fn_selectedSpeaker({
           output1: defaultSpeaker.deviceId,
@@ -239,16 +262,23 @@ export const getAvailableDevices = async (config) => {
     }
 
     // Send deduplicated device lists to Bubble
+    console.log("Sending deduplicated device data to Bubble...");
     sendDeviceDataToBubble("microphone", microphones);
     sendDeviceDataToBubble("camera", cameras);
     sendDeviceDataToBubble("speaker", speakers);
 
+    console.log("Returning device lists to caller:", {
+      microphones,
+      cameras,
+      speakers,
+    });
     return { microphones, cameras, speakers };
   } catch (error) {
     console.error("Error fetching available devices:", error);
     return { microphones: [], cameras: [], speakers: [] };
   }
 };
+
 
 
 // Helper function to format and send device data to Bubble
