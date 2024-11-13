@@ -11,6 +11,10 @@ export const eventCallbacks = (config, clientRTM) => ({
     console.log("Microphone changed:", info.state, info.device);
   },
 
+  onPlaybackDeviceChanged: (info) => {
+  console.log("Playback device changed!", info.state, info.device);
+},
+
   onSpeakerChanged: (info) => {
     console.log("Speaker changed:", info.state, info.device);
   },

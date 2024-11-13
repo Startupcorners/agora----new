@@ -7,7 +7,7 @@ import {
   getAvailableDevices,
 } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
-import { fetchTokens } from "./helperFunctions.js";
+import { fetchTokens, switchCamera } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 import {
@@ -362,6 +362,7 @@ const newMainApp = function (initConfig) {
     toggleMic,
     toggleVirtualBackground,
     toggleCamera,
+    switchCamera,
     changeUserRole,
     toggleScreenShare,
     initializeDeviceChangeListener,
