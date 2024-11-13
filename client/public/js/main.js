@@ -271,7 +271,7 @@ const getAvailableDevices = async (config) => {
 };
 
 
-initializeDeviceChangeListener(config);
+
 
   // Modified join function
   const join = async () => {
@@ -315,6 +315,9 @@ initializeDeviceChangeListener(config);
         tokens.rtcToken,
         config.uid
       );
+
+
+      initializeDeviceChangeListener(config);
       setupEventListeners(config);
 
       // Fetch available devices after joining RTC
