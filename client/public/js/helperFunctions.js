@@ -229,20 +229,21 @@ export const switchSpeaker = async (config, newSpeakerDeviceId) => {
       `Switching to new speaker with deviceId: ${newSpeakerDeviceId}`
     );
 
+    // Ensure that audio elements exist
     const audioElements = document.querySelectorAll("audio");
 
-    // Log the audio elements to check if they are found
     console.log("Found audio elements:", audioElements);
-
-    // If no audio elements are found, log a warning
     if (audioElements.length === 0) {
       console.warn("No audio elements found to change the speaker.");
+      return; // Exit early if no audio elements exist
     }
+
+    // Log available devices to check the speaker deviceId
+    console.log("Available speaker devices:", config.availableSpeakers); // Assuming you have this list
 
     audioElements.forEach((audioElement) => {
       console.log("Checking audio element:", audioElement);
 
-      // Check if the element supports setSinkId
       if (typeof audioElement.setSinkId !== "undefined") {
         console.log("setSinkId is supported on this audio element");
 
@@ -254,7 +255,6 @@ export const switchSpeaker = async (config, newSpeakerDeviceId) => {
             );
             config.selectedSpeaker = newSpeakerDeviceId;
 
-            // Send the updated speaker to Bubble with full label
             if (typeof bubble_fn_selectedSpeaker === "function") {
               console.log(
                 "Sending selected speaker to Bubble:",
@@ -278,4 +278,3 @@ export const switchSpeaker = async (config, newSpeakerDeviceId) => {
     console.error("Error switching speaker:", error);
   }
 };
-
