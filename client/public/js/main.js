@@ -134,78 +134,76 @@ const newMainApp = function (initConfig) {
   config = { ...config, ...callbacks };
 
   // Function to get available microphones, cameras, and speakers
-  const getAvailableDevices = async () => {
-    try {
-      console.log("Fetching available media devices...");
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      console.log("All devices enumerated:", devices);
+const getAvailableDevices = async () => {
+  try {
+    console.log("Fetching available media devices...");
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    console.log("All devices enumerated:", devices);
 
-      // Filter and map each device type
-      const microphones = devices
-        .filter((device) => device.kind === "audioinput")
-        .map((mic) => mic.label || "Microphone");
-      console.log("Filtered microphone labels:", microphones);
+    // Normalize label by splitting on " - " and keeping the second part if it exists
+    const normalizeLabel = (label) => {
+      // Split the label by " - " and return the second part if available, otherwise return the original label
+      const parts = label.split(" - ");
+      return parts.length > 1 ? parts[1].trim() : parts[0].trim();
+    };
 
-      const cameras = devices
-        .filter((device) => device.kind === "videoinput")
-        .map((cam) => cam.label || "Camera");
-      console.log("Filtered camera labels:", cameras);
+    // Filter and deduplicate labels
+    const deduplicateDevices = (deviceList) => {
+      const uniqueLabels = new Set();
 
-      const speakers = devices
-        .filter((device) => device.kind === "audiooutput")
-        .map((speaker) => speaker.label || "Speaker");
-      console.log("Filtered speaker labels:", speakers);
-
-      // Get the default devices' labels
-      const defaultMic = microphones.length ? microphones[0] : null;
-      const defaultCam = cameras.length ? cameras[0] : null;
-      const defaultSpeaker = speakers.length ? speakers[0] : null;
-
-      console.log("Default microphone label:", defaultMic);
-      console.log("Default camera label:", defaultCam);
-      console.log("Default speaker label:", defaultSpeaker);
-
-      // Send device lists (labels only) to Bubble
-      if (typeof bubble_fn_micDevices === "function") {
-        console.log("Sending microphone labels to Bubble:", microphones);
-        bubble_fn_micDevices(microphones);
+      for (const device of deviceList) {
+        const normalizedLabel = normalizeLabel(device.label || "");
+        uniqueLabels.add(normalizedLabel);
       }
-      if (typeof bubble_fn_camDevices === "function") {
-        console.log("Sending camera labels to Bubble:", cameras);
-        bubble_fn_camDevices(cameras);
-      }
-      if (typeof bubble_fn_speakerDevices === "function") {
-        console.log("Sending speaker labels to Bubble:", speakers);
-        bubble_fn_speakerDevices(speakers);
-      }
+      return Array.from(uniqueLabels);
+    };
 
-      // Send default device labels to Bubble
-      if (defaultMic && typeof bubble_fn_selectedMic === "function") {
-        console.log("Sending default microphone label to Bubble:", defaultMic);
-        bubble_fn_selectedMic(defaultMic);
-      }
-      if (defaultCam && typeof bubble_fn_selectedCam === "function") {
-        console.log("Sending default camera label to Bubble:", defaultCam);
-        bubble_fn_selectedCam(defaultCam);
-      }
-      if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function") {
-        console.log("Sending default speaker label to Bubble:", defaultSpeaker);
-        bubble_fn_selectedSpeaker(defaultSpeaker);
-      }
+    // Filter devices by kind and deduplicate within each category
+    const microphones = deduplicateDevices(
+      devices.filter((device) => device.kind === "audioinput")
+    );
+    console.log("Filtered and unique microphone labels:", microphones);
 
-      return {
-        microphones,
-        cameras,
-        speakers,
-        defaultMic,
-        defaultCam,
-        defaultSpeaker,
-      };
-    } catch (error) {
-      console.error("Error fetching devices:", error);
-      return { microphones: [], cameras: [], speakers: [] };
+    const cameras = deduplicateDevices(
+      devices.filter((device) => device.kind === "videoinput")
+    );
+    console.log("Filtered and unique camera labels:", cameras);
+
+    const speakers = deduplicateDevices(
+      devices.filter((device) => device.kind === "audiooutput")
+    );
+    console.log("Filtered and unique speaker labels:", speakers);
+
+    // Send device lists to Bubble
+    if (typeof bubble_fn_micDevices === "function") {
+      bubble_fn_micDevices(microphones);
     }
-  };
+    if (typeof bubble_fn_camDevices === "function") {
+      bubble_fn_camDevices(cameras);
+    }
+    if (typeof bubble_fn_speakerDevices === "function") {
+      bubble_fn_speakerDevices(speakers);
+    }
+
+    // Set and send default devices if available
+    const defaultMic = microphones.length ? microphones[0] : null;
+    const defaultCam = cameras.length ? cameras[0] : null;
+    const defaultSpeaker = speakers.length ? speakers[0] : null;
+
+    if (defaultMic && typeof bubble_fn_selectedMic === "function") {
+      bubble_fn_selectedMic(defaultMic);
+    }
+    if (defaultCam && typeof bubble_fn_selectedCam === "function") {
+      bubble_fn_selectedCam(defaultCam);
+    }
+    if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function") {
+      bubble_fn_selectedSpeaker(defaultSpeaker);
+    }
+  } catch (error) {
+    console.error("Error fetching available devices:", error);
+  }
+};
+
 
   // Modified join function
   const join = async () => {
