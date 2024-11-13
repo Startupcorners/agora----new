@@ -102,18 +102,21 @@ export const sendChat = (config, data) => {
   config.onMessageReceived(messageObj);
 };
 
+// Helper function to trim and normalize labels
+const normalizeLabel = (label) => {
+  const parts = label.split(" - ");
+  return parts.length > 1 ? parts[1].trim() : parts[0].trim() || "No label";
+};
+
 export const switchCamera = async (config, userTracks, newCameraDeviceId) => {
   try {
     console.log(`Switching to new camera with deviceId: ${newCameraDeviceId}`);
 
     const { client, uid } = config;
 
-    // Check if there is an existing video track
-    const wasPublishing =
-      config.localVideoTrack && !config.localVideoTrack.muted;
+    const wasPublishing = config.localVideoTrack && !config.localVideoTrack.muted;
 
     if (config.localVideoTrack) {
-      // Unpublish and stop the current video track if it was being published
       if (wasPublishing) {
         await client.unpublish(config.localVideoTrack);
         console.log("Previous video track unpublished.");
@@ -123,57 +126,47 @@ export const switchCamera = async (config, userTracks, newCameraDeviceId) => {
       console.log("Previous video track stopped and closed.");
     }
 
-    // Create a new video track with the selected camera device
     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack({
       cameraId: newCameraDeviceId,
     });
-    config.selectedCam = newCameraDeviceId; // Update selected camera in config
+    config.selectedCam = newCameraDeviceId;
 
-    // Send the updated camera to Bubble
+    // Send the updated camera to Bubble with trimmed label
     if (typeof bubble_fn_selectedCam === "function") {
       bubble_fn_selectedCam({
         output1: newCameraDeviceId,
-        output2: config.localVideoTrack.getTrackLabel() || "No label",
+        output2: normalizeLabel(config.localVideoTrack.getTrackLabel()),
       });
     }
 
-    // If the user was using a virtual background, apply it to the new track
     if (config.isVirtualBackGroundEnabled) {
-      console.log("Applying virtual background to new video track.");
       if (config.currentVirtualBackground === "blur") {
         await enableVirtualBackgroundBlur(config);
       } else if (config.currentVirtualBackground) {
-        await enableVirtualBackgroundImage(
-          config,
-          config.currentVirtualBackground
-        );
+        await enableVirtualBackgroundImage(config, config.currentVirtualBackground);
       }
     }
 
     if (wasPublishing) {
-      // Publish the new video track if the previous track was being published
       await client.publish(config.localVideoTrack);
       console.log("New video track published successfully.");
 
-      // Update userTracks with the new video track
       userTracks[uid] = {
         ...userTracks[uid],
         videoTrack: config.localVideoTrack,
-        isVideoMuted: false, // Reflect that video is on
+        isVideoMuted: false,
       };
 
-      // Update the video player element with the new video feed
       const videoPlayer = document.querySelector(`#stream-${uid}`);
       if (videoPlayer) {
         config.localVideoTrack.play(videoPlayer);
         console.log("Video player updated with new camera feed.");
       }
     } else {
-      // If the video was previously muted, keep the videoTrack as null
       userTracks[uid] = {
         ...userTracks[uid],
         videoTrack: null,
-        isVideoMuted: true, // Reflect that video is off
+        isVideoMuted: true,
       };
       await config.localVideoTrack.setEnabled(false);
       console.log("New video track created but kept muted and unpublished.");
@@ -191,12 +184,9 @@ export const switchMicrophone = async (config, newMicDeviceId) => {
 
     const { client } = config;
 
-    // Check if there is an existing audio track
-    const wasPublishing =
-      config.localAudioTrack && !config.localAudioTrack.muted;
+    const wasPublishing = config.localAudioTrack && !config.localAudioTrack.muted;
 
     if (config.localAudioTrack) {
-      // Unpublish and stop the current audio track if it was being published
       if (wasPublishing) {
         await client.unpublish(config.localAudioTrack);
         console.log("Previous audio track unpublished.");
@@ -206,26 +196,23 @@ export const switchMicrophone = async (config, newMicDeviceId) => {
       console.log("Previous audio track stopped and closed.");
     }
 
-    // Create a new audio track with the selected microphone device
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
       microphoneId: newMicDeviceId,
     });
-    config.selectedMic = newMicDeviceId; // Update selected microphone in config
+    config.selectedMic = newMicDeviceId;
 
-    // Send the updated microphone to Bubble
+    // Send the updated microphone to Bubble with trimmed label
     if (typeof bubble_fn_selectedMic === "function") {
       bubble_fn_selectedMic({
         output1: newMicDeviceId,
-        output2: config.localAudioTrack.getTrackLabel() || "No label",
+        output2: normalizeLabel(config.localAudioTrack.getTrackLabel()),
       });
     }
 
-    // If the previous track was being published, publish the new audio track
     if (wasPublishing) {
       await client.publish(config.localAudioTrack);
       console.log("New audio track published successfully.");
     } else {
-      // If the audio was previously muted, keep the audio track muted
       await config.localAudioTrack.setEnabled(false);
       console.log("New audio track created but kept muted and unpublished.");
     }
@@ -238,38 +225,28 @@ export const switchMicrophone = async (config, newMicDeviceId) => {
 
 export const switchSpeaker = async (config, newSpeakerDeviceId) => {
   try {
-    console.log(
-      `Switching to new speaker with deviceId: ${newSpeakerDeviceId}`
-    );
+    console.log(`Switching to new speaker with deviceId: ${newSpeakerDeviceId}`);
 
-    // Find all audio elements managing playback
     const audioElements = document.querySelectorAll("audio");
 
     audioElements.forEach((audioElement) => {
       if (typeof audioElement.setSinkId !== "undefined") {
-        audioElement
-          .setSinkId(newSpeakerDeviceId)
+        audioElement.setSinkId(newSpeakerDeviceId)
           .then(() => {
-            console.log(
-              `Speaker output changed to deviceId: ${newSpeakerDeviceId}`
-            );
-            config.selectedSpeaker = newSpeakerDeviceId; // Update selected speaker in config
+            console.log(`Speaker output changed to deviceId: ${newSpeakerDeviceId}`);
+            config.selectedSpeaker = newSpeakerDeviceId;
 
-            // Send the updated speaker to Bubble
+            // Send the updated speaker to Bubble with trimmed label
             if (typeof bubble_fn_selectedSpeaker === "function") {
               bubble_fn_selectedSpeaker({
                 output1: newSpeakerDeviceId,
-                output2: audioElement.label || "No label",
+                output2: normalizeLabel(audioElement.label || "No label"),
               });
             }
           })
-          .catch((error) =>
-            console.error("Error setting speaker output:", error)
-          );
+          .catch((error) => console.error("Error setting speaker output:", error));
       } else {
-        console.warn(
-          "This browser does not support setting sinkId for audio output."
-        );
+        console.warn("This browser does not support setting sinkId for audio output.");
       }
     });
   } catch (error) {
