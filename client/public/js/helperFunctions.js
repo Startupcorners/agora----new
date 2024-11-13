@@ -102,7 +102,7 @@ export const sendChat = (config, data) => {
   config.onMessageReceived(messageObj);
 };
 
-export const switchCamera = async (config, newCameraDeviceId) => {
+export const switchCamera = async (config, userTracks, newCameraDeviceId) => {
   try {
     console.log(`Switching to new camera with deviceId: ${newCameraDeviceId}`);
 
@@ -189,7 +189,7 @@ export const switchMicrophone = async (config, newMicDeviceId) => {
   try {
     console.log(`Switching to new microphone with deviceId: ${newMicDeviceId}`);
 
-    const { client, uid } = config;
+    const { client } = config;
 
     // Check if there is an existing audio track
     const wasPublishing =
@@ -224,12 +224,6 @@ export const switchMicrophone = async (config, newMicDeviceId) => {
     if (wasPublishing) {
       await client.publish(config.localAudioTrack);
       console.log("New audio track published successfully.");
-
-      // Update userTracks with the new audio track
-      userTracks[uid] = {
-        ...userTracks[uid],
-        audioTrack: config.localAudioTrack,
-      };
     } else {
       // If the audio was previously muted, keep the audio track muted
       await config.localAudioTrack.setEnabled(false);
