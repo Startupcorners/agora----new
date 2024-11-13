@@ -127,6 +127,7 @@ export const switchCamera = async (config, newCameraDeviceId) => {
     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack({
       cameraId: newCameraDeviceId,
     });
+    config.selectedCam = newCameraDeviceId; // Update selected camera in config
 
     // If the user was using a virtual background, apply it to the new track
     if (config.isVirtualBackGroundEnabled) {
@@ -176,15 +177,84 @@ export const switchCamera = async (config, newCameraDeviceId) => {
   }
 };
 
-export const switchMicrophone = async (config, client, deviceId) => {
-  if (config.localAudioTrack) {
-    config.localAudioTrack.stop();
-    config.localAudioTrack.close();
-    await client.unpublish([config.localAudioTrack]);
+export const switchMicrophone = async (config, newMicDeviceId) => {
+  try {
+    console.log(`Switching to new microphone with deviceId: ${newMicDeviceId}`);
 
+    const { client, uid } = config;
+
+    // Check if there is an existing audio track
+    const wasPublishing =
+      config.localAudioTrack && !config.localAudioTrack.muted;
+
+    if (config.localAudioTrack) {
+      // Unpublish and stop the current audio track if it was being published
+      if (wasPublishing) {
+        await client.unpublish(config.localAudioTrack);
+        console.log("Previous audio track unpublished.");
+      }
+      config.localAudioTrack.stop();
+      config.localAudioTrack.close();
+      console.log("Previous audio track stopped and closed.");
+    }
+
+    // Create a new audio track with the selected microphone device
     config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-      microphoneId: deviceId,
+      microphoneId: newMicDeviceId,
     });
-    await client.publish([config.localAudioTrack]);
+    config.selectedMic = newMicDeviceId; // Update selected microphone in config
+
+    // If the previous track was being published, publish the new audio track
+    if (wasPublishing) {
+      await client.publish(config.localAudioTrack);
+      console.log("New audio track published successfully.");
+
+      // Update userTracks with the new audio track
+      userTracks[uid] = {
+        ...userTracks[uid],
+        audioTrack: config.localAudioTrack,
+      };
+    } else {
+      // If the audio was previously muted, keep the audio track muted
+      await config.localAudioTrack.setEnabled(false);
+      console.log("New audio track created but kept muted and unpublished.");
+    }
+
+    console.log(`Switched to new microphone: ${newMicDeviceId}`);
+  } catch (error) {
+    console.error("Error switching microphone:", error);
+  }
+};
+
+export const switchSpeaker = async (config, newSpeakerDeviceId) => {
+  try {
+    console.log(
+      `Switching to new speaker with deviceId: ${newSpeakerDeviceId}`
+    );
+
+    // Find all audio elements managing playback
+    const audioElements = document.querySelectorAll("audio");
+
+    audioElements.forEach((audioElement) => {
+      if (typeof audioElement.setSinkId !== "undefined") {
+        audioElement
+          .setSinkId(newSpeakerDeviceId)
+          .then(() => {
+            console.log(
+              `Speaker output changed to deviceId: ${newSpeakerDeviceId}`
+            );
+            config.selectedSpeaker = newSpeakerDeviceId; // Update selected speaker in config
+          })
+          .catch((error) =>
+            console.error("Error setting speaker output:", error)
+          );
+      } else {
+        console.warn(
+          "This browser does not support setting sinkId for audio output."
+        );
+      }
+    });
+  } catch (error) {
+    console.error("Error switching speaker:", error);
   }
 };
