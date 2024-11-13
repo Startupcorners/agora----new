@@ -180,14 +180,23 @@ export const toggleCamera = async (isMuted, config) => {
 
         // Check if a virtual background is enabled and apply it
         if (config.isVirtualBackGroundEnabled) {
+          console.log(
+            "Virtual background is enabled. Applying virtual background effect."
+          );
           if (config.currentVirtualBackground === "blur") {
+            console.log("Applying blur effect as virtual background.");
             await enableVirtualBackgroundBlur(config);
           } else if (typeof config.currentVirtualBackground === "string") {
+            console.log(
+              `Applying image effect as virtual background with source: ${config.currentVirtualBackground}`
+            );
             await enableVirtualBackgroundImage(
               config,
               config.currentVirtualBackground
             );
           }
+        } else {
+          console.log("No virtual background enabled.");
         }
       } catch (cameraError) {
         console.error(
@@ -205,6 +214,7 @@ export const toggleCamera = async (isMuted, config) => {
     }
   }
 };
+
 
 
 
