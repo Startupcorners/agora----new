@@ -229,37 +229,44 @@ export const switchSpeaker = async (config, newSpeakerDeviceId) => {
       `Switching to new speaker with deviceId: ${newSpeakerDeviceId}`
     );
 
-    // Ensure that audio elements exist
-    const audioElements = document.querySelectorAll("audio");
-
+    // Ensure that audio elements exist, create if not
+    let audioElements = document.querySelectorAll("audio");
     console.log("Found audio elements:", audioElements);
+
     if (audioElements.length === 0) {
-      console.warn("No audio elements found to change the speaker.");
-      return; // Exit early if no audio elements exist
+      console.warn("No audio elements found. Creating one.");
+      const audioElement = document.createElement("audio");
+      audioElement.id = "audio-player";
+      audioElement.autoplay = true;
+      document.body.appendChild(audioElement); // Or append to another container
+
+      // Create a silent media stream
+      const stream = new MediaStream();
+      audioElement.srcObject = stream;
+      audioElements = [audioElement]; // Now we have a valid audio element
     }
 
-    // Log available devices to check the speaker deviceId
-    console.log("Available speaker devices:", config.availableSpeakers); // Assuming you have this list
+    // Log available speakers
+    console.log("Available speaker devices:", config.availableSpeakers);
 
+    // Loop through the audio elements and set the sinkId
     audioElements.forEach((audioElement) => {
-      console.log("Checking audio element:", audioElement);
-
       if (typeof audioElement.setSinkId !== "undefined") {
-        console.log("setSinkId is supported on this audio element");
+        console.log("setSinkId supported on this element");
 
         audioElement
           .setSinkId(newSpeakerDeviceId)
           .then(() => {
             console.log(
-              `Speaker output changed to deviceId: ${newSpeakerDeviceId}`
+              `Speaker output switched to deviceId: ${newSpeakerDeviceId}`
             );
             config.selectedSpeaker = newSpeakerDeviceId;
 
+            // Send the updated speaker to Bubble
             if (typeof bubble_fn_selectedSpeaker === "function") {
               console.log(
                 "Sending selected speaker to Bubble:",
-                newSpeakerDeviceId,
-                audioElement.label
+                newSpeakerDeviceId
               );
               bubble_fn_selectedSpeaker({
                 output1: newSpeakerDeviceId,

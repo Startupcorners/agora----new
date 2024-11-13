@@ -226,6 +226,23 @@ export const getAvailableDevices = async (config) => {
       const defaultSpeaker = speakers[0] || null;
       if (defaultSpeaker) {
         config.selectedSpeaker = defaultSpeaker.deviceId;
+
+        // Create audio element for speaker switching if none exists
+        if (document.querySelectorAll("audio").length === 0) {
+          console.log(
+            "No audio elements found, creating one for speaker switching."
+          );
+          const audioElement = document.createElement("audio");
+          audioElement.id = "audio-player";
+          audioElement.autoplay = true; // Audio will play automatically
+          document.body.appendChild(audioElement); // Append to body or any other container
+
+          // Create a silent stream for the audio element
+          const stream = new MediaStream();
+          audioElement.srcObject = stream;
+        }
+
+        // Now switch to the new speaker
         await switchSpeaker(config, defaultSpeaker.deviceId);
       }
     }
