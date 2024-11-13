@@ -249,3 +249,22 @@ export const getAvailableDevices = async (config) => {
     return { microphones: [], cameras: [], speakers: [] };
   }
 };
+
+
+// Helper function to format and send device data to Bubble
+const sendDeviceDataToBubble = (deviceType, devices) => {
+  const formattedData = {
+    outputlist1: devices.map((d) => d.deviceId),
+    outputlist2: devices.map((d) => d.label || "No label"),
+    outputlist3: devices.map((d) => d.kind || "Unknown"),
+  };
+
+  // Determine the appropriate Bubble function to call based on device type
+  if (deviceType === "microphone" && typeof bubble_fn_micDevices === "function") {
+    bubble_fn_micDevices(formattedData);
+  } else if (deviceType === "camera" && typeof bubble_fn_camDevices === "function") {
+    bubble_fn_camDevices(formattedData);
+  } else if (deviceType === "speaker" && typeof bubble_fn_speakerDevices === "function") {
+    bubble_fn_speakerDevices(formattedData);
+  }
+};
