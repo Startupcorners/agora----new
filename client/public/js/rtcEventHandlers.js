@@ -477,7 +477,7 @@ export const handleVolumeIndicator = (() => {
       let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
       console.log(userUID, audioLevel);
 
-      const currentStatus = audioLevel === 0 ? "yes" : "no";
+      const currentStatus = audioLevel < 3 ? "yes" : "no";
 
       // Only send to Bubble if the status has changed
       if (currentStatus !== lastMutedStatus) {
