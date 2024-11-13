@@ -231,8 +231,21 @@ export const switchSpeaker = async (config, newSpeakerDeviceId) => {
 
     const audioElements = document.querySelectorAll("audio");
 
+    // Log the audio elements to check if they are found
+    console.log("Found audio elements:", audioElements);
+
+    // If no audio elements are found, log a warning
+    if (audioElements.length === 0) {
+      console.warn("No audio elements found to change the speaker.");
+    }
+
     audioElements.forEach((audioElement) => {
+      console.log("Checking audio element:", audioElement);
+
+      // Check if the element supports setSinkId
       if (typeof audioElement.setSinkId !== "undefined") {
+        console.log("setSinkId is supported on this audio element");
+
         audioElement
           .setSinkId(newSpeakerDeviceId)
           .then(() => {
@@ -244,7 +257,7 @@ export const switchSpeaker = async (config, newSpeakerDeviceId) => {
             // Send the updated speaker to Bubble with full label
             if (typeof bubble_fn_selectedSpeaker === "function") {
               console.log(
-                "sending selected speaker to bubble",
+                "Sending selected speaker to Bubble:",
                 newSpeakerDeviceId,
                 audioElement.label
               );
@@ -254,16 +267,15 @@ export const switchSpeaker = async (config, newSpeakerDeviceId) => {
               });
             }
           })
-          .catch((error) =>
-            console.error("Error setting speaker output:", error)
-          );
+          .catch((error) => {
+            console.error("Error setting speaker output:", error);
+          });
       } else {
-        console.warn(
-          "This browser does not support setting sinkId for audio output."
-        );
+        console.warn("This audio element does not support setSinkId.");
       }
     });
   } catch (error) {
     console.error("Error switching speaker:", error);
   }
 };
+
