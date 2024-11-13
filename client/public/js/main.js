@@ -380,7 +380,7 @@ const newMainApp = function (initConfig) {
 
       updatedUserTrack = {
         ...updatedUserTrack,
-        videoTrack: null, // Initially set to null (camera off state)
+        videoTrack: config.localVideoTrack, 
         screenShareTrack: config.localScreenShareTrack || null,
         isVideoMuted: true, // Camera is off initially
       };

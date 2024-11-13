@@ -89,8 +89,8 @@ export const toggleCamera = async (isMuted, config) => {
       throw new Error("Config object or UID is missing.");
     }
 
-    uid = config.uid; // Assign UID from config
-    console.log("User's UID:", uid); // Confirm UID is set
+    uid = config.uid;
+    console.log("User's UID:", uid);
 
     userTrack = userTracks[uid];
 
@@ -114,12 +114,12 @@ export const toggleCamera = async (isMuted, config) => {
 
     if (isMuted) {
       // Camera is currently on, turn it off
-      if (userTrack.videoTrack) {
+      if (config.localVideoTrack) {
         console.log("Turning off the camera for user:", uid);
 
         try {
-          // Unpublish and stop the video track
-          await config.client.unpublish([userTrack.videoTrack]);
+          // Unpublish the video track
+          await config.client.unpublish([config.localVideoTrack]);
           console.log("Video track unpublished for user:", uid);
         } catch (unpublishError) {
           console.error(
@@ -128,19 +128,18 @@ export const toggleCamera = async (isMuted, config) => {
           );
         }
 
-        userTrack.videoTrack.stop();
-        console.log("Video track stopped for user:", uid);
+        // Disable the video track instead of setting it to null
+        await config.localVideoTrack.setEnabled(false);
+        console.log("Video track disabled for user:", uid);
 
-        // Set videoTrack to null and update isVideoMuted
-        userTrack.videoTrack = null;
+        // Update userTrack's isVideoMuted status
         userTrack.isVideoMuted = true;
-
-        // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
+
         console.log("Camera turned off and unpublished for user:", uid);
 
-        // Use generalized function to manage the camera state
-        manageCameraState(uid, config); // Ensure no screen share handling unless active
+        // Update camera state in the UI
+        manageCameraState(uid, config);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
@@ -155,32 +154,35 @@ export const toggleCamera = async (isMuted, config) => {
       console.log("Turning on the camera for user:", uid);
 
       try {
-        // Check if the video track exists or create a new one
-        if (!userTrack.videoTrack) {
+        // Use existing video track if it exists, otherwise create a new one
+        if (!config.localVideoTrack) {
           console.log("Creating a new camera video track for user:", uid);
-          userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
+          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
           console.log("New camera video track created for user:", uid);
         } else {
           console.log("Using existing camera video track for user:", uid);
         }
 
-        await userTrack.videoTrack.setEnabled(true);
+        // Enable the video track
+        await config.localVideoTrack.setEnabled(true);
         console.log("Video track enabled for user:", uid);
 
-        await config.client.publish([userTrack.videoTrack]);
+        // Publish the video track
+        await config.client.publish([config.localVideoTrack]);
         console.log("Video track published for user:", uid);
 
+        // Update userTrack's video state
+        userTrack.videoTrack = config.localVideoTrack;
         userTrack.isVideoMuted = false;
-
-        // Update userTracks[uid] with the modified userTrack
         userTracks[uid] = { ...userTrack };
+
         console.log(
           "Camera turned on and video track published for user:",
           uid
         );
 
-        // Use generalized function to manage the camera state
-        manageCameraState(uid, config); // Ensure no screen share handling unless active
+        // Update camera state in the UI
+        manageCameraState(uid, config);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(true);
@@ -202,6 +204,7 @@ export const toggleCamera = async (isMuted, config) => {
     }
   }
 };
+
 
 
 // Declare screenShareUid as a numeric constant
