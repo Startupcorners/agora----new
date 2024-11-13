@@ -129,6 +129,14 @@ export const switchCamera = async (config, newCameraDeviceId) => {
     });
     config.selectedCam = newCameraDeviceId; // Update selected camera in config
 
+    // Send the updated camera to Bubble
+    if (typeof bubble_fn_selectedCam === "function") {
+      bubble_fn_selectedCam({
+        output1: newCameraDeviceId,
+        output2: config.localVideoTrack.getTrackLabel() || "No label",
+      });
+    }
+
     // If the user was using a virtual background, apply it to the new track
     if (config.isVirtualBackGroundEnabled) {
       console.log("Applying virtual background to new video track.");
@@ -204,6 +212,14 @@ export const switchMicrophone = async (config, newMicDeviceId) => {
     });
     config.selectedMic = newMicDeviceId; // Update selected microphone in config
 
+    // Send the updated microphone to Bubble
+    if (typeof bubble_fn_selectedMic === "function") {
+      bubble_fn_selectedMic({
+        output1: newMicDeviceId,
+        output2: config.localAudioTrack.getTrackLabel() || "No label",
+      });
+    }
+
     // If the previous track was being published, publish the new audio track
     if (wasPublishing) {
       await client.publish(config.localAudioTrack);
@@ -244,6 +260,14 @@ export const switchSpeaker = async (config, newSpeakerDeviceId) => {
               `Speaker output changed to deviceId: ${newSpeakerDeviceId}`
             );
             config.selectedSpeaker = newSpeakerDeviceId; // Update selected speaker in config
+
+            // Send the updated speaker to Bubble
+            if (typeof bubble_fn_selectedSpeaker === "function") {
+              bubble_fn_selectedSpeaker({
+                output1: newSpeakerDeviceId,
+                output2: audioElement.label || "No label",
+              });
+            }
           })
           .catch((error) =>
             console.error("Error setting speaker output:", error)
