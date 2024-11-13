@@ -106,14 +106,21 @@ export const getProcessorInstance = async (config) => {
     return null;
   }
 
-  // Check if processor, localVideoTrack, and extensionVirtualBackground are defined
-  if (
-    !config.processor &&
-    config.localVideoTrack &&
-    config.extensionVirtualBackground
-  ) {
+  // If a processor already exists, disable and reset it before reinitializing
+  if (config.processor) {
+    console.log("Processor already exists, reinitializing.");
     try {
-      // Log the state of localVideoTrack and extensionVirtualBackground
+      await config.processor.disable();
+      console.log("Existing processor disabled.");
+    } catch (disableError) {
+      console.error("Error disabling the existing processor:", disableError);
+    }
+    config.processor = null;
+  }
+
+  // Ensure localVideoTrack and extensionVirtualBackground are defined
+  if (config.localVideoTrack && config.extensionVirtualBackground) {
+    try {
       console.log("localVideoTrack present:", config.localVideoTrack);
       console.log(
         "extensionVirtualBackground present:",
@@ -142,16 +149,11 @@ export const getProcessorInstance = async (config) => {
         .pipe(config.localVideoTrack.processorDestination);
       console.log("Processor successfully piped to local video track.");
     } catch (e) {
-      // Log detailed error information
       console.error("Failed to initialize the processor. Error:", e);
       config.processor = null;
       return null;
     }
   } else {
-    // Log why processor initialization was skipped
-    if (config.processor) {
-      console.log("Processor already exists, skipping initialization.");
-    }
     if (!config.localVideoTrack) {
       console.warn(
         "localVideoTrack is missing, unable to initialize processor."
@@ -168,6 +170,7 @@ export const getProcessorInstance = async (config) => {
   console.log("Returning processor:", config.processor);
   return config.processor;
 };
+
 
 export const imageUrlToBase64 = async (url) => {
   try {
