@@ -70,7 +70,6 @@ const newMainApp = function (initConfig) {
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
   // Initialize the Virtual Background extension
-  // Initialize the Virtual Background extension
  (async () => {
    try {
      console.log("Initializing Virtual Background Extension...");
@@ -185,15 +184,9 @@ const newMainApp = function (initConfig) {
 
       initializeDeviceChangeListener(config);
       setupEventListeners(config);
-      getAvailableDevices(config);
+      await getAvailableDevices(config);
 
-      // Fetch available devices after joining RTC
-      const { microphones, cameras, speakers } = await getAvailableDevices();
-      console.log("Available Microphones:", microphones);
-      console.log("Available Cameras:", cameras);
-      console.log("Available Speakers:", speakers);
-
-      // Additional host setup
+          // Additional host setup
       if (config.user.role === "host") {
         await joinToVideoStage(config);
       }
