@@ -282,6 +282,10 @@ const newMainApp = function (initConfig) {
 
       if (config.localAudioTrack) {
         console.log("Microphone audio track created successfully");
+
+        // Ensure the audio track is enabled before publishing
+        await config.localAudioTrack.setEnabled(true);
+        console.log("Microphone audio track enabled");
       } else {
         console.error("Failed to create local audio track");
       }
@@ -309,7 +313,7 @@ const newMainApp = function (initConfig) {
 
       updatedUserTrack = {
         ...updatedUserTrack,
-        videoTrack: config.localVideoTrack, 
+        videoTrack: config.localVideoTrack,
         screenShareTrack: config.localScreenShareTrack || null,
         isVideoMuted: true, // Camera is off initially
       };
@@ -346,6 +350,7 @@ const newMainApp = function (initConfig) {
       console.error("Error in joinToVideoStage", error);
     }
   };
+
 
   return {
     config,
