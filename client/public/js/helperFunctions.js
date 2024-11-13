@@ -103,18 +103,14 @@ export const sendChat = (config, data) => {
 };
 
 // Helper function to trim and normalize labels
-const normalizeLabel = (label) => {
-  const parts = label.split(" - ");
-  return parts.length > 1 ? parts[1].trim() : parts[0].trim() || "No label";
-};
-
 export const switchCamera = async (config, userTracks, newCameraDeviceId) => {
   try {
     console.log(`Switching to new camera with deviceId: ${newCameraDeviceId}`);
 
     const { client, uid } = config;
 
-    const wasPublishing = config.localVideoTrack && !config.localVideoTrack.muted;
+    const wasPublishing =
+      config.localVideoTrack && !config.localVideoTrack.muted;
 
     if (config.localVideoTrack) {
       if (wasPublishing) {
@@ -131,11 +127,11 @@ export const switchCamera = async (config, userTracks, newCameraDeviceId) => {
     });
     config.selectedCam = newCameraDeviceId;
 
-    // Send the updated camera to Bubble with trimmed label
+    // Send the updated camera to Bubble with full label
     if (typeof bubble_fn_selectedCam === "function") {
       bubble_fn_selectedCam({
         output1: newCameraDeviceId,
-        output2: normalizeLabel(config.localVideoTrack.getTrackLabel()),
+        output2: config.localVideoTrack.getTrackLabel() || "No label",
       });
     }
 
@@ -143,7 +139,10 @@ export const switchCamera = async (config, userTracks, newCameraDeviceId) => {
       if (config.currentVirtualBackground === "blur") {
         await enableVirtualBackgroundBlur(config);
       } else if (config.currentVirtualBackground) {
-        await enableVirtualBackgroundImage(config, config.currentVirtualBackground);
+        await enableVirtualBackgroundImage(
+          config,
+          config.currentVirtualBackground
+        );
       }
     }
 
@@ -184,7 +183,8 @@ export const switchMicrophone = async (config, newMicDeviceId) => {
 
     const { client } = config;
 
-    const wasPublishing = config.localAudioTrack && !config.localAudioTrack.muted;
+    const wasPublishing =
+      config.localAudioTrack && !config.localAudioTrack.muted;
 
     if (config.localAudioTrack) {
       if (wasPublishing) {
@@ -201,11 +201,11 @@ export const switchMicrophone = async (config, newMicDeviceId) => {
     });
     config.selectedMic = newMicDeviceId;
 
-    // Send the updated microphone to Bubble with trimmed label
+    // Send the updated microphone to Bubble with full label
     if (typeof bubble_fn_selectedMic === "function") {
       bubble_fn_selectedMic({
         output1: newMicDeviceId,
-        output2: normalizeLabel(config.localAudioTrack.getTrackLabel()),
+        output2: config.localAudioTrack.getTrackLabel() || "No label",
       });
     }
 
@@ -225,28 +225,37 @@ export const switchMicrophone = async (config, newMicDeviceId) => {
 
 export const switchSpeaker = async (config, newSpeakerDeviceId) => {
   try {
-    console.log(`Switching to new speaker with deviceId: ${newSpeakerDeviceId}`);
+    console.log(
+      `Switching to new speaker with deviceId: ${newSpeakerDeviceId}`
+    );
 
     const audioElements = document.querySelectorAll("audio");
 
     audioElements.forEach((audioElement) => {
       if (typeof audioElement.setSinkId !== "undefined") {
-        audioElement.setSinkId(newSpeakerDeviceId)
+        audioElement
+          .setSinkId(newSpeakerDeviceId)
           .then(() => {
-            console.log(`Speaker output changed to deviceId: ${newSpeakerDeviceId}`);
+            console.log(
+              `Speaker output changed to deviceId: ${newSpeakerDeviceId}`
+            );
             config.selectedSpeaker = newSpeakerDeviceId;
 
-            // Send the updated speaker to Bubble with trimmed label
+            // Send the updated speaker to Bubble with full label
             if (typeof bubble_fn_selectedSpeaker === "function") {
               bubble_fn_selectedSpeaker({
                 output1: newSpeakerDeviceId,
-                output2: normalizeLabel(audioElement.label || "No label"),
+                output2: audioElement.label || "No label",
               });
             }
           })
-          .catch((error) => console.error("Error setting speaker output:", error));
+          .catch((error) =>
+            console.error("Error setting speaker output:", error)
+          );
       } else {
-        console.warn("This browser does not support setting sinkId for audio output.");
+        console.warn(
+          "This browser does not support setting sinkId for audio output."
+        );
       }
     });
   } catch (error) {
