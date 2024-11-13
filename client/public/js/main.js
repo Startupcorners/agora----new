@@ -140,9 +140,8 @@ const getAvailableDevices = async () => {
     const devices = await navigator.mediaDevices.enumerateDevices();
     console.log("All devices enumerated:", devices);
 
-    // Normalize label by splitting on " - " and keeping the second part if it exists
+    // Normalize label by splitting on " - " and keeping the second part if available
     const normalizeLabel = (label) => {
-      // Split the label by " - " and return the second part if available, otherwise return the original label
       const parts = label.split(" - ");
       return parts.length > 1 ? parts[1].trim() : parts[0].trim();
     };
@@ -162,47 +161,45 @@ const getAvailableDevices = async () => {
     const microphones = deduplicateDevices(
       devices.filter((device) => device.kind === "audioinput")
     );
-    console.log("Filtered and unique microphone labels:", microphones);
-
     const cameras = deduplicateDevices(
       devices.filter((device) => device.kind === "videoinput")
     );
-    console.log("Filtered and unique camera labels:", cameras);
-
     const speakers = deduplicateDevices(
       devices.filter((device) => device.kind === "audiooutput")
     );
+
+    console.log("Filtered and unique microphone labels:", microphones);
+    console.log("Filtered and unique camera labels:", cameras);
     console.log("Filtered and unique speaker labels:", speakers);
 
-    // Send device lists to Bubble
-    if (typeof bubble_fn_micDevices === "function") {
+    // Send device lists to Bubble (if needed)
+    if (typeof bubble_fn_micDevices === "function")
       bubble_fn_micDevices(microphones);
-    }
-    if (typeof bubble_fn_camDevices === "function") {
+    if (typeof bubble_fn_camDevices === "function")
       bubble_fn_camDevices(cameras);
-    }
-    if (typeof bubble_fn_speakerDevices === "function") {
+    if (typeof bubble_fn_speakerDevices === "function")
       bubble_fn_speakerDevices(speakers);
-    }
 
-    // Set and send default devices if available
+    // Set and send default devices if available (if needed)
     const defaultMic = microphones.length ? microphones[0] : null;
     const defaultCam = cameras.length ? cameras[0] : null;
     const defaultSpeaker = speakers.length ? speakers[0] : null;
 
-    if (defaultMic && typeof bubble_fn_selectedMic === "function") {
+    if (defaultMic && typeof bubble_fn_selectedMic === "function")
       bubble_fn_selectedMic(defaultMic);
-    }
-    if (defaultCam && typeof bubble_fn_selectedCam === "function") {
+    if (defaultCam && typeof bubble_fn_selectedCam === "function")
       bubble_fn_selectedCam(defaultCam);
-    }
-    if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function") {
+    if (defaultSpeaker && typeof bubble_fn_selectedSpeaker === "function")
       bubble_fn_selectedSpeaker(defaultSpeaker);
-    }
+
+    // Return the device lists for further use
+    return { microphones, cameras, speakers };
   } catch (error) {
     console.error("Error fetching available devices:", error);
+    return { microphones: [], cameras: [], speakers: [] }; // Return empty lists in case of error
   }
 };
+
 
 
   // Modified join function
