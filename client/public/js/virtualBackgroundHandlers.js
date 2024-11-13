@@ -21,16 +21,6 @@ export const toggleVirtualBackground = async (config, imageSrc = "") => {
 };
 
 export const enableVirtualBackgroundBlur = async (config) => {
-  if (!config.localVideoTrack) {
-    console.warn(
-      "Local video track not found; only updating config and calling bubble function."
-    );
-    config.isVirtualBackGroundEnabled = true;
-    config.currentVirtualBackground = "blur";
-    bubble_fn_background("blur");
-    return;
-  }
-
   console.log("Enabling virtual background blur...");
   const processor = await getProcessorInstance(config);
   if (!processor) {
@@ -54,16 +44,6 @@ export const enableVirtualBackgroundBlur = async (config) => {
 };
 
 export const enableVirtualBackgroundImage = async (config, imageSrc) => {
-  if (!config.localVideoTrack) {
-    console.warn(
-      "Local video track not found; only updating config and calling bubble function."
-    );
-    config.isVirtualBackGroundEnabled = true;
-    config.currentVirtualBackground = imageSrc;
-    bubble_fn_background(imageSrc);
-    return;
-  }
-
   console.log("Enabling virtual background with image source:", imageSrc);
   const imgElement = document.createElement("img");
   imgElement.onload = async () => {
@@ -98,16 +78,6 @@ export const enableVirtualBackgroundImage = async (config, imageSrc) => {
 };
 
 export const disableVirtualBackground = async (config) => {
-  if (!config.localVideoTrack) {
-    console.warn(
-      "Local video track not found; only updating config and calling bubble function."
-    );
-    config.isVirtualBackGroundEnabled = false;
-    config.currentVirtualBackground = null;
-    bubble_fn_background("none");
-    return;
-  }
-
   console.log("Disabling virtual background...");
   const processor = await getProcessorInstance(config);
   if (!processor) {
@@ -123,6 +93,7 @@ export const disableVirtualBackground = async (config) => {
   config.isVirtualBackGroundEnabled = false;
   config.currentVirtualBackground = null;
 };
+
 
 
 
