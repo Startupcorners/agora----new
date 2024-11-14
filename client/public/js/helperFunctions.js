@@ -203,6 +203,16 @@ export const updateSelectedDevices = async (config) => {
 
 export const switchMic = async (config, micInfo) => {
   try {
+    // Check if micInfo is a string and try to parse it as JSON
+    if (typeof micInfo === "string") {
+      try {
+        micInfo = JSON.parse(micInfo);
+      } catch (e) {
+        // If parsing fails, assume micInfo is a deviceId string
+        micInfo = { deviceId: micInfo, label: "Unknown label" };
+      }
+    }
+
     console.log(
       `Switching to new microphone with deviceId: ${micInfo.deviceId}`
     );
@@ -232,7 +242,9 @@ export const switchMic = async (config, micInfo) => {
 
     // Send the updated microphone to Bubble with deviceId and label
     if (typeof bubble_fn_selectedMic === "function") {
-      bubble_fn_selectedMic(config.localAudioTrack.getTrackLabel() || "No label");
+      bubble_fn_selectedMic(
+        config.localAudioTrack.getTrackLabel() || "No label"
+      );
     }
 
     // Republish the new audio track if it was publishing before the switch
@@ -271,6 +283,16 @@ export const switchSpeaker = async (config, speakerInfo) => {
 
 export const switchCam = async (config, userTracks, camInfo) => {
   try {
+    // Check if camInfo is a string and try to parse it as JSON
+    if (typeof camInfo === "string") {
+      try {
+        camInfo = JSON.parse(camInfo);
+      } catch (e) {
+        // If parsing fails, assume camInfo is a deviceId string
+        camInfo = { deviceId: camInfo, label: "Unknown label" };
+      }
+    }
+
     console.log(`Switching to new camera with deviceId: ${camInfo.deviceId}`);
 
     const { client, uid } = config;
@@ -299,7 +321,9 @@ export const switchCam = async (config, userTracks, camInfo) => {
 
     // Notify Bubble of the new selected camera with deviceId and label
     if (typeof bubble_fn_selectedCam === "function") {
-      bubble_fn_selectedCam(config.localVideoTrack.getTrackLabel() || "No label");
+      bubble_fn_selectedCam(
+        config.localVideoTrack.getTrackLabel() || "No label"
+      );
     }
 
     // Re-enable virtual background if it was enabled
@@ -356,14 +380,24 @@ export const sendDeviceDataToBubble = (deviceType, devices) => {
     outputlist1: devices.map((d) => d.deviceId),
     outputlist2: devices.map((d) => d.label || "No label"),
     outputlist3: devices.map((d) => d.kind || "Unknown"),
+    outputlist4: JSON.stringify(devices), // Converts the full device info to a JSON string
   };
 
   // Determine the appropriate Bubble function to call based on device type
-  if (deviceType === "microphone" && typeof bubble_fn_micDevices === "function") {
+  if (
+    deviceType === "microphone" &&
+    typeof bubble_fn_micDevices === "function"
+  ) {
     bubble_fn_micDevices(formattedData);
-  } else if (deviceType === "camera" && typeof bubble_fn_camDevices === "function") {
+  } else if (
+    deviceType === "camera" &&
+    typeof bubble_fn_camDevices === "function"
+  ) {
     bubble_fn_camDevices(formattedData);
-  } else if (deviceType === "speaker" && typeof bubble_fn_speakerDevices === "function") {
+  } else if (
+    deviceType === "speaker" &&
+    typeof bubble_fn_speakerDevices === "function"
+  ) {
     bubble_fn_speakerDevices(formattedData);
   }
 };
