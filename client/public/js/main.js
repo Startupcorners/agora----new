@@ -4,7 +4,8 @@ import {
   setupEventListeners,
   setupRTMMessageListener,
   initializeDeviceChangeListener,
-  getAvailableDevices,
+  fetchAndSendDeviceList,
+  updateSelectedDevices,
 } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens, switchCamera, switchMicrophone, switchSpeaker } from "./helperFunctions.js";
@@ -183,9 +184,11 @@ const newMainApp = function (initConfig) {
       );
 
       setupEventListeners(config);
-      await getAvailableDevices(config);
+      await fetchAndSendDeviceList(config);
+      await updateSelectedDevices(config);
 
-          // Additional host setup
+
+      // Additional host setup
       if (config.user.role === "host") {
         await joinToVideoStage(config);
       }
@@ -355,7 +358,6 @@ const newMainApp = function (initConfig) {
     config,
     join,
     joinToVideoStage,
-    getAvailableDevices,
     toggleMic,
     toggleVirtualBackground,
     toggleCamera,
@@ -364,8 +366,7 @@ const newMainApp = function (initConfig) {
     switchSpeaker,
     changeUserRole,
     toggleScreenShare,
-    initializeDeviceChangeListener,
-    getAvailableDevices,
+    fetchAndSendDeviceList,
     userTracks,
   };
 };

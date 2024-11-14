@@ -57,40 +57,89 @@ export const setupEventListeners = (config) => {
     await handleVolumeIndicator(volumes, config);
   });
 
- config.client.on("onMicrophoneChanged", async (info) => {
-   console.log("Microphone device change detected:", info);
+config.client.on("onMicrophoneChanged", async (info) => {
+  console.log("Microphone device change detected:", info);
+  await fetchAndSendDeviceList();
 
-   // Update the list of available devices whenever there's a change
-   await getAvailableDevices(config);
+  const action = info.state === "ADDED" ? "added" : "removed";
 
-   // Determine if the microphone was added or removed and handle accordingly
-   const action = info.state === "ADDED" ? "added" : "removed";
-   await switchMic(config, info, action);
- });
+  if (action === "added") {
+    if (info.kind === "audiooutput") {
+      // If a speaker is added, switch to the new speaker
+      await switchSpeaker(config, info);
+    } else if (info.kind === "audioinput") {
+      // If a microphone is added, set it as the selected mic
+      await switchMic(config, info);
+    }
+  } else if (action === "removed") {
+    if (info.kind === "audiooutput") {
+      // If the selected speaker is removed, set it to null
+      if (
+        config.selectedSpeaker &&
+        config.selectedSpeaker.deviceId === info.deviceId
+      ) {
+        config.selectedSpeaker = null;
 
+        // Get the updated list of devices and select the first available speaker if any
+        const devices = await AgoraRTC.getDevices();
+        const speakers = devices.filter(
+          (device) => device.kind === "audiooutput"
+        );
 
-  config.client.on("onCameraChanged", async (info) => {
-    console.log("Camera device change detected:", info);
+        if (speakers.length > 0) {
+          await switchSpeaker(config, speakers[0]);
+        } else {
+          console.log("No speakers available to switch to after removal.");
+        }
+      }
+    } else if (info.kind === "audioinput") {
+      // If the selected mic is removed, set it to null if it was the selected mic
+      if (config.selectedMic && config.selectedMic.deviceId === info.deviceId) {
+        config.selectedMic = null;
 
-    // Update the list of available devices whenever there's a change
-    await getAvailableDevices(config);
+        // Get the updated list of devices and select the first available microphone if any
+        const devices = await AgoraRTC.getDevices();
+        const microphones = devices.filter(
+          (device) => device.kind === "audioinput"
+        );
 
-    if (info.state === "ADDED") {
-      // A camera was added, so we only update the device list
-      console.log("Camera added. Device list updated.");
-    } else if (info.state === "REMOVED") {
-      // A camera was removed, check if we need to switch to the default camera
-      if (config.selectedCam && config.selectedCam.deviceId === info.deviceId) {
-        const defaultCam = config.defaultCam;
-        if (defaultCam) {
-          console.log(
-            "Switching to default camera after removal of selected camera."
-          );
-          await switchCam(config, defaultCam);
+        if (microphones.length > 0) {
+          await switchMic(config, microphones[0]);
+        } else {
+          console.log("No microphones available to switch to after removal.");
         }
       }
     }
-  });
+  }
+});
+
+
+
+config.client.on("onCameraChanged", async (info) => {
+  console.log("Camera device change detected:", info);
+  await fetchAndSendDeviceList();
+
+  if (info.state === "ADDED") {
+    // A camera was added, so we only update the device list
+    console.log("Camera added. Device list updated.");
+  } else if (info.state === "REMOVED") {
+    // A camera was removed, check if we need to switch to a default camera
+    if (config.selectedCam && config.selectedCam.deviceId === info.deviceId) {
+      config.selectedCam = null; // Reset the selected camera
+
+      // Get the updated list of devices and select the first available camera
+      const devices = await AgoraRTC.getDevices();
+      const cameras = devices.filter((device) => device.kind === "videoinput");
+
+      if (cameras.length > 0) {
+        // If there's at least one camera left, switch to it
+        await switchCam(config, cameras[0]);
+      } else {
+        console.log("No cameras available to switch to after removal.");
+      }
+    }
+  }
+});
 
 
 
@@ -192,8 +241,8 @@ export const setupRTMMessageListener = (
 };
 
 
-
-export const getAvailableDevices = async (config) => {
+// Function to fetch and send the full list of devices to Bubble
+export const fetchAndSendDeviceList = async () => {
   try {
     console.log("Fetching available media devices...");
     const devices = await AgoraRTC.getDevices();
@@ -229,11 +278,6 @@ export const getAvailableDevices = async (config) => {
     sendDeviceDataToBubble("camera", cameras);
     sendDeviceDataToBubble("speaker", speakers);
 
-    console.log("Returning device lists to caller:", {
-      microphones,
-      cameras,
-      speakers,
-    });
     return { microphones, cameras, speakers };
   } catch (error) {
     console.error("Error fetching available devices:", error);
@@ -241,65 +285,78 @@ export const getAvailableDevices = async (config) => {
   }
 };
 
+// Function to update selected devices in the config and notify Bubble when user joins
+export const updateSelectedDevices = (config, devices) => {
+  const { microphones, cameras, speakers } = devices;
 
+  // Set selected devices only if they are not already set
+  if (!config.selectedMic && microphones.length > 0) {
+    config.selectedMic = microphones[0];
+    console.log("Selected microphone set to:", config.selectedMic.label);
 
+    // Notify Bubble of the selected microphone
+    if (typeof bubble_fn_selectedMic === "function") {
+      bubble_fn_selectedMic(config.selectedMic.label);
+    }
+  }
 
+  if (!config.selectedCam && cameras.length > 0) {
+    config.selectedCam = cameras[0];
+    console.log("Selected camera set to:", config.selectedCam.label);
 
-// Helper function to format and send device data to Bubble
-const sendDeviceDataToBubble = (deviceType, devices) => {
-  const formattedData = {
-    outputlist1: devices.map((d) => d.deviceId),
-    outputlist2: devices.map((d) => d.label || "No label"),
-    outputlist3: devices.map((d) => d.kind || "Unknown"),
-  };
+    // Notify Bubble of the selected camera
+    if (typeof bubble_fn_selectedCam === "function") {
+      bubble_fn_selectedCam(config.selectedCam.label);
+    }
+  }
 
-  // Determine the appropriate Bubble function to call based on device type
-  if (deviceType === "microphone" && typeof bubble_fn_micDevices === "function") {
-    bubble_fn_micDevices(formattedData);
-  } else if (deviceType === "camera" && typeof bubble_fn_camDevices === "function") {
-    bubble_fn_camDevices(formattedData);
-  } else if (deviceType === "speaker" && typeof bubble_fn_speakerDevices === "function") {
-    bubble_fn_speakerDevices(formattedData);
+  if (!config.selectedSpeaker && speakers.length > 0) {
+    config.selectedSpeaker = speakers[0];
+    console.log("Selected speaker set to:", config.selectedSpeaker.label);
+
+    // Notify Bubble of the selected speaker
+    if (typeof bubble_fn_selectedSpeaker === "function") {
+      bubble_fn_selectedSpeaker(config.selectedSpeaker.label);
+    }
   }
 };
 
 
-const switchMic = async (config, micInfo, action) => {
+
+
+
+
+const switchMic = async (config, micInfo) => {
   try {
-    if (
-      action === "removed" &&
-      config.selectedMic &&
-      config.selectedMic.deviceId === micInfo.deviceId
-    ) {
-      // If the removed mic is the currently selected one, switch back to the default mic
-      if (config.defaultMic && config.localAudioTrack) {
-        await config.localAudioTrack.setDevice(config.defaultMic.deviceId);
-        config.selectedMic = config.defaultMic; // Update selected mic in config
-        console.log(
-          "Switched back to default microphone:",
-          config.defaultMic.label
-        );
+    if (config.localAudioTrack) {
+      await config.localAudioTrack.setDevice(micInfo.deviceId);
+      config.selectedMic = micInfo; // Update selected mic in config
+      console.log("Switched to new microphone:", micInfo.label);
 
-        // Notify Bubble of the new selected mic
-        if (typeof bubble_fn_selectedMic === "function") {
-          bubble_fn_selectedMic(config.defaultMic.label);
-        }
-      }
-    } else if (action === "added") {
-      // If a new mic is added, switch to it and update config.selectedMic
-      if (config.localAudioTrack) {
-        await config.localAudioTrack.setDevice(micInfo.deviceId);
-        config.selectedMic = micInfo; // Update selected mic in config
-        console.log("Switched to new microphone:", micInfo.label);
-
-        // Notify Bubble of the new selected mic
-        if (typeof bubble_fn_selectedMic === "function") {
-          bubble_fn_selectedMic(micInfo.label);
-        }
+      // Notify Bubble of the new selected mic
+      if (typeof bubble_fn_selectedMic === "function") {
+        bubble_fn_selectedMic(micInfo.label);
       }
     }
   } catch (error) {
     console.error("Error switching microphone:", error);
+  }
+};
+
+
+
+const switchSpeaker = async (config, speakerInfo) => {
+  try {
+    // Set the selected speaker in config
+    config.selectedSpeaker = speakerInfo;
+    console.log("Switched to new speaker:", speakerInfo.label);
+
+    // Notify Bubble of the new selected speaker
+    if (typeof bubble_fn_selectedSpeaker === "function") {
+      bubble_fn_selectedSpeaker(speakerInfo.label);
+    }
+  } catch (error) {
+    console.error("Error switching speaker:", error);
   }
 };
 
@@ -335,5 +392,24 @@ const switchCam = async (config, camInfo) => {
     }
   } catch (error) {
     console.error("Error switching camera:", error);
+  }
+};
+
+
+// Helper function to format and send device data to Bubble
+const sendDeviceDataToBubble = (deviceType, devices) => {
+  const formattedData = {
+    outputlist1: devices.map((d) => d.deviceId),
+    outputlist2: devices.map((d) => d.label || "No label"),
+    outputlist3: devices.map((d) => d.kind || "Unknown"),
+  };
+
+  // Determine the appropriate Bubble function to call based on device type
+  if (deviceType === "microphone" && typeof bubble_fn_micDevices === "function") {
+    bubble_fn_micDevices(formattedData);
+  } else if (deviceType === "camera" && typeof bubble_fn_camDevices === "function") {
+    bubble_fn_camDevices(formattedData);
+  } else if (deviceType === "speaker" && typeof bubble_fn_speakerDevices === "function") {
+    bubble_fn_speakerDevices(formattedData);
   }
 };
