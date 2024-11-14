@@ -102,16 +102,170 @@ export const sendChat = (config, data) => {
   config.onMessageReceived(messageObj);
 };
 
-// Helper function to trim and normalize labels
-export const switchCamera = async (config, userTracks, newCameraDeviceId) => {
+
+
+
+// Function to fetch and send the full list of devices to Bubble
+export const fetchAndSendDeviceList = async () => {
   try {
-    console.log(`Switching to new camera with deviceId: ${newCameraDeviceId}`);
+    console.log("Fetching available media devices...");
+    const devices = await AgoraRTC.getDevices();
+    console.log("Devices enumerated by Agora:", devices);
+
+    const microphones = devices
+      .filter((device) => device.kind === "audioinput")
+      .map((device) => ({
+        deviceId: device.deviceId,
+        label: device.label || "No label",
+        kind: device.kind,
+      }));
+
+    const cameras = devices
+      .filter((device) => device.kind === "videoinput")
+      .map((device) => ({
+        deviceId: device.deviceId,
+        label: device.label || "No label",
+        kind: device.kind,
+      }));
+
+    const speakers = devices
+      .filter((device) => device.kind === "audiooutput")
+      .map((device) => ({
+        deviceId: device.deviceId,
+        label: device.label || "No label",
+        kind: device.kind,
+      }));
+
+    // Send all device lists to Bubble
+    console.log("Sending device lists to Bubble.");
+    sendDeviceDataToBubble("microphone", microphones);
+    sendDeviceDataToBubble("camera", cameras);
+    sendDeviceDataToBubble("speaker", speakers);
+
+    return { microphones, cameras, speakers };
+  } catch (error) {
+    console.error("Error fetching available devices:", error);
+    return { microphones: [], cameras: [], speakers: [] };
+  }
+};
+
+// Function to update selected devices in the config and notify Bubble when user joins
+export const updateSelectedDevices = (config, devices) => {
+  const { microphones, cameras, speakers } = devices;
+
+  // Set selected devices only if they are not already set
+  if (!config.selectedMic && microphones.length > 0) {
+    config.selectedMic = microphones[0];
+    console.log("Selected microphone set to:", config.selectedMic.label);
+
+    // Notify Bubble of the selected microphone
+    if (typeof bubble_fn_selectedMic === "function") {
+      bubble_fn_selectedMic(config.selectedMic.label);
+    }
+  }
+
+  if (!config.selectedCam && cameras.length > 0) {
+    config.selectedCam = cameras[0];
+    console.log("Selected camera set to:", config.selectedCam.label);
+
+    // Notify Bubble of the selected camera
+    if (typeof bubble_fn_selectedCam === "function") {
+      bubble_fn_selectedCam(config.selectedCam.label);
+    }
+  }
+
+  if (!config.selectedSpeaker && speakers.length > 0) {
+    config.selectedSpeaker = speakers[0];
+    console.log("Selected speaker set to:", config.selectedSpeaker.label);
+
+    // Notify Bubble of the selected speaker
+    if (typeof bubble_fn_selectedSpeaker === "function") {
+      bubble_fn_selectedSpeaker(config.selectedSpeaker.label);
+    }
+  }
+};
+
+
+export const switchMic = async (config, micInfo) => {
+  try {
+    console.log(
+      `Switching to new microphone with deviceId: ${micInfo.deviceId}`
+    );
+
+    const { client } = config;
+
+    // Check if the audio track was actively publishing before switching
+    const wasPublishing =
+      config.localAudioTrack && !config.localAudioTrack.muted;
+
+    // If there's an existing audio track, unpublish, stop, and close it
+    if (config.localAudioTrack) {
+      if (wasPublishing) {
+        await client.unpublish(config.localAudioTrack);
+        console.log("Previous audio track unpublished.");
+      }
+      config.localAudioTrack.stop();
+      config.localAudioTrack.close();
+      console.log("Previous audio track stopped and closed.");
+    }
+
+    // Create a new audio track with the selected microphone device
+    config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+      microphoneId: micInfo.deviceId,
+    });
+    config.selectedMic = micInfo;
+
+    // Send the updated microphone to Bubble with deviceId and label
+    if (typeof bubble_fn_selectedMic === "function") {
+      bubble_fn_selectedMic(config.localAudioTrack.getTrackLabel() || "No label");
+    }
+
+    // Republish the new audio track if it was publishing before the switch
+    if (wasPublishing) {
+      await client.publish(config.localAudioTrack);
+      console.log("New audio track published successfully.");
+    } else {
+      // Mute and keep the new track unpublished if it was muted
+      await config.localAudioTrack.setEnabled(false);
+      console.log("New audio track created but kept muted and unpublished.");
+    }
+
+    console.log(`Switched to new microphone: ${micInfo.deviceId}`);
+  } catch (error) {
+    console.error("Error switching microphone:", error);
+  }
+};
+
+
+
+export const switchSpeaker = async (config, speakerInfo) => {
+  try {
+    // Set the selected speaker in config
+    config.selectedSpeaker = speakerInfo;
+    console.log("Switched to new speaker:", speakerInfo.label);
+
+    // Notify Bubble of the new selected speaker
+    if (typeof bubble_fn_selectedSpeaker === "function") {
+      bubble_fn_selectedSpeaker(speakerInfo.label);
+    }
+  } catch (error) {
+    console.error("Error switching speaker:", error);
+  }
+};
+
+
+export const switchCam = async (config, userTracks, camInfo) => {
+  try {
+    console.log(`Switching to new camera with deviceId: ${camInfo.deviceId}`);
 
     const { client, uid } = config;
+    let userTrack = userTracks[uid] || {}; // Get or initialize the user track
 
+    // Check if the video track was actively publishing before switching
     const wasPublishing =
       config.localVideoTrack && !config.localVideoTrack.muted;
 
+    // If there's an existing video track, unpublish, stop, and close it
     if (config.localVideoTrack) {
       if (wasPublishing) {
         await client.unpublish(config.localVideoTrack);
@@ -122,19 +276,18 @@ export const switchCamera = async (config, userTracks, newCameraDeviceId) => {
       console.log("Previous video track stopped and closed.");
     }
 
+    // Create a new video track with the selected camera device
     config.localVideoTrack = await AgoraRTC.createCameraVideoTrack({
-      cameraId: newCameraDeviceId,
+      cameraId: camInfo.deviceId,
     });
-    config.selectedCam = newCameraDeviceId;
+    config.selectedCam = camInfo;
 
-    // Send the updated camera to Bubble with full label
+    // Notify Bubble of the new selected camera with deviceId and label
     if (typeof bubble_fn_selectedCam === "function") {
-      bubble_fn_selectedCam({
-        output1: newCameraDeviceId,
-        output2: config.localVideoTrack.getTrackLabel() || "No label",
-      });
+      bubble_fn_selectedCam(config.localVideoTrack.getTrackLabel() || "No label");
     }
 
+    // Re-enable virtual background if it was enabled
     if (config.isVirtualBackGroundEnabled) {
       if (config.currentVirtualBackground === "blur") {
         await enableVirtualBackgroundBlur(config);
@@ -146,24 +299,27 @@ export const switchCamera = async (config, userTracks, newCameraDeviceId) => {
       }
     }
 
+    // Republish the new video track if it was publishing before the switch
     if (wasPublishing) {
       await client.publish(config.localVideoTrack);
       console.log("New video track published successfully.");
 
       userTracks[uid] = {
-        ...userTracks[uid],
+        ...userTrack,
         videoTrack: config.localVideoTrack,
         isVideoMuted: false,
       };
 
+      // Update the video player element with the new video feed
       const videoPlayer = document.querySelector(`#stream-${uid}`);
       if (videoPlayer) {
         config.localVideoTrack.play(videoPlayer);
         console.log("Video player updated with new camera feed.");
       }
     } else {
+      // If the track was muted, keep the new track muted and unpublished
       userTracks[uid] = {
-        ...userTracks[uid],
+        ...userTrack,
         videoTrack: null,
         isVideoMuted: true,
       };
@@ -171,117 +327,28 @@ export const switchCamera = async (config, userTracks, newCameraDeviceId) => {
       console.log("New video track created but kept muted and unpublished.");
     }
 
-    console.log(`Switched to new camera: ${newCameraDeviceId}`);
+    console.log(`Switched to new camera: ${camInfo.deviceId}`);
   } catch (error) {
     console.error("Error switching camera:", error);
   }
 };
 
-export const switchMicrophone = async (config, newMicDeviceId) => {
-  try {
-    console.log(`Switching to new microphone with deviceId: ${newMicDeviceId}`);
 
-    const { client } = config;
 
-    const wasPublishing =
-      config.localAudioTrack && !config.localAudioTrack.muted;
+// Helper function to format and send device data to Bubble
+export const sendDeviceDataToBubble = (deviceType, devices) => {
+  const formattedData = {
+    outputlist1: devices.map((d) => d.deviceId),
+    outputlist2: devices.map((d) => d.label || "No label"),
+    outputlist3: devices.map((d) => d.kind || "Unknown"),
+  };
 
-    if (config.localAudioTrack) {
-      if (wasPublishing) {
-        await client.unpublish(config.localAudioTrack);
-        console.log("Previous audio track unpublished.");
-      }
-      config.localAudioTrack.stop();
-      config.localAudioTrack.close();
-      console.log("Previous audio track stopped and closed.");
-    }
-
-    config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
-      microphoneId: newMicDeviceId,
-    });
-    config.selectedMic = newMicDeviceId;
-
-    // Send the updated microphone to Bubble with full label
-    if (typeof bubble_fn_selectedMic === "function") {
-      bubble_fn_selectedMic({
-        output1: newMicDeviceId,
-        output2: config.localAudioTrack.getTrackLabel() || "No label",
-      });
-    }
-
-    if (wasPublishing) {
-      await client.publish(config.localAudioTrack);
-      console.log("New audio track published successfully.");
-    } else {
-      await config.localAudioTrack.setEnabled(false);
-      console.log("New audio track created but kept muted and unpublished.");
-    }
-
-    console.log(`Switched to new microphone: ${newMicDeviceId}`);
-  } catch (error) {
-    console.error("Error switching microphone:", error);
-  }
-};
-
-export const switchSpeaker = async (config, newSpeakerDeviceId) => {
-  try {
-    console.log(
-      `Switching to new speaker with deviceId: ${newSpeakerDeviceId}`
-    );
-
-    // Ensure that audio elements exist, create if not
-    let audioElements = document.querySelectorAll("audio");
-    console.log("Found audio elements:", audioElements);
-
-    if (audioElements.length === 0) {
-      console.warn("No audio elements found. Creating one.");
-      const audioElement = document.createElement("audio");
-      audioElement.id = "audio-player";
-      audioElement.autoplay = true;
-      document.body.appendChild(audioElement); // Or append to another container
-
-      // Create a silent media stream
-      const stream = new MediaStream();
-      audioElement.srcObject = stream;
-      audioElements = [audioElement]; // Now we have a valid audio element
-    }
-
-    // Log available speakers
-    console.log("Available speaker devices:", config.availableSpeakers);
-
-    // Loop through the audio elements and set the sinkId
-    audioElements.forEach((audioElement) => {
-      if (typeof audioElement.setSinkId !== "undefined") {
-        console.log("setSinkId supported on this element");
-
-        audioElement
-          .setSinkId(newSpeakerDeviceId)
-          .then(() => {
-            console.log(
-              `Speaker output switched to deviceId: ${newSpeakerDeviceId}`
-            );
-            config.selectedSpeaker = newSpeakerDeviceId;
-
-            // Send the updated speaker to Bubble
-            if (typeof bubble_fn_selectedSpeaker === "function") {
-              console.log(
-                "Sending selected speaker to Bubble:",
-                newSpeakerDeviceId
-              );
-              bubble_fn_selectedSpeaker({
-                output1: newSpeakerDeviceId,
-                output2: audioElement.label || "No label",
-              });
-            }
-          })
-          .catch((error) => {
-            console.error("Error setting speaker output:", error);
-          });
-      } else {
-        console.warn("This audio element does not support setSinkId.");
-      }
-    });
-  } catch (error) {
-    console.error("Error switching speaker:", error);
+  // Determine the appropriate Bubble function to call based on device type
+  if (deviceType === "microphone" && typeof bubble_fn_micDevices === "function") {
+    bubble_fn_micDevices(formattedData);
+  } else if (deviceType === "camera" && typeof bubble_fn_camDevices === "function") {
+    bubble_fn_camDevices(formattedData);
+  } else if (deviceType === "speaker" && typeof bubble_fn_speakerDevices === "function") {
+    bubble_fn_speakerDevices(formattedData);
   }
 };
