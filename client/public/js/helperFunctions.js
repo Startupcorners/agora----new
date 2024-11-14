@@ -150,40 +150,55 @@ export const fetchAndSendDeviceList = async () => {
 };
 
 // Function to update selected devices in the config and notify Bubble when user joins
-export const updateSelectedDevices = (config, devices) => {
-  const { microphones, cameras, speakers } = devices;
+export const updateSelectedDevices = async (config) => {
+  try {
+    // Fetch devices using Agora's getDevices
+    const devices = await AgoraRTC.getDevices();
 
-  // Set selected devices only if they are not already set
-  if (!config.selectedMic && microphones.length > 0) {
-    config.selectedMic = microphones[0];
-    console.log("Selected microphone set to:", config.selectedMic.label);
+    // Separate devices into microphones, cameras, and speakers
+    const microphones = devices.filter(
+      (device) => device.kind === "audioinput"
+    );
+    const cameras = devices.filter((device) => device.kind === "videoinput");
+    const speakers = devices.filter((device) => device.kind === "audiooutput");
 
-    // Notify Bubble of the selected microphone
-    if (typeof bubble_fn_selectedMic === "function") {
-      bubble_fn_selectedMic(config.selectedMic.label);
+    // Set selected microphone if not already set
+    if (!config.selectedMic && microphones.length > 0) {
+      config.selectedMic = microphones[0];
+      console.log("Selected microphone set to:", config.selectedMic.label);
+
+      // Notify Bubble of the selected microphone
+      if (typeof bubble_fn_selectedMic === "function") {
+        bubble_fn_selectedMic(config.selectedMic.label);
+      }
     }
-  }
 
-  if (!config.selectedCam && cameras.length > 0) {
-    config.selectedCam = cameras[0];
-    console.log("Selected camera set to:", config.selectedCam.label);
+    // Set selected camera if not already set
+    if (!config.selectedCam && cameras.length > 0) {
+      config.selectedCam = cameras[0];
+      console.log("Selected camera set to:", config.selectedCam.label);
 
-    // Notify Bubble of the selected camera
-    if (typeof bubble_fn_selectedCam === "function") {
-      bubble_fn_selectedCam(config.selectedCam.label);
+      // Notify Bubble of the selected camera
+      if (typeof bubble_fn_selectedCam === "function") {
+        bubble_fn_selectedCam(config.selectedCam.label);
+      }
     }
-  }
 
-  if (!config.selectedSpeaker && speakers.length > 0) {
-    config.selectedSpeaker = speakers[0];
-    console.log("Selected speaker set to:", config.selectedSpeaker.label);
+    // Set selected speaker if not already set
+    if (!config.selectedSpeaker && speakers.length > 0) {
+      config.selectedSpeaker = speakers[0];
+      console.log("Selected speaker set to:", config.selectedSpeaker.label);
 
-    // Notify Bubble of the selected speaker
-    if (typeof bubble_fn_selectedSpeaker === "function") {
-      bubble_fn_selectedSpeaker(config.selectedSpeaker.label);
+      // Notify Bubble of the selected speaker
+      if (typeof bubble_fn_selectedSpeaker === "function") {
+        bubble_fn_selectedSpeaker(config.selectedSpeaker.label);
+      }
     }
+  } catch (error) {
+    console.error("Error fetching and updating selected devices:", error);
   }
 };
+
 
 
 export const switchMic = async (config, micInfo) => {
