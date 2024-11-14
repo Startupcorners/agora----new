@@ -374,30 +374,30 @@ export const switchCam = async (config, userTracks, camInfo) => {
 
 
 
-// Helper function to format and send device data to Bubble
-export const sendDeviceDataToBubble = (deviceType, devices) => {
-  const formattedData = {
-    outputlist1: devices.map((d) => d.deviceId),
-    outputlist2: devices.map((d) => d.label || "No label"),
-    outputlist3: devices.map((d) => d.kind || "Unknown"),
-    outputlist4: JSON.stringify(devices), // Converts the full device info to a JSON string
-  };
+// Helper function to format and send device data to Bubbleexport const sendDeviceDataToBubble = (deviceType, devices) => {
+  export const sendDeviceDataToBubble = (deviceType, devices) => {
+    const formattedData = {
+      outputlist1: devices.map((d) => d.deviceId),
+      outputlist2: devices.map((d) => d.label || "No label"),
+      outputlist3: devices.map((d) => d.kind || "Unknown"),
+      outputlist4: devices.map((d) => JSON.stringify(d)), // Converts each device to a JSON string in an array
+    };
 
-  // Determine the appropriate Bubble function to call based on device type
-  if (
-    deviceType === "microphone" &&
-    typeof bubble_fn_micDevices === "function"
-  ) {
-    bubble_fn_micDevices(formattedData);
-  } else if (
-    deviceType === "camera" &&
-    typeof bubble_fn_camDevices === "function"
-  ) {
-    bubble_fn_camDevices(formattedData);
-  } else if (
-    deviceType === "speaker" &&
-    typeof bubble_fn_speakerDevices === "function"
-  ) {
-    bubble_fn_speakerDevices(formattedData);
-  }
-};
+    // Determine the appropriate Bubble function to call based on device type
+    if (
+      deviceType === "microphone" &&
+      typeof bubble_fn_micDevices === "function"
+    ) {
+      bubble_fn_micDevices(formattedData);
+    } else if (
+      deviceType === "camera" &&
+      typeof bubble_fn_camDevices === "function"
+    ) {
+      bubble_fn_camDevices(formattedData);
+    } else if (
+      deviceType === "speaker" &&
+      typeof bubble_fn_speakerDevices === "function"
+    ) {
+      bubble_fn_speakerDevices(formattedData);
+    }
+  };
