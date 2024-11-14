@@ -181,6 +181,14 @@ const newMainApp = function (initConfig) {
         config.uid
       );
 
+      getDevices()
+        .then((devices) => {
+          console.log("Get devices ->", devices);
+        })
+        .catch((e) => {
+          console.log("get devices error!", e);
+        });
+
 
       initializeDeviceChangeListener(config);
       setupEventListeners(config);
