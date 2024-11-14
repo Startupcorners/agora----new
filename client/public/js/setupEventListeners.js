@@ -56,6 +56,44 @@ export const setupEventListeners = (config) => {
   client.on("volume-indicator", async (volumes) => {
     await handleVolumeIndicator(volumes, config);
   });
+
+ config.client.on("onMicrophoneChanged", async (info) => {
+   console.log("Microphone device change detected:", info);
+
+   // Update the list of available devices whenever there's a change
+   await getAvailableDevices(config);
+
+   // Determine if the microphone was added or removed and handle accordingly
+   const action = info.state === "ADDED" ? "added" : "removed";
+   await switchMic(config, info, action);
+ });
+
+
+  config.client.on("onCameraChanged", async (info) => {
+    console.log("Camera device change detected:", info);
+
+    // Update the list of available devices whenever there's a change
+    await getAvailableDevices(config);
+
+    if (info.state === "ADDED") {
+      // A camera was added, so we only update the device list
+      console.log("Camera added. Device list updated.");
+    } else if (info.state === "REMOVED") {
+      // A camera was removed, check if we need to switch to the default camera
+      if (config.selectedCam && config.selectedCam.deviceId === info.deviceId) {
+        const defaultCam = config.defaultCam;
+        if (defaultCam) {
+          console.log(
+            "Switching to default camera after removal of selected camera."
+          );
+          await switchCam(config, defaultCam);
+        }
+      }
+    }
+  });
+
+
+
 };
 
 // eventListeners.js
@@ -154,21 +192,12 @@ export const setupRTMMessageListener = (
 };
 
 
-export const initializeDeviceChangeListener = (config) => {
-  navigator.mediaDevices.ondevicechange = async () => {
-    console.log("Device change detected. Refreshing device list...");
-
-    // Call getAvailableDevices, which will handle fetching, deduplication, and sending to Bubble
-    await getAvailableDevices(config);
-  };
-};
-
 
 export const getAvailableDevices = async (config) => {
   try {
     console.log("Fetching available media devices...");
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    console.log("Devices enumerated:", devices);
+    const devices = await AgoraRTC.getDevices();
+    console.log("Devices enumerated by Agora:", devices);
 
     const microphones = devices
       .filter((device) => device.kind === "audioinput")
@@ -194,59 +223,6 @@ export const getAvailableDevices = async (config) => {
         kind: device.kind,
       }));
 
-    // Check if selected microphone is still available and switch if necessary
-    if (!microphones.find((mic) => mic.deviceId === config.selectedMic)) {
-      console.log(
-        `Selected microphone "${config.selectedMic}" not available, switching to default.`
-      );
-      const defaultMic = microphones[0] || null;
-      if (defaultMic) {
-        config.selectedMic = defaultMic.deviceId;
-        await switchMicrophone(config, defaultMic.deviceId);
-      }
-    }
-
-    // Check if selected camera is still available and switch if necessary
-    if (!cameras.find((cam) => cam.deviceId === config.selectedCam)) {
-      console.log(
-        `Selected camera "${config.selectedCam}" not available, switching to default.`
-      );
-      const defaultCam = cameras[0] || null;
-      if (defaultCam) {
-        config.selectedCam = defaultCam.deviceId;
-        await switchCamera(config, userTracks, defaultCam.deviceId);
-      }
-    }
-
-    // Check if selected speaker is still available and switch if necessary
-    if (!speakers.find((spk) => spk.deviceId === config.selectedSpeaker)) {
-      console.log(
-        `Selected speaker "${config.selectedSpeaker}" not available, switching to default.`
-      );
-      const defaultSpeaker = speakers[0] || null;
-      if (defaultSpeaker) {
-        config.selectedSpeaker = defaultSpeaker.deviceId;
-
-        // Create audio element for speaker switching if none exists
-        if (document.querySelectorAll("audio").length === 0) {
-          console.log(
-            "No audio elements found, creating one for speaker switching."
-          );
-          const audioElement = document.createElement("audio");
-          audioElement.id = "audio-player";
-          audioElement.autoplay = true; // Audio will play automatically
-          document.body.appendChild(audioElement); // Append to body or any other container
-
-          // Create a silent stream for the audio element
-          const stream = new MediaStream();
-          audioElement.srcObject = stream;
-        }
-
-        // Now switch to the new speaker
-        await switchSpeaker(config, defaultSpeaker.deviceId);
-      }
-    }
-
     // Send all device lists to Bubble
     console.log("Sending device lists to Bubble.");
     sendDeviceDataToBubble("microphone", microphones);
@@ -267,6 +243,8 @@ export const getAvailableDevices = async (config) => {
 
 
 
+
+
 // Helper function to format and send device data to Bubble
 const sendDeviceDataToBubble = (deviceType, devices) => {
   const formattedData = {
@@ -282,5 +260,80 @@ const sendDeviceDataToBubble = (deviceType, devices) => {
     bubble_fn_camDevices(formattedData);
   } else if (deviceType === "speaker" && typeof bubble_fn_speakerDevices === "function") {
     bubble_fn_speakerDevices(formattedData);
+  }
+};
+
+
+const switchMic = async (config, micInfo, action) => {
+  try {
+    if (
+      action === "removed" &&
+      config.selectedMic &&
+      config.selectedMic.deviceId === micInfo.deviceId
+    ) {
+      // If the removed mic is the currently selected one, switch back to the default mic
+      if (config.defaultMic && config.localAudioTrack) {
+        await config.localAudioTrack.setDevice(config.defaultMic.deviceId);
+        config.selectedMic = config.defaultMic; // Update selected mic in config
+        console.log(
+          "Switched back to default microphone:",
+          config.defaultMic.label
+        );
+
+        // Notify Bubble of the new selected mic
+        if (typeof bubble_fn_selectedMic === "function") {
+          bubble_fn_selectedMic(config.defaultMic.label);
+        }
+      }
+    } else if (action === "added") {
+      // If a new mic is added, switch to it and update config.selectedMic
+      if (config.localAudioTrack) {
+        await config.localAudioTrack.setDevice(micInfo.deviceId);
+        config.selectedMic = micInfo; // Update selected mic in config
+        console.log("Switched to new microphone:", micInfo.label);
+
+        // Notify Bubble of the new selected mic
+        if (typeof bubble_fn_selectedMic === "function") {
+          bubble_fn_selectedMic(micInfo.label);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Error switching microphone:", error);
+  }
+};
+
+
+const switchCam = async (config, camInfo) => {
+  try {
+    const uid = config.uid; // Assuming config has the UID for the user
+    let userTrack = userTracks[uid] || {}; // Get or initialize the user track
+
+    if (config.localVideoTrack) {
+      // Switch to the specified camera device
+      await config.localVideoTrack.setDevice(camInfo.deviceId);
+      console.log("Switched to new camera:", camInfo.label);
+
+      // Update selected camera in config and userTrack
+      config.selectedCam = camInfo;
+      userTrack.videoTrack = config.localVideoTrack;
+      userTrack.selectedCam = camInfo;
+      userTracks[uid] = { ...userTrack };
+
+      // Notify Bubble of the new selected camera
+      if (typeof bubble_fn_selectedCam === "function") {
+        bubble_fn_selectedCam(camInfo.label);
+      }
+
+      // Re-enable virtual background if it was enabled
+      if (
+        config.isVirtualBackGroundEnabled &&
+        userTrack.isVideoMuted === false
+      ) {
+        await toggleVirtualBackground(config, config.currentVirtualBackground);
+      }
+    }
+  } catch (error) {
+    console.error("Error switching camera:", error);
   }
 };

@@ -53,9 +53,10 @@ const newMainApp = function (initConfig) {
     localVideoTrackMuted: true,
     isVirtualBackGroundEnabled: false,
     cameraToggleInProgress: false,
+    defaultMic: null,
     selectedMic: null,
+    defaultCam: null,
     selectedCam: null,
-    selectedSpeaker: null,
     isVirtualBackGroundEnabled: false,
     localAudioTrack: null, // Ensure local tracks are initialized as null initially
     localVideoTrack: null,
@@ -101,25 +102,6 @@ const newMainApp = function (initConfig) {
      );
    }
  })();
-
- const checkActiveDevices = async () => {
-   // Create default audio and video tracks
-   const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-   const videoTrack = await AgoraRTC.createCameraVideoTrack();
-
-   // Log the device info used by Agora
-   console.log("Agora is using microphone ID:", audioTrack.getTrackId());
-   console.log(
-     "Agora microphone track settings:",
-     audioTrack.getMediaStreamTrack().getSettings()
-   );
-
-   console.log("Agora is using camera ID:", videoTrack.getTrackId());
-   console.log(
-     "Agora camera track settings:",
-     videoTrack.getMediaStreamTrack().getSettings()
-   );
- };
 
 
   // Ensure required config parameters are present
@@ -200,17 +182,6 @@ const newMainApp = function (initConfig) {
         config.uid
       );
 
-      AgoraRTC.getDevices()
-        .then((devices) => {
-          console.log("Get devices ->", devices);
-        })
-        .catch((e) => {
-          console.log("get devices error!", e);
-        });
-
-        checkActiveDevices();
-
-      initializeDeviceChangeListener(config);
       setupEventListeners(config);
       await getAvailableDevices(config);
 
