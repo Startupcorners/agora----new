@@ -181,7 +181,7 @@ const newMainApp = function (initConfig) {
         config.uid
       );
 
-      getDevices()
+      AgoraRTC.getDevices()
         .then((devices) => {
           console.log("Get devices ->", devices);
         })
