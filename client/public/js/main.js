@@ -3,12 +3,11 @@ import { eventCallbacks } from "./eventCallbacks.js";
 import {
   setupEventListeners,
   setupRTMMessageListener,
-  initializeDeviceChangeListener,
-  fetchAndSendDeviceList,
-  updateSelectedDevices,
 } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
-import { fetchTokens, switchCamera, switchMicrophone, switchSpeaker } from "./helperFunctions.js";
+import { fetchTokens, switchCam, switchMic, switchSpeaker, fetchAndSendDeviceList,
+  updateSelectedDevices,
+ } from "./helperFunctions.js";
 import { addUserWrapper } from "./wrappers.js";
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 import {
@@ -361,8 +360,8 @@ const newMainApp = function (initConfig) {
     toggleMic,
     toggleVirtualBackground,
     toggleCamera,
-    switchCamera,
-    switchMicrophone,
+    switchCam,
+    switchMic,
     switchSpeaker,
     changeUserRole,
     toggleScreenShare,
