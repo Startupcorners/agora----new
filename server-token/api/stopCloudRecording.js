@@ -70,9 +70,9 @@ router.post("/", async (req, res) => {
 
     // Send the MP4 link to Bubble via an API call
     const bubbleResponse = await axios.post(
-      "https://your-bubble-app-url/api/1.1/wf/receiveRecording",
+      "https://startupcorners.com/version-test/api/1.1/wf/receiveRecording",
       {
-        resourceId: resourceId,
+        resourceId: channelName,
         url: mp4Url,
       }
     );

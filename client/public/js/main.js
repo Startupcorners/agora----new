@@ -4,15 +4,19 @@ import {
   setupEventListeners,
   setupRTMMessageListener,
 } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
+
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
 import { fetchTokens, switchCam, switchMic, switchSpeaker, fetchAndSendDeviceList,
   updateSelectedDevices,
  } from "./helperFunctions.js";
+
 import { addUserWrapper } from "./wrappers.js";
+
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
-import {
-  toggleVirtualBackground,
-} from "./virtualBackgroundHandlers.js";
+
+import { startCloudRecording, startAudioRecording, stopCloudRecording, stopAudioRecording } from "./recordingHandlers.js";
+import { toggleVirtualBackground } from "./virtualBackgroundHandlers.js";
+
 import {
   toggleMic,
   toggleCamera,
@@ -367,6 +371,10 @@ const newMainApp = function (initConfig) {
     changeUserRole,
     toggleScreenShare,
     fetchAndSendDeviceList,
+    startCloudRecording, 
+    startAudioRecording, 
+    stopCloudRecording, 
+    stopAudioRecording,
     userTracks,
   };
 };

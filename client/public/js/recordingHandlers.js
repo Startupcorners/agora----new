@@ -88,7 +88,7 @@ export const startCloudRecording = async (config) => {
   }
 };
 
-export const stopScreenRecording = async (config) => {
+export const stopCloudRecording = async (config) => {
   try {
     // Step 1: Stop the cloud recording on the server side
     const response = await fetch(`${config.serverUrl}/stopCloudRecording`, {
