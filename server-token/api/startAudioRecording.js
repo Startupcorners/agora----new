@@ -75,6 +75,41 @@ router.post("/", async (req, res) => {
     if (response.data.sid) {
       console.log("SID received:", response.data.sid);
       res.json({ resourceId, sid: response.data.sid, timestamp });
+
+      // Schedule a delayed stop after a max duration (e.g., 2 minutes)
+      const MAX_RECORDING_DURATION = 2 * 60 * 1000; // 2 minutes in milliseconds
+
+      setTimeout(async () => {
+        console.log(
+          "Max recording duration reached, stopping the recording..."
+        );
+
+        try {
+          const stopPayload = {
+            cname: channelName,
+            uid: uid,
+            clientRequest: {},
+          };
+
+          const stopResponse = await axios.post(
+            `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${response.data.sid}/mode/1/stop`,
+            stopPayload,
+            {
+              headers: {
+                Authorization: `Basic ${authorizationToken}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          console.log(
+            "Recording stopped after max duration:",
+            stopResponse.data
+          );
+        } catch (error) {
+          console.error("Error stopping recording after max duration:", error);
+        }
+      }, MAX_RECORDING_DURATION);
     } else {
       console.error("No SID in response:", response.data);
       res

@@ -1,58 +1,72 @@
-// server/routes/recording.js
-
 const express = require("express");
 const axios = require("axios");
-const pollForMp4 = require("./pollForMp4"); // Ensure this utility is properly imported
+const nocache = (req, res, next) => {
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+};
+const pollForMp4 = require("./pollForMp4");
 const router = express.Router();
 
-/**
- * Route to stop cloud recording.
- * This route handles:
- * - Stopping cloud recording via Agora's API
- * - Polling the S3 bucket for the MP4 file
- * - Sending the MP4 file URL to Bubble
- */
+// Stop recording endpoint
 router.post("/", async (req, res) => {
-  const { resourceId, sid, channelName, uid, timestamp } = req.body;
+  const { channelName, resourceId, sid, uid, timestamp} = req.body;
 
-  // Validate required fields
-  if (!resourceId || !sid || !channelName || !uid) {
-    console.error("Missing required parameters:", {
-      resourceId,
-      sid,
-      channelName,
-      uid,
-      timestamp,
-    });
+  // Validate required parameters
+  if (!channelName || !resourceId || !sid || !uid || !timestamp) {
     return res.status(400).json({
-      error: "resourceId, sid, channelName, uid, and timestamp are required",
+      error:
+        "channelName, resourceId, sid, uid, timestamp are required",
     });
   }
 
-  console.log("Stop cloud recording request for:", {
+  console.log("Stopping recording with details:", {
+    channelName,
     resourceId,
     sid,
-    channelName,
     uid,
     timestamp,
   });
 
   try {
-    // Authorization for Agora Cloud Recording
+    // Check if there's already a log entry for this eventId (to avoid redundant actions)
+    const logResponse = await axios.post(
+      "https://startupcorners.com/version-test/api/1.1/wf/recording_logs",
+      {
+        resourceId: resourceID,
+      }
+    );
+
+    // If the response is "yes", do nothing and return early
+    if (logResponse.data === "yes") {
+      console.log(
+        `Log entry for eventId ${channelName} already exists, skipping stop recording.`
+      );
+      return res.json({
+        message: "Recording stop request skipped, log entry exists",
+      });
+    }
+
+    // If there's no log entry (response is "no"), proceed to stop the recording
+    console.log(
+      `No log entry for eventId ${channelName}, proceeding with stop recording...`
+    );
+
+    // Create the authorization token for Agora API
     const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
-    // Payload for stopping recording (clientRequest may need fields if required by Agora)
     const payload = {
       cname: channelName,
       uid: uid,
       clientRequest: {},
     };
 
-    // Stop the cloud recording using Agora's Cloud Recording RESTful API
-    const stopResponse = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/mix/stop`,
+    // Call Agora's Cloud Recording API to stop recording
+    const response = await axios.post(
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/web/stop`,
       payload,
       {
         headers: {
@@ -62,32 +76,27 @@ router.post("/", async (req, res) => {
       }
     );
 
-    console.log("Stop cloud recording response from Agora:", stopResponse.data);
+    console.log("Recording stopped on Agora");
 
-    // Poll for MP4 recording file in S3
+    // Poll for the MP4 file from S3
     const mp4Url = await pollForMp4(resourceId, channelName, timestamp);
     console.log("MP4 retrieved:", mp4Url);
 
-    // Send the MP4 link to Bubble via an API call
+    // Send the MP4 URL to Bubble's API
     const bubbleResponse = await axios.post(
-      "https://startupcorners.com/version-test/api/1.1/wf/receiveRecording",
+      "https://startupcorners.com/version-test/api/1.1/wf/receiveawsvideo",
       {
-        resourceId: channelName,
+        ressourceID: resourceId,
         url: mp4Url,
       }
     );
+    console.log("MP4 URL sent to Bubble:", bubbleResponse.data);
 
-    console.log("Recording file URL sent to Bubble:", bubbleResponse.data);
 
-    // Return success response to the client with the MP4 URL
-    return res.json({
-      message: "Cloud recording stopped successfully",
-      mp4Url,
-    });
   } catch (error) {
-    console.error("Error stopping cloud recording on server route:", error);
-    return res.status(500).json({
-      error: "Failed to stop cloud recording",
+    console.error("Error stopping recording:", error);
+    res.status(500).json({
+      error: "Failed to stop recording",
       details: error.response ? error.response.data : error.message,
     });
   }

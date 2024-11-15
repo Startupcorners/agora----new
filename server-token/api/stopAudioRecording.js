@@ -1,12 +1,12 @@
 const express = require("express");
 const axios = require("axios");
 const router = express.Router();
-const pollForMp4 = require("./pollForMp4");
-const sendToAssemblyAiAndGetSummary = require("./assemblyai");
+const pollForAudioFile = require("./pollForAudioFile"); // Adjusted poll function for audio
 
 router.post("/", async (req, res) => {
   const { channelName, resourceId, sid, uid, timestamp } = req.body;
 
+  // Validate required parameters
   if (!channelName || !resourceId || !sid || !uid || !timestamp) {
     return res.status(400).json({
       error: "channelName, resourceId, sid, uid, and timestamp are required",
@@ -22,6 +22,7 @@ router.post("/", async (req, res) => {
   });
 
   try {
+    // Create the authorization token for Agora API
     const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
@@ -32,6 +33,7 @@ router.post("/", async (req, res) => {
       clientRequest: {},
     };
 
+    // Stop the audio recording using Agora's Cloud Recording API
     const response = await axios.post(
       `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/1/stop`,
       payload,
@@ -45,53 +47,27 @@ router.post("/", async (req, res) => {
 
     console.log("Audio recording stopped on Agora", response.data);
 
-    // Poll for MP4 (or audio file) in AWS S3
-    const mp4Url = await pollForMp4(resourceId, channelName, timestamp);
-    console.log("Audio file retrieved:", mp4Url);
+    // Poll for the audio file (AWS S3 or other storage location)
+    const audioUrl = await pollForAudioFile(resourceId, channelName, timestamp);
+    console.log("Audio file retrieved:", audioUrl);
 
-    // Post the audio file URL to Bubble's API
-    const bubbleResponse = await axios.post(
-      "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receiveawsvideo",
+    // Send the audio file URL to WebAssembly (instead of Bubble)
+    const webAssemblyResponse = await axios.post(
+      "https://your-webassembly-endpoint.com/api/upload-audio", // Change this URL to the actual WebAssembly endpoint
       {
         ressourceID: resourceId,
-        url: mp4Url,
+        url: audioUrl,
       }
     );
-    console.log("Audio file URL sent to Bubble:", bubbleResponse.data);
+    console.log(
+      "Audio file URL sent to WebAssembly:",
+      webAssemblyResponse.data
+    );
 
-    // Send audio file URL to AssemblyAI for transcription and summary
-    const assemblyResponse = await sendToAssemblyAiAndGetSummary(mp4Url);
-    console.log("AssemblyAI Response received:", assemblyResponse);
-
-    // Check if a valid summary is present before sending to Bubble
-    if (assemblyResponse.summary && assemblyResponse.summary !== null) {
-      // Send summary to Bubble
-      const bubbleSummaryResponse = await axios.post(
-        "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receivesummary",
-        {
-          ressourceID: resourceId,
-          summary: assemblyResponse.summary,
-        }
-      );
-      console.log("Summary sent to Bubble:", bubbleSummaryResponse.data);
-    } else {
-      // Handle cases where there is no summary available
-      console.log("No summary available from AssemblyAI.");
-      await axios.post(
-        "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receivesummary",
-        {
-          ressourceID: resourceId,
-          summary: "No summary available for this audio.",
-        }
-      );
-    }
-
-    // Respond to the frontend
+    // Respond to the frontend (without sending anything to Bubble)
     res.json({
-      message:
-        "Audio recording stopped, file sent to Bubble, summary sent to Bubble",
-      mp4Url: mp4Url,
-      summary: assemblyResponse.summary || "No summary available",
+      message: "Audio recording stopped, file sent to WebAssembly",
+      audioUrl: audioUrl,
     });
   } catch (error) {
     console.error("Error stopping audio recording:", error);
