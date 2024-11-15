@@ -14,7 +14,7 @@ import { addUserWrapper } from "./wrappers.js";
 
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
-import { startCloudRecording, startAudioRecording, stopCloudRecording, stopAudioRecording } from "./recordingHandlers.js";
+import { startCloudRecording, stopCloudRecording } from "./recordingHandlers.js";
 import { toggleVirtualBackground } from "./virtualBackgroundHandlers.js";
 
 import {
@@ -372,9 +372,7 @@ const newMainApp = function (initConfig) {
     toggleScreenShare,
     fetchAndSendDeviceList,
     startCloudRecording, 
-    startAudioRecording, 
     stopCloudRecording, 
-    stopAudioRecording,
     userTracks,
   };
 };
