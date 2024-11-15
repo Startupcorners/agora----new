@@ -57,6 +57,7 @@ const newMainApp = function (initConfig) {
     selectedMic: null,
     defaultCam: null,
     selectedCam: null,
+    screenShareClient: null,
     isVirtualBackGroundEnabled: false,
     localAudioTrack: null, // Ensure local tracks are initialized as null initially
     localVideoTrack: null,

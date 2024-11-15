@@ -1,16 +1,9 @@
 const express = require("express");
-const nocache = (req, res, next) => {
-  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-  res.header("Expires", "-1");
-  res.header("Pragma", "no-cache");
-  next();
-};
 const axios = require("axios");
+const router = express.Router();
 const pollForMp4 = require("./pollForMp4");
 const sendToAssemblyAiAndGetSummary = require("./assemblyai");
-const router = express.Router();
 
-// Stop recording endpoint
 router.post("/", async (req, res) => {
   const { channelName, resourceId, sid, uid, timestamp } = req.body;
 
@@ -20,7 +13,7 @@ router.post("/", async (req, res) => {
     });
   }
 
-  console.log("Stopping recording with details:", {
+  console.log("Stopping audio recording with details:", {
     channelName,
     resourceId,
     sid,
@@ -40,7 +33,7 @@ router.post("/", async (req, res) => {
     };
 
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/web/stop`,
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/1/stop`,
       payload,
       {
         headers: {
@@ -50,13 +43,13 @@ router.post("/", async (req, res) => {
       }
     );
 
-    console.log("Recording stopped on Agora");
+    console.log("Audio recording stopped on Agora", response.data);
 
-    // Poll for MP4 in AWS S3
+    // Poll for MP4 (or audio file) in AWS S3
     const mp4Url = await pollForMp4(resourceId, channelName, timestamp);
-    console.log("MP4 retrieved:", mp4Url);
+    console.log("Audio file retrieved:", mp4Url);
 
-    // Post the MP4 URL to Bubble's API
+    // Post the audio file URL to Bubble's API
     const bubbleResponse = await axios.post(
       "https://sccopy-38403.bubbleapps.io/api/1.1/wf/receiveawsvideo",
       {
@@ -64,9 +57,9 @@ router.post("/", async (req, res) => {
         url: mp4Url,
       }
     );
-    console.log("MP4 URL sent to Bubble:", bubbleResponse.data);
+    console.log("Audio file URL sent to Bubble:", bubbleResponse.data);
 
-    // Send MP4 URL to AssemblyAI for transcription and summary
+    // Send audio file URL to AssemblyAI for transcription and summary
     const assemblyResponse = await sendToAssemblyAiAndGetSummary(mp4Url);
     console.log("AssemblyAI Response received:", assemblyResponse);
 
@@ -95,14 +88,15 @@ router.post("/", async (req, res) => {
 
     // Respond to the frontend
     res.json({
-      message: "Recording stopped, MP4 sent to Bubble, summary sent to Bubble",
+      message:
+        "Audio recording stopped, file sent to Bubble, summary sent to Bubble",
       mp4Url: mp4Url,
       summary: assemblyResponse.summary || "No summary available",
     });
   } catch (error) {
-    console.error("Error stopping recording:", error);
+    console.error("Error stopping audio recording:", error);
     res.status(500).json({
-      error: "Failed to stop recording",
+      error: "Failed to stop audio recording",
       details: error.response ? error.response.data : error.message,
     });
   }

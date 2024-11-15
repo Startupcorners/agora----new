@@ -55,15 +55,19 @@ app.options("*", cors());
 const accessTokenGeneration = require("./access_token_generation");
 const acquire = require("./acquire");
 const generateRecordingToken = require("./generate_recording_token");
-const startRecording = require("./startRecording");
-const stopRecording = require("./stopRecording");
+const startCloudRecording = require("./startCloudRecording");
+const stopCloudRecording = require("./stopCloudRecording");
+const startAudioRecording = require("./startCloudRecording");
+const stopAudioRecording = require("./stopAudioRecording");
 
 // Using routes
 app.use("/generateTokens", accessTokenGeneration);
 app.use("/acquire", acquire);
 app.use("/generate_recording_token", generateRecordingToken);
-app.use("/start", startRecording);
-app.use("/stop", stopRecording);
+app.use("/startCloudRecording", startCloudRecording);
+app.use("/stopCloudRecording", stopCloudRecording);
+app.use("/startAudioRecording", startAudioRecording);
+app.use("/stopAudioRecording", stopAudioRecording);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);

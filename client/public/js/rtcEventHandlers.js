@@ -28,6 +28,12 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     return;
   }
 
+  // Skip processing for UID 2
+  if (userUid === "2") {
+    console.log("Skipping processing for UID 2.");
+    return;
+  }
+
   // Handle screen share client (UID 1)
   if (userUid === "1") {
     console.log(`User with UID 1 (screen share client) published.`);
@@ -123,6 +129,11 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
   // Skip handling for local user's own media (excluding screen share client)
   if (user.uid === config.uid && user.uid !== 1) {
     console.log("Skipping handling of local user's own media.");
+    return;
+  }
+
+  if (user.uid == 2) {
+    console.log("Skipping handling virtual participant.");
     return;
   }
 
@@ -318,9 +329,9 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   const userUid = user.uid.toString();
   console.log("Entering handleUserJoined function for user:", userUid);
 
-  // If UID is 1 (screen share UID), skip processing
-  if (userUid === "1") {
-    console.log("Skipping handling for screen share UID (1).");
+  // Skip processing for screen share UID (1) or specific UID (2)
+  if (userUid === "1" || userUid === "2") {
+    console.log(`Skipping handling for special UID (${userUid}).`);
     userJoinPromises[userUid] = Promise.resolve(); // Ensure a resolved promise is set
     return userJoinPromises[userUid];
   }
@@ -345,7 +356,9 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       if (!userAttr || Object.keys(userAttr).length === 0) {
         if (config.clientRTM) {
           try {
-            userAttr = await config.clientRTM.getUserAttributes(userUid.toString());
+            userAttr = await config.clientRTM.getUserAttributes(
+              userUid.toString()
+            );
           } catch (error) {
             console.error(
               `Failed to get RTM attributes for user ${userUid}:`,
@@ -430,6 +443,11 @@ export const handleUserLeft = async (user, config) => {
     // Skip handling for screen share UID (RTC UID 1)
     if (user.uid === 1) {
       console.log(`Skipping handling for screen share UID: ${user.uid}`);
+      return;
+    }
+
+    if (user.uid === 2) {
+      console.log(`Skipping handling for virtual participant`);
       return;
     }
 

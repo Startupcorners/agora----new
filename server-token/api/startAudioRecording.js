@@ -1,12 +1,6 @@
 const express = require("express");
 const axios = require("axios");
 const router = express.Router();
-const nocache = (req, res, next) => {
-  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
-  res.header("Expires", "-1");
-  res.header("Pragma", "no-cache");
-  next();
-};
 
 router.post("/", async (req, res) => {
   const { channelName, resourceId, uid, token, timestamp } = req.body;
@@ -24,10 +18,7 @@ router.post("/", async (req, res) => {
     });
   }
 
-  console.log("App ID:", process.env.APP_ID);
-  console.log("Resource ID:", resourceId);
-
-  console.log("Start recording request for:", {
+  console.log("Start audio recording request for:", {
     channelName,
     resourceId,
     uid,
@@ -45,24 +36,12 @@ router.post("/", async (req, res) => {
       uid: uid,
       clientRequest: {
         token: token,
-        extensionServiceConfig: {
-          errorHandlePolicy: "error_abort",
-          extensionServices: [
-            {
-              serviceName: "web_recorder_service",
-              errorHandlePolicy: "error_abort",
-              serviceParam: {
-                url: `https://sccopy-38403.bubbleapps.io/video/1726195519465x346418864932257800?r=1721913797942x965183480405939000&isaws=yes`,
-                audioProfile: 1,
-                videoWidth: 1280,
-                videoHeight: 720,
-                maxRecordingHour: 1,
-              },
-            },
-          ],
-        },
-        recordingFileConfig: {
-          avFileType: ["hls", "mp4"],
+        recordingConfig: {
+          audioProfile: 1,
+          // For audio-only recording, specify audio file type
+          recordingFileConfig: {
+            avFileType: ["audio"],
+          },
         },
         storageConfig: {
           vendor: 1,
@@ -76,12 +55,12 @@ router.post("/", async (req, res) => {
     };
 
     console.log(
-      "Payload sent to Agora for start recording:",
+      "Payload sent to Agora for start audio recording:",
       JSON.stringify(payload, null, 2)
     );
 
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/web/start`,
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/1/start`,
       payload,
       {
         headers: {
@@ -91,7 +70,7 @@ router.post("/", async (req, res) => {
       }
     );
 
-    console.log("Start recording response:", response.data);
+    console.log("Start audio recording response:", response.data);
 
     if (response.data.sid) {
       console.log("SID received:", response.data.sid);
@@ -100,12 +79,12 @@ router.post("/", async (req, res) => {
       console.error("No SID in response:", response.data);
       res
         .status(500)
-        .json({ error: "Failed to start recording: No SID received" });
+        .json({ error: "Failed to start audio recording: No SID received" });
     }
   } catch (error) {
-    console.error("Error starting recording:", error);
+    console.error("Error starting audio recording:", error);
     res.status(500).json({
-      error: "Failed to start recording",
+      error: "Failed to start audio recording",
       details: error.response ? error.response.data : error.message,
     });
   }
