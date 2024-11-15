@@ -1,3 +1,7 @@
+import {
+  fetchTokens,
+} from "./helperFunctions.js";
+
 export const startCloudRecording = async (config) => {
   try {
     // Step 1: Acquire a resource ID for cloud recording
@@ -144,7 +148,6 @@ export const stopCloudRecording = async (config) => {
   }
 };
 
-
 export const startAudioRecording = async (config) => {
   try {
     const resourceId = await acquireResource(config, "audio");
@@ -284,34 +287,34 @@ const acquireResource = async (config, mode) => {
 
 // Helper function to create and publish a screenshare user with UID 2
 export const createAndPublishScreenshareUser = async (config) => {
-  // Step 1: Create a new Agora RTC client for screenshare
-  config.screenShareClient = AgoraRTC.createClient({
-    mode: "rtc",
-    codec: "vp8",
-  });
-  console.log("New screenshare client created.");
+  try {
+    // Step 1: Create a new Agora RTC client for screenshare
+    config.screenShareClient = AgoraRTC.createClient({
+      mode: "rtc",
+      codec: "vp8",
+    });
+    console.log("New screenshare client created.");
 
-  // Step 2: Generate an RTC token for the screenshare UID (UID 2) to join the channel
-  console.log("Fetching RTC token for screenshare UID 2...");
-  const screenshareTokenResponse = await fetch(
-    `${config.serverUrl}/generate_rtc_token?channelName=${config.channelName}&uid=2`,
-    { method: "GET" }
-  );
-  const screenshareTokenData = await screenshareTokenResponse.json();
-  const screenshareToken = screenshareTokenData.token;
-  console.log("RTC token for screenshare UID 2 received:", screenshareToken);
+    // Step 2: Fetch the RTC token for the screenshare UID (UID 2)
+    console.log("Fetching RTC token for screenshare UID 2...");
+    const { rtcToken } = await fetchTokens(config, 2); // Pass UID 2 explicitly
+    console.log("RTC token for screenshare UID 2 received:", rtcToken);
 
-  // Step 3: Join the channel with the screenshare client
-  await config.screenShareClient.join(
-    config.appId,
-    config.channelName,
-    screenshareToken,
-    2
-  );
-  console.log("Screenshare client (UID 2) joined the channel.");
+    // Step 3: Join the channel with the screenshare client
+    await config.screenShareClient.join(
+      config.appId,
+      config.channelName,
+      rtcToken,
+      2
+    );
+    console.log("Screenshare client (UID 2) joined the channel.");
 
-  // Step 4: Create and publish the screenshare track
-  const screenTrack = await AgoraRTC.createScreenVideoTrack();
-  await config.screenShareClient.publish(screenTrack);
-  console.log("Screenshare track published for UID 2.");
+    // Step 4: Create and publish the screenshare track
+    const screenTrack = await AgoraRTC.createScreenVideoTrack();
+    await config.screenShareClient.publish(screenTrack);
+    console.log("Screenshare track published for UID 2.");
+  } catch (error) {
+    console.error("Error in createAndPublishScreenshareUser:", error);
+    throw error;
+  }
 };
