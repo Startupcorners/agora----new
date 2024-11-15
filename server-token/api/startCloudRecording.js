@@ -36,7 +36,7 @@ router.post("/", async (req, res) => {
       clientRequest: {
         token: token,
         recordingConfig: {
-          maxIdleTime: 30,
+          maxIdleTime: 120,
           subscribeAudioUids: [], // Automatically subscribe to audio from all users
           subscribeVideoUids: [uid], // Only subscribe to video from UID (screen sharer)
           streamTypes: 2, // Record both audio and video
