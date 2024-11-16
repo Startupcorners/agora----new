@@ -124,38 +124,20 @@ router.post("/", nocache, async (req, res) => {
         timestamp,
       });
 
-      // Set a timeout to trigger the stop request after a certain duration
-      const MAX_RECORDING_DURATION = 2 * 60 * 1000; // Example: 2 minutes in milliseconds
+      
 
-      setTimeout(async () => {
-        console.log(
-          `Max recording duration reached for ${channelName}, scheduling stop request...`
-        );
-
-        try {
-          // Schedule a call to the backend to stop the recording
           const stopPayload = {
             resourceId: resourceId,
             sid: response.data.sid,
             channelName: channelName,
             uid: uid,
             timestamp: timestamp,
+            authorization: `Basic ${authorizationToken}`,
           };
+       
 
-          const stopResponse = await axios.post(
-            `${serverUrl}/stopCloudRecording`,
-            stopPayload
-          );
-
-          if (stopResponse.data === "success") {
-            console.log("Stop recording request sent successfully");
-          } else {
-            console.error("Failed to stop recording:", stopResponse.data);
-          }
-        } catch (error) {
-          console.error("Error scheduling stop recording:", error.message);
-        }
-      }, MAX_RECORDING_DURATION);
+          console.log(stopPayload);
+       
     } else {
       console.error("Failed to start recording: No SID in response");
       res.status(500).json({
