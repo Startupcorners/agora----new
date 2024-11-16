@@ -132,13 +132,14 @@ export const stopCloudRecording = async (config) => {
 
     if (response.ok) {
       console.log("Recording stopped successfully:", JSON.stringify(stopData));
+      bubble_fn_isRecording("no");
       // MP4 file handling and other tasks are now done in the backend
     } else {
       console.log("Error stopping recording:", stopData.error);
-      bubble_fn_isRecording("no");
+      bubble_fn_isRecording("yes");
     }
   } catch (error) {
     console.log("Error stopping recording:", error.message);
-    bubble_fn_isRecording("no");
+    bubble_fn_isRecording("yes");
   }
 };
