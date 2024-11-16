@@ -1,28 +1,47 @@
 const express = require("express");
 const cors = require("cors");
-const axios = require("axios");
 const AWS = require("aws-sdk");
 require("dotenv").config();
 
 const app = express();
 
+// Allowed origins
 const allowedOrigins = [
   "https://startupcorners.com",
   "https://www.startupcorners.com",
 ];
 
+// Debug incoming origins
+app.use((req, res, next) => {
+  console.log("Origin:", req.headers.origin);
+  next();
+});
 
+// CORS configuration
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true); // Allow request
+      } else {
+        callback(new Error("Not allowed by CORS")); // Reject request
+      }
+    },
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+    credentials: true,
+  })
+);
 
-const nocache = (req, res, next) => {
+// No-cache headers
+app.use((req, res, next) => {
   res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
   res.header("Expires", "-1");
   res.header("Pragma", "no-cache");
   next();
-};
+});
 
-// Apply nocache middleware if needed
-app.use(nocache);
-
+// Middleware
+app.use(express.json());
 
 // AWS S3 setup
 const s3 = new AWS.S3({
@@ -31,27 +50,13 @@ const s3 = new AWS.S3({
   region: "us-east-1",
 });
 
-// Log environment variables for debugging
+// Debug environment variables
+console.log("Environment Variables:");
 console.log("APP_ID:", process.env.APP_ID || "Not Defined");
 console.log("APP_CERTIFICATE:", process.env.APP_CERTIFICATE || "Not Defined");
 console.log("S3_BUCKET_NAME:", process.env.S3_BUCKET_NAME || "Not Defined");
 
-// CORS setup for Bubble
-app.use(
-  cors({
-    origin: allowedOrigins,
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true,
-  })
-);
-
-// JSON parser middleware
-app.use(express.json());
-
-// Handle preflight requests
-app.options("*", cors());
-
-// Importing route files
+// Import routes
 const accessTokenGeneration = require("./access_token_generation");
 const acquire = require("./acquire");
 const generateRecordingToken = require("./generate_recording_token");
@@ -60,7 +65,7 @@ const stopCloudRecording = require("./stopCloudRecording");
 const startAudioRecording = require("./startCloudRecording");
 const stopAudioRecording = require("./stopAudioRecording");
 
-// Using routes
+// Apply routes
 app.use("/generateTokens", accessTokenGeneration);
 app.use("/acquire", acquire);
 app.use("/generate_recording_token", generateRecordingToken);
@@ -69,14 +74,11 @@ app.use("/stopCloudRecording", stopCloudRecording);
 app.use("/startAudioRecording", startAudioRecording);
 app.use("/stopAudioRecording", stopAudioRecording);
 
+// Error handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
+  console.error("Error:", err.message);
   res.status(500).send("Something broke!");
 });
 
-
-// Export the app
+// Export app
 module.exports = app;
-
-// Define allowed origins
-
