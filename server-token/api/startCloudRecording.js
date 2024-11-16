@@ -78,7 +78,7 @@ router.post("/", nocache, async (req, res) => {
                 audioProfile: 1,
                 videoWidth: 1280,
                 videoHeight: 720,
-                maxRecordingHour: 0.0333, // You can change this duration or make it dynamic
+                maxRecordingHour: 1, // You can change this duration or make it dynamic
               },
             },
           ],

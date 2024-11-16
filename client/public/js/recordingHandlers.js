@@ -1,18 +1,13 @@
-// recordingHandlers.js
-
-// Import the helper functions you need
-import { log } from "./helperFunctions.js";
 
 export const acquireResource = async (config) => {
   config.recordId = Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit recordId
   try {
-    log(
-      config,
-      "Payload for acquire resource:" +
-        JSON.stringify({
-          channelName: config.channelName,
-          uid: config.recordId,
-        })
+    console.log(
+      "Payload for acquire resource:",
+      JSON.stringify({
+        channelName: config.channelName,
+        uid: config.recordId,
+      })
     );
 
     const response = await fetch(config.serverUrl + "/acquire", {
@@ -28,15 +23,15 @@ export const acquireResource = async (config) => {
 
     if (!response.ok) {
       const errorData = await response.json();
-      log(config, "Error acquiring resource:" + JSON.stringify(errorData));
+      console.log("Error acquiring resource:", JSON.stringify(errorData));
       throw new Error(`Failed to acquire resource: ${errorData.error}`);
     }
 
     const data = await response.json();
-    log(config, "Resource acquired: " + data.resourceId);
+    console.log("Resource acquired:", data.resourceId);
     return data.resourceId;
   } catch (error) {
-    log(config, "Error acquiring resource:" + error.message);
+    console.log("Error acquiring resource:", error.message);
     throw error;
   }
 };
@@ -44,7 +39,7 @@ export const acquireResource = async (config) => {
 export const startCloudRecording = async (config, url) => {
   try {
     const resourceId = await acquireResource(config);
-    log(config, "Resource acquired: " + resourceId);
+    console.log("Resource acquired:", resourceId);
 
     config.resourceId = resourceId;
 
@@ -52,7 +47,7 @@ export const startCloudRecording = async (config, url) => {
     config.timestamp = timestamp;
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
-    log(config, "Waited 2 seconds after acquiring resource");
+    console.log("Waited 2 seconds after acquiring resource");
 
     const recordingTokenResponse = await fetch(
       `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.recordId}`,
@@ -62,7 +57,7 @@ export const startCloudRecording = async (config, url) => {
     const tokenData = await recordingTokenResponse.json();
     const recordingToken = tokenData.token;
 
-    log(config, "Recording token received: " + recordingToken);
+    console.log("Recording token received:", recordingToken);
 
     // Use the `url` argument passed to the function
     const recordingServiceUrl = url;
@@ -79,23 +74,23 @@ export const startCloudRecording = async (config, url) => {
         token: recordingToken,
         timestamp: config.timestamp,
         serviceUrl: recordingServiceUrl,
-        serverUrl: config.serverUrl // Pass the `url` to the backend
+        serverUrl: config.serverUrl, // Pass the `url` to the backend
       }),
     });
 
     const startData = await response.json();
-    log(config, "Response from start recording: " + JSON.stringify(startData));
+    console.log("Response from start recording:", JSON.stringify(startData));
 
     if (!response.ok) {
-      log(config, "Error starting recording: " + startData.error);
+      console.log("Error starting recording:", startData.error);
       throw new Error(`Failed to start recording: ${startData.error}`);
     }
 
     if (startData.sid) {
-      log(config, "SID received successfully: " + startData.sid);
+      console.log("SID received successfully:", startData.sid);
       config.sid = startData.sid;
     } else {
-      log(config, "SID not received in the response");
+      console.log("SID not received in the response");
     }
 
     if (typeof bubble_fn_record === "function") {
@@ -109,11 +104,10 @@ export const startCloudRecording = async (config, url) => {
 
     return startData;
   } catch (error) {
-    log(config, "Error starting recording: " + error.message);
+    console.log("Error starting recording:", error.message);
     throw error;
   }
 };
-
 
 export const stopCloudRecording = async (config) => {
   try {
@@ -135,15 +129,12 @@ export const stopCloudRecording = async (config) => {
     const stopData = await response.json();
 
     if (response.ok) {
-      log(
-        config,
-        "Recording stopped successfully: " + JSON.stringify(stopData)
-      );
+      console.log("Recording stopped successfully:", JSON.stringify(stopData));
       // MP4 file handling and other tasks are now done in the backend
     } else {
-      log(config, "Error stopping recording: " + stopData.error);
+      console.log("Error stopping recording:", stopData.error);
     }
   } catch (error) {
-    log(config, "Error stopping recording: " + error.message);
+    console.log("Error stopping recording:", error.message);
   }
 };
