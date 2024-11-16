@@ -34,7 +34,7 @@ router.post("/", async (req, res) => {
     const logResponse = await axios.post(
       "https://startupcorners.com/version-test/api/1.1/wf/recording_logs",
       {
-        resourceId: resourceID,
+        resourceId: resourceId,
       }
     );
 
