@@ -106,7 +106,7 @@ router.post("/", nocache, async (req, res) => {
 
       try {
         const bubbleResponse = await axios.post(
-          "https://startupcorners.com/version-test/api/1.1/wf/scheduleend",
+          "https://startupcorners.com/version-test/api/1.1/wf/scheduleaudioend",
           stopPayload
         );
 

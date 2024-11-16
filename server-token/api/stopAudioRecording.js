@@ -94,23 +94,78 @@ router.post("/", nocache, async (req, res) => {
     const audioUrl = await pollForAudio(resourceId, channelName, timestamp);
     console.log("Audio file retrieved:", audioUrl);
 
-    // Send the audio file URL to WebAssembly (instead of Bubble)
-    const webAssemblyResponse = await axios.post(
-      "https://your-webassembly-endpoint.com/api/upload-audio", // Replace with your actual WebAssembly endpoint
+    // Send the audio file URL to AssemblyAI for transcription and summary
+    const assemblyAiResponse = await axios.post(
+      "https://api.assemblyai.com/v2/transcript",
       {
-        resourceId: resourceId,
-        url: audioUrl,
+        audio_url: audioUrl, // AssemblyAI expects 'audio_url'
+        summarization: true, // Enable summarization
+        summary_type: "bullets", // Choose the summary format: "bullets", "gist", "headline", or "paragraph"
+      },
+      {
+        headers: {
+          Authorization: process.env.ASSEMBLY_AI_API_KEY, // Use your API key from the environment
+          "Content-Type": "application/json",
+        },
       }
     );
+
     console.log(
-      "Audio file URL sent to WebAssembly:",
-      webAssemblyResponse.data
+      "Audio file URL sent to AssemblyAI for transcription and summarization:",
+      assemblyAiResponse.data
     );
+
+    // Poll AssemblyAI to check the transcription status and get the summary
+    const transcriptId = assemblyAiResponse.data.id;
+
+    let transcriptStatus = "processing";
+    let transcriptSummary = null;
+
+    while (transcriptStatus === "processing") {
+      const statusResponse = await axios.get(
+        `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
+        {
+          headers: {
+            Authorization: process.env.ASSEMBLY_AI_API_KEY,
+          },
+        }
+      );
+
+      transcriptStatus = statusResponse.data.status;
+      console.log(`Transcription status: ${transcriptStatus}`);
+
+      if (transcriptStatus === "completed") {
+        transcriptSummary =
+          statusResponse.data.summary || "No summary available"; // Retrieve the summary
+        break;
+      }
+
+      if (transcriptStatus === "failed") {
+        throw new Error("Transcription failed at AssemblyAI.");
+      }
+
+      // Wait for 5 seconds before polling again
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+
+    console.log("Transcription completed. Summary:", transcriptSummary);
+
+    // Send the summary and resourceId to Bubble
+    const bubbleResponse = await axios.post(
+      "https://startupcorners.com/version-test/api/1.1/wf/receivesummary",
+      {
+        resourceId: resourceId,
+        summary: transcriptSummary,
+      }
+    );
+
+    console.log("Summary sent to Bubble. Response:", bubbleResponse.data);
 
     // Respond to the frontend
     res.json({
-      message: "Audio recording stopped, file sent to WebAssembly",
+      message: "Audio recording stopped, transcription completed",
       audioUrl: audioUrl,
+      transcriptSummary: transcriptSummary,
     });
   } catch (error) {
     console.error("Error stopping recording:", error.message);
