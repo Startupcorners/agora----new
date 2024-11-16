@@ -20,32 +20,7 @@ router.post("/", nocache, async (req, res) => {
     serverUrl,
   } = req.body;
 
-  // Validate required parameters
-  if (
-    !channelName ||
-    !resourceId ||
-    !uid ||
-    !token ||
-    !timestamp ||
-    !serviceUrl ||
-    !serverUrl
-  ) {
-    console.error("Missing required parameters:", {
-      channelName,
-      resourceId,
-      uid,
-      token,
-      timestamp,
-      serviceUrl,
-      serverUrl,
-    });
-    return res.status(400).json({
-      error:
-        "channelName, resourceId, uid, token, timestamp, serviceUrl, and serverUrl are required",
-    });
-  }
-
-  console.log("Start recording request received with parameters:", {
+  const requiredParams = {
     channelName,
     resourceId,
     uid,
@@ -53,7 +28,23 @@ router.post("/", nocache, async (req, res) => {
     timestamp,
     serviceUrl,
     serverUrl,
-  });
+  };
+
+  const missingParams = Object.entries(requiredParams)
+    .filter(([key, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingParams.length > 0) {
+    console.error("Missing required parameters:", missingParams);
+    return res.status(400).json({
+      error: `Missing required parameters: ${missingParams.join(", ")}`,
+    });
+  }
+
+  console.log(
+    "Start recording request received with parameters:",
+    requiredParams
+  );
 
   try {
     // Create the authorization token for Agora API
@@ -74,25 +65,25 @@ router.post("/", nocache, async (req, res) => {
               serviceName: "web_recorder_service",
               errorHandlePolicy: "error_abort",
               serviceParam: {
-                url: serviceUrl, // Dynamic URL from frontend
+                url: serviceUrl,
                 audioProfile: 1,
                 videoWidth: 1280,
                 videoHeight: 720,
-                maxRecordingHour: 1, // You can change this duration or make it dynamic
+                maxRecordingHour: 1,
               },
             },
           ],
         },
         recordingFileConfig: {
-          avFileType: ["hls", "mp4"], // Types of recordings to generate
+          avFileType: ["hls", "mp4"],
         },
         storageConfig: {
-          vendor: 1, // S3
-          region: 0, // Region (0 = Global)
+          vendor: 1,
+          region: 0,
           bucket: process.env.S3_BUCKET_NAME,
           accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
-          fileNamePrefix: ["recordings", channelName, timestamp], // Folder structure in S3
+          fileNamePrefix: ["recordings", channelName, timestamp],
         },
       },
     };
@@ -113,31 +104,36 @@ router.post("/", nocache, async (req, res) => {
 
     console.log("Agora API response:", response.data);
 
-    // Check if SID (Session ID) is in the response
     if (response.data.sid) {
       console.log("Recording successfully started. SID:", response.data.sid);
 
-      // Send success response back to the frontend
+      const stopPayload = {
+        resourceId: resourceId,
+        sid: response.data.sid,
+        channelName: channelName,
+        uid: uid,
+        timestamp: timestamp,
+        authorization: `Basic ${authorizationToken}`,
+      };
+
+      console.log("Data to send to Bubble:", stopPayload);
+
+      try {
+        const bubbleResponse = await axios.post(
+          "https://startupcorners.com/version-test/api/1.1/wf/scheduleend",
+          stopPayload
+        );
+
+        console.log("Bubble response:", bubbleResponse.data);
+      } catch (bubbleError) {
+        console.error("Error scheduling stop in Bubble:", bubbleError.message);
+      }
+
       res.json({
         resourceId,
         sid: response.data.sid,
         timestamp,
       });
-
-      
-
-          const stopPayload = {
-            resourceId: resourceId,
-            sid: response.data.sid,
-            channelName: channelName,
-            uid: uid,
-            timestamp: timestamp,
-            authorization: `Basic ${authorizationToken}`,
-          };
-       
-
-          console.log(stopPayload);
-       
     } else {
       console.error("Failed to start recording: No SID in response");
       res.status(500).json({
