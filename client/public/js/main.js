@@ -31,8 +31,6 @@ const newMainApp = function (initConfig) {
     callContainerSelector: "#video-stage",
     participantPlayerContainer: templateVideoParticipant,
     appId: "95e91980e5444a8e86b4e41c7f03b713",
-    timestamp: "",
-    recordId: null,
     uid: null,
     user: {
       id: null,
@@ -66,7 +64,15 @@ const newMainApp = function (initConfig) {
     localAudioTrack: null, // Ensure local tracks are initialized as null initially
     localVideoTrack: null,
     currentVirtualBackground: null,
-    extensionVirtualBackground: null, // Add the virtual background extension here
+    extensionVirtualBackground: null,
+    resourceId: null,
+    recordId: null,
+    timestamp: null,
+    sid: null,
+    audioResourceId: null,
+    audioRecordId: null,
+    audioTimestamp: null,
+    audioSid: null, // Add the virtual background extension here
   };
 
   // Apply initial config

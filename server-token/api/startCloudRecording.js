@@ -113,7 +113,6 @@ router.post("/", nocache, async (req, res) => {
         channelName: channelName,
         uid: uid,
         timestamp: timestamp,
-        authorization: `Basic ${authorizationToken}`,
       };
 
       console.log("Data to send to Bubble:", stopPayload);

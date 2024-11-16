@@ -2,46 +2,67 @@ const express = require("express");
 const axios = require("axios");
 const router = express.Router();
 
-router.post("/", async (req, res) => {
-  const { channelName, resourceId, uid, token, timestamp } = req.body;
+const nocache = (req, res, next) => {
+  res.header("Cache-Control", "private, no-cache, no-store, must-revalidate");
+  res.header("Expires", "-1");
+  res.header("Pragma", "no-cache");
+  next();
+};
 
-  if (!channelName || !resourceId || !uid || !token || !timestamp) {
-    console.error("Missing required parameters:", {
-      channelName,
-      resourceId,
-      uid,
-      token,
-      timestamp,
-    });
-    return res.status(400).json({
-      error: "channelName, resourceId, uid, token, and timestamp are required",
-    });
-  }
-
-  console.log("Start audio recording request for:", {
+router.post("/", nocache, async (req, res) => {
+  const {
     channelName,
     resourceId,
     uid,
     token,
     timestamp,
-  });
+    serviceUrl,
+    serverUrl,
+  } = req.body;
+
+  const requiredParams = {
+    channelName,
+    resourceId,
+    uid,
+    token,
+    timestamp,
+    serviceUrl,
+    serverUrl,
+  };
+
+  const missingParams = Object.entries(requiredParams)
+    .filter(([key, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingParams.length > 0) {
+    console.error("Missing required parameters:", missingParams);
+    return res.status(400).json({
+      error: `Missing required parameters: ${missingParams.join(", ")}`,
+    });
+  }
+
+  console.log(
+    "Start recording request received with parameters:",
+    requiredParams
+  );
 
   try {
+    // Create the authorization token for Agora API
     const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
 
+    // Payload for Agora Cloud Recording API
     const payload = {
       cname: channelName,
       uid: uid,
       clientRequest: {
         token: token,
         recordingConfig: {
-          audioProfile: 1,
-          // For audio-only recording, specify audio file type
-          recordingFileConfig: {
-            avFileType: ["audio"],
-          },
+          audioProfile: 1, // Audio-only profile
+        },
+        recordingFileConfig: {
+          avFileType: ["audio"], // Record only audio
         },
         storageConfig: {
           vendor: 1,
@@ -54,13 +75,11 @@ router.post("/", async (req, res) => {
       },
     };
 
-    console.log(
-      "Payload sent to Agora for start audio recording:",
-      JSON.stringify(payload, null, 2)
-    );
+    console.log("Payload for Agora API:", JSON.stringify(payload, null, 2));
 
+    // Call Agora's Cloud Recording API to start recording
     const response = await axios.post(
-      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/1/start`,
+      `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/mode/mix/start`,
       payload,
       {
         headers: {
@@ -70,56 +89,47 @@ router.post("/", async (req, res) => {
       }
     );
 
-    console.log("Start audio recording response:", response.data);
+    console.log("Agora API response:", response.data);
 
     if (response.data.sid) {
-      console.log("SID received:", response.data.sid);
-      res.json({ resourceId, sid: response.data.sid, timestamp });
+      console.log("Recording successfully started. SID:", response.data.sid);
 
-      // Schedule a delayed stop after a max duration (e.g., 2 minutes)
-      const MAX_RECORDING_DURATION = 2 * 60 * 1000; // 2 minutes in milliseconds
+      const stopPayload = {
+        resourceId: resourceId,
+        sid: response.data.sid,
+        channelName: channelName,
+        uid: uid,
+        timestamp: timestamp,
+      };
 
-      setTimeout(async () => {
-        console.log(
-          "Max recording duration reached, stopping the recording..."
+      console.log("Data to send to Bubble:", stopPayload);
+
+      try {
+        const bubbleResponse = await axios.post(
+          "https://startupcorners.com/version-test/api/1.1/wf/scheduleend",
+          stopPayload
         );
 
-        try {
-          const stopPayload = {
-            cname: channelName,
-            uid: uid,
-            clientRequest: {},
-          };
+        console.log("Bubble response:", bubbleResponse.data);
+      } catch (bubbleError) {
+        console.error("Error scheduling stop in Bubble:", bubbleError.message);
+      }
 
-          const stopResponse = await axios.post(
-            `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${response.data.sid}/mode/1/stop`,
-            stopPayload,
-            {
-              headers: {
-                Authorization: `Basic ${authorizationToken}`,
-                "Content-Type": "application/json",
-              },
-            }
-          );
-
-          console.log(
-            "Recording stopped after max duration:",
-            stopResponse.data
-          );
-        } catch (error) {
-          console.error("Error stopping recording after max duration:", error);
-        }
-      }, MAX_RECORDING_DURATION);
+      res.json({
+        resourceId,
+        sid: response.data.sid,
+        timestamp,
+      });
     } else {
-      console.error("No SID in response:", response.data);
-      res
-        .status(500)
-        .json({ error: "Failed to start audio recording: No SID received" });
+      console.error("Failed to start recording: No SID in response");
+      res.status(500).json({
+        error: "Failed to start recording: No SID in response",
+      });
     }
   } catch (error) {
-    console.error("Error starting audio recording:", error);
+    console.error("Error starting recording:", error.message);
     res.status(500).json({
-      error: "Failed to start audio recording",
+      error: "Failed to start recording",
       details: error.response ? error.response.data : error.message,
     });
   }
