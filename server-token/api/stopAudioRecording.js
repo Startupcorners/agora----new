@@ -1,7 +1,7 @@
 const express = require("express");
 const axios = require("axios");
 const router = express.Router();
-const pollForAudioFile = require("./pollForAudioFile"); // Adjusted poll function for audio
+const pollForAudioFile = require("./pollForMp4"); // Adjusted poll function for audio
 
 router.post("/", async (req, res) => {
   const { channelName, resourceId, sid, uid, timestamp } = req.body;
