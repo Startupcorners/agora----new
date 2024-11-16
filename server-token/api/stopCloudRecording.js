@@ -31,7 +31,7 @@ router.post("/", async (req, res) => {
 
   try {
     // Check if there's already a log entry for this eventId (to avoid redundant actions)
-    const logResponse = await axios.post(
+    const logResponse = await axios.get(
       "https://startupcorners.com/version-test/api/1.1/wf/recording_logs",
       {
         resourceId: resourceId,
