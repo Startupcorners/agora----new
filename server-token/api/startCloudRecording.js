@@ -82,10 +82,10 @@ router.post("/", async (req, res) => {
       };
 
       // Schedule stop in Bubble
-      const bubbleResponse = await axios.post(
-        "https://startupcorners.com/version-test/api/1.1/wf/scheduleend",
-        bubblePayload
-      );
+      // const bubbleResponse = await axios.post(
+      //   "https://startupcorners.com/version-test/api/1.1/wf/scheduleend",
+      //   bubblePayload
+      // );
 
       console.log("Data sent to Bubble:", bubblePayload); // Log what was sent
       console.log("Scheduled stop in Bubble. Response:", bubbleResponse.data);
