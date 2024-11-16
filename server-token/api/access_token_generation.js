@@ -8,12 +8,31 @@ const {
 module.exports = async (req, res) => {
   const { channelName, uid, role } = req.query;
 
-  // Set no-cache headers to prevent caching of token responses
+  // Define allowed origins
+  const allowedOrigins = [
+    "https://startupcorners.com",
+    "https://www.startupcorners.com",
+  ];
+
+  // Get the origin of the request
+  const origin = req.headers.origin;
+
+  // Set CORS headers if the origin is allowed
+  if (allowedOrigins.includes(origin)) {
+    res.set("Access-Control-Allow-Origin", origin);
+  }
   res.set({
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
     "Cache-Control": "no-cache, no-store, must-revalidate",
     Pragma: "no-cache",
     Expires: "0",
   });
+
+  // Handle preflight requests
+  if (req.method === "OPTIONS") {
+    return res.status(204).send(""); // Respond to OPTIONS requests with no content
+  }
 
   console.log(
     `Request received: channelName=${channelName}, uid=${uid}, role=${role}`
