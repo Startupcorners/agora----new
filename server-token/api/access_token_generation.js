@@ -14,10 +14,24 @@ module.exports = async (req, res) => {
     "https://www.startupcorners.com",
   ];
 
-  // Get the origin of the request
+  // Get the request origin
   const origin = req.headers.origin;
 
-  // Set CORS headers if the origin is allowed
+  // Handle preflight requests (OPTIONS method)
+  if (req.method === "OPTIONS") {
+    // Set CORS headers for preflight requests
+    if (allowedOrigins.includes(origin)) {
+      res.set("Access-Control-Allow-Origin", origin);
+    }
+    res.set({
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Max-Age": "86400", // Cache preflight response for 24 hours
+    });
+    return res.status(204).send(""); // No content for preflight
+  }
+
+  // Set CORS headers for actual requests
   if (allowedOrigins.includes(origin)) {
     res.set("Access-Control-Allow-Origin", origin);
   }
@@ -28,11 +42,6 @@ module.exports = async (req, res) => {
     Pragma: "no-cache",
     Expires: "0",
   });
-
-  // Handle preflight requests
-  if (req.method === "OPTIONS") {
-    return res.status(204).send(""); // Respond to OPTIONS requests with no content
-  }
 
   console.log(
     `Request received: channelName=${channelName}, uid=${uid}, role=${role}`
