@@ -101,10 +101,12 @@ export const startCloudRecording = async (config, url) => {
         output4: config.timestamp,
       });
     }
+    bubble_fn_isRecording("yes")
 
     return startData;
   } catch (error) {
     console.log("Error starting recording:", error.message);
+    bubble_fn_isRecording("no");
     throw error;
   }
 };
@@ -133,8 +135,10 @@ export const stopCloudRecording = async (config) => {
       // MP4 file handling and other tasks are now done in the backend
     } else {
       console.log("Error stopping recording:", stopData.error);
+      bubble_fn_isRecording("no");
     }
   } catch (error) {
     console.log("Error stopping recording:", error.message);
+    bubble_fn_isRecording("no");
   }
 };
