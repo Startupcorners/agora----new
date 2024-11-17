@@ -158,89 +158,109 @@ const newMainApp = function (initConfig) {
   config = { ...config, ...callbacks };
 
   // Modified join function
-  const join = async () => {
-    bubble_fn_role(config.user.roleInTheCall);
+const join = async () => {
+  bubble_fn_role(config.user.roleInTheCall);
+  try {
+    // Fetch RTC and RTM tokens
+    const tokens = await fetchTokens(config);
+    if (!tokens) throw new Error("Failed to fetch token");
+
+    // Ensure the user has a role assigned
+    if (!config.user.role) {
+      throw new Error("User does not have a role assigned.");
+    }
+
+    // Logout of RTM if already logged in, then join RTM
     try {
-      // Fetch RTC and RTM tokens
-      const tokens = await fetchTokens(config);
-      if (!tokens) throw new Error("Failed to fetch token");
-
-      // Ensure the user has a role assigned
-      if (!config.user.role) {
-        throw new Error("User does not have a role assigned.");
-      }
-
-      // Logout of RTM if already logged in, then join RTM
-      try {
-        const attributes = await config.clientRTM.getUserAttributes(
-          config.uid.toString()
-        );
-        console.log("Already logged in to RTM. Attributes:", attributes);
-        await config.clientRTM.logout();
-        console.log("User logged out of RTM for a fresh join.");
-      } catch {
-        console.log("Not logged in to RTM, proceeding to join RTM.");
-      }
-      await joinRTM(tokens.rtmToken);
-
-      // Check if the user is in the waiting room
-      if (config.user.roleInTheCall === "waiting") {
-        console.log("User is in the waiting room; skipping RTC join.");
-        await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
-        await sendRTMMessage("trigger_manage_participants");
-        return; // Exit without joining RTC
-      }
-
-      // Join RTC
-      console.log("config.uid before joining RTC", config.uid);
-      await config.client.join(
-        config.appId,
-        config.channelName,
-        tokens.rtcToken,
-        config.uid
+      const attributes = await config.clientRTM.getUserAttributes(
+        config.uid.toString()
       );
+      console.log("Already logged in to RTM. Attributes:", attributes);
+      await config.clientRTM.logout();
+      console.log("User logged out of RTM for a fresh join.");
+    } catch {
+      console.log("Not logged in to RTM, proceeding to join RTM.");
+    }
+    await joinRTM(tokens.rtmToken);
 
-      setupEventListeners(config);
-      await fetchAndSendDeviceList(config);
-      await updateSelectedDevices(config);
+    // Check if the user is in the waiting room
+    if (config.user.roleInTheCall === "waiting") {
+      console.log("User is in the waiting room; skipping RTC join.");
+      await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
+      await sendRTMMessage("trigger_manage_participants");
+      return; // Exit without joining RTC
+    }
 
-      // Additional host setup
-      if (config.user.role === "host") {
-        await joinToVideoStage(config);
-      }
+    // Join RTC
+    console.log("config.uid before joining RTC", config.uid);
+    await config.client.join(
+      config.appId,
+      config.channelName,
+      tokens.rtcToken,
+      config.uid
+    );
 
-      // Track user join and handle token renewal
-      manageParticipants(config.uid, config.user, "join");
-      config.client.on("token-privilege-will-expire", handleRenewToken);
+    setupEventListeners(config);
+    await fetchAndSendDeviceList(config);
+    await updateSelectedDevices(config);
 
-      // Notify Bubble of successful join
-      if (typeof bubble_fn_joining === "function") {
-        bubble_fn_joining("Joined");
-        updateLayout();
-      }
-    } catch (error) {
-      console.error("Error joining channel:", error);
+    // Additional host setup
+    if (config.user.role === "host") {
+      await joinToVideoStage(config);
+    }
 
-      // Notify Bubble of error
-      if (typeof bubble_fn_joining === "function") {
-        bubble_fn_joining("Error");
+    // Track user join and handle token renewal
+    manageParticipants(config.uid, config.user, "join");
+    config.client.on("token-privilege-will-expire", handleRenewToken);
+
+    // Notify Bubble of successful join
+    if (
+      ["host", "speaker", "meetingParticipant", "audienceOnStage"].includes(
+        config.user.roleInTheCall
+      )
+    ) {
+      console.log("Sending data to Bubble for active participant tracking...");
+      try {
+        const bubbleResponse = await axios.post(
+          "https://startupcorners.com/version-test/api/1.1/wf/activeParticipant",
+          {
+            eventId: config.channelName,
+            name: config.user.name,
+          }
+        );
+        console.log("Data sent to Bubble successfully:", bubbleResponse.data);
+      } catch (error) {
+        console.error("Error sending data to Bubble:", error);
       }
     }
-  };
 
-  // Function to send an RTM message to the channel
-  const sendRTMMessage = async (message) => {
-    try {
-      if (config.channelRTM) {
-        await config.channelRTM.sendMessage({ text: message });
-        console.log("Message sent to RTM channel:", message);
-      } else {
-        console.warn("RTM channel is not initialized.");
-      }
-    } catch (error) {
-      console.error("Failed to send RTM message:", error);
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Joined");
+      updateLayout();
     }
-  };
+  } catch (error) {
+    console.error("Error joining channel:", error);
+
+    // Notify Bubble of error
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Error");
+    }
+  }
+};
+
+// Function to send an RTM message to the channel
+const sendRTMMessage = async (message) => {
+  try {
+    if (config.channelRTM) {
+      await config.channelRTM.sendMessage({ text: message });
+      console.log("Message sent to RTM channel:", message);
+    } else {
+      console.warn("RTM channel is not initialized.");
+    }
+  } catch (error) {
+    console.error("Failed to send RTM message:", error);
+  }
+};
 
   // RTM Join function
   const joinRTM = async (rtmToken, retryCount = 0) => {
