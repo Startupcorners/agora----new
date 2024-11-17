@@ -62,6 +62,19 @@ router.post("/", nocache, async (req, res) => {
       `No log entry for resourceId ${resourceId}, proceeding with stop recording...`
     );
 
+    // Fetch the list of participants from Bubble
+    console.log("Fetching participants from Bubble...");
+    const participantsResponse = await axios.post(
+      "https://startupcorners.com/version-test/api/1.1/wf/getParticipants",
+      {
+        eventId: channelName, // Send channelName as eventId
+      }
+    );
+    console.log("Response:", participantsResponse);
+
+    const participants = participantsResponse.data.participants || [];
+    console.log("Active participants retrieved:", participants);
+
     // Create the authorization token for Agora API
     const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
@@ -100,11 +113,11 @@ router.post("/", nocache, async (req, res) => {
       {
         audio_url: audioUrl, // AssemblyAI expects 'audio_url'
         summarization: true, // Enable summarization
-        summary_type: "bullets", // Choose the summary format: "bullets", "gist", "headline", or "paragraph"
+        summary_type: "bullets", // Choose the summary format
       },
       {
         headers: {
-          Authorization: process.env.ASSEMBLY_AI_API_KEY, // Use your API key from the environment
+          Authorization: process.env.ASSEMBLY_AI_API_KEY,
           "Content-Type": "application/json",
         },
       }
@@ -150,12 +163,14 @@ router.post("/", nocache, async (req, res) => {
 
     console.log("Transcription completed. Summary:", transcriptSummary);
 
-    // Send the summary and resourceId to Bubble
+    // Send the summary and participants to Bubble
     const bubbleResponse = await axios.post(
       "https://startupcorners.com/version-test/api/1.1/wf/receivesummary",
       {
         resourceId: resourceId,
-        summary: transcriptSummary,
+        summary: `Participants: ${participants.join(
+          ", "
+        )}\n\nSummary: ${transcriptSummary}`,
       }
     );
 
@@ -166,6 +181,7 @@ router.post("/", nocache, async (req, res) => {
       message: "Audio recording stopped, transcription completed",
       audioUrl: audioUrl,
       transcriptSummary: transcriptSummary,
+      participants: participants,
     });
   } catch (error) {
     console.error("Error stopping recording:", error.message);
