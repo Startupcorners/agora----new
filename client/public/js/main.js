@@ -1,7 +1,4 @@
-axios
-  .get("https://jsonplaceholder.typicode.com/todos/1")
-  .then((response) => console.log(response.data))
-  .catch((error) => console.error(error));
+import axios from "https://cdn.skypack.dev/axios";
 
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
