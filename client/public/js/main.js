@@ -1,3 +1,4 @@
+const axios = require("axios");
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
 import {
@@ -6,15 +7,23 @@ import {
 } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
-import { fetchTokens, switchCam, switchMic, switchSpeaker, fetchAndSendDeviceList,
+import {
+  fetchTokens,
+  switchCam,
+  switchMic,
+  switchSpeaker,
+  fetchAndSendDeviceList,
   updateSelectedDevices,
- } from "./helperFunctions.js";
+} from "./helperFunctions.js";
 
 import { addUserWrapper } from "./wrappers.js";
 
 import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
-import { startCloudRecording, stopCloudRecording } from "./recordingHandlers.js";
+import {
+  startCloudRecording,
+  stopCloudRecording,
+} from "./recordingHandlers.js";
 import { toggleVirtualBackground } from "./virtualBackgroundHandlers.js";
 
 import {
@@ -82,38 +91,37 @@ const newMainApp = function (initConfig) {
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
   // Initialize the Virtual Background extension
- (async () => {
-   try {
-     console.log("Initializing Virtual Background Extension...");
+  (async () => {
+    try {
+      console.log("Initializing Virtual Background Extension...");
 
-     // Ensure 'extension' and 'config' are declared beforehand, or declare them if needed
-     let extension = new VirtualBackgroundExtension();
+      // Ensure 'extension' and 'config' are declared beforehand, or declare them if needed
+      let extension = new VirtualBackgroundExtension();
 
-     // Check for compatibility before proceeding
-     console.log("Checking for compatibility...");
-     if (!extension.checkCompatibility()) {
-       console.error("Browser does not support Virtual Background.");
-       return;
-     }
-     console.log("Browser is compatible with Virtual Background.");
+      // Check for compatibility before proceeding
+      console.log("Checking for compatibility...");
+      if (!extension.checkCompatibility()) {
+        console.error("Browser does not support Virtual Background.");
+        return;
+      }
+      console.log("Browser is compatible with Virtual Background.");
 
-     // Register the extension
-     console.log("Registering Virtual Background extension...");
-     AgoraRTC.registerExtensions([extension]);
-     console.log("Virtual Background extension registered successfully.");
+      // Register the extension
+      console.log("Registering Virtual Background extension...");
+      AgoraRTC.registerExtensions([extension]);
+      console.log("Virtual Background extension registered successfully.");
 
-     // Attach the extension to the config
-     console.log("Attaching extension and processor to config...");
-     config.extensionVirtualBackground = extension;
-     console.log("Extension and processor attached to config.");
-   } catch (error) {
-     console.error(
-       "Failed to initialize the Virtual Background extension:",
-       error
-     );
-   }
- })();
-
+      // Attach the extension to the config
+      console.log("Attaching extension and processor to config...");
+      config.extensionVirtualBackground = extension;
+      console.log("Extension and processor attached to config.");
+    } catch (error) {
+      console.error(
+        "Failed to initialize the Virtual Background extension:",
+        error
+      );
+    }
+  })();
 
   // Ensure required config parameters are present
   if (
@@ -149,7 +157,6 @@ const newMainApp = function (initConfig) {
   const callbacks = eventCallbacks(config, config.clientRTM);
   config = { ...config, ...callbacks };
 
-  
   // Modified join function
   const join = async () => {
     bubble_fn_role(config.user.roleInTheCall);
@@ -196,7 +203,6 @@ const newMainApp = function (initConfig) {
       setupEventListeners(config);
       await fetchAndSendDeviceList(config);
       await updateSelectedDevices(config);
-
 
       // Additional host setup
       if (config.user.role === "host") {
@@ -363,7 +369,6 @@ const newMainApp = function (initConfig) {
     }
   };
 
-
   return {
     config,
     join,
@@ -377,13 +382,10 @@ const newMainApp = function (initConfig) {
     changeUserRole,
     toggleScreenShare,
     fetchAndSendDeviceList,
-    startCloudRecording, 
-    stopCloudRecording, 
+    startCloudRecording,
+    stopCloudRecording,
     userTracks,
   };
 };
 
 window["newMainApp"] = newMainApp;
-
-
-

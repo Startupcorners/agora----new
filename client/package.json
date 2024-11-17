@@ -19,6 +19,7 @@
   "dependencies": {
     "agora-extension-virtual-background": "^1.3.0",
     "agora-rtc-sdk-ng": "4.20.2",
-    "agora-rtm-sdk": "^2.2.0"
+    "agora-rtm-sdk": "^2.2.0",
+    "axios": "^1.7.7"
   }
 }
