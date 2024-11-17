@@ -222,6 +222,7 @@ export const startScreenShare = async (screenShareUid, config) => {
     console.log(
       `Starting screen share process for screenShareUid: ${screenShareUid}`
     );
+    config.currentScreenSharingUserUid = config.uid;
 
     // Create the screen share track
     const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
@@ -261,6 +262,7 @@ export const stopScreenShare = async (screenShareUid, config) => {
   try {
     console.log(`Stopping screen share for screenShareUid: ${screenShareUid}`);
 
+    config.currentScreenSharingUserUid = null;
     // Get the screen share track
     const screenShareTrack = userTracks[screenShareUid]?.screenShareTrack;
 

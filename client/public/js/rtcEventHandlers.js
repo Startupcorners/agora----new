@@ -447,7 +447,10 @@ export const handleUserLeft = async (user, config) => {
     }
 
     if (user.uid === 2) {
-      console.log(`Skipping handling for virtual participant`);
+      console.log(
+        `User ${user.uid} is a virtual participant, stopping recording.`
+      );
+      bubble_fn_isRecording("no");
       return;
     }
 
