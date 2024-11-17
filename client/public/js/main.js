@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from "https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js";
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
 import {
