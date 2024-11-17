@@ -1,4 +1,4 @@
-const axios = require("axios");
+import axios from "axios";
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
 import {
