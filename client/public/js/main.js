@@ -1,4 +1,8 @@
-import axios from "https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js";
+axios
+  .get("https://jsonplaceholder.typicode.com/todos/1")
+  .then((response) => console.log(response.data))
+  .catch((error) => console.error(error));
+
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
 import {
