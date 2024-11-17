@@ -70,7 +70,6 @@ router.post("/", nocache, async (req, res) => {
         eventId: channelName, // Send channelName as eventId
       }
     );
-    console.log("Response:", participantsResponse);
 
     const participants = participantsResponse.data.participants || [];
     console.log("Active participants retrieved:", participants);
