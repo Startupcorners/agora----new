@@ -213,26 +213,29 @@ const join = async () => {
     manageParticipants(config.uid, config.user, "join");
     config.client.on("token-privilege-will-expire", handleRenewToken);
 
-    // Notify Bubble of successful join
-    if (
-      ["host", "speaker", "meetingParticipant", "audienceOnStage"].includes(
-        config.user.roleInTheCall
-      )
-    ) {
-      console.log("Sending data to Bubble for active participant tracking...");
-      try {
-        const bubbleResponse = await axios.post(
-          "https://startupcorners.com/version-test/api/1.1/wf/activeParticipant",
-          {
-            eventId: config.channelName,
-            name: config.user.name,
-          }
-        );
-        console.log("Data sent to Bubble successfully:", bubbleResponse.data);
-      } catch (error) {
-        console.error("Error sending data to Bubble:", error);
-      }
-    }
+    // Notify Bubble of successful joinif (
+  ["host", "speaker", "meetingParticipant", "audienceOnStage"].includes(
+    config.user.roleInTheCall
+  )
+  {
+  const dataToSend = {
+    eventId: config.channelName,
+    name: config.user.name,
+  };
+
+  console.log("Preparing to send data to Bubble:", dataToSend);
+
+  try {
+    const bubbleResponse = await axios.post(
+      "https://startupcorners.com/version-test/api/1.1/wf/activeParticipant",
+      dataToSend
+    );
+    console.log("Data sent to Bubble successfully:", bubbleResponse.data);
+  } catch (error) {
+    console.error("Error sending data to Bubble:", error);
+  }
+}
+
 
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Joined");
