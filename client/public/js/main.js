@@ -62,7 +62,6 @@ const newMainApp = function (initConfig) {
     processor: null,
     localAudioTrackMuted: false, // These are needed in config
     localVideoTrackMuted: true,
-    isVirtualBackGroundEnabled: false,
     cameraToggleInProgress: false,
     defaultMic: null,
     selectedMic: null,
