@@ -52,27 +52,27 @@ router.post("/", nocache, async (req, res) => {
 
     // Payload for Agora Cloud Recording API
     const payload = {
-      uid: uid, // The UID used to identify the recorder in the channel
-      cname: channelName, // The channel name
+      uid: uid, // Recorder UID
+      cname: channelName, // Channel name
       clientRequest: {
-        token: token, // Token if required; otherwise, null
+        token: token || null, // Provide a token if needed; set null if not required
         recordingConfig: {
-          maxIdleTime: 120, // Optional: Stop recording if no active audio/video streams after 30 seconds
-          streamTypes: 1, // 1 for audio only, 2 for both audio and video
-          channelType: 0, // 0 for communication, 1 for live broadcasting
-          videoStreamType: 0, // Use 0 for high-quality video (not relevant for audio-only)
-          subscribeAudioUids: [], // Optional: List of UIDs to record audio from (leave empty for all audio)
+          maxIdleTime: 30, // Optional: Stop recording if no active streams after 30 seconds
+          streamTypes: 1, // 1 = Audio-only recording
+          audioProfile: 1, // 1 = Standard audio
+          channelType: 0, // 0 = Communication, 1 = Live broadcast
         },
         storageConfig: {
-          accessKey: process.env.S3_ACCESS_KEY,
-          region: 3, // Region 3 for AWS S3 (check Agora docs for other vendors)
+          vendor: 1,
+          region: 0,
           bucket: process.env.S3_BUCKET_NAME,
+          accessKey: process.env.S3_ACCESS_KEY,
           secretKey: process.env.S3_SECRET_KEY,
-          vendor: 1, // 1 for AWS S3
-          fileNamePrefix: ["recordings", channelName], // Folder structure in the S3 bucket
+          fileNamePrefix: ["recordings", channelName, timestamp],
         },
       },
     };
+
 
     console.log("Payload for Agora API:", JSON.stringify(payload, null, 2));
 
