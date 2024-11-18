@@ -26,7 +26,7 @@ export const acquireResource = async (config, scene) => {
   const recordId = Math.floor(100000 + Math.random() * 900000).toString();
 
   // Ensure scene is provided and valid
-  const validScenes = ["audio", "web"];
+  const validScenes = ["composite", "web"];
   if (!scene || !validScenes.includes(scene)) {
     throw new Error(
       `Invalid scene. Please specify one of the following: ${validScenes.join(
