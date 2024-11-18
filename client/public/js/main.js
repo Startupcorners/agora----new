@@ -24,6 +24,8 @@ import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 import {
   startCloudRecording,
   stopCloudRecording,
+  startAudioRecording,
+  stopAudioRecording,
 } from "./recordingHandlers.js";
 import { toggleVirtualBackground } from "./virtualBackgroundHandlers.js";
 
@@ -436,6 +438,8 @@ const sendRTMMessage = async (message) => {
     fetchAndSendDeviceList,
     startCloudRecording,
     stopCloudRecording,
+    startAudioRecording,
+    stopAudioRecording,
     userTracks,
   };
 };
