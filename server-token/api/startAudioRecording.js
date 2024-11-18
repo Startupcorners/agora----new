@@ -61,14 +61,6 @@ router.post("/", nocache, async (req, res) => {
           streamTypes: 1, // Audio-only recording
           audioProfile: 1, // Standard audio
           channelType: 0, // Communication channel
-          transcodingConfig: {
-            height: 640,
-            width: 360,
-            bitrate: 500,
-            fps: 15,
-            mixedVideoLayout: 1,
-            backgroundColor: "#000000",
-          },
         },
         storageConfig: {
           vendor: 1,
@@ -134,9 +126,9 @@ router.post("/", nocache, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Errorrrr starting recording:", error.message);
+    console.error("Error starting recording:", error.message);
     res.status(500).json({
-      error: "Failed to starttttt recording",
+      error: "Failed to start recording",
       details: error.response ? error.response.data : error.message,
     });
   }
