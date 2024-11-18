@@ -2,6 +2,25 @@ import {
   fetchTokens,
 } from "./helperFunctions.js";
 
+const debounce = (func, delay) => {
+  let inProgress = false;
+  return async (...args) => {
+    if (inProgress) {
+      console.log("Function call ignored due to debounce.");
+      return;
+    }
+    inProgress = true;
+    try {
+      await func(...args);
+    } finally {
+      setTimeout(() => {
+        inProgress = false;
+      }, delay);
+    }
+  };
+};
+
+
 export const acquireResource = async (config) => {
   config.recordId = Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit recordId
   try {
