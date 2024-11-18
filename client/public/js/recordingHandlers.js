@@ -242,7 +242,6 @@ export const startAudioRecording = debounce(async (config) => {
         uid: config.audioRecordId,
         token: recordingToken,
         timestamp: config.audioTimestamp,
-        serverUrl: config.serverUrl,
       }),
     });
 

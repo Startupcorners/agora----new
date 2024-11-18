@@ -16,7 +16,6 @@ router.post("/", nocache, async (req, res) => {
     uid,
     token,
     timestamp,
-    serverUrl,
   } = req.body;
 
   const requiredParams = {
@@ -25,7 +24,6 @@ router.post("/", nocache, async (req, res) => {
     uid,
     token,
     timestamp,
-    serverUrl,
   };
 
   const missingParams = Object.entries(requiredParams)
