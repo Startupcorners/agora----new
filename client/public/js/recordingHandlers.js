@@ -124,12 +124,10 @@ export const startCloudRecording = debounce(async (config, url) => {
         output4: config.user.bubbleid,
       });
     }
-    bubble_fn_isVideoRecording("yes");
 
     return startData;
   } catch (error) {
     console.log("Error starting recording:", error.message);
-    bubble_fn_isVideoRecording("no");
     throw error;
   }
 }, 3000); // 3-second debounce
@@ -155,15 +153,11 @@ export const stopCloudRecording = debounce(async (config) => {
 
     if (response.ok) {
       console.log("Recording stopped successfully:", JSON.stringify(stopData));
-      bubble_fn_isVideoRecording("no");
       // MP4 file handling and other tasks are now done in the backend
     } else {
-      console.log("Error stopping recording:", stopData.error);
-      bubble_fn_isVideoRecording("yes");
-    }
+      console.log("Error stopping recording:", stopData.error);    }
   } catch (error) {
     console.log("Error stopping recording:", error.message);
-    bubble_fn_isVideoRecording("yes");
   }
 }, 3000); // 3-second debounce
 

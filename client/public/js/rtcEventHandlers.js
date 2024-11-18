@@ -339,6 +339,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   // Trigger bubble_fn_waitingForAcceptance if UID is 2
   if (userUid === "2") {
     console.log("UID is 2. Triggering bubble_fn_waitingForAcceptance.");
+    bubble_fn_isVideoRecording("yes");
     bubble_fn_waitingForAcceptance(); // Trigger Bubble function
   }
 
@@ -463,7 +464,7 @@ export const handleUserLeft = async (user, config) => {
       console.log(
         `User ${user.uid} is a virtual participant, stopping recording.`
       );
-      bubble_fn_isRecording("no");
+      bubble_fn_isVideoRecording("no");
       return;
     }
 
