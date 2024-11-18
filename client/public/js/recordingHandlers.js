@@ -20,11 +20,7 @@ const debounce = (func, delay) => {
   };
 };
 
-
 export const acquireResource = async (config, scene) => {
-  // Generate a 6-digit recordId
-  const recordId = Math.floor(100000 + Math.random() * 900000).toString();
-
   // Ensure scene is provided and valid
   const validScenes = ["composite", "web"];
   if (!scene || !validScenes.includes(scene)) {
@@ -33,6 +29,16 @@ export const acquireResource = async (config, scene) => {
         ", "
       )}`
     );
+  }
+
+  // Determine recordId based on scene
+  let recordId;
+  if (scene === "web") {
+    recordId = config.recordId;
+  } else if (scene === "composite") {
+    recordId = config.audioRecordId;
+  } else {
+    throw new Error(`Invalid scene: ${scene}`);
   }
 
   try {
