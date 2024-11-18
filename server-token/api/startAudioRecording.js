@@ -26,6 +26,16 @@ router.post("/", nocache, async (req, res) => {
     timestamp,
   };
 
+  console.log(
+    "I'm here",
+    requiredParams
+  );
+
+  console.log(
+    "Start recording request received with parameters:",
+    requiredParams
+  );
+
   const missingParams = Object.entries(requiredParams)
     .filter(([key, value]) => !value)
     .map(([key]) => key);
