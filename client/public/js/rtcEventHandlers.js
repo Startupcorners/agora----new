@@ -329,6 +329,12 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   const userUid = user.uid.toString();
   console.log("Entering handleUserJoined function for user:", userUid);
 
+  // Trigger bubble_fn_waitingForAcceptance if UID is 2
+  if (userUid === "2") {
+    console.log("UID is 2. Triggering bubble_fn_waitingForAcceptance.");
+    bubble_fn_waitingForAcceptance(); // Trigger Bubble function
+  }
+
   // Skip processing for screen share UID (1) or specific UID (2)
   if (userUid === "1" || userUid === "2") {
     console.log(`Skipping handling for special UID (${userUid}).`);

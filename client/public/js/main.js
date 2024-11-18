@@ -68,6 +68,7 @@ const newMainApp = function (initConfig) {
     selectedMic: null,
     defaultCam: null,
     selectedCam: null,
+    audioRecordingRTMClient: null,
     screenShareClient: null,
     isVirtualBackGroundEnabled: false,
     localAudioTrack: null, // Ensure local tracks are initialized as null initially
@@ -160,6 +161,7 @@ const newMainApp = function (initConfig) {
   // Modified join function
 const join = async () => {
   bubble_fn_role(config.user.roleInTheCall);
+
   try {
     // Fetch RTC and RTM tokens
     const tokens = await fetchTokens(config);
@@ -181,6 +183,7 @@ const join = async () => {
     } catch {
       console.log("Not logged in to RTM, proceeding to join RTM.");
     }
+
     await joinRTM(tokens.rtmToken);
 
     // Check if the user is in the waiting room
@@ -213,33 +216,44 @@ const join = async () => {
     manageParticipants(config.uid, config.user, "join");
     config.client.on("token-privilege-will-expire", handleRenewToken);
 
-    // Notify Bubble of successful joinif (
-  ["host", "speaker", "meetingParticipant", "audienceOnStage"].includes(
-    config.user.roleInTheCall
-  )
-  {
-  const dataToSend = {
-    eventId: config.channelName,
-    name: config.user.name,
-  };
+    // Notify Bubble of successful join
+    if (
+      ["host", "speaker", "meetingParticipant", "audienceOnStage"].includes(
+        config.user.roleInTheCall
+      )
+    ) {
+      const dataToSend = {
+        eventId: config.channelName,
+        name: config.user.name,
+      };
 
-  console.log("Preparing to send data to Bubble:", dataToSend);
+      console.log("Preparing to send data to Bubble:", dataToSend);
 
-  try {
-    const bubbleResponse = await axios.post(
-      "https://startupcorners.com/version-test/api/1.1/wf/activeParticipant",
-      dataToSend
-    );
-    console.log("Data sent to Bubble successfully:", bubbleResponse.data);
-  } catch (error) {
-    console.error("Error sending data to Bubble:", error);
-  }
-}
-
+      try {
+        const bubbleResponse = await axios.post(
+          "https://startupcorners.com/version-test/api/1.1/wf/activeParticipant",
+          dataToSend
+        );
+        console.log("Data sent to Bubble successfully:", bubbleResponse.data);
+      } catch (error) {
+        console.error("Error sending data to Bubble:", error);
+      }
+    }
 
     if (typeof bubble_fn_joining === "function") {
       bubble_fn_joining("Joined");
       updateLayout();
+    }
+
+    // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
+    if (config.user.roleInTheCall !== "waiting") {
+      const channelMembers = await config.channelRTM.getMembers();
+      console.log("Current RTM channel members:", channelMembers);
+
+      if (channelMembers.includes("2") || channelMembers.includes("3")) {
+        console.log("RTM members 2 or 3 detected. Event is being recorded.");
+        bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
+      }
     }
   } catch (error) {
     console.error("Error joining channel:", error);
@@ -250,6 +264,7 @@ const join = async () => {
     }
   }
 };
+
 
 // Function to send an RTM message to the channel
 const sendRTMMessage = async (message) => {

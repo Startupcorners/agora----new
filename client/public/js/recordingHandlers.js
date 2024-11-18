@@ -1,3 +1,6 @@
+import {
+  fetchTokens,
+} from "./helperFunctions.js";
 
 export const acquireResource = async (config) => {
   config.recordId = Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit recordId
@@ -94,19 +97,19 @@ export const startCloudRecording = async (config, url) => {
     }
 
     if (typeof bubble_fn_record === "function") {
-      bubble_fn_record({
+      bubble_fn_audioRecord({
         output1: resourceId,
         output2: config.sid,
         output3: config.recordId,
         output4: config.timestamp,
       });
     }
-    bubble_fn_isRecording("yes")
+    bubble_fn_isAudioRecording("yes");
 
     return startData;
   } catch (error) {
     console.log("Error starting recording:", error.message);
-    bubble_fn_isRecording("no");
+    bubble_fn_isAudioRecording("no");
     throw error;
   }
 };
@@ -132,25 +135,17 @@ export const stopCloudRecording = async (config) => {
 
     if (response.ok) {
       console.log("Recording stopped successfully:", JSON.stringify(stopData));
-      bubble_fn_isRecording("no");
+      bubble_fn_isAudioRecording("no");
       // MP4 file handling and other tasks are now done in the backend
     } else {
       console.log("Error stopping recording:", stopData.error);
-      bubble_fn_isRecording("yes");
+      bubble_fn_isAudioRecording("yes");
     }
   } catch (error) {
     console.log("Error stopping recording:", error.message);
-    bubble_fn_isRecording("yes");
+    bubble_fn_isAudioRecording("yes");
   }
 };
-
-
-
-
-
-
-
-
 
 export const acquireAudioResource = async (config) => {
   config.audioRecordId = Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit recordId
@@ -189,9 +184,28 @@ export const acquireAudioResource = async (config) => {
   }
 };
 
-
 export const startAudioRecording = async (config) => {
   try {
+    // Step 1: Check if RTM user '3' is already logged in
+    if (config.audioRecordingRTMClient) {
+      console.log("RTM user '3' already exists. Cannot start a new session.");
+      bubble_fn_audioIsAlreadyBeingRecorded();
+      throw new Error(
+        "RTM user '3' is already active. Stop the current session before starting a new one."
+      );
+    }
+
+    // Step 2: Fetch tokens for UID '3' using fetchTokens
+    const tokens = await fetchTokens(config, "3");
+    if (!tokens)
+      throw new Error("Failed to fetch tokens for audio recording user");
+
+    // Generate a unique record ID for the audio recording
+    config.audioRecordId = Math.floor(
+      100000 + Math.random() * 900000
+    ).toString(); // Generates a 6-digit recordId
+
+    // Step 3: Acquire resource for audio recording
     const resourceId = await acquireAudioResource(config);
     console.log("Resource acquired:", resourceId);
 
@@ -200,9 +214,11 @@ export const startAudioRecording = async (config) => {
     const timestamp = Date.now().toString();
     config.audioTimestamp = timestamp;
 
+    // Wait for a short period to ensure resource acquisition is complete
     await new Promise((resolve) => setTimeout(resolve, 2000));
     console.log("Waited 2 seconds after acquiring resource");
 
+    // Step 4: Fetch recording token for the audio recording UID
     const recordingTokenResponse = await fetch(
       `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.audioRecordId}`,
       { method: "GET" }
@@ -213,7 +229,7 @@ export const startAudioRecording = async (config) => {
 
     console.log("Recording token received:", recordingToken);
 
-
+    // Step 5: Start the audio recording via backend API
     const response = await fetch(config.serverUrl + "/startAudioRecording", {
       method: "POST",
       headers: {
@@ -225,7 +241,7 @@ export const startAudioRecording = async (config) => {
         uid: config.audioRecordId,
         token: recordingToken,
         timestamp: config.audioTimestamp,
-        serverUrl: config.serverUrl, // Pass the `url` to the backend
+        serverUrl: config.serverUrl,
       }),
     });
 
@@ -247,7 +263,43 @@ export const startAudioRecording = async (config) => {
       console.log("SID not received in the response");
     }
 
-    if (typeof bubble_fn_record === "function") {
+    // Step 6: Initialize RTM client for audio recording user
+    config.audioRecordingRTMClient = AgoraRTM.createInstance(config.appId, {
+      enableLogUpload: false,
+      logFilter: config.debugEnabled
+        ? AgoraRTM.LOG_FILTER_INFO
+        : AgoraRTM.LOG_FILTER_OFF,
+    });
+
+    const audioRtmUid = "3"; // UID '3' for audio recording user
+    const audioRtmToken = tokens.rtmToken;
+
+    // Step 7: Login to RTM with UID '3' using the fetched token
+    try {
+      await config.audioRecordingRTMClient.login({
+        uid: audioRtmUid,
+        token: audioRtmToken,
+      });
+      console.log(
+        "Audio recording RTM client logged in with UID:",
+        audioRtmUid
+      );
+    } catch (error) {
+      console.error("Failed to login audio recording RTM client:", error);
+      throw error;
+    }
+
+    // Step 8: Join the RTM channel
+    config.audioRecordingChannelRTM =
+      config.audioRecordingRTMClient.createChannel(config.channelName);
+    await config.audioRecordingChannelRTM.join();
+    console.log(
+      "Audio recording RTM client joined channel:",
+      config.channelName
+    );
+
+    // Call your function to handle the recording metadata (if applicable)
+    if (typeof bubble_fn_audiorecord === "function") {
       bubble_fn_audiorecord({
         output1: resourceId,
         output2: config.audioSid,
@@ -255,15 +307,27 @@ export const startAudioRecording = async (config) => {
         output4: config.audioTimestamp,
       });
     }
-    bubble_fn_isAudioRecording("yes");
+
+    // Update recording status (if applicable)
+    if (typeof bubble_fn_isAudioRecording === "function") {
+      bubble_fn_isAudioRecording("yes");
+    }
 
     return startData;
   } catch (error) {
     console.log("Error starting audio recording:", error.message);
-    bubble_fn_isAudioRecording("no");
+
+    // Update recording status in case of error (if applicable)
+    if (typeof bubble_fn_isAudioRecording === "function") {
+      bubble_fn_isAudioRecording("no");
+    }
+
     throw error;
   }
 };
+
+// Import AgoraRTM if not already imported
+import AgoraRTM from "agora-rtm-sdk";
 
 export const stopAudioRecording = async (config) => {
   try {
@@ -289,14 +353,44 @@ export const stopAudioRecording = async (config) => {
         "Audio recording stopped successfully:",
         JSON.stringify(stopData)
       );
-      bubble_fn_isAudioRecording("no");
-      // Audio file handling and other tasks are now done in the backend
+      // Update recording status (if applicable)
+      if (typeof bubble_fn_isAudioRecording === "function") {
+        bubble_fn_isAudioRecording("no");
+      }
     } else {
       console.log("Error stopping audio recording:", stopData.error);
-      bubble_fn_isAudioRecording("yes");
+      if (typeof bubble_fn_isAudioRecording === "function") {
+        bubble_fn_isAudioRecording("yes");
+      }
     }
   } catch (error) {
     console.log("Error stopping audio recording:", error.message);
-    bubble_fn_isAudioRecording("yes");
+    if (typeof bubble_fn_isAudioRecording === "function") {
+      bubble_fn_isAudioRecording("yes");
+    }
+  } finally {
+    // Leave the RTM channel and logout the audio recording RTM client
+    if (config.audioRecordingChannelRTM) {
+      try {
+        await config.audioRecordingChannelRTM.leave();
+        console.log("Audio recording RTM client left the channel");
+        config.audioRecordingChannelRTM = null; // Clean up
+      } catch (error) {
+        console.error(
+          "Failed to leave RTM channel for audio recording client:",
+          error
+        );
+      }
+    }
+
+    if (config.audioRecordingRTMClient) {
+      try {
+        await config.audioRecordingRTMClient.logout();
+        console.log("Audio recording RTM client logged out");
+        config.audioRecordingRTMClient = null; // Clean up
+      } catch (error) {
+        console.error("Failed to logout audio recording RTM client:", error);
+      }
+    }
   }
 };

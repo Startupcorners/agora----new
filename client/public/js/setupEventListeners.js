@@ -160,7 +160,6 @@ export const setupRTMMessageListener = (
   channelRTM.on("ChannelMessage", async (message, memberId, messagePros) => {
     console.log("Received RTM message:", message.text);
 
-    // Retrieve the attributes of the user who sent the message
     let userAttributes = {};
     try {
       userAttributes = await config.clientRTM.getUserAttributes(memberId);
@@ -172,35 +171,28 @@ export const setupRTMMessageListener = (
       );
     }
 
-    // Parse the message text as JSON if it contains structured data
     let parsedMessage;
     try {
       parsedMessage = JSON.parse(message.text);
     } catch (error) {
-      // If parsing fails, it's likely a plain text message (e.g., "waiting room")
       parsedMessage = { text: message.text };
     }
 
-    // Handle different types of messages
     if (parsedMessage.type === "roleChange") {
-      // Handle role change messages
       const { userUid, newRole, newRoleInTheCall } = parsedMessage;
       console.log(
         `Received role change for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
       );
 
-      // If the role change is for the current user, log out and reinitialize app with new role
       if (userUid === config.user.rtmUid) {
         console.log(
           "Role change is for the current user. Logging out of RTM and reinitializing app with new role."
         );
 
-        // Update local user config with new role and roleInTheCall
         config.user.role = newRole;
         config.user.roleInTheCall = newRoleInTheCall;
 
         try {
-          // Log out of RTM to ensure a clean state
           await config.clientRTM.logout();
           console.log("Logged out of RTM successfully.");
         } catch (error) {
@@ -210,7 +202,6 @@ export const setupRTMMessageListener = (
           );
         }
 
-        // Reinitialize the app with newMainApp to apply the new role configuration
         const newAppInstance = newMainApp(config);
         window.app = newAppInstance;
         newAppInstance
@@ -226,7 +217,6 @@ export const setupRTMMessageListener = (
       parsedMessage.text &&
       parsedMessage.text.includes("waiting room")
     ) {
-      // Handle waiting room messages
       console.log(
         "Triggering manageParticipants for user in the waiting room:",
         memberId
@@ -235,5 +225,23 @@ export const setupRTMMessageListener = (
     }
   });
 
-  console.log("RTM message listener initialized.");
+channelRTM.on("MemberJoined", async (memberId) => {
+  console.log(`RTM Member joined: ${memberId}`);
+
+  // If the joined member is UID 3, trigger the Bubble function
+  if (memberId === "3") {
+    console.log("UID 3 joined. Triggering bubble_fn_waitingForAcceptance.");
+    bubble_fn_waitingForAcceptance(); // Trigger Bubble function
+  }
+});
+
+// Handle RTM member left event
+channelRTM.on("MemberLeft", (memberId) => {
+  console.log(`RTM Member left: ${memberId}`);
+
+});
+
+console.log(
+  "RTM message listener with member join/leave handlers initialized."
+);
 };
