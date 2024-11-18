@@ -181,14 +181,15 @@ export const stopCloudRecording = debounce(async (config) => {
 // Debounced Start Audio Recording
 export const startAudioRecording = debounce(async (config) => {
   try {
-    const tokens = await fetchTokens(config, "3");
-    if (!tokens)
-      throw new Error("Failed to fetch tokens for audio recording user");
+    
 
     config.audioRecordId = Math.floor(
       100000 + Math.random() * 900000
     ).toString(); // Generates a 6-digit recordId
 
+    const tokens = await fetchTokens(config, config.audioRecordId);
+    if (!tokens)
+      throw new Error("Failed to fetch tokens for audio recording user");
     const resourceId = await acquireResource(config, "composite");
     console.log("Resource acquired:", resourceId);
 
