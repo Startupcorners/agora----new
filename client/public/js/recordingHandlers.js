@@ -115,6 +115,7 @@ export const startCloudRecording = debounce(async (config, url) => {
     } else {
       console.log("SID not received in the response");
     }
+    bubble_fn_isVideoRecording("yes");
 
     if (typeof bubble_fn_record === "function") {
       bubble_fn_videoRecord({
@@ -153,6 +154,7 @@ export const stopCloudRecording = debounce(async (config) => {
 
     if (response.ok) {
       console.log("Recording stopped successfully:", JSON.stringify(stopData));
+      bubble_fn_isVideoRecording("no");
       // MP4 file handling and other tasks are now done in the backend
     } else {
       console.log("Error stopping recording:", stopData.error);    }
@@ -279,6 +281,7 @@ export const startAudioRecording = debounce(async (config) => {
       config.audioRecordingRTMClient.createChannel(config.channelName);
     await config.audioRecordingChannelRTM.join();
     console.log("Audio recording RTM client joined channel:", config.channelName);
+    bubble_fn_isAudioRecording("yes");
 
     if (typeof bubble_fn_audiorecord === "function") {
       bubble_fn_audiorecord({
@@ -321,6 +324,7 @@ export const stopAudioRecording = debounce(async (config) => {
         "Audio recording stopped successfully:",
         JSON.stringify(stopData)
       );
+      bubble_fn_isAudioRecording("no");
       if (typeof bubble_fn_isAudioRecording === "function") {
         bubble_fn_isAudioRecording("no");
       }
