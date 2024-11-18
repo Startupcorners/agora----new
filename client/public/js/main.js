@@ -87,7 +87,6 @@ const newMainApp = function (initConfig) {
     audioResourceId: null,
     audioRecordId: null,
     audioTimestamp: null,
-    audioSid: null, // Add the virtual background extension here
   };
 
   // Apply initial config

@@ -18,7 +18,6 @@ router.post("/", nocache, async (req, res) => {
     console.error("Missing required parameters:", {
       channelName,
       resourceId,
-      sid,
       uid,
       timestamp,
     });
@@ -30,7 +29,6 @@ router.post("/", nocache, async (req, res) => {
   console.log("Stopping recording with details:", {
     channelName,
     resourceId,
-    sid,
     uid,
     timestamp,
   });

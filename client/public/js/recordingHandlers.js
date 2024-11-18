@@ -303,7 +303,6 @@ export const stopAudioRecording = debounce(async (config) => {
       },
       body: JSON.stringify({
         resourceId: config.audioResourceId,
-        sid: config.audioSid,
         channelName: config.channelName,
         uid: config.audioRecordId,
         timestamp: config.audioTimestamp,
