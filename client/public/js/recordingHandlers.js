@@ -191,7 +191,7 @@ export const startAudioRecording = debounce(async (config) => {
    config.audioResourceId = resourceId;
 
    const timestamp = Date.now().toString();
-   config.timestamp = timestamp;
+   config.audioTimestamp = timestamp;
 
    await new Promise((resolve) => setTimeout(resolve, 2000));
    console.log("Waited 2 seconds after acquiring resource");
