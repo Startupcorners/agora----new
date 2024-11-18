@@ -53,7 +53,7 @@ export const acquireResource = async (config, scene) => {
       body: JSON.stringify({
         channelName: config.channelName,
         uid: recordId,
-        scene, // Pass scene dynamically
+        recordingType: scene, // Pass scene dynamically
       }),
     });
 
