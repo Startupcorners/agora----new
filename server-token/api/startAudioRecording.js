@@ -57,10 +57,18 @@ router.post("/", nocache, async (req, res) => {
       clientRequest: {
         token: token || null, // Provide a token if needed; set null if not required
         recordingConfig: {
-          maxIdleTime: 30, // Optional: Stop recording if no active streams after 30 seconds
-          streamTypes: 1, // 1 = Audio-only recording
-          audioProfile: 1, // 1 = Standard audio
-          channelType: 0, // 0 = Communication, 1 = Live broadcast
+          maxIdleTime: 30,
+          streamTypes: 1, // Audio-only recording
+          audioProfile: 1, // Standard audio
+          channelType: 0, // Communication channel
+          transcodingConfig: {
+            height: 640,
+            width: 360,
+            bitrate: 500,
+            fps: 15,
+            mixedVideoLayout: 1,
+            backgroundColor: "#000000",
+          },
         },
         storageConfig: {
           vendor: 1,
