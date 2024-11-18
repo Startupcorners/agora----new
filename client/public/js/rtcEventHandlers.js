@@ -271,6 +271,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
   const meetingParticipants = participantList.filter(
     (p) => p.roleInTheCall === "meetingParticipant"
   );
+  const masters = participantList.filter((p) => p.roleInTheCall === "master");
 
   // Helper to format data for Bubble, including rtmUid
   const formatForBubble = (participants) => ({
@@ -320,8 +321,14 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     bubble_fn_meetingParticipant(formatForBubble(meetingParticipants));
   }
 
+  if (typeof bubble_fn_master === "function") {
+    console.log("Sending master data to Bubble:", formatForBubble(masters));
+    bubble_fn_master(formatForBubble(masters));
+  }
+
   console.log("Participant list updated.");
 };
+
 
 
 // Handles user joined event
