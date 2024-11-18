@@ -18,6 +18,7 @@ app.use((req, res, next) => {
   next();
 });
 
+console.log("I'm here");
 
 // CORS configuration
 app.use(
