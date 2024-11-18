@@ -84,6 +84,7 @@ const newMainApp = function (initConfig) {
     audioTimestamp: null,
     timestamp: null,
     sid: null,
+    audioSid: null,
     audioResourceId: null,
     audioRecordId: null,
     audioTimestamp: null,
