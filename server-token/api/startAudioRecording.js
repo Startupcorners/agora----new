@@ -16,7 +16,6 @@ router.post("/", nocache, async (req, res) => {
     uid,
     token,
     timestamp,
-    serviceUrl,
     serverUrl,
   } = req.body;
 
@@ -26,7 +25,6 @@ router.post("/", nocache, async (req, res) => {
     uid,
     token,
     timestamp,
-    serviceUrl,
     serverUrl,
   };
 
