@@ -218,7 +218,7 @@ const join = async () => {
 
     // Notify Bubble of successful join
     if (
-      ["host", "speaker", "meetingParticipant", "audienceOnStage"].includes(
+      ["host", "speaker", "meetingParticipant", "audienceOnStage", "master"].includes(
         config.user.roleInTheCall
       )
     ) {
