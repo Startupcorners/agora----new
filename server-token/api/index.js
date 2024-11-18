@@ -65,7 +65,7 @@ const acquire = require("./acquire");
 const generateRecordingToken = require("./generate_recording_token");
 const startCloudRecording = require("./startCloudRecording");
 const stopCloudRecording = require("./stopCloudRecording");
-const startAudioRecording = require("./startCloudRecording");
+const startAudioRecording = require("./startAudioRecording");
 const stopAudioRecording = require("./stopAudioRecording");
 
 // Apply routes
