@@ -218,9 +218,13 @@ const join = async () => {
 
     // Notify Bubble of successful join
     if (
-      ["host", "speaker", "meetingParticipant", "audienceOnStage", "master"].includes(
-        config.user.roleInTheCall
-      )
+      [
+        "host",
+        "speaker",
+        "meetingParticipant",
+        "audienceOnStage",
+        "master",
+      ].includes(config.user.roleInTheCall)
     ) {
       const dataToSend = {
         eventId: config.channelName,
@@ -249,6 +253,16 @@ const join = async () => {
     if (config.user.roleInTheCall !== "waiting") {
       const channelMembers = await config.channelRTM.getMembers();
       console.log("Current RTM channel members:", channelMembers);
+
+      if (channelMembers.includes("2")) {
+        console.log("RTM member 2 detected. Video recording is active.");
+        bubble_fn_isVideoRecording("yes"); // Indicate video recording is active
+      }
+
+      if (channelMembers.includes("3")) {
+        console.log("RTM member 3 detected. Audio recording is active.");
+        bubble_fn_isAudioRecording("yes"); // Indicate audio recording is active
+      }
 
       if (channelMembers.includes("2") || channelMembers.includes("3")) {
         console.log("RTM members 2 or 3 detected. Event is being recorded.");
