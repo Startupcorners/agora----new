@@ -133,9 +133,9 @@ router.post("/", nocache, async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error starting recording:", error.message);
+    console.error("Errorrrr starting recording:", error.message);
     res.status(500).json({
-      error: "Failed to start recording",
+      error: "Failed to starttttt recording",
       details: error.response ? error.response.data : error.message,
     });
   }
