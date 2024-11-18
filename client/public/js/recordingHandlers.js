@@ -121,7 +121,7 @@ export const startCloudRecording = debounce(async (config, url) => {
         output1: resourceId,
         output2: config.sid,
         output3: config.recordId,
-        output4: config.user.bubbleid,
+        output4: config.timestamp,
       });
     }
 
@@ -202,12 +202,6 @@ export const acquireAudioResource = async (config) => {
 // Debounced Start Audio Recording
 export const startAudioRecording = debounce(async (config) => {
   try {
-    if (config.audioRecordingRTMClient) {
-      console.log("RTM user '3' already exists. Cannot start a new session.");
-      bubble_fn_audioIsAlreadyBeingRecorded();
-      return;
-    }
-
     const tokens = await fetchTokens(config, "3");
     if (!tokens)
       throw new Error("Failed to fetch tokens for audio recording user");
@@ -291,20 +285,14 @@ export const startAudioRecording = debounce(async (config) => {
         output1: resourceId,
         output2: config.audioSid,
         output3: config.audioRecordId,
-        output4: config.user.bubbleid,
+        output4: config.timestamp,
       });
     }
 
-    if (typeof bubble_fn_isAudioRecording === "function") {
-      bubble_fn_isAudioRecording("yes");
-    }
 
     return startData;
   } catch (error) {
     console.log("Error starting audio recording:", error.message);
-    if (typeof bubble_fn_isAudioRecording === "function") {
-      bubble_fn_isAudioRecording("no");
-    }
     throw error;
   }
 }, 3000); // 3-second debounce
@@ -338,15 +326,9 @@ export const stopAudioRecording = debounce(async (config) => {
       }
     } else {
       console.log("Error stopping audio recording:", stopData.error);
-      if (typeof bubble_fn_isAudioRecording === "function") {
-        bubble_fn_isAudioRecording("yes");
-      }
     }
   } catch (error) {
     console.log("Error stopping audio recording:", error.message);
-    if (typeof bubble_fn_isAudioRecording === "function") {
-      bubble_fn_isAudioRecording("yes");
-    }
   } finally {
     if (config.audioRecordingChannelRTM) {
       try {

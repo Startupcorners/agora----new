@@ -231,6 +231,7 @@ channelRTM.on("MemberJoined", async (memberId) => {
   // If the joined member is UID 3, trigger the Bubble function
   if (memberId === "3") {
     console.log("UID 3 joined. Triggering bubble_fn_waitingForAcceptance.");
+    bubble_fn_isAudioRecording("yes");
     bubble_fn_waitingForAcceptance(); // Trigger Bubble function
   }
 });
@@ -238,6 +239,11 @@ channelRTM.on("MemberJoined", async (memberId) => {
 // Handle RTM member left event
 channelRTM.on("MemberLeft", (memberId) => {
   console.log(`RTM Member left: ${memberId}`);
+
+  if (memberId === "3") {
+    console.log("UID 3 left.");
+    bubble_fn_isAudioRecording("no");
+  }
 
 });
 
