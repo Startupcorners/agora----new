@@ -186,6 +186,13 @@ router.post("/", nocache, async (req, res) => {
     console.error("Error stopping recording:", error.message);
     console.error("Full error details:", error.response?.data || error);
 
+    // Ensure CORS headers are set before sending the error response
+    res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Origin, X-Requested-With, Content-Type, Accept"
+    );
+
     res.status(500).json({
       error: "Failed to stop recording",
       details: error.response?.data || error.message,
