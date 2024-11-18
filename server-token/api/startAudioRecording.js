@@ -53,7 +53,7 @@ router.post("/", nocache, async (req, res) => {
   );
 
   try {
-    // Create the authorization token for Agora APII
+    // Create the authorization token for Agora API
     const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
