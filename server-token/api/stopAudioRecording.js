@@ -11,10 +11,10 @@ const router = express.Router();
 
 // Stop recording endpoint
 router.post("/", nocache, async (req, res) => {
-  const { channelName, resourceId, sid, uid, timestamp } = req.body;
+  const { channelName, resourceId, uid, timestamp } = req.body;
 
   // Validate required parameters
-  if (!channelName || !resourceId || !sid || !uid || !timestamp) {
+  if (!channelName || !resourceId || !uid || !timestamp) {
     console.error("Missing required parameters:", {
       channelName,
       resourceId,
@@ -22,7 +22,7 @@ router.post("/", nocache, async (req, res) => {
       timestamp,
     });
     return res.status(400).json({
-      error: "channelName, resourceId, sid, uid, and timestamp are required",
+      error: "channelName, resourceId, uid, and timestamp are required",
     });
   }
 
