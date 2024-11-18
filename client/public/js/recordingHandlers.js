@@ -295,7 +295,18 @@ export const startAudioRecording = debounce(async (config) => {
 
 // Debounced Stop Audio Recording
 export const stopAudioRecording = debounce(async (config) => {
+  const requestId = Math.random().toString(36).substring(2); // Unique ID for this attempt
+  console.log(`stopAudioRecording attempt started. Request ID: ${requestId}`);
+
   try {
+    console.log("Request payload:", {
+      resourceId: config.audioResourceId,
+      channelName: config.channelName,
+      sid: config.audioSid,
+      uid: config.audioRecordId,
+      timestamp: config.audioTimestamp,
+    });
+
     const response = await fetch(`${config.serverUrl}/stopAudioRecording`, {
       method: "POST",
       headers: {
@@ -306,7 +317,7 @@ export const stopAudioRecording = debounce(async (config) => {
         channelName: config.channelName,
         sid: config.audioSid,
         uid: config.audioRecordId,
-        timestamp: config.audioTimestamp,        
+        timestamp: config.audioTimestamp,
       }),
     });
 
@@ -314,19 +325,28 @@ export const stopAudioRecording = debounce(async (config) => {
 
     if (response.ok) {
       console.log(
-        "Audio recording stopped successfully:",
+        `Audio recording stopped successfully. Request ID: ${requestId}`,
         JSON.stringify(stopData)
       );
-      bubble_fn_isAudioRecording("no");
       if (typeof bubble_fn_isAudioRecording === "function") {
         bubble_fn_isAudioRecording("no");
       }
     } else {
-      console.log("Error stopping audio recording:", stopData.error);
+      console.error(
+        `Error stopping audio recording (Request ID: ${requestId}):`,
+        stopData
+      );
     }
   } catch (error) {
-    console.log("Error stopping audio recording:", error.message);
+    console.error(
+      `Unexpected error in stopAudioRecording (Request ID: ${requestId}):`,
+      error.message
+    );
   } finally {
+    console.log(
+      `Finalizing stopAudioRecording for Request ID: ${requestId}. Cleaning up RTM clients.`
+    );
+
     if (config.audioRecordingChannelRTM) {
       try {
         await config.audioRecordingChannelRTM.leave();
@@ -338,6 +358,8 @@ export const stopAudioRecording = debounce(async (config) => {
           error
         );
       }
+    } else {
+      console.log("No RTM channel to leave.");
     }
 
     if (config.audioRecordingRTMClient) {
@@ -348,6 +370,10 @@ export const stopAudioRecording = debounce(async (config) => {
       } catch (error) {
         console.error("Failed to logout audio recording RTM client:", error);
       }
+    } else {
+      console.log("No RTM client to logout.");
     }
+
+    console.log(`stopAudioRecording cleanup completed for Request ID: ${requestId}`);
   }
 }, 3000); // 3-second debounce
