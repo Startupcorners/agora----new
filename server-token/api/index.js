@@ -20,7 +20,7 @@ app.use((req, res, next) => {
 
 console.log("I'm here");
 
-// CORS configuration
+// CORS configurations
 app.use(
   cors({
     origin: (origin, callback) => {
