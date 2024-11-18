@@ -21,14 +21,27 @@ const debounce = (func, delay) => {
 };
 
 
-export const acquireResource = async (config) => {
-  config.recordId = Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit recordId
+export const acquireResource = async (config, scene) => {
+  // Generate a 6-digit recordId
+  const recordId = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Ensure scene is provided and valid
+  const validScenes = ["audio", "web"];
+  if (!scene || !validScenes.includes(scene)) {
+    throw new Error(
+      `Invalid scene. Please specify one of the following: ${validScenes.join(
+        ", "
+      )}`
+    );
+  }
+
   try {
     console.log(
       "Payload for acquire resource:",
       JSON.stringify({
         channelName: config.channelName,
-        uid: config.recordId,
+        uid: recordId,
+        scene,
       })
     );
 
@@ -39,7 +52,8 @@ export const acquireResource = async (config) => {
       },
       body: JSON.stringify({
         channelName: config.channelName,
-        uid: config.recordId,
+        uid: recordId,
+        scene, // Pass scene dynamically
       }),
     });
 
@@ -58,10 +72,11 @@ export const acquireResource = async (config) => {
   }
 };
 
+
 // Debounced Start Cloud Recording
 export const startCloudRecording = debounce(async (config, url) => {
   try {
-    const resourceId = await acquireResource(config);
+    const resourceId = await acquireResource(config, "web");
     console.log("Resource acquired:", resourceId);
 
     config.resourceId = resourceId;
@@ -163,44 +178,6 @@ export const stopCloudRecording = debounce(async (config) => {
   }
 }, 3000); // 3-second debounce
 
-
-export const acquireAudioResource = async (config) => {
-  config.audioRecordId = Math.floor(100000 + Math.random() * 900000).toString(); // Generates a 6-digit recordId
-  try {
-    console.log(
-      "Payload for acquire resource:",
-      JSON.stringify({
-        channelName: config.channelName,
-        uid: config.audioRecordId,
-      })
-    );
-
-    const response = await fetch(config.serverUrl + "/acquire", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        channelName: config.channelName,
-        uid: config.audioRecordId,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.log("Error acquiring resource:", JSON.stringify(errorData));
-      throw new Error(`Failed to acquire resource: ${errorData.error}`);
-    }
-
-    const data = await response.json();
-    console.log("Resource acquired:", data.resourceId);
-    return data.resourceId;
-  } catch (error) {
-    console.log("Error acquiring resource:", error.message);
-    throw error;
-  }
-};
-
 // Debounced Start Audio Recording
 export const startAudioRecording = debounce(async (config) => {
   try {
@@ -212,7 +189,7 @@ export const startAudioRecording = debounce(async (config) => {
       100000 + Math.random() * 900000
     ).toString(); // Generates a 6-digit recordId
 
-    const resourceId = await acquireAudioResource(config);
+    const resourceId = await acquireResource(config, "composite");
     console.log("Resource acquired:", resourceId);
 
     config.audioResourceId = resourceId;
