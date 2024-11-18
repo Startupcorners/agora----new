@@ -11,6 +11,10 @@ const router = express.Router();
 
 // Stop recording endpoint
 router.post("/", nocache, async (req, res) => {
+  console.log("Incoming request to stopAudioRecording");
+  console.log("Request Headers:", req.headers);
+  console.log("Request Body:", req.body);
+
   const { channelName, resourceId, sid, uid, timestamp } = req.body;
 
   // Validate required parameters
@@ -36,18 +40,14 @@ router.post("/", nocache, async (req, res) => {
   });
 
   try {
-    // Check if there's already a log entry for this resourceId to avoid redundant actions
+    console.log("Step 1: Checking for existing log entry for resourceId");
     const logResponse = await axios.post(
       "https://startupcorners.com/version-test/api/1.1/wf/recording_logs",
       {
-        resourceId: resourceId, // Ensure the parameter is correctly passed in the body
+        resourceId: resourceId,
       }
     );
-
-    console.log(
-      "Response from /recording_logs (POST):",
-      JSON.stringify(logResponse.data, null, 2)
-    );
+    console.log("Response from /recording_logs:", logResponse.data);
 
     if (logResponse.data === "yes") {
       console.log(
@@ -58,34 +58,32 @@ router.post("/", nocache, async (req, res) => {
       });
     }
 
-    console.log(
-      `No log entry for resourceId ${resourceId}, proceeding with stop recording...`
-    );
-
-    // Fetch the list of participants from Bubble
-    console.log("Fetching participants from Bubble...");
+    console.log("Step 2: Fetching participants from Bubble API");
     const participantsResponse = await axios.post(
       "https://startupcorners.com/version-test/api/1.1/wf/getParticipants",
       {
-        eventId: channelName, // Send channelName as eventId
+        eventId: channelName,
       }
     );
+    console.log("Response from /getParticipants:", participantsResponse.data);
 
     const participants = participantsResponse.data.participants || [];
     console.log("Active participants retrieved:", participants);
 
-    // Create the authorization token for Agora API
+    console.log("Step 3: Creating Agora authorization token");
     const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
+    console.log("Authorization token created");
 
     const payload = {
       cname: channelName,
       uid: uid,
       clientRequest: {},
     };
+    console.log("Payload for Agora API:", payload);
 
-    // Call Agora's Cloud Recording API to stop recording
+    console.log("Step 4: Sending request to Agora Cloud Recording API");
     const response = await axios.post(
       `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/mix/stop`,
       payload,
@@ -96,23 +94,19 @@ router.post("/", nocache, async (req, res) => {
         },
       }
     );
+    console.log("Agora API Response:", response.data);
 
-    console.log(
-      "Recording stopped on Agora. Response:",
-      JSON.stringify(response.data, null, 2)
-    );
-
-    // Poll for the audio file from S3
+    console.log("Step 5: Polling for audio file URL");
     const audioUrl = await pollForAudio(resourceId, channelName, timestamp);
     console.log("Audio file retrieved:", audioUrl);
 
-    // Send the audio file URL to AssemblyAI for transcription and summary
+    console.log("Step 6: Sending audio file to AssemblyAI for transcription");
     const assemblyAiResponse = await axios.post(
       "https://api.assemblyai.com/v2/transcript",
       {
-        audio_url: audioUrl, // AssemblyAI expects 'audio_url'
-        summarization: true, // Enable summarization
-        summary_type: "bullets", // Choose the summary format
+        audio_url: audioUrl,
+        summarization: true,
+        summary_type: "bullets",
       },
       {
         headers: {
@@ -121,13 +115,9 @@ router.post("/", nocache, async (req, res) => {
         },
       }
     );
+    console.log("AssemblyAI Response:", assemblyAiResponse.data);
 
-    console.log(
-      "Audio file URL sent to AssemblyAI for transcription and summarization:",
-      assemblyAiResponse.data
-    );
-
-    // Poll AssemblyAI to check the transcription status and get the summary
+    console.log("Step 7: Polling AssemblyAI for transcription status");
     const transcriptId = assemblyAiResponse.data.id;
 
     let transcriptStatus = "processing";
@@ -142,13 +132,13 @@ router.post("/", nocache, async (req, res) => {
           },
         }
       );
-
       transcriptStatus = statusResponse.data.status;
-      console.log(`Transcription status: ${transcriptStatus}`);
+      console.log(`AssemblyAI Transcription Status: ${transcriptStatus}`);
 
       if (transcriptStatus === "completed") {
         transcriptSummary =
-          statusResponse.data.summary || "No summary available"; // Retrieve the summary
+          statusResponse.data.summary || "No summary available";
+        console.log("Transcription completed. Summary:", transcriptSummary);
         break;
       }
 
@@ -156,13 +146,11 @@ router.post("/", nocache, async (req, res) => {
         throw new Error("Transcription failed at AssemblyAI.");
       }
 
-      // Wait for 5 seconds before polling again
+      console.log("Waiting 5 seconds before polling again...");
       await new Promise((resolve) => setTimeout(resolve, 5000));
     }
 
-    console.log("Transcription completed. Summary:", transcriptSummary);
-
-    // Send the summary and participants to Bubble
+    console.log("Step 8: Sending summary and participants to Bubble API");
     const bubbleResponse = await axios.post(
       "https://startupcorners.com/version-test/api/1.1/wf/receivesummary",
       {
@@ -172,10 +160,9 @@ router.post("/", nocache, async (req, res) => {
         )}\n\nSummary: ${transcriptSummary}`,
       }
     );
+    console.log("Response from /receivesummary:", bubbleResponse.data);
 
-    console.log("Summary sent to Bubble. Response:", bubbleResponse.data);
-
-    // Respond to the frontend
+    console.log("Final Step: Sending response back to frontend");
     res.json({
       message: "Audio recording stopped, transcription completed",
       audioUrl: audioUrl,
@@ -183,10 +170,9 @@ router.post("/", nocache, async (req, res) => {
       participants: participants,
     });
   } catch (error) {
-    console.error("Error stopping recording:", error.message);
-    console.error("Full error details:", error.response?.data || error);
+    console.error("Error encountered:", error.message);
+    console.error("Error Response Data:", error.response?.data || error);
 
-    // Ensure CORS headers are set before sending the error response
     res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
     res.header(
       "Access-Control-Allow-Headers",
