@@ -80,6 +80,12 @@ app.use("/stopAudioRecording", stopAudioRecording);
 // Error handler
 app.use((err, req, res, next) => {
   console.error("Error Details:", err);
+  // Set CORS headers for error responses
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
   res.status(err.status || 500).send(err.message || "Something broke!");
 });
 
