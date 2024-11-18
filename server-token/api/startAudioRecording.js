@@ -10,13 +10,8 @@ const nocache = (req, res, next) => {
 };
 
 router.post("/", nocache, async (req, res) => {
-  const {
-    channelName,
-    resourceId,
-    uid,
-    token,
-    timestamp,
-  } = req.body;
+  console.log("Incoming Request Body:", req.body); // Add this log
+  const { channelName, resourceId, uid, token, timestamp } = req.body;
 
   const requiredParams = {
     channelName,
@@ -26,10 +21,7 @@ router.post("/", nocache, async (req, res) => {
     timestamp,
   };
 
-  console.log(
-    "I'm here",
-    requiredParams
-  );
+  console.log("I'm here", requiredParams);
 
   console.log(
     "Start recording request received with parameters:",

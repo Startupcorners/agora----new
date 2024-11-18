@@ -13,9 +13,11 @@ const allowedOrigins = [
 
 // Debug incoming origins
 app.use((req, res, next) => {
-  console.log("Origin:", req.headers.origin);
+  console.log("Request Headers:", req.headers);
+  console.log("Request Body:", req.body);
   next();
 });
+
 
 // CORS configuration
 app.use(
@@ -76,9 +78,10 @@ app.use("/stopAudioRecording", stopAudioRecording);
 
 // Error handler
 app.use((err, req, res, next) => {
-  console.error("Error:", err.message);
-  res.status(500).send("Something broke!");
+  console.error("Error Details:", err);
+  res.status(err.status || 500).send(err.message || "Something broke!");
 });
+
 
 // Export appw
 module.exports = app;
