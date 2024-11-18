@@ -79,6 +79,8 @@ const newMainApp = function (initConfig) {
     extensionVirtualBackground: null,
     resourceId: null,
     recordId: null,
+    audioResourceId: null,
+    audioRecordId: null,
     timestamp: null,
     sid: null,
     audioResourceId: null,
