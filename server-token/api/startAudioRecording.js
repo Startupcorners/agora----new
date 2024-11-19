@@ -58,7 +58,7 @@ router.post("/", nocache, async (req, res) => {
         token: token || null, // Provide a token if needed; set null if not required
         recordingConfig: {
           maxIdleTime: 30,
-          streamTypes: 1, // Audio-only recording
+          streamTypes: 0, // Audio-only recording
           audioProfile: 1, // Standard audio
           channelType: 0, // Communication channel
         },
