@@ -88,6 +88,7 @@ const newMainApp = function (initConfig) {
     audioResourceId: null,
     audioRecordId: null,
     audioTimestamp: null,
+    channelRTM: null,
   };
 
   // Apply initial config
@@ -155,7 +156,6 @@ const newMainApp = function (initConfig) {
       : AgoraRTM.LOG_FILTER_OFF,
   });
 
-  // Initialize RTM Channel
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
   setupRTMMessageListener(config.channelRTM, manageParticipants, config);
 
