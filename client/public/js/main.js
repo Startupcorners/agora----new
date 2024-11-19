@@ -156,8 +156,11 @@ const newMainApp = function (initConfig) {
       : AgoraRTM.LOG_FILTER_OFF,
   });
 
-  config.channelRTM = config.clientRTM.createChannel(config.channelName);
-  setupRTMMessageListener(config.channelRTM, manageParticipants, config);
+ if (!config.channelRTM) {
+    config.channelRTM = config.clientRTM.createChannel(config.channelName);
+    setupRTMMessageListener(config.channelRTM, manageParticipants, config);
+  }
+
 
   // Initialize event callbacks with clientRTM passed
   const callbacks = eventCallbacks(config, config.clientRTM);
