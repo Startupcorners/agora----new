@@ -502,46 +502,54 @@ export const handleUserLeft = async (user, config) => {
 };
 
 
-// Handles volume indicator change
-export const handleVolumeIndicator = (() => {
-  let lastMutedStatus = "no"; // Store the last muted status ("yes" or "no")
+// Handles volume indicator changeclient.on("volume-indicator", handleVolumeIndicator(config));
 
-  return async (result) => {
-    for (const volume of result) {
+export const handleVolumeIndicator = ((config) => {
+  const lastMutedStatuses = {}; // Track mute status per user
+
+  return (volumes) => {
+    volumes.forEach((volume) => {
       const userUID = volume.uid;
 
-      // Ignore UID 1 (screen share client or any other special case)
-      if (userUID === 1) {
-        continue; // Skip this iteration
-      }
+      // Ignore specific UIDs dynamically (if necessary)
+      if (userUID === 1) return;
 
-      const audioLevel = volume.level; // The audio level, used to determine when the user is speaking
-      let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
+      const audioLevel = volume.level; // Audio level for the user
+      const wrapper = document.querySelector(`#video-wrapper-${userUID}`);
       console.log(userUID, audioLevel);
 
+      // Determine if the user is muted based on audio level
       const currentStatus = audioLevel < 3 ? "yes" : "no";
 
-      // Only send to Bubble if the status has changed
-      if (currentStatus !== lastMutedStatus) {
+      // Only send to Bubble if the mute status has changed for this user
+      if (currentStatus !== lastMutedStatuses[userUID]) {
         console.log(
-          `Sending to bubble: bubble_fn_systemmuted("${currentStatus}")`
+          `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for user ${userUID}`
         );
-        bubble_fn_systemmuted(currentStatus);
-        lastMutedStatus = currentStatus; // Update the last status
+
+        if (typeof bubble_fn_systemmuted === "function") {
+          bubble_fn_systemmuted(currentStatus);
+        } else {
+          console.warn("bubble_fn_systemmuted is not defined.");
+        }
+
+        lastMutedStatuses[userUID] = currentStatus; // Update the user's last status
       }
 
-      // Apply audio level indicator styles if the wrapper is available
+      // Update wrapper style based on audio level, if available
       if (wrapper) {
         if (audioLevel > 60) {
-          // Adjust the threshold based on your needs
-          wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
-        } else {
-          wrapper.style.borderColor = "transparent"; // Transparent when not speaking
+          // Green border when speaking
+          wrapper.style.borderColor = "#00ff00";
+        } else if (wrapper.style.borderColor !== "transparent") {
+          // Reset border only if it’s not already transparent
+          wrapper.style.borderColor = "transparent";
         }
       }
-    }
+    });
   };
-})();
+})(config);
+
 
 
 
