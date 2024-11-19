@@ -113,6 +113,11 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
       // Play audio track
       user.audioTrack.play();
       console.log(`Playing audio track for user ${userUid}.`);
+
+      // Update microphone UI state
+      const isMuted = false; // User is unmuted when an audio track is published
+      toggleMicIcon(userUid, isMuted);
+      console.log(`Mic UI updated for user ${userUid}, muted: ${isMuted}`);
     }
   } catch (error) {
     console.error(`Error subscribing to user ${userUid}:`, error);
@@ -120,18 +125,18 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
 };
 
 
-
 export const handleUserUnpublished = async (user, mediaType, config) => {
   console.log(
     `handleUserUnpublished called for user: ${user.uid}, mediaType: ${mediaType}`
   );
 
-  // Skip handling for local user's own media (excluding screen share client)
+  // Skip handling for the local user's own media (excluding screen share client)
   if (user.uid === config.uid && user.uid !== 1) {
     console.log("Skipping handling of local user's own media.");
     return;
   }
 
+  // Skip processing for virtual participant (UID 2)
   if (user.uid == 2) {
     console.log("Skipping handling virtual participant.");
     return;
@@ -139,42 +144,38 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
   // Handle video unpublishing (including screen share)
   if (mediaType === "video") {
-    // If the unpublished video is the screen share (UID 1)
     if (user.uid === 1) {
+      // Screen share unpublishing
       console.log(`Screen share track unpublished from user with UID 1.`);
 
-      // Use the stored sharingUserUid
       const sharingUserUid = config.currentScreenSharingUserUid;
 
       if (sharingUserUid) {
         console.log(`Screen share was from user: ${sharingUserUid}`);
 
-        // Update UI accordingly
+        // Reset screen sharing state
         config.currentScreenSharingUserUid = null;
+
+        // Update UI and stop tracks
         manageCameraState(sharingUserUid, config);
         toggleStages(false, sharingUserUid); // Hide screen share stage
 
-        // Remove the screen share track from userTracks
-        if (userTracks[1]) {
-          if (userTracks[1].screenShareTrack) {
-            userTracks[1].screenShareTrack.stop();
-            userTracks[1].screenShareTrack.close();
-            userTracks[1].screenShareTrack = null;
-            console.log("Screen share track stopped and removed.");
-          }
+        if (userTracks[1]?.screenShareTrack) {
+          userTracks[1].screenShareTrack.stop();
+          userTracks[1].screenShareTrack.close();
+          userTracks[1].screenShareTrack = null;
+          console.log("Screen share track stopped and removed.");
         }
-
       } else {
         console.error(
           "Could not determine who was sharing the screen. 'currentScreenSharingUserUid' is not set."
         );
       }
     } else {
-      // For other users, handle unpublishing of their video track
+      // For other users' video tracks
       console.log(`User ${user.uid} has unpublished their video track.`);
 
-      // Remove the video track from userTracks
-      if (userTracks[user.uid] && userTracks[user.uid].videoTrack) {
+      if (userTracks[user.uid]?.videoTrack) {
         userTracks[user.uid].videoTrack.stop();
         userTracks[user.uid].videoTrack.close();
         userTracks[user.uid].videoTrack = null;
@@ -190,15 +191,15 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
   if (mediaType === "audio") {
     console.log(`User ${user.uid} has unpublished their audio track.`);
 
-    // Remove the audio track from userTracks
-    if (userTracks[user.uid] && userTracks[user.uid].audioTrack) {
+    if (userTracks[user.uid]?.audioTrack) {
       userTracks[user.uid].audioTrack.stop();
       userTracks[user.uid].audioTrack = null;
       console.log(`Removed audio track for user ${user.uid}`);
     }
 
-    // Optionally update UI for audio status, like muting mic icons
+    // Update the microphone icon to show muted state
     toggleMicIcon(user.uid, true); // Show muted mic icon
+    console.log(`Mic UI updated for user ${user.uid}, muted: true`);
   }
 };
 
