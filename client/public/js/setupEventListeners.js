@@ -43,10 +43,81 @@ export const setupEventListeners = (config) => {
 
 
   // Handle when a user joins the session
-  client.on("user-joined", async (user) => {
-    console.log(`User joined: ${user.uid}`);
-    await handleUserJoined(user, config);
-  });
+client.on("user-joined", async (user) => {
+  console.log(`User joined: ${user.uid}`);
+
+  let userAttr = {}; // Initialize an empty object for user attributes
+
+  if (config.clientRTM) {
+    try {
+      // Fetch attributes for the joining user
+      const fetchedAttributes = await config.clientRTM.getUserAttributes(
+        user.uid.toString()
+      );
+      console.log(
+        `Fetched attributes for user ${user.uid}:`,
+        fetchedAttributes
+      );
+
+      // Merge fetched attributes with defaults to ensure all fields are covered
+      userAttr = {
+        name: fetchedAttributes.name || "Unknown",
+        avatar: fetchedAttributes.avatar || "default-avatar-url",
+        company: fetchedAttributes.company || "Unknown",
+        designation: fetchedAttributes.designation || "Unknown",
+        role: fetchedAttributes.role || "audience",
+        rtmUid: fetchedAttributes.rtmUid || user.uid, // Fall back to user UID
+        bubbleid: fetchedAttributes.bubbleid || "",
+        isRaisingHand: fetchedAttributes.isRaisingHand || false,
+        sharingScreen: fetchedAttributes.sharingScreen || "0",
+        roleInTheCall: fetchedAttributes.roleInTheCall || "audience",
+      };
+    } catch (error) {
+      console.error(`Failed to fetch attributes for user ${user.uid}:`, error);
+
+      // Default attributes if fetching fails
+      userAttr = {
+        name: "Unknown",
+        avatar: "default-avatar-url",
+        company: "Unknown",
+        designation: "Unknown",
+        role: "audience",
+        rtmUid: user.uid, // Default to user UID
+        bubbleid: "",
+        isRaisingHand: false,
+        sharingScreen: "0",
+        roleInTheCall: "audience",
+      };
+    }
+  } else {
+    console.warn(
+      `RTM client not initialized. Skipping attribute fetch for user ${user.uid}.`
+    );
+
+    // Default attributes if RTM is unavailable
+    userAttr = {
+      name: "Unknown",
+      avatar: "default-avatar-url",
+      company: "Unknown",
+      designation: "Unknown",
+      role: "audience",
+      rtmUid: user.uid,
+      bubbleid: "",
+      isRaisingHand: false,
+      sharingScreen: "0",
+      roleInTheCall: "audience",
+    };
+  }
+
+  try {
+    // Pass the user attributes along with the user and config
+    await handleUserJoined(user, config, userAttr);
+    console.log(`User ${user.uid} handled successfully.`);
+  } catch (error) {
+    console.error(`Error handling user ${user.uid}:`, error);
+  }
+});
+
 
   // Handle when a user leaves the session
   client.on("user-left", async (user) => {

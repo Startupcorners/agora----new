@@ -342,20 +342,17 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
 // Handles user joined event
 export const handleUserJoined = async (user, config, userAttr = {}) => {
   console.log("User info:", user);
+  console.log("User attributes:", userAttr);
   const userUid = user.uid.toString();
   console.log("Entering handleUserJoined function for user:", userUid);
-    console.log("Role:", user.role);
-    console.log("RoleInTheCall:", user.roleInTheCall);
 
-
-  // Trigger bubble_fn_waitingForAcceptance if UID is 2
+  // Handle specific UIDs (2 triggers a special Bubble function, and 1/2 are skipped)
   if (userUid === "2") {
     console.log("UID is 2. Triggering bubble_fn_waitingForAcceptance.");
     bubble_fn_isVideoRecording("yes");
-    bubble_fn_waitingForAcceptance(); // Trigger Bubble function
+    bubble_fn_waitingForAcceptance();
   }
 
-  // Skip processing for screen share UID (1) or specific UID (2)
   if (userUid === "1" || userUid === "2") {
     console.log(`Skipping handling for special UID (${userUid}).`);
     userJoinPromises[userUid] = Promise.resolve(); // Ensure a resolved promise is set
@@ -374,55 +371,21 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       // Prevent handling your own stream
       if (userUid === config.uid.toString()) {
         console.log(`Skipping wrapper for own user UID: ${userUid}`);
-        resolve(); // Resolve the promise even if it's skipped
-        return; // Exit early
-      }
-
-      // Fetch user attributes if not provided
-      if (!userAttr || Object.keys(userAttr).length === 0) {
-        if (config.clientRTM) {
-          try {
-            userAttr = await config.clientRTM.getUserAttributes(
-              userUid.toString()
-            );
-          } catch (error) {
-            console.error(
-              `Failed to get RTM attributes for user ${userUid}:`,
-              error
-            );
-            userAttr = {
-              name: "Unknown",
-              company: "",
-              designation: "",
-              role: "audience", // Default role
-            };
-          }
-        } else {
-          console.log(
-            `clientRTM is not initialized. Skipping attribute fetch for user ${userUid}.`
-          );
-          userAttr = {
-            name: "Unknown",
-            company: "",
-            designation: "",
-            role: "audience", // Default role
-          };
-        }
+        resolve();
+        return;
       }
 
       // Assign role and initialize remoteTracks if needed
       user.role = userAttr.role || "audience";
-      if (!config.remoteTracks) {
-        config.remoteTracks = {};
-      }
-      config.remoteTracks[userUid] = { wrapperReady: false }; // Set wrapperReady flag to false initially
+      config.remoteTracks = config.remoteTracks || {};
+      config.remoteTracks[userUid] = { wrapperReady: false };
 
       // Only proceed with wrapper if the user is a host
       if (user.role !== "host") {
         console.warn(
           `User ${userUid} does not have the 'host' role. Skipping wrapper.`
         );
-        resolve(); // Resolve the promise early if not a host
+        resolve();
         return;
       }
 
@@ -444,17 +407,16 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         `Host user ${userUid} joined, waiting for media to be published.`
       );
 
-      // ** Call the separate participant management function **
+      // Call the separate participant management function
       manageParticipants(userUid, userAttr, "join");
 
       resolve(); // Resolve the promise when everything is done
     } catch (error) {
       console.error(`Error in handleUserJoined for user ${userUid}:`, error);
-      reject(error); // Reject the promise on error
+      reject(error);
     }
   });
 
-  // Return the promise
   return userJoinPromises[userUid];
 };
 
