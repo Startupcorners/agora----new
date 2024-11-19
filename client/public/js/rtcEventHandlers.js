@@ -335,6 +335,8 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
 export const handleUserJoined = async (user, config, userAttr = {}) => {
   const userUid = user.uid.toString();
   console.log("Entering handleUserJoined function for user:", userUid);
+    console.log("Role:", user.role);
+    console.log("RoleInTheCall:", user.roleInTheCall);
 
 
   // Trigger bubble_fn_waitingForAcceptance if UID is 2
