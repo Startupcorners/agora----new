@@ -112,6 +112,7 @@ router.post("/", nocache, async (req, res) => {
       {
         resourceId: resourceId,
         assemblyId: assemblyId,
+        iteration: 1,
       }
     );
     console.log("Response from /pollfortext:", bubbleResponse.data);
