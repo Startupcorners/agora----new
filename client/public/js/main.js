@@ -200,9 +200,14 @@ const join = async () => {
     }
 
     // Check if already logged into RTM and skip re-login if true
-    if (!config.channelRTM){
-      await joinRTM(tokens.rtmToken);
+    if (!config.channelRTM) {
+      try {
+        await joinRTM(tokens.rtmToken);
+      } catch (error) {
+        console.error("Error while joining RTMMMM:", error);
+      }
     }
+
 
     // Check if the user is in the waiting room
     if (config.user.roleInTheCall === "waiting") {
