@@ -177,19 +177,22 @@ const join = async () => {
       throw new Error("User does not have a role assigned.");
     }
 
-    // Logout of RTM if already logged in, then join RTM
+    // Check if already logged into RTM and skip re-login if true
+    let isAlreadyLoggedIn = false;
     try {
       const attributes = await config.clientRTM.getUserAttributes(
         config.uid.toString()
       );
       console.log("Already logged in to RTM. Attributes:", attributes);
-      await config.clientRTM.logout();
-      console.log("User logged out of RTM for a fresh join.");
+      isAlreadyLoggedIn = true;
     } catch {
       console.log("Not logged in to RTM, proceeding to join RTM.");
     }
 
-    await joinRTM(tokens.rtmToken);
+    // Only join RTM if not already logged in
+    if (!isAlreadyLoggedIn) {
+      await joinRTM(tokens.rtmToken);
+    }
 
     // Check if the user is in the waiting room
     if (config.user.roleInTheCall === "waiting") {
