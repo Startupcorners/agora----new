@@ -88,7 +88,6 @@ const newMainApp = function (initConfig) {
     audioResourceId: null,
     audioRecordId: null,
     audioTimestamp: null,
-    channelRTM: null,
   };
 
   // Apply initial config
@@ -156,30 +155,9 @@ const newMainApp = function (initConfig) {
       : AgoraRTM.LOG_FILTER_OFF,
   });
 
-
-  if (!config.channelRTM) {
-    console.log(
-      "RTM channel is not initialized. Creating a new RTM channel for:",
-      config.channelName
-    );
-
-    try {
-      config.channelRTM = config.clientRTM.createChannel(config.channelName);
-      console.log("RTM channel created successfully:", config.channelRTM);
-
-      setupRTMMessageListener(config.channelRTM, manageParticipants, config);
-      console.log("RTM message listener setup completed.");
-    } catch (error) {
-      console.error(
-        "Error while creating or setting up the RTM channel:",
-        error
-      );
-    }
-  } else {
-    console.log("RTM channel already exists. Skipping initialization.");
-  }
-
-
+  // Initialize RTM Channel
+  config.channelRTM = config.clientRTM.createChannel(config.channelName);
+  setupRTMMessageListener(config.channelRTM, manageParticipants, config);
 
   // Initialize event callbacks with clientRTM passed
   const callbacks = eventCallbacks(config, config.clientRTM);
@@ -200,16 +178,21 @@ const join = async () => {
     }
 
     // Check if already logged into RTM and skip re-login if true
-    if (!config.channelRTM) {
-      try {
-        await joinRTM(tokens.rtmToken);
-      } catch (error) {
-        console.error("Error while joining RTMMMS:", error);
-        throw error; // Re-throw the error to stop execution
-      }
+    let isAlreadyLoggedIn = false;
+    try {
+      const attributes = await config.clientRTM.getUserAttributes(
+        config.uid.toString()
+      );
+      console.log("Already logged in to RTM. Attributes:", attributes);
+      isAlreadyLoggedIn = true;
+    } catch {
+      console.log("Not logged in to RTM, proceeding to join RTM.");
     }
 
-
+    // Only join RTM if not already logged in
+    if (!isAlreadyLoggedIn) {
+      await joinRTM(tokens.rtmToken);
+    }
 
     // Check if the user is in the waiting room
     if (config.user.roleInTheCall === "waiting") {
@@ -345,9 +328,10 @@ const sendRTMMessage = async (message) => {
       await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
       // Create the RTM channel and assign it to config.channelRTM if it doesn't exist
-      
-      config.channelRTM = config.clientRTM.createChannel(config.channelName);
-      console.log("RTM channel created with name:", config.channelName);
+      if (!config.channelRTM) {
+        config.channelRTM = config.clientRTM.createChannel(config.channelName);
+        console.log("RTM channel created with name:", config.channelName);
+      }
 
       // Join the RTM channel
       await config.channelRTM.join();
