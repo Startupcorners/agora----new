@@ -278,7 +278,7 @@ export const startAudioRecording = debounce(async (config) => {
    bubble_fn_isAudioRecording("yes");
 
    if (typeof bubble_fn_audiorecord === "function") {
-     bubble_fn_audiorecord({
+     bubble_fn_audioRecord({
        output1: resourceId,
        output2: config.audioSid,
        output3: config.audioRecordId,

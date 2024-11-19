@@ -31,7 +31,6 @@ const pollForAudio = async (
     }
 
     // Wait for the specified delay before trying again
-    await new Promise((resolve) => setTimeout(resolve, delay));
     attempts++;
   }
 

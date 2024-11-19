@@ -147,9 +147,6 @@ router.post("/", nocache, async (req, res) => {
       if (transcriptStatus === "failed") {
         throw new Error("Transcription failed at AssemblyAI.");
       }
-
-      console.log("Waiting 5 seconds before polling again...");
-      await new Promise((resolve) => setTimeout(resolve, 5000));
     }
 
     console.log("Step 8: Sending summary and participants to Bubble API");
