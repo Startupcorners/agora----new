@@ -94,9 +94,6 @@ router.post("/", nocache, async (req, res) => {
       "https://api.assemblyai.com/v2/transcript",
       {
         audio_url: audioUrl,
-        summarization: true,
-        summary_type: "bullets", // Choose your desired summary type
-        summary_model: "informative",
       },
       {
         headers: {
@@ -110,14 +107,14 @@ router.post("/", nocache, async (req, res) => {
     const assemblyId = assemblyAiResponse.data.id;
 
     console.log("Step 6: Sending AssemblyAI ID and resourceId to Bubble API");
-    // const bubbleResponse = await axios.post(
-    //   "https://startupcorners.com/version-test/api/1.1/wf/pollforsummary",
-    //   {
-    //     resourceId: resourceId,
-    //     assemblyId: assemblyId,
-    //   }
-    // );
-    // console.log("Response from /pollforsummary:", bubbleResponse.data);
+    const bubbleResponse = await axios.post(
+      "https://startupcorners.com/version-test/api/1.1/wf/pollfortext",
+      {
+        resourceId: resourceId,
+        assemblyId: assemblyId,
+      }
+    );
+    console.log("Response from /pollfortext:", bubbleResponse.data);
 
     console.log("Final Step: Sending response back to frontend");
     res.json({
