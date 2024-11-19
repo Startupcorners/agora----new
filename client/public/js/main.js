@@ -156,10 +156,29 @@ const newMainApp = function (initConfig) {
       : AgoraRTM.LOG_FILTER_OFF,
   });
 
- if (!config.channelRTM) {
-    config.channelRTM = config.clientRTM.createChannel(config.channelName);
-    setupRTMMessageListener(config.channelRTM, manageParticipants, config);
+
+  if (!config.channelRTM) {
+    console.log(
+      "RTM channel is not initialized. Creating a new RTM channel for:",
+      config.channelName
+    );
+
+    try {
+      config.channelRTM = config.clientRTM.createChannel(config.channelName);
+      console.log("RTM channel created successfully:", config.channelRTM);
+
+      setupRTMMessageListener(config.channelRTM, manageParticipants, config);
+      console.log("RTM message listener setup completed.");
+    } catch (error) {
+      console.error(
+        "Error while creating or setting up the RTM channel:",
+        error
+      );
+    }
+  } else {
+    console.log("RTM channel already exists. Skipping initialization.");
   }
+
 
 
   // Initialize event callbacks with clientRTM passed
