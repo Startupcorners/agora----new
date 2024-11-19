@@ -36,6 +36,13 @@ export const toggleMic = async (config) => {
 
         // Toggle the mic icon to show that the microphone is muted
         toggleMicIcon(config.uid, true);
+
+        // Set wrapper border to transparent
+        const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
+        if (wrapper) {
+          wrapper.style.borderColor = "transparent"; // Transparent when muted
+          console.log(`Set border to transparent for user ${config.uid}`);
+        }
       } else {
         console.warn("No microphone track to mute for user:", config.uid);
       }
@@ -78,6 +85,7 @@ export const toggleMic = async (config) => {
     console.error("Error in toggleMic:", error);
   }
 };
+
 
 export const toggleCamera = async (isMuted, config) => {
   let uid;
