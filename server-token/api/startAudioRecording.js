@@ -61,6 +61,10 @@ router.post("/", nocache, async (req, res) => {
           streamTypes: 0, // Audio-only recording
           audioProfile: 1, // Standard audio
           channelType: 0, // Communication channel
+          avSync: true,
+          recordingFileConfig: {
+            avFileType: ["mp4"], // Or ["mp4"] for an MP4 file
+          },
         },
         storageConfig: {
           vendor: 1,
