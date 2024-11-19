@@ -63,7 +63,7 @@ router.post("/", nocache, async (req, res) => {
           channelType: 0, // Communication channel
         },
         recordingFileConfig: {
-          avFileType: ["mp4"],
+          avFileType: ["hls", "mp4"],
         },
         storageConfig: {
           vendor: 1,
