@@ -1,3 +1,4 @@
+// Required modules
 const express = require("express");
 const axios = require("axios");
 const nocache = (req, res, next) => {
@@ -58,19 +59,7 @@ router.post("/", nocache, async (req, res) => {
       });
     }
 
-    console.log("Step 2: Fetching participants from Bubble API");
-    const participantsResponse = await axios.post(
-      "https://startupcorners.com/version-test/api/1.1/wf/getParticipants",
-      {
-        eventId: channelName,
-      }
-    );
-    console.log("Response from /getParticipants:", participantsResponse.data);
-
-    const participants = participantsResponse.data.participants || [];
-    console.log("Active participants retrieved:", participants);
-
-    console.log("Step 3: Creating Agora authorization token");
+    console.log("Step 2: Creating Agora authorization token");
     const authorizationToken = Buffer.from(
       `${process.env.CUSTOMER_ID}:${process.env.CUSTOMER_SECRET}`
     ).toString("base64");
@@ -83,7 +72,7 @@ router.post("/", nocache, async (req, res) => {
     };
     console.log("Payload for Agora API:", payload);
 
-    console.log("Step 4: Sending request to Agora Cloud Recording API");
+    console.log("Step 3: Sending request to Agora Cloud Recording API");
     const response = await axios.post(
       `https://api.agora.io/v1/apps/${process.env.APP_ID}/cloud_recording/resourceid/${resourceId}/sid/${sid}/mode/mix/stop`,
       payload,
@@ -96,11 +85,11 @@ router.post("/", nocache, async (req, res) => {
     );
     console.log("Agora API Response:", response.data);
 
-    console.log("Step 5: Polling for audio file URL");
+    console.log("Step 4: Polling for audio file URL");
     const audioUrl = await pollForAudio(resourceId, channelName, timestamp);
     console.log("Audio file retrieved:", audioUrl);
 
-    console.log("Step 6: Sending audio file to AssemblyAI for transcription");
+    console.log("Step 5: Sending audio file to AssemblyAI for transcription");
     const assemblyAiResponse = await axios.post(
       "https://api.assemblyai.com/v2/transcript",
       {
@@ -118,95 +107,24 @@ router.post("/", nocache, async (req, res) => {
     );
     console.log("AssemblyAI Response:", assemblyAiResponse.data);
 
+    const assemblyId = assemblyAiResponse.data.id;
 
- console.log("Step 7: Polling AssemblyAI for transcription status");
- const transcriptId = assemblyAiResponse.data.id;
+    console.log("Step 6: Sending AssemblyAI ID and resourceId to Bubble API");
+    const bubbleResponse = await axios.post(
+      "https://startupcorners.com/version-test/api/1.1/wf/pollforsummary",
+      {
+        resourceId: resourceId,
+        assemblyId: assemblyId,
+      }
+    );
+    console.log("Response from /pollforsummary:", bubbleResponse.data);
 
- let transcriptStatus = "processing";
- let transcriptSummary = null;
-
- let attempts = 0;
- const maxAttempts = 10; // Maximum number of polling attempts
- let delay = 5000; // Initial delay in milliseconds (5 seconds)
- const maxDelay = 60000; // Maximum delay in milliseconds (60 seconds)
-
- while (!transcriptSummary && attempts < maxAttempts) {
-   attempts++;
-   console.log(
-     `Polling attempt ${attempts}: Waiting for ${delay / 1000} seconds...`
-   );
-
-   await new Promise((resolve) => setTimeout(resolve, delay));
-
-   try {
-     const statusResponse = await axios.get(
-       `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
-       {
-         headers: {
-           Authorization: process.env.ASSEMBLY_AI_API_KEY,
-         },
-       }
-     );
-
-     transcriptStatus = statusResponse.data.status;
-     console.log(
-       `Polling Response (Attempt ${attempts}):`,
-       statusResponse.data
-     );
-
-     if (transcriptStatus === "completed") {
-       transcriptSummary = statusResponse.data.summary || null;
-
-       if (transcriptSummary) {
-         console.log("Transcription completed. Summary:", transcriptSummary);
-         break;
-       }
-     }
-
-     if (transcriptStatus === "failed") {
-       throw new Error("Transcription failed at AssemblyAI.");
-     }
-
-     // Increase delay for next attempt, but cap it at maxDelay
-     delay = Math.min(delay * 2, maxDelay);
-   } catch (error) {
-     console.error(
-       `Error polling AssemblyAI (Attempt ${attempts}):`,
-       error.response?.data || error.message
-     );
-     // Optionally decide whether to retry or break
-     if (attempts >= maxAttempts) {
-       throw new Error(
-         "Failed to retrieve transcription summary after maximum attempts."
-       );
-     }
-   }
- }
-
- if (!transcriptSummary) {
-   throw new Error("Transcription completed, but no summary available.");
- }
-
- console.log("Step 8: Sending summary and participants to Bubble API");
- const bubbleResponse = await axios.post(
-   "https://startupcorners.com/version-test/api/1.1/wf/receivesummary",
-   {
-     resourceId: resourceId,
-     summary: `Participants: ${participants.join(
-       ", "
-     )}\n\nSummary: ${transcriptSummary}`,
-   }
- );
- console.log("Response from /receivesummary:", bubbleResponse.data);
-
- console.log("Final Step: Sending response back to frontend");
- res.json({
-   message: "Audio recording stopped, transcription completed",
-   audioUrl: audioUrl,
-   transcriptSummary: transcriptSummary,
-   participants: participants,
- });
-
+    console.log("Final Step: Sending response back to frontend");
+    res.json({
+      message: "Audio recording stopped and AssemblyAI ID sent to Bubble",
+      audioUrl: audioUrl,
+      assemblyId: assemblyId,
+    });
   } catch (error) {
     console.error("Error encountered:", error.message);
     console.error("Error Response Data:", error.response?.data || error);
