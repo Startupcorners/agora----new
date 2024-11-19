@@ -341,6 +341,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
 
 // Handles user joined event
 export const handleUserJoined = async (user, config, userAttr = {}) => {
+  console.log("User info:", user);
   const userUid = user.uid.toString();
   console.log("Entering handleUserJoined function for user:", userUid);
     console.log("Role:", user.role);
