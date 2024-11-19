@@ -119,55 +119,94 @@ router.post("/", nocache, async (req, res) => {
     console.log("AssemblyAI Response:", assemblyAiResponse.data);
 
 
-    console.log("Step 7: Polling AssemblyAI for transcription status");
-    const transcriptId = assemblyAiResponse.data.id;
+ console.log("Step 7: Polling AssemblyAI for transcription status");
+ const transcriptId = assemblyAiResponse.data.id;
 
-    let transcriptStatus = "processing";
-    let transcriptSummary = null;
+ let transcriptStatus = "processing";
+ let transcriptSummary = null;
 
-    while (transcriptStatus === "processing") {
-      const statusResponse = await axios.get(
-        `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
-        {
-          headers: {
-            Authorization: process.env.ASSEMBLY_AI_API_KEY,
-          },
-        }
-      );
-      transcriptStatus = statusResponse.data.status;
-      console.log(`AssemblyAI Transcription Status: ${transcriptStatus}`);
+ let attempts = 0;
+ const maxAttempts = 10; // Maximum number of polling attempts
+ let delay = 5000; // Initial delay in milliseconds (5 seconds)
+ const maxDelay = 60000; // Maximum delay in milliseconds (60 seconds)
 
-      if (transcriptStatus === "completed") {
-  console.log("Full response from AssemblyAI:", statusResponse.data);
-  transcriptSummary = statusResponse.data.summary || "No summary available";
-  console.log("Transcription completed. Summary:", transcriptSummary);
-  break;
-}
+ while (!transcriptSummary && attempts < maxAttempts) {
+   attempts++;
+   console.log(
+     `Polling attempt ${attempts}: Waiting for ${delay / 1000} seconds...`
+   );
 
-      if (transcriptStatus === "failed") {
-        throw new Error("Transcription failed at AssemblyAI.");
-      }
-    }
+   await new Promise((resolve) => setTimeout(resolve, delay));
 
-    console.log("Step 8: Sending summary and participants to Bubble API");
-    const bubbleResponse = await axios.post(
-      "https://startupcorners.com/version-test/api/1.1/wf/receivesummary",
-      {
-        resourceId: resourceId,
-        summary: `Participants: ${participants.join(
-          ", "
-        )}\n\nSummary: ${transcriptSummary}`,
-      }
-    );
-    console.log("Response from /receivesummary:", bubbleResponse.data);
+   try {
+     const statusResponse = await axios.get(
+       `https://api.assemblyai.com/v2/transcript/${transcriptId}`,
+       {
+         headers: {
+           Authorization: process.env.ASSEMBLY_AI_API_KEY,
+         },
+       }
+     );
 
-    console.log("Final Step: Sending response back to frontend");
-    res.json({
-      message: "Audio recording stopped, transcription completed",
-      audioUrl: audioUrl,
-      transcriptSummary: transcriptSummary,
-      participants: participants,
-    });
+     transcriptStatus = statusResponse.data.status;
+     console.log(
+       `Polling Response (Attempt ${attempts}):`,
+       statusResponse.data
+     );
+
+     if (transcriptStatus === "completed") {
+       transcriptSummary = statusResponse.data.summary || null;
+
+       if (transcriptSummary) {
+         console.log("Transcription completed. Summary:", transcriptSummary);
+         break;
+       }
+     }
+
+     if (transcriptStatus === "failed") {
+       throw new Error("Transcription failed at AssemblyAI.");
+     }
+
+     // Increase delay for next attempt, but cap it at maxDelay
+     delay = Math.min(delay * 2, maxDelay);
+   } catch (error) {
+     console.error(
+       `Error polling AssemblyAI (Attempt ${attempts}):`,
+       error.response?.data || error.message
+     );
+     // Optionally decide whether to retry or break
+     if (attempts >= maxAttempts) {
+       throw new Error(
+         "Failed to retrieve transcription summary after maximum attempts."
+       );
+     }
+   }
+ }
+
+ if (!transcriptSummary) {
+   throw new Error("Transcription completed, but no summary available.");
+ }
+
+ console.log("Step 8: Sending summary and participants to Bubble API");
+ const bubbleResponse = await axios.post(
+   "https://startupcorners.com/version-test/api/1.1/wf/receivesummary",
+   {
+     resourceId: resourceId,
+     summary: `Participants: ${participants.join(
+       ", "
+     )}\n\nSummary: ${transcriptSummary}`,
+   }
+ );
+ console.log("Response from /receivesummary:", bubbleResponse.data);
+
+ console.log("Final Step: Sending response back to frontend");
+ res.json({
+   message: "Audio recording stopped, transcription completed",
+   audioUrl: audioUrl,
+   transcriptSummary: transcriptSummary,
+   participants: participants,
+ });
+
   } catch (error) {
     console.error("Error encountered:", error.message);
     console.error("Error Response Data:", error.response?.data || error);
