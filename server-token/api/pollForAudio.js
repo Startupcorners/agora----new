@@ -12,12 +12,12 @@ const pollForAudio = async (
 
   while (attempts < maxAttempts) {
     try {
-      // Try to get audio files from S3
-      const audioFiles = await getAudioFromS3(channelName, timestamp);
+      // Try to get audio file from S3
+      const audioUrl = await getAudioFromS3(channelName, timestamp);
 
-      if (audioFiles && audioFiles.length > 0) {
-        console.log("Audio files found:", audioFiles);
-        return audioFiles[0]; // Return the first audio file URL
+      if (audioUrl) {
+        console.log("Audio file found:", audioUrl);
+        return audioUrl; // Return the audio file URL
       } else {
         console.log(
           `Attempt ${attempts + 1}: Audio file not found. Retrying...`
