@@ -138,11 +138,11 @@ router.post("/", nocache, async (req, res) => {
       console.log(`AssemblyAI Transcription Status: ${transcriptStatus}`);
 
       if (transcriptStatus === "completed") {
-        transcriptSummary =
-          statusResponse.data.summary || "No summary available";
-        console.log("Transcription completed. Summary:", transcriptSummary);
-        break;
-      }
+  console.log("Full response from AssemblyAI:", statusResponse.data);
+  transcriptSummary = statusResponse.data.summary || "No summary available";
+  console.log("Transcription completed. Summary:", transcriptSummary);
+  break;
+}
 
       if (transcriptStatus === "failed") {
         throw new Error("Transcription failed at AssemblyAI.");
