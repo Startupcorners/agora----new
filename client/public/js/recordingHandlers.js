@@ -282,7 +282,7 @@ export const startAudioRecording = debounce(async (config) => {
        output1: resourceId,
        output2: config.audioSid,
        output3: config.audioRecordId,
-       output4: config.timestamp,
+       output4: config.audioTimestamp,
      });
    }
 

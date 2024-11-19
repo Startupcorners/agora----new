@@ -6,7 +6,7 @@ const s3 = new AWS.S3({
   region: "us-east-1",
 });
 
-// Function to get audio files from S3
+// Function to get the .m3u8 file from S3
 const getAudioFromS3 = async (channelName, timestamp) => {
   if (!channelName || !timestamp) {
     throw new Error("channelName and timestamp are required");
@@ -21,26 +21,30 @@ const getAudioFromS3 = async (channelName, timestamp) => {
       Prefix: prefix,
     };
 
+    console.log(`Checking S3 path: ${prefix}`);
     const data = await s3.listObjectsV2(params).promise();
 
-    // Filter audio files (e.g., AAC or M4A formats)
-    const audioFiles = data.Contents.filter(
-      (file) => file.Key.endsWith(".aac") || file.Key.endsWith(".m4a")
+    // Filter for .m3u8 files
+    const playlistFiles = data.Contents.filter((file) =>
+      file.Key.endsWith(".m3u8")
     );
 
-    if (audioFiles.length === 0) {
-      throw new Error("No audio files found");
+    if (playlistFiles.length === 0) {
+      throw new Error(`No .m3u8 files found at path: ${prefix}`);
     }
 
-    // Generate audio URLs
-    const audioUrls = audioFiles.map((file) => {
+    // Generate URLs for the .m3u8 files
+    const playlistUrls = playlistFiles.map((file) => {
       return `https://${bucketName}.s3.amazonaws.com/${file.Key}`;
     });
 
-    return audioUrls; // Return the array of audio file URLs
+    console.log("Found .m3u8 playlist files:", playlistUrls);
+
+    // Return the first .m3u8 file (or all if needed)
+    return playlistUrls[0]; // Returning only the first .m3u8 file URL
   } catch (error) {
-    console.error("Error retrieving audio files from S3:", error);
-    throw new Error("Failed to retrieve audio files from S3");
+    console.error("Error retrieving .m3u8 files from S3:", error);
+    throw new Error("Failed to retrieve .m3u8 files from S3");
   }
 };
 
