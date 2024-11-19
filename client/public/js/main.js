@@ -91,6 +91,7 @@ const newMainApp = function (initConfig) {
   };
 
   // Apply initial config
+if (!config.channelRTM) {
   config = { ...config, ...initConfig };
 
   // Initialize AgoraRTC client
@@ -156,15 +157,13 @@ const newMainApp = function (initConfig) {
   });
 
   // Initialize RTM Channel
-  if (!config.channelRTM) {
-    config.channelRTM = config.clientRTM.createChannel(config.channelName);
-    setupRTMMessageListener(config.channelRTM, manageParticipants, config);
-  }
+  config.channelRTM = config.clientRTM.createChannel(config.channelName);
+  setupRTMMessageListener(config.channelRTM, manageParticipants, config);
 
   // Initialize event callbacks with clientRTM passed
   const callbacks = eventCallbacks(config, config.clientRTM);
   config = { ...config, ...callbacks };
-
+}
   // Modified join function
 const join = async () => {
   bubble_fn_role(config.user.roleInTheCall);
