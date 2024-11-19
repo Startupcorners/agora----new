@@ -45,7 +45,6 @@ const newMainApp = function (initConfig) {
     appId: "95e91980e5444a8e86b4e41c7f03b713",
     uid: null,
     user: {
-      id: null,
       name: "guest",
       avatar:
         "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
