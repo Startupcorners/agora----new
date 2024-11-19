@@ -106,7 +106,8 @@ router.post("/", nocache, async (req, res) => {
       {
         audio_url: audioUrl,
         summarization: true,
-        summary_type: "bullets",
+        summary_type: "paragraph", // Choose your desired summary type
+        summary_model: "general", // Add the summary_model field (e.g., "general")
       },
       {
         headers: {
@@ -116,6 +117,7 @@ router.post("/", nocache, async (req, res) => {
       }
     );
     console.log("AssemblyAI Response:", assemblyAiResponse.data);
+
 
     console.log("Step 7: Polling AssemblyAI for transcription status");
     const transcriptId = assemblyAiResponse.data.id;
