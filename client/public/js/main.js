@@ -204,9 +204,11 @@ const join = async () => {
       try {
         await joinRTM(tokens.rtmToken);
       } catch (error) {
-        console.error("Error while joining RTMMMM:", error);
+        console.error("Error while joining RTMMMS:", error);
+        throw error; // Re-throw the error to stop execution
       }
     }
+
 
 
     // Check if the user is in the waiting room
