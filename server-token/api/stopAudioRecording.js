@@ -95,7 +95,7 @@ router.post("/", nocache, async (req, res) => {
       {
         audio_url: audioUrl,
         summarization: true,
-        summary_type: "paragraph", // Choose your desired summary type
+        summary_type: "bullets", // Choose your desired summary type
         summary_model: "informative",
       },
       {
