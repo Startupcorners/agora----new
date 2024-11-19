@@ -181,19 +181,7 @@ const join = async () => {
     }
 
     // Check if already logged into RTM and skip re-login if true
-    let isAlreadyLoggedIn = false;
-    try {
-      const attributes = await config.clientRTM.getUserAttributes(
-        config.uid.toString()
-      );
-      console.log("Already logged in to RTM. Attributes:", attributes);
-      isAlreadyLoggedIn = true;
-    } catch {
-      console.log("Not logged in to RTM, proceeding to join RTM.");
-    }
-
-    // Only join RTM if not already logged in
-    if (!isAlreadyLoggedIn) {
+    if (!config.channelRTM){
       await joinRTM(tokens.rtmToken);
     }
 
@@ -331,10 +319,9 @@ const sendRTMMessage = async (message) => {
       await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
       // Create the RTM channel and assign it to config.channelRTM if it doesn't exist
-      if (!config.channelRTM) {
-        config.channelRTM = config.clientRTM.createChannel(config.channelName);
-        console.log("RTM channel created with name:", config.channelName);
-      }
+      
+      config.channelRTM = config.clientRTM.createChannel(config.channelName);
+      console.log("RTM channel created with name:", config.channelName);
 
       // Join the RTM channel
       await config.channelRTM.join();
