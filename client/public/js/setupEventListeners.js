@@ -41,11 +41,6 @@ export const setupEventListeners = (config) => {
     await handleUserUnpublished(user, mediaType, config);
   });
 
-  config.client.on("user-mute-audio", (user, muted) => {
-    console.log(`User ${user.uid} is ${muted ? "muted" : "unmuted"}`);
-    toggleMicIcon(user.uid, muted);
-  });
-
 
   // Handle when a user joins the session
   client.on("user-joined", async (user) => {
@@ -63,7 +58,7 @@ export const setupEventListeners = (config) => {
 
   // Handle volume indicator changes
   client.on("volume-indicator", async (volumes) => {
-    await handleVolumeIndicator(volumes, config);
+    await handleVolumeIndicator(volumes);
   });
 
 config.client.on("onMicrophoneChanged", async (info) => {

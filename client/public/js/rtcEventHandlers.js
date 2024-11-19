@@ -167,7 +167,6 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
             console.log("Screen share track stopped and removed.");
           }
         }
-
       } else {
         console.error(
           "Could not determine who was sharing the screen. 'currentScreenSharingUserUid' is not set."
@@ -203,10 +202,15 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
 
     // Optionally update UI for audio status, like muting mic icons
     toggleMicIcon(user.uid, true); // Show muted mic icon
+
+    // Set the wrapper border to transparent if found
+    const wrapper = document.querySelector(`#video-wrapper-${user.uid}`);
+    if (wrapper) {
+      wrapper.style.borderColor = "transparent"; // Transparent when audio is unpublished
+      console.log(`Set border to transparent for user ${user.uid}`);
+    }
   }
 };
-
-
 
 
 export const manageParticipants = async (userUid, userAttr, actionType) => {
@@ -502,50 +506,51 @@ export const handleUserLeft = async (user, config) => {
 };
 
 
-export const handleVolumeIndicator = (volumes) => {
-  const lastMutedStatuses = {}; // Track mute status per user
+// Handles volume indicator change
+export const handleVolumeIndicator = (() => {
+  let lastMutedStatuses = {}; // Store the last muted status for each UID ("yes" or "no")
 
-  volumes.forEach((volume) => {
-    const userUID = volume.uid;
+  return async (result) => {
+    for (const volume of result) {
+      const userUID = volume.uid;
 
-    // Ignore specific UIDs dynamically (if necessary)
-    if (userUID === 1) return;
+      // Ignore UID 1 (screen share client or any other special case)
+      if (userUID === 1) {
+        continue; // Skip this iteration
+      }
 
-    const audioLevel = volume.level; // Audio level for the user
-    const wrapper = document.querySelector(`#video-wrapper-${userUID}`);
-    console.log(userUID, audioLevel);
+      const audioLevel = volume.level; // The audio level, used to determine when the user is speaking
+      let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
+      console.log(userUID, audioLevel);
 
-    // Determine if the user is muted based on audio level
-    const currentStatus = audioLevel < 3 ? "yes" : "no";
+      const currentStatus = audioLevel < 3 ? "yes" : "no";
 
-    // Only send to Bubble if the mute status has changed for this user
-    if (currentStatus !== lastMutedStatuses[userUID]) {
-      console.log(
-        `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for user ${userUID}`
-      );
+      // Initialize lastMutedStatus for this userUID if it doesn't exist
+      if (!lastMutedStatuses[userUID]) {
+        lastMutedStatuses[userUID] = "no"; // Default to "no"
+      }
 
-      if (typeof bubble_fn_systemmuted === "function") {
+      // Only send to Bubble if the status has changed for this userUID
+      if (currentStatus !== lastMutedStatuses[userUID]) {
+        console.log(
+          `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for UID ${userUID}`
+        );
         bubble_fn_systemmuted(currentStatus);
-      } else {
-        console.warn("bubble_fn_systemmuted is not defined.");
+        lastMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
       }
 
-      lastMutedStatuses[userUID] = currentStatus; // Update the user's last status
-    }
-
-    // Update wrapper style based on audio level, if available
-    if (wrapper) {
-      if (audioLevel > 60) {
-        // Green border when speaking
-        wrapper.style.borderColor = "#00ff00";
-      } else if (wrapper.style.borderColor !== "transparent") {
-        // Reset border only if it’s not already transparent
-        wrapper.style.borderColor = "transparent";
+      // Apply audio level indicator styles if the wrapper is available
+      if (wrapper) {
+        if (audioLevel > 60) {
+          // Adjust the threshold based on your needs
+          wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
+        } else {
+          wrapper.style.borderColor = "transparent"; // Transparent when not speaking
+        }
       }
     }
-  });
-};
-
+  };
+})();
 
 
 
