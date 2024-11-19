@@ -356,6 +356,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   if (userUid === "1" || userUid === "2") {
     console.log(`Skipping handling for special UID (${userUid}).`);
     userJoinPromises[userUid] = Promise.resolve(); // Ensure a resolved promise is set
+    console.log(`Promise for UID ${userUid} resolved and skipped.`);
     return userJoinPromises[userUid];
   }
 
@@ -368,55 +369,74 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   // Create a new promise for this user
   userJoinPromises[userUid] = new Promise(async (resolve, reject) => {
     try {
+      console.log(`Starting promise for user ${userUid}.`);
+
       // Prevent handling your own stream
       if (userUid === config.uid.toString()) {
-        console.log(`Skipping wrapper for own user UID: ${userUid}`);
+        console.log(`Skipping wrapper creation for own UID: ${userUid}`);
         resolve();
         return;
       }
 
       // Assign role and initialize remoteTracks if needed
+      console.log(`Assigning role for user ${userUid}.`);
       user.role = userAttr.role || "audience";
-      config.remoteTracks = config.remoteTracks || {};
+      console.log(`Role assigned: ${user.role}`);
+
+      if (!config.remoteTracks) {
+        console.log("Initializing remoteTracks in config.");
+        config.remoteTracks = {};
+      }
       config.remoteTracks[userUid] = { wrapperReady: false };
+      console.log(`remoteTracks initialized for user ${userUid}.`);
 
       // Only proceed with wrapper if the user is a host
       if (user.role !== "host") {
         console.warn(
-          `User ${userUid} does not have the 'host' role. Skipping wrapper.`
+          `User ${userUid} does not have the 'host' role. Skipping wrapper creation.`
         );
         resolve();
         return;
       }
 
       // Check if the video-wrapper exists; if not, create it
+      console.log(`Checking for video wrapper for user ${userUid}.`);
       let participantWrapper = document.querySelector(
         `#video-wrapper-${userUid}`
       );
       if (!participantWrapper) {
-        await addUserWrapper({ uid: userUid, ...userAttr }, config); // Add the wrapper
-        console.log(`Wrapper added for user: ${userUid}`);
+        console.log(
+          `No wrapper found for user ${userUid}, creating a new one.`
+        );
+        await addUserWrapper({ uid: userUid, ...userAttr }, config);
+        console.log(`Wrapper successfully created for user ${userUid}.`);
       } else {
-        console.log(`Wrapper already exists for user: ${userUid}`);
+        console.log(`Wrapper already exists for user ${userUid}.`);
       }
 
       // Mark the wrapper as ready
       config.remoteTracks[userUid].wrapperReady = true;
+      console.log(`Wrapper marked as ready for user ${userUid}.`);
 
       console.log(
-        `Host user ${userUid} joined, waiting for media to be published.`
+        `Host user ${userUid} joined. Waiting for media to be published.`
       );
 
       // Call the separate participant management function
+      console.log(
+        `Calling manageParticipants for user ${userUid} with action "join".`
+      );
       manageParticipants(userUid, userAttr, "join");
 
-      resolve(); // Resolve the promise when everything is done
+      console.log(`Promise resolved for user ${userUid}.`);
+      resolve();
     } catch (error) {
       console.error(`Error in handleUserJoined for user ${userUid}:`, error);
       reject(error);
     }
   });
 
+  console.log(`Returning promise for user ${userUid}.`);
   return userJoinPromises[userUid];
 };
 
