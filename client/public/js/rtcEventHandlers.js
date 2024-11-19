@@ -113,11 +113,15 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
       // Play audio track
       user.audioTrack.play();
       console.log(`Playing audio track for user ${userUid}.`);
+
+      // Update UI to reflect unmuted mic icon
+      toggleMicIcon(userUid, false); // Show unmuted mic icon
     }
   } catch (error) {
     console.error(`Error subscribing to user ${userUid}:`, error);
   }
 };
+
 
 
 

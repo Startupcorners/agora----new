@@ -192,15 +192,6 @@ export const setupRTMMessageListener = (
         config.user.role = newRole;
         config.user.roleInTheCall = newRoleInTheCall;
 
-        try {
-          await config.clientRTM.logout();
-          console.log("Logged out of RTM successfully.");
-        } catch (error) {
-          console.error(
-            "Failed to log out of RTM before reinitialization:",
-            error
-          );
-        }
 
         const newAppInstance = newMainApp(config);
         window.app = newAppInstance;
