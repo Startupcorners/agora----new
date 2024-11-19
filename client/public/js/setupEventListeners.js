@@ -23,6 +23,8 @@ import {
   fetchAndSendDeviceList,
 } from "./helperFunctions.js";
 
+import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
+
 export const setupEventListeners = (config) => {
   const client = config.client;
 
@@ -38,6 +40,12 @@ export const setupEventListeners = (config) => {
   client.on("user-unpublished", async (user, mediaType) => {
     await handleUserUnpublished(user, mediaType, config);
   });
+
+  config.client.on("user-mute-audio", (user, muted) => {
+    console.log(`User ${user.uid} is ${muted ? "muted" : "unmuted"}`);
+    toggleMicIcon(user.uid, muted);
+  });
+
 
   // Handle when a user joins the session
   client.on("user-joined", async (user) => {
