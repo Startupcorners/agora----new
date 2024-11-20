@@ -2,13 +2,10 @@
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { fetchTokens } from "./helperFunctions.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; 
-import {
-  manageCameraState,
-} from "./videoHandlers.js";
+import { manageCameraState, toggleStages } from "./videoHandlers.js";
 import { userTracks } from "./state.js"; // Import userTracks from state.js
 
 
-const screenShareUid = 1; // UID for the screen share client
 
 export const toggleMic = async (config) => {
   try {
