@@ -224,47 +224,40 @@ export const startScreenShare = async (config) => {
 
     // Fetch tokens for the screenShareUid
     const tokens = await fetchTokens(config, screenShareUid);
-    if (!tokens || !tokens.rtcToken || !tokens.rtmToken) {
-      console.error("Failed to fetch RTC or RTM token for screen sharing.");
+    if (
+      !tokens ||
+      typeof tokens.rtcToken !== "string" ||
+      typeof tokens.rtmToken !== "string"
+    ) {
+      console.error("Invalid RTC or RTM tokens for screen sharing.");
       return;
     }
     console.log("Tokens fetched successfully:", tokens);
 
-    // Create a dedicated RTM client for screen sharing if not already created
+    // Initialize RTM client for screen sharing
     if (!config.screenShareRTMClient) {
       console.log("Creating a new RTM client for screen sharing...");
       config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
       console.log("RTM client instance created.");
-
       await config.screenShareRTMClient.login({
         uid: screenShareUid.toString(),
         token: tokens.rtmToken,
       });
       console.log("Screen share RTM client logged in successfully.");
-    } else {
-      console.warn("RTM client for screen sharing already exists.");
     }
 
-    // Set RTM attributes for the screen-sharing user
-    console.log("Setting RTM attributes for screen-sharing user...");
+    // Set RTM attributes
+    const user = config.user || {};
     const attributes = {
-      name: config.user.name || "Unknown",
-      avatar: config.user.avatar || "default-avatar-url",
-      company: config.user.company || "Unknown",
-      designation: config.user.designation || "Unknown",
-      role: config.user.role || "audience",
-      rtmUid: screenShareUid.toString(),
-      bubbleid: config.user.bubbleid,
-      isRaisingHand: config.user.isRaisingHand,
-      sharingUserUid: uid.toString(),
-      roleInTheCall: config.user.roleInTheCall || "audience",
+      name: user.name || "Unknown",
+      avatar: user.avatar || "default-avatar-url",
+      company: user.company || "Unknown",
+      // Other attributes...
     };
-    console.log("RTM attributes to set:", attributes);
-
+    console.log("Setting RTM attributes:", attributes);
     await config.screenShareRTMClient.setLocalUserAttributes(attributes);
-    console.log("RTM attributes set successfully.");
 
-    // Create a dedicated RTC client for screen sharing if not already created
+    // Initialize RTC client for screen sharing
     if (!config.screenShareClient) {
       console.log("Creating a new RTC client for screen sharing...");
       config.screenShareClient = AgoraRTC.createClient({
@@ -272,11 +265,9 @@ export const startScreenShare = async (config) => {
         codec: "vp8",
       });
       console.log("RTC client instance created.");
-    } else {
-      console.warn("RTC client for screen sharing already exists.");
     }
 
-    // Join RTC with the dedicated screenShareClient
+    // Join RTC channel
     console.log(`Joining RTC with screenShareUid ${screenShareUid}...`);
     await config.screenShareClient.join(
       config.appId,
@@ -284,81 +275,41 @@ export const startScreenShare = async (config) => {
       tokens.rtcToken,
       screenShareUid
     );
-    console.log("RTC client joined successfully.");
 
-    // Create the screen share video track
+    // Create screen share video track
     console.log("Creating screen share video track...");
     const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
-    if (!screenShareTrack) {
-      console.error("Failed to create screen share video track.");
-      return;
-    }
-    console.log(
-      "Screen share video track created successfully:",
-      screenShareTrack
-    );
+    console.log("Screen share video track created successfully.");
 
-    // Publish the screen share track using the dedicated client
+    // Publish the screen share track
     console.log("Publishing screen share video track...");
     await config.screenShareClient.publish(screenShareTrack);
     console.log("Screen share video track published successfully.");
 
-    // Update userTracks for screenShareUid
-    if (!userTracks[screenShareUid]) {
-      console.log(
-        `Initializing userTracks for screenShareUid ${screenShareUid}...`
-      );
-      userTracks[screenShareUid] = {};
-    }
-    userTracks[screenShareUid].videoTrack = screenShareTrack;
-    console.log(
-      `Updated userTracks[${screenShareUid}]:`,
-      userTracks[screenShareUid]
-    );
-
-    // Validate userTracks[1]
-    if (userTracks[screenShareUid] && userTracks[screenShareUid].videoTrack) {
-      console.log(
-        `Validation successful for userTracks[${screenShareUid}]:`,
-        userTracks[screenShareUid]
-      );
-    } else {
-      console.error(`Validation failed for userTracks[${screenShareUid}].`);
-    }
-
-    // Toggle the stage to screen share
+    // Update userTracks and toggle UI
+    userTracks[screenShareUid] = { videoTrack: screenShareTrack };
     toggleStages(true);
-
-    // Play the screen share track in #screen-share-content
-    console.log("Playing screen share video track in #screen-share-content...");
     playStreamInDiv(screenShareUid, "#screen-share-content");
-
-    console.log("Playing PiP video track for local user...");
     playStreamInDiv(uid, "#pip-video-track");
 
-    // Set the avatar for PiP to config avatar
+    // Update PiP avatar
     const avatarElement = document.getElementById("pip-avatar");
     if (avatarElement) {
-      avatarElement.src = config.user.avatar || "default-avatar.png";
-      console.log(
-        `Updated PiP avatar to ${config.user.avatar || "default-avatar.png"}.`
-      );
-    } else {
-      console.warn("Could not find the PiP avatar element to update.");
+      avatarElement.src = user.avatar || "default-avatar.png";
     }
 
-    console.log(
-      "Screen sharing started successfully for local user with UID:",
-      uid
-    );
+    console.log("Screen sharing started successfully.");
   } catch (error) {
-    console.error("Error during screen share initialization:", error);
+    console.error(
+      "Error during screen share initialization:",
+      error.message,
+      error.stack
+    );
 
     // Cleanup on failure
     if (config.screenShareClient) {
       try {
         await config.screenShareClient.leave();
-        console.log("Screen share RTC client left successfully.");
       } catch (leaveError) {
         console.warn("Error while leaving RTC client:", leaveError);
       }
@@ -368,7 +319,6 @@ export const startScreenShare = async (config) => {
     if (config.screenShareRTMClient) {
       try {
         await config.screenShareRTMClient.logout();
-        console.log("Screen share RTM client logged out successfully.");
       } catch (logoutError) {
         console.warn("Error while logging out RTM client:", logoutError);
       }
