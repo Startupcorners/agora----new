@@ -390,8 +390,6 @@ const sendRTMMessage = async (message) => {
       updatedUserTrack = {
         ...updatedUserTrack,
         videoTrack: config.localVideoTrack,
-        screenShareTrack: config.localScreenShareTrack || null,
-        isVideoMuted: true, // Camera is off initially
       };
 
       // Reassign the updated user track back to the global userTracks object

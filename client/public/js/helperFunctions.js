@@ -360,7 +360,6 @@ export const switchCam = async (config, userTracks, camInfo) => {
       userTracks[uid] = {
         ...userTrack,
         videoTrack: null,
-        isVideoMuted: true,
       };
       await config.localVideoTrack.setEnabled(false);
       console.log("New video track created but kept muted and unpublished.");

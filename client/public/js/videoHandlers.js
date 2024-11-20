@@ -1,3 +1,5 @@
+import { userTracks } from "./state.js"; 
+
 export const playStreamInDiv = (userId, divId) => {
   try {
     const element = document.querySelector(divId);
