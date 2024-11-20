@@ -1,7 +1,6 @@
 // rtcEventHandlers.js
 import { log, fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
-import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 import {
   startScreenShare,
   stopScreenShare,

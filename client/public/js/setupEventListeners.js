@@ -22,7 +22,6 @@ import {
   fetchAndSendDeviceList,
 } from "./helperFunctions.js";
 
-import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 export const setupEventListeners = (config) => {
   const client = config.client;

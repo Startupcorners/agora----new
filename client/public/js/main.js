@@ -18,7 +18,6 @@ import {
 
 import { addUserWrapper } from "./wrappers.js";
 
-import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 import {
   startCloudRecording,
