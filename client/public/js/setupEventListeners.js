@@ -11,7 +11,6 @@ import {
   stopScreenShare,
   manageCameraState,
   playCameraVideo,
-  showAvatar,
   toggleStages,
 } from "./videoHandlers.js";
 import { userTracks } from "./state.js";

@@ -4,24 +4,68 @@ import {
 } from "./setupEventListeners.js";
 import { toggleScreenShare } from "./uiHandlers.js"; 
 
-export const manageCameraState = (uid, config) => {
-  console.log(`Managing camera state for user with UID:`, uid);
+export const manageCameraState = (uid, config, isCameraOn) => {
+  try {
+    console.log(`Managing camera state for user with UID:`, uid);
+    
+    const userTrack = userTracks[uid];
+    const videoTrack = userTrack ? userTrack.videoTrack : null;
+    const videoWrapper = document.querySelector(`#video-wrapper-${uid}`);
+    const videoPlayer = document.querySelector(`#stream-${uid}`);
 
-  // Ensure that the user track exists in the global userTracks
-  const userTrack = userTracks[uid];
-  if (!userTrack) {
-    console.log(`User track not found for UID: ${uid}`);
-    return;
+    if (!userTrack) {
+      console.warn(`No user track found for UID ${uid}.`);
+    }
+
+    if (!videoWrapper) {
+      console.warn(`Video wrapper element not found for UID ${uid}.`);
+    }
+
+    if (!videoPlayer) {
+      console.warn(`Video player element not found for UID ${uid}.`);
+    }
+
+    if (isCameraOn) {
+      // Camera is on
+      console.log(`Turning on video for UID ${uid}.`);
+
+      if (videoTrack && videoPlayer) {
+        try {
+          videoTrack.play(videoPlayer); // Play the video track
+          console.log(`Video is now playing for UID ${uid}.`);
+        } catch (playError) {
+          console.error(`Error playing video for UID ${uid}:`, playError);
+        }
+      } else {
+        console.warn(
+          `Cannot play video for UID ${uid} due to missing video track or player.`
+        );
+      }
+
+      if (videoWrapper) {
+        videoWrapper.classList.remove("hidden"); // Show video wrapper
+        console.log(`Video wrapper is now visible for UID ${uid}.`);
+      }
+    } else {
+      // Camera is off
+      console.log(`Turning off video for UID ${uid}.`);
+
+      if (videoWrapper) {
+        videoWrapper.classList.add("hidden"); // Hide video wrapper
+        console.log(`Video wrapper is now hidden for UID ${uid}.`);
+      }
+    }
+
+    console.log("Camera state management completed for UID:", uid);
+  } catch (error) {
+    console.error(
+      `Error managing camera state for UID ${uid}:`,
+      error.message,
+      error.stack
+    );
   }
-
-  console.log(`User track for UID ${uid}:`, userTrack);
-
-  // Handle camera video and avatar display for the actual user UID
-  playCameraVideo(uid, config); // Pass config to playCameraVideo
-  showAvatar(uid, config); // Pass config to showAvatar
-
-  console.log("Camera state management completed for UID:", uid);
 };
+
 
 
 
@@ -222,7 +266,6 @@ export const startScreenShare = async (screenShareUid, config) => {
     console.log(
       `Starting screen share process for screenShareUid: ${screenShareUid}`
     );
-    config.currentScreenSharingUserUid = config.uid;
 
     // Create the screen share track
     const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
@@ -262,7 +305,6 @@ export const stopScreenShare = async (screenShareUid, config) => {
   try {
     console.log(`Stopping screen share for screenShareUid: ${screenShareUid}`);
 
-    config.currentScreenSharingUserUid = null;
     // Get the screen share track
     const screenShareTrack = userTracks[screenShareUid]?.screenShareTrack;
 

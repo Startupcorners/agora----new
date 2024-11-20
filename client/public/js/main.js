@@ -1,5 +1,4 @@
 import axios from "https://cdn.skypack.dev/axios";
-
 import { templateVideoParticipant } from "./templates.js"; // Import the template
 import { eventCallbacks } from "./eventCallbacks.js";
 import {
