@@ -2,7 +2,6 @@
 import { log, fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import {
-  manageCameraState,
   toggleStages,
 } from "./videoHandlers.js";
 import { userTracks } from "./state.js"; 
@@ -168,11 +167,6 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
         const attributes = await config.clientRTM.getUserAttributes("1");
 
         const sharingUserUid = attributes.sharingUserUid;
-
-        if (!sharingUserUid) {
-          console.error("Could not determine who was sharing the screen.");
-          return;
-        }
 
         console.log(`Screen share was from user: ${sharingUserUid}`);
 
