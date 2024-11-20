@@ -320,29 +320,37 @@ export const startScreenShare = async (config) => {
 export const stopScreenShare = async (config) => {
   const uid = config.uid;
   const screenShareUid = 1; // Reserved UID for screen sharing
+
   try {
     console.log("Stopping screen share...");
 
     // Leave the RTC channel for screenShareUid
-    if (config.screenShareClient) {
-      console.log("Leaving RTC channel for screenShareUid...");
-      await config.screenShareClient.leave();
-      console.log("Screen share RTC client left the channel.");
-      config.screenShareClient = null; // Clean up client
-    }
+    console.log("Leaving RTC channel for screenShareUid...");
+    await config.screenShareClient.leave();
+    console.log("Screen share RTC client left the channel.");
+    config.screenShareClient = null; // Clean up client
 
-    // Leave the RTM client for screenShareUid
-    if (config.screenShareRTMClient) {
-      console.log("Logging out of RTM for screenShareUid...");
-      await config.screenShareRTMClient.logout();
-      console.log("Screen share RTM client logged out.");
-      config.screenShareRTMClient = null; // Clean up client
+    // Logout from the RTM client for screenShareUid
+    console.log("Logging out of RTM for screenShareUid...");
+    await config.screenShareRTMClient.logout();
+    console.log("Screen share RTM client logged out.");
+    config.screenShareRTMClient = null; // Clean up client
+
+    // Remove the screen share track from userTracks
+    console.log(
+      `Cleaning up userTracks entry for screenShareUid: ${screenShareUid}`
+    );
+    if (userTracks[screenShareUid]) {
+      userTracks[screenShareUid].videoTrack.stop();
+      userTracks[screenShareUid].videoTrack.close();
+      delete userTracks[screenShareUid]; // Remove the entry from userTracks
     }
 
     // Toggle the stage back to video stage
     toggleStages(false, uid);
+
+    // Resume playing the user's main video stream
     playStreamInDiv(uid, `#stream-${uid}`);
-  
   } catch (error) {
     console.error("Error stopping screen share:", error);
   }
