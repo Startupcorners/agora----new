@@ -3,26 +3,30 @@ import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging an
 import { fetchTokens } from "./helperFunctions.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; 
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
+import { userTracks } from "./state.js";
 
 
 
 export const toggleMic = async (config) => {
   try {
-    console.log(
-      `toggleMic called. Current localAudioTrack: ${
-        config.localAudioTrack ? "Exists" : "Null"
-      }`
-    );
+    console.log(`toggleMic called for user: ${config.uid}`);
 
-    if (config.localAudioTrack) {
+    if (!userTracks[config.uid]) {
+      console.error(`User track for UID ${config.uid} is undefined.`);
+      return;
+    }
+
+    const userTrack = userTracks[config.uid];
+
+    if (userTrack.audioTrack) {
       // User is trying to unpublish (mute)
       console.log("Muting microphone for user:", config.uid);
 
       // Unpublish and stop the audio track
-      await config.client.unpublish([config.localAudioTrack]);
-      config.localAudioTrack.stop();
-      config.localAudioTrack.close();
-      config.localAudioTrack = null; // Set to null to indicate mic is muted
+      await config.client.unpublish([userTrack.audioTrack]);
+      userTrack.audioTrack.stop();
+      userTrack.audioTrack.close();
+      userTrack.audioTrack = null; // Set to null to indicate mic is muted
 
       console.log("Microphone muted and unpublished");
 
@@ -47,9 +51,9 @@ export const toggleMic = async (config) => {
       console.log("Unmuting microphone for user:", config.uid);
 
       // Create a new audio track
-      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      userTrack.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
-      if (!config.localAudioTrack) {
+      if (!userTrack.audioTrack) {
         console.error("Failed to create a new audio track!");
         return;
       }
@@ -57,7 +61,7 @@ export const toggleMic = async (config) => {
       console.log("Created new audio track for user:", config.uid);
 
       // Publish the new audio track
-      await config.client.publish([config.localAudioTrack]);
+      await config.client.publish([userTrack.audioTrack]);
       console.log("Microphone unmuted and published");
 
       // Toggle the mic icon to show that the microphone is unmuted
@@ -78,7 +82,7 @@ export const toggleMic = async (config) => {
       }
     }
   } catch (error) {
-    console.error("Error in toggleMic:", error);
+    console.error("Error in toggleMic for user:", config.uid, error);
   }
 };
 
@@ -99,15 +103,25 @@ export const toggleCamera = async (config) => {
 
     config.cameraToggleInProgress = true; // Prevent simultaneous toggles
 
-    if (config.localVideoTrack) {
+    // Ensure userTracks has an entry for the user
+    if (!userTracks[config.uid]) {
+      userTracks[config.uid] = {
+        videoTrack: null,
+        audioTrack: null,
+      };
+    }
+
+    const userTrack = userTracks[config.uid];
+
+    if (userTrack.videoTrack) {
       // User is trying to turn off the camera
       console.log("Turning off the camera for user:", config.uid);
 
       // Unpublish and stop the video track
-      await config.client.unpublish([config.localVideoTrack]);
-      config.localVideoTrack.stop();
-      config.localVideoTrack.close();
-      config.localVideoTrack = null; // Remove the video track reference
+      await config.client.unpublish([userTrack.videoTrack]);
+      userTrack.videoTrack.stop();
+      userTrack.videoTrack.close();
+      userTrack.videoTrack = null; // Remove the video track reference
 
       console.log("Camera turned off and unpublished");
 
@@ -126,17 +140,17 @@ export const toggleCamera = async (config) => {
       // User is trying to turn on the camera
       console.log("Turning on the camera for user:", config.uid);
 
-      // Create a new video track if none exists
-      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      // Create a new video track
+      userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
 
-      if (!config.localVideoTrack) {
+      if (!userTrack.videoTrack) {
         console.error("Failed to create a new video track!");
         return;
       }
 
       // Enable and publish the video track
-      await config.localVideoTrack.setEnabled(true);
-      await config.client.publish([config.localVideoTrack]);
+      await userTrack.videoTrack.setEnabled(true);
+      await config.client.publish([userTrack.videoTrack]);
 
       console.log("Camera turned on and published");
 
@@ -162,6 +176,7 @@ export const toggleCamera = async (config) => {
 
 
 
+
 export const toggleScreenShare = async (config) => {
   console.log(
     `Screen share toggle called for uid: ${uid}`
@@ -181,7 +196,8 @@ export const toggleScreenShare = async (config) => {
 
 export const startScreenShare = async (config) => {
   const screenShareUid = 1; // Reserved UID for screen sharing
-  const uid = config.uid
+  const uid = config.uid;
+
   try {
     console.log("Starting screen share process...");
 
@@ -193,34 +209,32 @@ export const startScreenShare = async (config) => {
       return;
     }
 
-    // Create a dedicated RTM client for screen sharing if not already created
-    if (!config.screenShareRTMClient) {
-      console.log("Creating a new RTM client for screen sharing...");
-      config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
-      await config.screenShareRTMClient.login({
-        uid: screenShareUid.toString(),
-        token: tokens.rtmToken,
-      });
-      console.log("Screen share RTM client logged in successfully.");
+    // Create a dedicated RTM client for screen sharing
+    console.log("Creating a new RTM client for screen sharing...");
+    config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
+    await config.screenShareRTMClient.login({
+      uid: screenShareUid.toString(),
+      token: tokens.rtmToken,
+    });
+    console.log("Screen share RTM client logged in successfully.");
 
-      // Set RTM attributes for the screen-sharing user
-      const attributes = {
-        name: config.user.name || "Unknown",
-        avatar: config.user.avatar || "default-avatar-url",
-        company: config.user.company || "Unknown",
-        designation: config.user.designation || "Unknown",
-        role: config.user.role || "audience",
-        rtmUid: screenShareUid.toString(),
-        bubbleid: config.user.bubbleid,
-        isRaisingHand: config.user.isRaisingHand,
-        sharingUserUid: uid.toString(),
-        roleInTheCall: config.user.roleInTheCall || "audience",
-      };
+    // Set RTM attributes for the screen-sharing user
+    const attributes = {
+      name: config.user.name || "Unknown",
+      avatar: config.user.avatar || "default-avatar-url",
+      company: config.user.company || "Unknown",
+      designation: config.user.designation || "Unknown",
+      role: config.user.role || "audience",
+      rtmUid: screenShareUid.toString(),
+      bubbleid: config.user.bubbleid,
+      isRaisingHand: config.user.isRaisingHand,
+      sharingUserUid: uid.toString(),
+      roleInTheCall: config.user.roleInTheCall || "audience",
+    };
 
-      console.log("Setting RTM attributes for screen-sharing user...");
-      await config.screenShareRTMClient.setLocalUserAttributes(attributes);
-      console.log("RTM attributes set successfully for screen-sharing user.");
-    }
+    console.log("Setting RTM attributes for screen-sharing user...");
+    await config.screenShareRTMClient.setLocalUserAttributes(attributes);
+    console.log("RTM attributes set successfully for screen-sharing user.");
 
     // Create a dedicated RTC client for screen sharing if not already created
     if (!config.screenShareClient) {
@@ -261,7 +275,6 @@ export const startScreenShare = async (config) => {
     playStreamInDiv(1, "#screen-share-content");
     playStreamInDiv(uid, "#pip-video-track");
 
-
     // Set the avatar for PiP to config avatar
     const avatarElement = document.getElementById("pip-avatar");
     if (avatarElement) {
@@ -276,6 +289,7 @@ export const startScreenShare = async (config) => {
     console.error("Error starting screen share:", error);
   }
 };
+
 
 
 export const stopScreenShare = async (config) => {

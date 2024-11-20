@@ -7,6 +7,7 @@ import {
 } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
+import { userTracks } from "./state.js";
 import {
   fetchTokens,
   switchCam,
@@ -88,217 +89,216 @@ const newMainApp = function (initConfig) {
   };
 
   // Apply initial config
-if (!config.channelRTM) {
-  config = { ...config, ...initConfig };
+  if (!config.channelRTM) {
+    config = { ...config, ...initConfig };
 
-  // Initialize AgoraRTC client
-  config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    // Initialize AgoraRTC client
+    config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
-  // Initialize the Virtual Background extension
-  (async () => {
-    try {
-      console.log("Initializing Virtual Background Extension...");
-
-      // Ensure 'extension' and 'config' are declared beforehand, or declare them if needed
-      let extension = new VirtualBackgroundExtension();
-
-      // Check for compatibility before proceeding
-      console.log("Checking for compatibility...");
-      if (!extension.checkCompatibility()) {
-        console.error("Browser does not support Virtual Background.");
-        return;
-      }
-      console.log("Browser is compatible with Virtual Background.");
-
-      // Register the extension
-      console.log("Registering Virtual Background extension...");
-      AgoraRTC.registerExtensions([extension]);
-      console.log("Virtual Background extension registered successfully.");
-
-      // Attach the extension to the config
-      console.log("Attaching extension and processor to config...");
-      config.extensionVirtualBackground = extension;
-      console.log("Extension and processor attached to config.");
-    } catch (error) {
-      console.error(
-        "Failed to initialize the Virtual Background extension:",
-        error
-      );
-    }
-  })();
-
-  // Ensure required config parameters are present
-  if (
-    !config.appId ||
-    !config.callContainerSelector ||
-    !config.serverUrl ||
-    !config.channelName ||
-    !config.uid
-  ) {
-    throw new Error("Required config parameters are missing.");
-  }
-  // Continue with the rest of your code
-
-  // Initialize AgoraRTC event listeners
-  AgoraRTC.setLogLevel(config.debugEnabled ? 0 : 4); // 0 for debug, 4 for none
-  AgoraRTC.onCameraChanged = (info) => config.onCameraChanged(info);
-  AgoraRTC.onMicrophoneChanged = (info) => config.onMicrophoneChanged(info);
-  AgoraRTC.onPlaybackDeviceChanged = (info) => config.onSpeakerChanged(info);
-
-  // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
-  config.clientRTM = AgoraRTM.createInstance(config.appId, {
-    enableLogUpload: false,
-    logFilter: config.debugEnabled
-      ? AgoraRTM.LOG_FILTER_INFO
-      : AgoraRTM.LOG_FILTER_OFF,
-  });
-
-  // Initialize RTM Channel
-  config.channelRTM = config.clientRTM.createChannel(config.channelName);
-  setupRTMMessageListener(config.channelRTM, manageParticipants, config);
-
-  // Initialize event callbacks with clientRTM passed
-  const callbacks = eventCallbacks(config, config.clientRTM);
-  config = { ...config, ...callbacks };
-}
-  // Modified join function
-const join = async () => {
-  bubble_fn_role(config.user.roleInTheCall);
-
-  try {
-    // Fetch RTC and RTM tokens
-    const tokens = await fetchTokens(config);
-    if (!tokens) throw new Error("Failed to fetch token");
-
-    // Ensure the user has a role assigned
-    if (!config.user.role) {
-      throw new Error("User does not have a role assigned.");
-    }
-
-    // Check if already logged into RTM and skip re-login if true
-    let isAlreadyLoggedIn = false;
-    try {
-      const attributes = await config.clientRTM.getUserAttributes(
-        config.uid.toString()
-      );
-      console.log("Already logged in to RTM. Attributes:", attributes);
-      isAlreadyLoggedIn = true;
-    } catch {
-      console.log("Not logged in to RTM, proceeding to join RTM.");
-    }
-
-    // Only join RTM if not already logged in
-    if (!isAlreadyLoggedIn) {
-      await joinRTM(tokens.rtmToken);
-    }
-
-    // Check if the user is in the waiting room
-    if (config.user.roleInTheCall === "waiting") {
-      console.log("User is in the waiting room; skipping RTC join.");
-      await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
-      await sendRTMMessage("trigger_manage_participants");
-      return; // Exit without joining RTC
-    }
-
-    // Join RTC
-    console.log("config.uid before joining RTC", config.uid);
-    await config.client.join(
-      config.appId,
-      config.channelName,
-      tokens.rtcToken,
-      config.uid
-    );
-
-    setupEventListeners(config);
-    await fetchAndSendDeviceList(config);
-    await updateSelectedDevices(config);
-
-    // Additional host setup
-    if (config.user.role === "host") {
-      await joinToVideoStage(config);
-    }
-
-    // Track user join and handle token renewal
-    manageParticipants(config.uid, config.user, "join");
-    config.client.on("token-privilege-will-expire", handleRenewToken);
-
-    // Notify Bubble of successful join
-    if (
-      [
-        "host",
-        "speaker",
-        "meetingParticipant",
-        "audienceOnStage",
-        "master",
-      ].includes(config.user.roleInTheCall)
-    ) {
-      const dataToSend = {
-        eventId: config.channelName,
-        name: config.user.name,
-      };
-
-      console.log("Preparing to send data to Bubble:", dataToSend);
-
+    // Initialize the Virtual Background extension
+    (async () => {
       try {
-        const bubbleResponse = await axios.post(
-          "https://startupcorners.com/version-test/api/1.1/wf/activeParticipant",
-          dataToSend
-        );
-        console.log("Data sent to Bubble successfully:", bubbleResponse.data);
+        console.log("Initializing Virtual Background Extension...");
+
+        // Ensure 'extension' and 'config' are declared beforehand, or declare them if needed
+        let extension = new VirtualBackgroundExtension();
+
+        // Check for compatibility before proceeding
+        console.log("Checking for compatibility...");
+        if (!extension.checkCompatibility()) {
+          console.error("Browser does not support Virtual Background.");
+          return;
+        }
+        console.log("Browser is compatible with Virtual Background.");
+
+        // Register the extension
+        console.log("Registering Virtual Background extension...");
+        AgoraRTC.registerExtensions([extension]);
+        console.log("Virtual Background extension registered successfully.");
+
+        // Attach the extension to the config
+        console.log("Attaching extension and processor to config...");
+        config.extensionVirtualBackground = extension;
+        console.log("Extension and processor attached to config.");
       } catch (error) {
-        console.error("Error sending data to Bubble:", error);
+        console.error(
+          "Failed to initialize the Virtual Background extension:",
+          error
+        );
       }
+    })();
+
+    // Ensure required config parameters are present
+    if (
+      !config.appId ||
+      !config.callContainerSelector ||
+      !config.serverUrl ||
+      !config.channelName ||
+      !config.uid
+    ) {
+      throw new Error("Required config parameters are missing.");
     }
+    // Continue with the rest of your code
 
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Joined");
-      updateLayout();
-    }
+    // Initialize AgoraRTC event listeners
+    AgoraRTC.setLogLevel(config.debugEnabled ? 0 : 4); // 0 for debug, 4 for none
+    AgoraRTC.onCameraChanged = (info) => config.onCameraChanged(info);
+    AgoraRTC.onMicrophoneChanged = (info) => config.onMicrophoneChanged(info);
+    AgoraRTC.onPlaybackDeviceChanged = (info) => config.onSpeakerChanged(info);
 
-    // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
-    if (config.user.roleInTheCall !== "waiting") {
-      const channelMembers = await config.channelRTM.getMembers();
-      console.log("Current RTM channel members:", channelMembers);
+    // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
+    config.clientRTM = AgoraRTM.createInstance(config.appId, {
+      enableLogUpload: false,
+      logFilter: config.debugEnabled
+        ? AgoraRTM.LOG_FILTER_INFO
+        : AgoraRTM.LOG_FILTER_OFF,
+    });
 
-      if (channelMembers.includes("2")) {
-        console.log("RTM member 2 detected. Video recording is active.");
-        bubble_fn_isVideoRecording("yes"); // Indicate video recording is active
-      }
+    // Initialize RTM Channel
+    config.channelRTM = config.clientRTM.createChannel(config.channelName);
+    setupRTMMessageListener(config.channelRTM, manageParticipants, config);
 
-      if (channelMembers.includes("3")) {
-        console.log("RTM member 3 detected. Audio recording is active.");
-        bubble_fn_isAudioRecording("yes"); // Indicate audio recording is active
-      }
-
-      if (channelMembers.includes("2") || channelMembers.includes("3")) {
-        console.log("RTM members 2 or 3 detected. Event is being recorded.");
-        bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
-      }
-    }
-  } catch (error) {
-    console.error("Error joining channel:", error);
-
-    // Notify Bubble of error
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Error");
-    }
+    // Initialize event callbacks with clientRTM passed
+    const callbacks = eventCallbacks(config, config.clientRTM);
+    config = { ...config, ...callbacks };
   }
-};
+  // Modified join function
+  const join = async () => {
+    bubble_fn_role(config.user.roleInTheCall);
 
+    try {
+      // Fetch RTC and RTM tokens
+      const tokens = await fetchTokens(config);
+      if (!tokens) throw new Error("Failed to fetch token");
 
-// Function to send an RTM message to the channel
-const sendRTMMessage = async (message) => {
-  try {
-    if (config.channelRTM) {
-      await config.channelRTM.sendMessage({ text: message });
-      console.log("Message sent to RTM channel:", message);
-    } else {
-      console.warn("RTM channel is not initialized.");
+      // Ensure the user has a role assigned
+      if (!config.user.role) {
+        throw new Error("User does not have a role assigned.");
+      }
+
+      // Check if already logged into RTM and skip re-login if true
+      let isAlreadyLoggedIn = false;
+      try {
+        const attributes = await config.clientRTM.getUserAttributes(
+          config.uid.toString()
+        );
+        console.log("Already logged in to RTM. Attributes:", attributes);
+        isAlreadyLoggedIn = true;
+      } catch {
+        console.log("Not logged in to RTM, proceeding to join RTM.");
+      }
+
+      // Only join RTM if not already logged in
+      if (!isAlreadyLoggedIn) {
+        await joinRTM(tokens.rtmToken);
+      }
+
+      // Check if the user is in the waiting room
+      if (config.user.roleInTheCall === "waiting") {
+        console.log("User is in the waiting room; skipping RTC join.");
+        await sendRTMMessage(`User ${config.user.name} is in the waiting room`);
+        await sendRTMMessage("trigger_manage_participants");
+        return; // Exit without joining RTC
+      }
+
+      // Join RTC
+      console.log("config.uid before joining RTC", config.uid);
+      await config.client.join(
+        config.appId,
+        config.channelName,
+        tokens.rtcToken,
+        config.uid
+      );
+
+      setupEventListeners(config);
+      await fetchAndSendDeviceList(config);
+      await updateSelectedDevices(config);
+
+      // Additional host setup
+      if (config.user.role === "host") {
+        await joinToVideoStage(config);
+      }
+
+      // Track user join and handle token renewal
+      manageParticipants(config.uid, config.user, "join");
+      config.client.on("token-privilege-will-expire", handleRenewToken);
+
+      // Notify Bubble of successful join
+      if (
+        [
+          "host",
+          "speaker",
+          "meetingParticipant",
+          "audienceOnStage",
+          "master",
+        ].includes(config.user.roleInTheCall)
+      ) {
+        const dataToSend = {
+          eventId: config.channelName,
+          name: config.user.name,
+        };
+
+        console.log("Preparing to send data to Bubble:", dataToSend);
+
+        try {
+          const bubbleResponse = await axios.post(
+            "https://startupcorners.com/version-test/api/1.1/wf/activeParticipant",
+            dataToSend
+          );
+          console.log("Data sent to Bubble successfully:", bubbleResponse.data);
+        } catch (error) {
+          console.error("Error sending data to Bubble:", error);
+        }
+      }
+
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Joined");
+        updateLayout();
+      }
+
+      // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
+      if (config.user.roleInTheCall !== "waiting") {
+        const channelMembers = await config.channelRTM.getMembers();
+        console.log("Current RTM channel members:", channelMembers);
+
+        if (channelMembers.includes("2")) {
+          console.log("RTM member 2 detected. Video recording is active.");
+          bubble_fn_isVideoRecording("yes"); // Indicate video recording is active
+        }
+
+        if (channelMembers.includes("3")) {
+          console.log("RTM member 3 detected. Audio recording is active.");
+          bubble_fn_isAudioRecording("yes"); // Indicate audio recording is active
+        }
+
+        if (channelMembers.includes("2") || channelMembers.includes("3")) {
+          console.log("RTM members 2 or 3 detected. Event is being recorded.");
+          bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
+        }
+      }
+    } catch (error) {
+      console.error("Error joining channel:", error);
+
+      // Notify Bubble of error
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Error");
+      }
     }
-  } catch (error) {
-    console.error("Failed to send RTM message:", error);
-  }
-};
+  };
+
+  // Function to send an RTM message to the channel
+  const sendRTMMessage = async (message) => {
+    try {
+      if (config.channelRTM) {
+        await config.channelRTM.sendMessage({ text: message });
+        console.log("Message sent to RTM channel:", message);
+      } else {
+        console.warn("RTM channel is not initialized.");
+      }
+    } catch (error) {
+      console.error("Failed to send RTM message:", error);
+    }
+  };
 
   // RTM Join function
   const joinRTM = async (rtmToken, retryCount = 0) => {
@@ -344,68 +344,24 @@ const sendRTMMessage = async (message) => {
       }
     }
   };
-
   // Join video stage function
   const joinToVideoStage = async (config) => {
     try {
-      const uid = config.uid;
-  //     const { client, uid } = config;
+      // Ensure userTracks has an entry for the user
+      if (!userTracks[config.uid]) {
+        userTracks[config.uid] = {};
+      }
 
-  //     // Create and publish the local audio track if it doesn't exist
-  //     if (!config.localAudioTrack) {
-  //       console.log("Creating microphone audio track");
-  //       config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-  //     }
+      // Initialize tracks to null since we don't publish on join
+      userTracks[config.uid].videoTrack = null;
+      userTracks[config.uid].audioTrack = null;
 
-  //     if (config.localAudioTrack) {
-  //       console.log("Microphone audio track created successfully");
-
-  //       // Ensure the audio track is enabled before publishing
-  //       await config.localAudioTrack.setEnabled(true);
-  //       console.log("Microphone audio track enabled");
-  //     } else {
-  //       console.error("Failed to create local audio track");
-  //     }
-
-  //     // Create the local video track if it doesn't exist, but DO NOT publish it
-  //     if (!config.localVideoTrack) {
-  //       console.log(
-  //         "Creating camera video track (muted and unpublished initially)"
-  //       );
-  //       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-  //       await config.localVideoTrack.setEnabled(false); // Keep video muted initially
-  //       config.localVideoTrackMuted = true; // Track that the video is muted
-  //       console.log("Video track created but kept muted and unpublished");
-  //     }
-
-  //     // Publish only the local audio track
-  //     console.log("Publishing local audio track");
-  //     await client.publish([config.localAudioTrack]);
-
-  //     console.log("Successfully published local audio track");
-  //     console.log("Checking uid:", uid);
-
-  //     // Update the userTrack object to reflect the "camera off" state
-  //  let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
-
-  //  // Add or update properties in the user track
-  //  updatedUserTrack = {
-  //    ...updatedUserTrack,// Add or update video track
-  //    audioTrack: config.localAudioTrack, // Add or update audio track
-  //  };
-
-  //  // Reassign the updated user track back to the global userTracks object
-  //  userTracks[uid] = updatedUserTrack;
-
-
-      // Add the current user wrapper (for their own video/audio stream)
+      // Add user wrapper for UI or other purposes
       await addUserWrapper(config, config);
 
-      console.log(
-        "Joined the video stage with the camera off and active audio"
-      );
+      console.log("Joined the video stage with the camera and mic off.");
     } catch (error) {
-      console.error("Error in joinToVideoStage", error);
+      console.error("Error in joinToVideoStage:", error);
     }
   };
 
