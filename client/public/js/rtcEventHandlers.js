@@ -34,71 +34,64 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     console.log(`User with UID 1 (screen share client) published.`);
 
     try {
-      // Check if local user is already sharing; if so, skip processing
-      if (config.isSharing) {
-        console.log("Local user is currently sharing. Skipping processing.");
+      // Fetch attributes for UID 1 to check who is sharing
+      const attributes = await config.clientRTM.getUserAttributes("1");
+      const sharingUserUid = attributes.sharingUserUid;
+
+      if (!sharingUserUid) {
+        console.warn(
+          "No sharingUserUid found in attributes. Skipping processing."
+        );
         return;
       }
 
-      // Query the entire channel to find the user with isSharing = true
-      console.log("Fetching user list with attributes in the channel...");
-      const members = await config.clientRTM.getChannelMembers(
-        config.channelName
-      );
-      let sharingUser = null;
-      let sharingAvatar = null;
-
-      for (const member of members) {
-        const attributes = await config.clientRTM.getUserAttributes(member);
-        if (attributes.isSharing === "true") {
-          sharingUser = member;
-          sharingAvatar = attributes.avatar || "default-avatar.png"; // Fallback to default avatar
-          break;
-        }
+      // If the sharingUserUid matches the local user's UID, skip processing
+      if (sharingUserUid === config.uid.toString()) {
+        console.log(
+          "Screen share is from the local user. Skipping processing."
+        );
+        return;
       }
 
-      if (sharingUser) {
-        console.log(`Screen share is from remote user: ${sharingUser}`);
+      console.log(`Screen share is from remote user: ${sharingUserUid}`);
 
-        // Update the avatar for the PiP view
-        const avatarElement = document.getElementById("pip-avatar");
-        if (avatarElement) {
-          avatarElement.src = sharingAvatar;
-          console.log(`Updated PiP avatar to ${sharingAvatar}.`);
-        } else {
-          console.warn("Could not find the PiP avatar element to update.");
-        }
-
-        // Subscribe to the screen share track
-        await client.subscribe(user, mediaType);
-
-        // Store the screen share track
-        if (!userTracks[1]) {
-          userTracks[1] = {};
-        }
-        userTracks[1].screenShareTrack = user.videoTrack;
-
-        // Toggle the stage
-        toggleStages(true, sharingUser); // Show screen share stage
-
-        // Check if the user has a video track before managing the camera state
-        if (user.videoTrack) {
-          manageCameraState("play", user.videoTrack, `#stream-${sharingUser}`);
-          manageCameraState("play", user.videoTrack, "#screen-share-video");
-        } else {
-          manageCameraState("stop", user.videoTrack, "#screen-share-video");
-          console.warn(
-            `User ${sharingUser} does not have a video track. Skipping manageCameraState.`
-          );
-        }
-
-        return;
+      // Update the avatar for the PiP view
+      const avatarElement = document.getElementById("pip-avatar");
+      if (avatarElement) {
+        avatarElement.src = attributes.avatar || "default-avatar.png";
+        console.log(
+          `Updated PiP avatar to ${attributes.avatar || "default-avatar.png"}.`
+        );
       } else {
-        console.log("No user found with isSharing = true.");
-        return;
+        console.warn("Could not find the PiP avatar element to update.");
       }
+
+      // Subscribe to the screen share track
+      await client.subscribe(user, mediaType);
+
+      // Store the screen share track
+      if (!userTracks[1]) {
+        userTracks[1] = {};
+      }
+      userTracks[1].screenShareTrack = user.videoTrack;
+
+      // Toggle the stage to screen share
+      toggleStages(true, sharingUserUid);
+
+      // Check if the user has a video track before managing the camera state
+      if (user.videoTrack) {
+        manageCameraState("play", user.videoTrack, `#stream-${sharingUserUid}`);
+        manageCameraState("play", user.videoTrack, "#screen-share-video");
+      } else {
+        manageCameraState("stop", user.videoTrack, "#screen-share-video");
+        console.warn(
+          `User ${sharingUserUid} does not have a video track. Skipping manageCameraState.`
+        );
+      }
+
+      return;
     } catch (error) {
-      console.error(`Error fetching channel members or attributes:`, error);
+      console.error(`Error fetching attributes for UID 1:`, error);
     }
   }
 
@@ -132,7 +125,6 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     console.error(`Error subscribing to user ${userUid}:`, error);
   }
 };
-
 
 
 

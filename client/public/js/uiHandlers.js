@@ -219,21 +219,50 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
     if (isEnabled) {
       console.log("Starting screen share process...");
 
-      // Create a dedicated client for screen sharing if not already created
+      // Fetch tokens for the screenShareUid
+      console.log("Fetching tokens for screenShareUid...");
+      const tokens = await fetchTokens(config, screenShareUid);
+      if (!tokens || !tokens.rtcToken || !tokens.rtmToken) {
+        console.error("Failed to fetch RTC or RTM token for screen sharing.");
+        return;
+      }
+
+      // Create a dedicated RTM client for screen sharing if not already created
+      if (!config.screenShareRTMClient) {
+        console.log("Creating a new RTM client for screen sharing...");
+        config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
+        await config.screenShareRTMClient.login({
+          uid: screenShareUid.toString(),
+          token: tokens.rtmToken,
+        });
+        console.log("Screen share RTM client logged in successfully.");
+
+        // Set RTM attributes for the screen-sharing user
+        const attributes = {
+          name: config.user.name || "Unknown",
+          avatar: config.user.avatar || "default-avatar-url",
+          company: config.user.company || "Unknown",
+          designation: config.user.designation || "Unknown",
+          role: config.user.role || "audience",
+          rtmUid: screenShareUid.toString(),
+          bubbleid: config.user.bubbleid,
+          isRaisingHand: config.user.isRaisingHand,
+          sharingUserUid: uid.toString(), // Set to local user UID
+          roleInTheCall: config.user.roleInTheCall || "audience",
+        };
+
+        console.log("Setting RTM attributes for screen-sharing user...");
+        await config.screenShareRTMClient.setLocalUserAttributes(attributes);
+        console.log("RTM attributes set successfully for screen-sharing user.");
+      }
+
+      // Create a dedicated RTC client for screen sharing if not already created
       if (!config.screenShareClient) {
-        console.log("Creating a new client for screen sharing...");
+        console.log("Creating a new RTC client for screen sharing...");
         config.screenShareClient = AgoraRTC.createClient({
           mode: "rtc",
           codec: "vp8",
         });
-      }
-
-      // Fetch token for the screenShareUid
-      console.log("Fetching token for screenShareUid...");
-      const tokens = await fetchTokens(config, screenShareUid);
-      if (!tokens || !tokens.rtcToken) {
-        console.error("Failed to fetch RTC token for screen sharing.");
-        return;
       }
 
       // Join RTC with the dedicated screenShareClient
@@ -262,16 +291,6 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       console.log("Publishing screen share video track...");
       await config.screenShareClient.publish(screenShareTrack);
 
-      // Update the local user's RTM attribute to indicate they are sharing
-      console.log(
-        "Updating RTM attribute for local user to indicate sharing..."
-      );
-      await config.rtmClient.setLocalUserAttributes({
-        isSharing: "true",
-      });
-
-      // Update the local config
-      config.isSharing = true;
       console.log("Screen sharing started for local user with UID:", uid);
 
       // Toggle the stage to screen share
@@ -304,21 +323,20 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       console.log("Stopping screen share...");
 
       // Leave the RTC channel for screenShareUid
-      console.log("Leaving RTC channel for screenShareUid...");
-      await config.screenShareClient.leave();
-      console.log("Screen share client left the RTC channel.");
+      if (config.screenShareClient) {
+        console.log("Leaving RTC channel for screenShareUid...");
+        await config.screenShareClient.leave();
+        console.log("Screen share RTC client left the channel.");
+        config.screenShareClient = null; // Clean up client
+      }
 
-      // Update the local user's RTM attribute to indicate they are no longer sharing
-      console.log(
-        "Updating RTM attribute for local user to indicate not sharing..."
-      );
-      await config.rtmClient.setLocalUserAttributes({
-        isSharing: "false",
-      });
-
-      // Update the local config
-      config.isSharing = false;
-      console.log("Screen sharing stopped for local user with UID:", uid);
+      // Leave the RTM client for screenShareUid
+      if (config.screenShareRTMClient) {
+        console.log("Logging out of RTM for screenShareUid...");
+        await config.screenShareRTMClient.logout();
+        console.log("Screen share RTM client logged out.");
+        config.screenShareRTMClient = null; // Clean up client
+      }
 
       // Toggle the stage back to video stage
       toggleStages(false, uid);
