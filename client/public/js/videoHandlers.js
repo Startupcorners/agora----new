@@ -42,17 +42,17 @@ export const manageCameraState = (uid, config, isCameraOn) => {
         );
       }
 
-      if (videoWrapper) {
-        videoWrapper.classList.remove("hidden"); // Show video wrapper
-        console.log(`Video wrapper is now visible for UID ${uid}.`);
+      if (videoPlayer) {
+        videoPlayer.classList.remove("hidden"); // Show videoPlayer
+        console.log(`Video player is now visible for UID ${uid}.`);
       }
     } else {
       // Camera is off
       console.log(`Turning off video for UID ${uid}.`);
 
-      if (videoWrapper) {
-        videoWrapper.classList.add("hidden"); // Hide video wrapper
-        console.log(`Video wrapper is now hidden for UID ${uid}.`);
+      if (videoPlayer) {
+        videoPlayer.classList.add("hidden"); // Hide video wrapper
+        console.log(`Video player is now hidden for UID ${uid}.`);
       }
     }
 
