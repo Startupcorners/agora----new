@@ -400,25 +400,6 @@ const sendRTMMessage = async (message) => {
       // Add the current user wrapper (for their own video/audio stream)
       await addUserWrapper({ uid, ...config.user }, config);
 
-      // Select the video player and avatar elements for the current user
-      const videoPlayer = document.querySelector(`#stream-${uid}`);
-      const avatarDiv = document.querySelector(`#avatar-${uid}`);
-
-      // Ensure the video player and avatar elements are found
-      if (!videoPlayer || !avatarDiv) {
-        console.error(
-          "Video player or avatar elements not found for current user"
-        );
-        return;
-      }
-
-      // Show avatar and hide video initially since the camera is off
-      toggleVideoOrAvatar(uid, null, avatarDiv, videoPlayer);
-
-      // Use toggleMicIcon to handle the mic icon (assumes mic is unmuted by default)
-      const isMuted = config.localAudioTrack.muted || false;
-      toggleMicIcon(uid, isMuted);
-
       console.log(
         "Joined the video stage with the camera off and active audio"
       );

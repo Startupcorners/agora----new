@@ -1,10 +1,9 @@
 export const templateVideoParticipant = `
   <div id="video-wrapper-{{uid}}" class="video-participant" data-uid="{{uid}}">
     <!-- Video Player -->
-    <div id="stream-{{uid}}" class="video-player"></div>
-
     <!-- User Avatar (shown when video is off) -->
     <img id="avatar-{{uid}}" class="user-avatar" src="{{avatar}}" alt="{{name}}'s avatar" />
+    <div id="stream-{{uid}}" class="video-player"></div>
 
     <!-- User Name with Mic Icon -->
     <div id="name-{{uid}}" class="user-name">
