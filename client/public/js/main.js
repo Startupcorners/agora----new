@@ -348,52 +348,54 @@ const sendRTMMessage = async (message) => {
   // Join video stage function
   const joinToVideoStage = async (config) => {
     try {
-      const { client, uid } = config;
+  //     const { client, uid } = config;
 
-      // Create and publish the local audio track if it doesn't exist
-      if (!config.localAudioTrack) {
-        console.log("Creating microphone audio track");
-        config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-      }
+  //     // Create and publish the local audio track if it doesn't exist
+  //     if (!config.localAudioTrack) {
+  //       console.log("Creating microphone audio track");
+  //       config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+  //     }
 
-      if (config.localAudioTrack) {
-        console.log("Microphone audio track created successfully");
+  //     if (config.localAudioTrack) {
+  //       console.log("Microphone audio track created successfully");
 
-        // Ensure the audio track is enabled before publishing
-        await config.localAudioTrack.setEnabled(true);
-        console.log("Microphone audio track enabled");
-      } else {
-        console.error("Failed to create local audio track");
-      }
+  //       // Ensure the audio track is enabled before publishing
+  //       await config.localAudioTrack.setEnabled(true);
+  //       console.log("Microphone audio track enabled");
+  //     } else {
+  //       console.error("Failed to create local audio track");
+  //     }
 
-      // Create the local video track if it doesn't exist, but DO NOT publish it
-      if (!config.localVideoTrack) {
-        console.log(
-          "Creating camera video track (muted and unpublished initially)"
-        );
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-        await config.localVideoTrack.setEnabled(false); // Keep video muted initially
-        config.localVideoTrackMuted = true; // Track that the video is muted
-        console.log("Video track created but kept muted and unpublished");
-      }
+  //     // Create the local video track if it doesn't exist, but DO NOT publish it
+  //     if (!config.localVideoTrack) {
+  //       console.log(
+  //         "Creating camera video track (muted and unpublished initially)"
+  //       );
+  //       config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+  //       await config.localVideoTrack.setEnabled(false); // Keep video muted initially
+  //       config.localVideoTrackMuted = true; // Track that the video is muted
+  //       console.log("Video track created but kept muted and unpublished");
+  //     }
 
-      // Publish only the local audio track
-      console.log("Publishing local audio track");
-      await client.publish([config.localAudioTrack]);
+  //     // Publish only the local audio track
+  //     console.log("Publishing local audio track");
+  //     await client.publish([config.localAudioTrack]);
 
-      console.log("Successfully published local audio track");
-      console.log("Checking uid:", uid);
+  //     console.log("Successfully published local audio track");
+  //     console.log("Checking uid:", uid);
 
-      // Update the userTrack object to reflect the "camera off" state
-      let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
+  //     // Update the userTrack object to reflect the "camera off" state
+  //  let updatedUserTrack = userTracks[uid] ? { ...userTracks[uid] } : {};
 
-      updatedUserTrack = {
-        ...updatedUserTrack,
-        videoTrack: config.localVideoTrack,
-      };
+  //  // Add or update properties in the user track
+  //  updatedUserTrack = {
+  //    ...updatedUserTrack,// Add or update video track
+  //    audioTrack: config.localAudioTrack, // Add or update audio track
+  //  };
 
-      // Reassign the updated user track back to the global userTracks object
-      userTracks[uid] = updatedUserTrack;
+  //  // Reassign the updated user track back to the global userTracks object
+  //  userTracks[uid] = updatedUserTrack;
+
 
       // Add the current user wrapper (for their own video/audio stream)
       await addUserWrapper({ uid, ...config.user }, config);

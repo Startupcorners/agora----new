@@ -346,7 +346,6 @@ export const switchCam = async (config, userTracks, camInfo) => {
       userTracks[uid] = {
         ...userTrack,
         videoTrack: config.localVideoTrack,
-        isVideoMuted: false,
       };
 
       // Update the video player element with the new video feed

@@ -3,75 +3,79 @@ import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging an
 import { fetchTokens } from "./helperFunctions.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; 
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
-import { userTracks } from "./state.js"; // Import userTracks from state.js
 
 
 
 export const toggleMic = async (config) => {
   try {
-    // Invert the current mute state
-    const isMuted = !config.localAudioTrackMuted;
-    console.log(`toggleMic called. Current isMuted: ${isMuted}`);
+    console.log(
+      `toggleMic called. Current localAudioTrack: ${
+        config.localAudioTrack ? "Exists" : "Null"
+      }`
+    );
 
-    if (isMuted) {
-      // Muting the microphone
-      if (config.localAudioTrack) {
-        console.log("Muting microphone for user:", config.uid);
+    if (config.localAudioTrack) {
+      // User is trying to unpublish (mute)
+      console.log("Muting microphone for user:", config.uid);
 
-        // Unpublish and stop the audio track
-        await config.client.unpublish([config.localAudioTrack]);
-        config.localAudioTrack.stop();
-        config.localAudioTrack.close();
-        config.localAudioTrack = null; // Remove the audio track reference
+      // Unpublish and stop the audio track
+      await config.client.unpublish([config.localAudioTrack]);
+      config.localAudioTrack.stop();
+      config.localAudioTrack.close();
+      config.localAudioTrack = null; // Set to null to indicate mic is muted
 
-        console.log("Microphone muted and unpublished");
+      console.log("Microphone muted and unpublished");
 
-        // Toggle the mic icon to show that the microphone is muted
-        toggleMicIcon(config.uid, true);
+      // Toggle the mic icon to show that the microphone is muted
+      toggleMicIcon(config.uid, true);
 
-        // Set wrapper border to transparent
-        const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
-        if (wrapper) {
-          wrapper.style.borderColor = "transparent"; // Transparent when muted
-          console.log(`Set border to transparent for user ${config.uid}`);
-        }
+      // Set wrapper border to transparent
+      const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
+      if (wrapper) {
+        wrapper.style.borderColor = "transparent"; // Transparent when muted
+        console.log(`Set border to transparent for user ${config.uid}`);
+      }
+
+      // Call bubble_fn_isMicOff with `true` to indicate mic is off
+      if (typeof bubble_fn_isMicOff === "function") {
+        bubble_fn_isMicOff(true);
       } else {
-        console.warn("No microphone track to mute for user:", config.uid);
+        console.warn("bubble_fn_isMicOff is not defined.");
       }
     } else {
-      // Unmuting the microphone
+      // User is trying to publish (unmute)
       console.log("Unmuting microphone for user:", config.uid);
 
-      // Check if the audio track already exists
+      // Create a new audio track
+      config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+
       if (!config.localAudioTrack) {
-        config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-
-        if (!config.localAudioTrack) {
-          console.error("Failed to create a new audio track!");
-          return;
-        }
-
-        console.log("Created new audio track for user:", config.uid);
-
-        // Publish the new audio track
-        await config.client.publish([config.localAudioTrack]);
-        console.log("Microphone unmuted and published");
-
-        // Toggle the mic icon to show that the microphone is unmuted
-        toggleMicIcon(config.uid, false);
-      } else {
-        console.log("Microphone track already exists for user:", config.uid);
+        console.error("Failed to create a new audio track!");
+        return;
       }
-    }
 
-    // Update the mute state in config
-    config.localAudioTrackMuted = isMuted;
+      console.log("Created new audio track for user:", config.uid);
 
-    // Call bubble_fn_isMicOff with the current mute state
-    if (typeof bubble_fn_isMicOff === "function") {
-      bubble_fn_isMicOff(isMuted);
-    } else {
-      console.warn("bubble_fn_isMicOff is not defined.");
+      // Publish the new audio track
+      await config.client.publish([config.localAudioTrack]);
+      console.log("Microphone unmuted and published");
+
+      // Toggle the mic icon to show that the microphone is unmuted
+      toggleMicIcon(config.uid, false);
+
+      // Set wrapper border to active (optional)
+      const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
+      if (wrapper) {
+        wrapper.style.borderColor = "#00ff00"; // Green border to indicate active mic
+        console.log(`Set border to green for user ${config.uid}`);
+      }
+
+      // Call bubble_fn_isMicOff with `false` to indicate mic is on
+      if (typeof bubble_fn_isMicOff === "function") {
+        bubble_fn_isMicOff(false);
+      } else {
+        console.warn("bubble_fn_isMicOff is not defined.");
+      }
     }
   } catch (error) {
     console.error("Error in toggleMic:", error);
@@ -79,102 +83,92 @@ export const toggleMic = async (config) => {
 };
 
 
-export const toggleCamera = async (isMuted, config) => {
-  let uid;
-  let userTrack;
 
+export const toggleCamera = async (config) => {
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
     }
 
-    uid = config.uid;
-    console.log("User's UID:", uid);
+    console.log("User's UID:", config.uid);
 
-    userTrack = userTracks[uid];
-    if (!userTrack) {
-      console.error(`User track for UID ${uid} is undefined.`);
-      return;
-    }
-
-    if (userTrack.cameraToggleInProgress) {
+    if (config.cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
       return;
     }
 
-    userTrack.cameraToggleInProgress = true; // Prevent simultaneous toggles
+    config.cameraToggleInProgress = true; // Prevent simultaneous toggles
 
-    if (isMuted) {
-      if (config.localVideoTrack) {
-        console.log("Turning off the camera for user:", uid);
+    if (config.localVideoTrack) {
+      // User is trying to turn off the camera
+      console.log("Turning off the camera for user:", config.uid);
 
-        // Unpublish and disable the video track
-        await config.client.unpublish([config.localVideoTrack]);
-        await config.localVideoTrack.setEnabled(false);
+      // Unpublish and stop the video track
+      await config.client.unpublish([config.localVideoTrack]);
+      config.localVideoTrack.stop();
+      config.localVideoTrack.close();
+      config.localVideoTrack = null; // Remove the video track reference
 
-        // Update user track state
-        userTrack.videoTrack = null;
-        userTrack.isVideoMuted = true;
+      console.log("Camera turned off and unpublished");
 
-        // Update UI based on screen share status
-        if (config.screenShareClient) {
-          playStreamInDiv(uid, "#pip-video-track");
-        } else {
-          playStreamInDiv(uid, `#stream-${uid}`);
-        }
-
-        if (typeof bubble_fn_isCamOn === "function") {
-          bubble_fn_isCamOn(false);
-        }
+      // Update UI
+      if (config.screenShareClient) {
+        playStreamInDiv(config.uid, "#pip-video-track");
       } else {
-        console.warn(
-          `No video track found for user ${uid} when turning off the camera.`
-        );
+        playStreamInDiv(config.uid, `#stream-${config.uid}`);
+      }
+
+      // Notify Bubble of the camera state
+      if (typeof bubble_fn_isCamOn === "function") {
+        bubble_fn_isCamOn(false); // Camera is off
       }
     } else {
+      // User is trying to turn on the camera
+      console.log("Turning on the camera for user:", config.uid);
+
+      // Create a new video track if none exists
+      config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+
       if (!config.localVideoTrack) {
-        console.log("Creating a new camera video track for user:", uid);
-        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+        console.error("Failed to create a new video track!");
+        return;
       }
 
       // Enable and publish the video track
       await config.localVideoTrack.setEnabled(true);
       await config.client.publish([config.localVideoTrack]);
 
-      // Update user track state
-      userTrack.videoTrack = config.localVideoTrack;
-      userTrack.isVideoMuted = false;
+      console.log("Camera turned on and published");
 
-      // Update UI based on screen share status
+      // Update UI
       if (config.screenShareClient) {
-        playStreamInDiv(uid, "#pip-video-track");
+        playStreamInDiv(config.uid, "#pip-video-track");
       } else {
-        playStreamInDiv(uid, `#stream-${uid}`);
+        playStreamInDiv(config.uid, `#stream-${config.uid}`);
       }
 
+      // Notify Bubble of the camera state
       if (typeof bubble_fn_isCamOn === "function") {
-        bubble_fn_isCamOn(true);
+        bubble_fn_isCamOn(true); // Camera is on
       }
     }
   } catch (error) {
-    console.error("Error in toggleCamera for user:", uid, error);
+    console.error("Error in toggleCamera for user:", config.uid, error);
   } finally {
-    if (userTracks[uid]) {
-      userTracks[uid].cameraToggleInProgress = false;
-      console.log("Camera toggle progress reset for user:", uid);
-    }
+    config.cameraToggleInProgress = false; // Reset toggle state
+    console.log("Camera toggle progress reset for user:", config.uid);
   }
 };
 
 
 
-export const toggleScreenShare = async (isEnabled, config) => {
+export const toggleScreenShare = async (config) => {
   console.log(
-    `Screen share toggle called. isEnabled: ${isEnabled}, uid: ${uid}`
+    `Screen share toggle called for uid: ${uid}`
   );
 
   try {
-    if (isEnabled) {
+    if (!config.screenShareRTMClient) {
       await startScreenShare(config); // Start screen share
     } else {
       await stopScreenShare(config); // Stop screen share
@@ -253,11 +247,6 @@ export const startScreenShare = async (config) => {
       console.error("Failed to create screen share video track.");
       return;
     }
-
-    // Store the screen share track
-    userTracks[screenShareUid] = {
-      screenShareTrack,
-    };
 
     // Publish the screen share track using the dedicated client
     console.log("Publishing screen share video track...");
