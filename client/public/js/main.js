@@ -69,6 +69,7 @@ const newMainApp = function (initConfig) {
     selectedCam: null,
     audioRecordingRTMClient: null,
     screenShareClient: null,
+    screenShareRTMClient: null,
     isVirtualBackGroundEnabled: false,
     localAudioTrack: null, // Ensure local tracks are initialized as null initially
     localVideoTrack: null,
