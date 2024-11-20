@@ -285,6 +285,14 @@ export const startScreenShare = async (config) => {
 
     console.log("Screen sharing started for local user with UID:", uid);
 
+    // Update userTracks for screenShareUid (user 1)
+    if (!userTracks[screenShareUid]) {
+      userTracks[screenShareUid] = {};
+    }
+    userTracks[screenShareUid].videoTrack = screenShareTrack;
+
+    console.log(`Updated userTracks for screenShareUid ${screenShareUid}`);
+
     // Toggle the stage to screen share
     toggleStages(true, uid);
 
