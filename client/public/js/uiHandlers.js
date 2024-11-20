@@ -221,6 +221,23 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
     if (isEnabled) {
       console.log("Starting screen share process...");
 
+      // Create a dedicated client for screen sharing if not already created
+      if (!config.screenShareClient) {
+        console.log("Creating a new client for screen sharing...");
+        config.screenShareClient = AgoraRTC.createClient({
+          mode: "rtc",
+          codec: "vp8",
+        });
+      }
+
+      // Check if the screenShareClient is already in the connecting/connected state
+      if (config.screenShareClient.connectionState !== "DISCONNECTED") {
+        console.error(
+          "Screen share client is already connecting or connected. Aborting."
+        );
+        return;
+      }
+
       // Fetch token for the screenShareUid
       console.log("Fetching token for screenShareUid...");
       const tokens = await fetchTokens(config, screenShareUid);
@@ -229,9 +246,9 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
         return;
       }
 
-      // Join RTC with screenShareUid
+      // Join RTC with the dedicated screenShareClient
       console.log("Joining RTC as screenShareUid:", screenShareUid);
-      await config.client.join(
+      await config.screenShareClient.join(
         config.appId,
         config.channelName,
         tokens.rtcToken,
@@ -251,9 +268,9 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
         screenShareTrack,
       };
 
-      // Publish the screen share track
+      // Publish the screen share track using the dedicated client
       console.log("Publishing screen share video track...");
-      await config.client.publish(screenShareTrack);
+      await config.screenShareClient.publish(screenShareTrack);
 
       // Update the local user's RTM attribute to indicate they are sharing
       console.log(
@@ -297,9 +314,14 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       console.log("Stopping screen share...");
 
       // Leave the RTC channel as screenShareUid
-      console.log("Leaving RTC channel for screenShareUid...");
-      await config.client.leave();
-      console.log("Screen share UID left the RTC channel.");
+      if (
+        config.screenShareClient &&
+        config.screenShareClient.connectionState === "CONNECTED"
+      ) {
+        console.log("Leaving RTC channel for screenShareUid...");
+        await config.screenShareClient.leave();
+        console.log("Screen share client left the RTC channel.");
+      }
 
       // Update the local user's RTM attribute to indicate they are no longer sharing
       console.log(
