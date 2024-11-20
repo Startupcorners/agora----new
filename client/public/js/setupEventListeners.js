@@ -29,6 +29,7 @@ export const setupEventListeners = (config) => {
 
   // Handle when a user stops publishing their media
   client.on("user-unpublished", async (user, mediaType) => {
+    console.log("Heard user-unpublished:", user);
     await handleUserUnpublished(user, mediaType, config);
   });
 
@@ -112,6 +113,7 @@ client.on("user-joined", async (user) => {
 
   // Handle when a user leaves the session
   client.on("user-left", async (user) => {
+    console.log("Heard user-left:", user);
     await handleUserLeft(user, config);
   });
 

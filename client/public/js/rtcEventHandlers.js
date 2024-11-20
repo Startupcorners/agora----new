@@ -152,6 +152,7 @@ const handleAudioPublished = async (user, userUid, config, client) => {
 
 
 export const handleUserUnpublished = async (user, mediaType, config) => {
+  console.log("Entered handleuserUnpublished:", user);
   console.log("User :",user);
   const userUid = user.uid.toString();
   console.log(
@@ -504,6 +505,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
+  console.log("Entered handleuserleft:", user);
   try {
     console.log(`User ${user.uid} left`);
 
