@@ -226,14 +226,16 @@ export const startScreenShare = async (config) => {
       return;
     }
 
-    // Create a dedicated RTM client for screen sharing
-    console.log("Creating a new RTM client for screen sharing...");
-    config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
-    await config.screenShareRTMClient.login({
-      uid: screenShareUid.toString(),
-      token: tokens.rtmToken,
-    });
-    console.log("Screen share RTM client logged in successfully.");
+    // Create a dedicated RTM client for screen sharing if not already created
+    if (!config.screenShareRTMClient) {
+      console.log("Creating a new RTM client for screen sharing...");
+      config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
+      await config.screenShareRTMClient.login({
+        uid: screenShareUid.toString(),
+        token: tokens.rtmToken,
+      });
+      console.log("Screen share RTM client logged in successfully.");
+    }
 
     // Set RTM attributes for the screen-sharing user
     const attributes = {
@@ -286,10 +288,9 @@ export const startScreenShare = async (config) => {
     console.log("Screen sharing started for local user with UID:", uid);
 
     // Update userTracks for screenShareUid (user 1)
-    if (!userTracks[screenShareUid]) {
-      userTracks[screenShareUid] = {};
-    }
-    userTracks[screenShareUid].videoTrack = screenShareTrack;
+    userTracks[screenShareUid] = {
+      videoTrack: screenShareTrack,
+    };
 
     console.log(`Updated userTracks for screenShareUid ${screenShareUid}`);
 
@@ -297,7 +298,7 @@ export const startScreenShare = async (config) => {
     toggleStages(true);
 
     // Play the screen share track in #screen-share-content
-    playStreamInDiv(1, "#screen-share-content");
+    playStreamInDiv(screenShareUid, "#screen-share-content");
     playStreamInDiv(uid, "#pip-video-track");
 
     // Set the avatar for PiP to config avatar
@@ -312,6 +313,31 @@ export const startScreenShare = async (config) => {
     }
   } catch (error) {
     console.error("Error starting screen share:", error);
+
+    // Cleanup on failure
+    if (config.screenShareClient) {
+      try {
+        await config.screenShareClient.leave();
+      } catch (leaveError) {
+        console.warn(
+          "Error while leaving screen share RTC client:",
+          leaveError
+        );
+      }
+      config.screenShareClient = null;
+    }
+
+    if (config.screenShareRTMClient) {
+      try {
+        await config.screenShareRTMClient.logout();
+      } catch (logoutError) {
+        console.warn(
+          "Error while logging out screen share RTM client:",
+          logoutError
+        );
+      }
+      config.screenShareRTMClient = null;
+    }
   }
 };
 
@@ -327,9 +353,15 @@ export const stopScreenShare = async (config) => {
     config.screenShareClient = null; // Clean up client
     config.screenShareRTMClient = null; // Clean up client
     
-    userTracks[screenShareUid].videoTrack.stop();
-    userTracks[screenShareUid].videoTrack.close();
-    delete userTracks[screenShareUid]; // Remove the entry from userTracks
+   if (userTracks[screenShareUid] && userTracks[screenShareUid].videoTrack) {
+     userTracks[screenShareUid].videoTrack.stop();
+     userTracks[screenShareUid].videoTrack.close();
+     delete userTracks[screenShareUid];
+     console.log("Screen share track stopped and removed.");
+   } else {
+     console.warn("No screen share track found for UID:", screenShareUid);
+   }
+
     
     // Toggle the stage back to video stage
     toggleStages(false);
