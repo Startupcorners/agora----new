@@ -208,8 +208,6 @@ export const toggleCamera = async (isMuted, config) => {
 
 
 
-
-// toggleScreenShare function
 export const toggleScreenShare = async (isEnabled, uid, config) => {
   const screenShareUid = 1; // Reserved UID for screen sharing
 
@@ -228,14 +226,6 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
           mode: "rtc",
           codec: "vp8",
         });
-      }
-
-      // Check if the screenShareClient is already in the connecting/connected state
-      if (config.screenShareClient.connectionState !== "DISCONNECTED") {
-        console.error(
-          "Screen share client is already connecting or connected. Aborting."
-        );
-        return;
       }
 
       // Fetch token for the screenShareUid
@@ -257,7 +247,7 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
 
       // Create the screen share video track
       console.log("Creating screen share video track...");
-      const [screenShareTrack] = await AgoraRTC.createScreenVideoTrack();
+      const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
       if (!screenShareTrack) {
         console.error("Failed to create screen share video track.");
         return;
@@ -313,15 +303,10 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
     } else {
       console.log("Stopping screen share...");
 
-      // Leave the RTC channel as screenShareUid
-      if (
-        config.screenShareClient &&
-        config.screenShareClient.connectionState === "CONNECTED"
-      ) {
-        console.log("Leaving RTC channel for screenShareUid...");
-        await config.screenShareClient.leave();
-        console.log("Screen share client left the RTC channel.");
-      }
+      // Leave the RTC channel for screenShareUid
+      console.log("Leaving RTC channel for screenShareUid...");
+      await config.screenShareClient.leave();
+      console.log("Screen share client left the RTC channel.");
 
       // Update the local user's RTM attribute to indicate they are no longer sharing
       console.log(
