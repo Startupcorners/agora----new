@@ -11,7 +11,7 @@ export const playStreamInDiv = (userId, divId) => {
     // Check if the user has a valid video track
     const userTrack = userTracks[userId];
     if (!userTrack || !userTrack.videoTrack || !userTrack.videoTrack._enabled) {
-      console.warn(`No valid video track found for user ${userId}.`);
+      console.log(`No valid video track found for user ${userId}.`);
       element.classList.add("hidden"); // Hide the element if no track is available
       return;
     }

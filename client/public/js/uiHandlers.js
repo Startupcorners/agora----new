@@ -1,7 +1,6 @@
 // uiHandlers.js
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { fetchTokens } from "./helperFunctions.js";
-import { manageParticipants } from "./rtcEventHandlers.js"; 
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { userTracks } from "./state.js";
 
@@ -30,8 +29,16 @@ export const toggleMic = async (config) => {
 
       console.log("Microphone muted and unpublished");
 
-      // Toggle the mic icon to show that the microphone is muted
-      toggleMicIcon(config.uid, true);
+      // Add the hidden class to the mic status element
+      const micStatusElement = document.getElementById(
+        `mic-status-${config.uid}`
+      );
+      if (micStatusElement) {
+        micStatusElement.classList.add("hidden");
+        console.log(`Added 'hidden' class to mic-status-${config.uid}`);
+      } else {
+        console.warn(`Mic status element not found for user ${config.uid}`);
+      }
 
       // Set wrapper border to transparent
       const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
@@ -64,8 +71,16 @@ export const toggleMic = async (config) => {
       await config.client.publish([userTrack.audioTrack]);
       console.log("Microphone unmuted and published");
 
-      // Toggle the mic icon to show that the microphone is unmuted
-      toggleMicIcon(config.uid, false);
+      // Remove the hidden class from the mic status element
+      const micStatusElement = document.getElementById(
+        `mic-status-${config.uid}`
+      );
+      if (micStatusElement) {
+        micStatusElement.classList.remove("hidden");
+        console.log(`Removed 'hidden' class from mic-status-${config.uid}`);
+      } else {
+        console.warn(`Mic status element not found for user ${config.uid}`);
+      }
 
       // Set wrapper border to active (optional)
       const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
@@ -85,6 +100,7 @@ export const toggleMic = async (config) => {
     console.error("Error in toggleMic for user:", config.uid, error);
   }
 };
+
 
 
 
