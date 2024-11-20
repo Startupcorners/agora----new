@@ -5,70 +5,40 @@ import {
 import { toggleScreenShare } from "./uiHandlers.js"; 
 
 export const manageCameraState = (action, videoTrack, elementId) => {
+  console.log(
+    `manageCameraState called with action: ${action}, elementId: ${elementId}`
+  );
+  console.log("VideoTrack:", videoTrack);
+
   try {
     const videoPlayer = document.querySelector(elementId);
-
     if (!videoPlayer) {
-      console.warn(`Video player element not found with ID: ${elementId}.`);
+      console.warn(
+        `Video player element not found for elementId: ${elementId}`
+      );
       return;
     }
 
-    if (action === "play" && videoTrack) {
-      // Play the video track and show the video player
-      videoPlayer.classList.remove("hidden");
-      videoTrack
-        .play(videoPlayer)
-        .catch((error) =>
-          console.error(`Error playing video in element ${elementId}:`, error)
+    if (action === "play") {
+      if (videoTrack && typeof videoTrack.play === "function") {
+        console.log(`Playing video on ${elementId}`);
+        videoTrack.play(videoPlayer).catch((error) => {
+          console.error(`Error playing video on ${elementId}:`, error);
+        });
+        videoPlayer.classList.remove("hidden"); // Show the video player
+      } else {
+        console.warn(
+          `Invalid video track or play method not found for elementId: ${elementId}`
         );
-      console.log(`Video is now playing in element: ${elementId}.`);
+      }
     } else if (action === "stop") {
-      // Hide the video player
-      videoPlayer.classList.add("hidden");
-      console.log(`Video player is now hidden for element: ${elementId}.`);
+      console.log(`Stopping video on ${elementId}`);
+      videoPlayer.classList.add("hidden"); // Hide the video player
     } else {
-      console.warn(
-        `Invalid action or missing video track. Action: ${action}, VideoTrack: ${!!videoTrack}`
-      );
+      console.warn(`Invalid action passed to manageCameraState: ${action}`);
     }
   } catch (error) {
-    console.error(`Error in manageCameraState:`, error.message, error.stack);
-  }
-};
-
-export const startScreenShare = async (screenShareUid, config) => {
-  try {
-    console.log(
-      `Starting screen share process for screenShareUid: ${screenShareUid}`
-    );
-
-    // Create the screen share track
-    const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
-
-    // Publish the screen share track using the screen share client
-    await config.screenShareClient.publish(screenShareTrack);
-    console.log("Screen share track published.");
-
-    // Store the screen share track
-    if (!userTracks[screenShareUid]) {
-      userTracks[screenShareUid] = {};
-    }
-    userTracks[screenShareUid].screenShareTrack = screenShareTrack;
-
-    // Update local state to indicate screen sharing has started
-    config.isScreenSharing = true;
-
-    // Update UI accordingly
-    manageCameraState(config.uid, config);
-    toggleStages(true, config.uid);
-
-    // Handle track-ended event
-    screenShareTrack.on("track-ended", async () => {
-      console.log("Screen share track ended.");
-      await toggleScreenShare(false, config.uid, config);
-    });
-  } catch (error) {
-    console.error("Error starting screen share:", error);
+    console.error("Error in manageCameraState:", error);
   }
 };
 
