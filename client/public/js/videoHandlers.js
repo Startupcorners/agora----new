@@ -1,47 +1,26 @@
-import { userTracks } from "./state.js";
-import {
-  setupEventListeners,
-} from "./setupEventListeners.js";
-import { toggleScreenShare } from "./uiHandlers.js"; 
-
-export const manageCameraState = (action, videoTrack, elementId) => {
+export const playStreamInDiv = (userId, divId) => {
   try {
-    console.log(
-      `manageCameraState called with action: ${action}, elementId: ${elementId}`
-    );
-    console.log("VideoTrack:", videoTrack);
-
-    // Validate the element
-    const videoPlayer = document.querySelector(elementId);
-    if (!videoPlayer) {
-      console.warn(
-        `Video player element not found for elementId: ${elementId}`
-      );
+    const element = document.querySelector(divId);
+    if (!element) {
+      console.warn(`Element with ID ${divId} not found.`);
       return;
     }
 
-    if (action === "play") {
-      if (videoTrack && typeof videoTrack.play === "function") {
-        console.log(`Playing video on ${elementId}`);
-        videoTrack.play(videoPlayer); // Play without .catch()
-        videoPlayer.classList.remove("hidden"); // Show the video player
-      } else {
-        console.warn(
-          `Invalid video track or play method not found for elementId: ${elementId}`
-        );
-      }
-    } else if (action === "stop") {
-      console.log(`Stopping video on ${elementId}`);
-      videoPlayer.classList.add("hidden"); // Hide the video player
-    } else {
-      console.warn(`Invalid action passed to manageCameraState: ${action}`);
+    // Check if the user has a valid video track
+    const userTrack = userTracks[userId];
+    if (!userTrack || !userTrack.videoTrack || !userTrack.videoTrack._enabled) {
+      console.warn(`No valid video track found for user ${userId}.`);
+      element.classList.add("hidden"); // Hide the element if no track is available
+      return;
     }
+
+    console.log(`Playing video track for user ${userId} in ${divId}.`);
+    userTrack.videoTrack.play(element); // Play the video track in the specified div
+    element.classList.remove("hidden"); // Ensure the div is visible
   } catch (error) {
-    console.error("Error in manageCameraState:", error);
+    console.error(`Error playing video in ${divId} for user ${userId}:`, error);
   }
 };
-
-
 
 export const toggleStages = (isScreenSharing, uid) => {
   const videoStage = document.getElementById("video-stage");
@@ -71,8 +50,3 @@ export const toggleStages = (isScreenSharing, uid) => {
 
   updateLayout(); // Ensure layout is updated after toggling
 };
-
-
-
-
-

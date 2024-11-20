@@ -2,7 +2,7 @@
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { fetchTokens } from "./helperFunctions.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; 
-import { manageCameraState, toggleStages } from "./videoHandlers.js";
+import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { userTracks } from "./state.js"; // Import userTracks from state.js
 
 
@@ -84,7 +84,6 @@ export const toggleCamera = async (isMuted, config) => {
   let userTrack;
 
   try {
-    // Ensure config and uid are defined
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
     }
@@ -93,109 +92,73 @@ export const toggleCamera = async (isMuted, config) => {
     console.log("User's UID:", uid);
 
     userTrack = userTracks[uid];
-
     if (!userTrack) {
       console.error(`User track for UID ${uid} is undefined.`);
       return;
     }
 
-    // Check if camera toggle is already in progress
     if (userTrack.cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
       return;
     }
 
-    // Set camera toggle in progress
-    userTrack.cameraToggleInProgress = true;
-    console.log("Camera toggle in progress for user:", uid);
+    userTrack.cameraToggleInProgress = true; // Prevent simultaneous toggles
 
     if (isMuted) {
-      // Camera is currently on, turn it off
       if (config.localVideoTrack) {
         console.log("Turning off the camera for user:", uid);
 
-        try {
-          // Unpublish the video track
-          await config.client.unpublish([config.localVideoTrack]);
-          console.log("Video track unpublished for user:", uid);
-        } catch (unpublishError) {
-          console.error(
-            `Error unpublishing video track for user ${uid}:`,
-            unpublishError
-          );
-        }
-
-        // Disable the video track
+        // Unpublish and disable the video track
+        await config.client.unpublish([config.localVideoTrack]);
         await config.localVideoTrack.setEnabled(false);
-        console.log("Video track disabled for user:", uid);
 
-        // Update userTrack's isVideoMuted status
+        // Update user track state
         userTrack.videoTrack = null;
         userTrack.isVideoMuted = true;
-        userTracks[uid] = { ...userTrack };
 
-        console.log("Camera turned off and unpublished for user:", uid);
-
-        // Update camera state to stop
-        manageCameraState("stop", null, `#stream-${uid}`);
+        // Update UI based on screen share status
+        if (config.screenShareClient) {
+          playStreamInDiv(uid, "#pip-video-track");
+        } else {
+          playStreamInDiv(uid, `#stream-${uid}`);
+        }
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
         }
       } else {
         console.warn(
-          `No video track found for user ${uid} when trying to turn off the camera.`
+          `No video track found for user ${uid} when turning off the camera.`
         );
       }
     } else {
-      // Camera is off, turn it on
-      console.log("Turning on the camera for user:", uid);
+      if (!config.localVideoTrack) {
+        console.log("Creating a new camera video track for user:", uid);
+        config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
+      }
 
-      try {
-        // Use existing video track if it exists, otherwise create a new one
-        if (!config.localVideoTrack) {
-          console.log("Creating a new camera video track for user:", uid);
-          config.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-          console.log("New camera video track created for user:", uid);
-        } else {
-          console.log("Using existing camera video track for user:", uid);
-        }
+      // Enable and publish the video track
+      await config.localVideoTrack.setEnabled(true);
+      await config.client.publish([config.localVideoTrack]);
 
-        // Enable the video track
-        await config.localVideoTrack.setEnabled(true);
-        console.log("Video track enabled for user:", uid);
+      // Update user track state
+      userTrack.videoTrack = config.localVideoTrack;
+      userTrack.isVideoMuted = false;
 
-        // Publish the video track
-        await config.client.publish([config.localVideoTrack]);
-        console.log("Video track published for user:", uid);
+      // Update UI based on screen share status
+      if (config.screenShareClient) {
+        playStreamInDiv(uid, "#pip-video-track");
+      } else {
+        playStreamInDiv(uid, `#stream-${uid}`);
+      }
 
-        // Update userTrack's video state
-        userTrack.videoTrack = config.localVideoTrack;
-        userTrack.isVideoMuted = false;
-        userTracks[uid] = { ...userTrack };
-
-        console.log(
-          "Camera turned on and video track published for user:",
-          uid
-        );
-
-        // Update camera state to play
-        manageCameraState("play", config.localVideoTrack, `#stream-${uid}`);
-
-        if (typeof bubble_fn_isCamOn === "function") {
-          bubble_fn_isCamOn(true);
-        }
-      } catch (cameraError) {
-        console.error(
-          `Error enabling or publishing video track for user ${uid}:`,
-          cameraError
-        );
+      if (typeof bubble_fn_isCamOn === "function") {
+        bubble_fn_isCamOn(true);
       }
     }
   } catch (error) {
     console.error("Error in toggleCamera for user:", uid, error);
   } finally {
-    // Ensure toggle progress is reset
     if (userTracks[uid]) {
       userTracks[uid].cameraToggleInProgress = false;
       console.log("Camera toggle progress reset for user:", uid);
@@ -205,159 +168,158 @@ export const toggleCamera = async (isMuted, config) => {
 
 
 
-export const toggleScreenShare = async (isEnabled, uid, config) => {
-  const screenShareUid = 1; // Reserved UID for screen sharing
+export const toggleScreenShare = async (isEnabled, config) => {
+  console.log(
+    `Screen share toggle called. isEnabled: ${isEnabled}, uid: ${uid}`
+  );
 
   try {
-    console.log(
-      `Screen share toggle called. isEnabled: ${isEnabled}, uid: ${uid}`
-    );
-
     if (isEnabled) {
-      console.log("Starting screen share process...");
-
-      // Fetch tokens for the screenShareUid
-      console.log("Fetching tokens for screenShareUid...");
-      const tokens = await fetchTokens(config, screenShareUid);
-      if (!tokens || !tokens.rtcToken || !tokens.rtmToken) {
-        console.error("Failed to fetch RTC or RTM token for screen sharing.");
-        return;
-      }
-
-      // Create a dedicated RTM client for screen sharing if not already created
-      if (!config.screenShareRTMClient) {
-        console.log("Creating a new RTM client for screen sharing...");
-        config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
-        await config.screenShareRTMClient.login({
-          uid: screenShareUid.toString(),
-          token: tokens.rtmToken,
-        });
-        console.log("Screen share RTM client logged in successfully.");
-
-        // Set RTM attributes for the screen-sharing user
-        const attributes = {
-          name: config.user.name || "Unknown",
-          avatar: config.user.avatar || "default-avatar-url",
-          company: config.user.company || "Unknown",
-          designation: config.user.designation || "Unknown",
-          role: config.user.role || "audience",
-          rtmUid: screenShareUid.toString(),
-          bubbleid: config.user.bubbleid,
-          isRaisingHand: config.user.isRaisingHand,
-          sharingUserUid: uid.toString(), // Set to local user UID
-          roleInTheCall: config.user.roleInTheCall || "audience",
-        };
-
-        console.log("Setting RTM attributes for screen-sharing user...");
-        await config.screenShareRTMClient.setLocalUserAttributes(attributes);
-        console.log("RTM attributes set successfully for screen-sharing user.");
-      }
-
-      // Create a dedicated RTC client for screen sharing if not already created
-      if (!config.screenShareClient) {
-        console.log("Creating a new RTC client for screen sharing...");
-        config.screenShareClient = AgoraRTC.createClient({
-          mode: "rtc",
-          codec: "vp8",
-        });
-      }
-
-      // Join RTC with the dedicated screenShareClient
-      console.log("Joining RTC as screenShareUid:", screenShareUid);
-      await config.screenShareClient.join(
-        config.appId,
-        config.channelName,
-        tokens.rtcToken,
-        screenShareUid
-      );
-
-      // Create the screen share video track
-      console.log("Creating screen share video track...");
-      const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
-      if (!screenShareTrack) {
-        console.error("Failed to create screen share video track.");
-        return;
-      }
-
-      // Store the screen share track
-      userTracks[screenShareUid] = {
-        screenShareTrack,
-      };
-
-      // Publish the screen share track using the dedicated client
-      console.log("Publishing screen share video track...");
-      await config.screenShareClient.publish(screenShareTrack);
-
-      console.log("Screen sharing started for local user with UID:", uid);
-
-      // Toggle the stage to screen share
-      toggleStages(true, uid);
-
-      // Play the screen share track in #screen-share-video
-      manageCameraState("play", screenShareTrack, "#screen-share-content");
-
-      // Play the local video track in #pip-video-track (PiP) if available
-      const localVideoTrack = config.localVideoTrack || null;
-      console.log("localVideoTrack: ", localVideoTrack)
-      if (localVideoTrack) {
-        manageCameraState("play", localVideoTrack, "#pip-video-track");
-      } else {
-        console.warn(
-          "No local video track found for PiP. Skipping local video play."
-        );
-      }
-
-      // Set the avatar for PiP to config avatar
-      const avatarElement = document.getElementById("pip-avatar");
-      if (avatarElement) {
-        avatarElement.src = config.user.avatar || "default-avatar.png";
-        console.log(
-          `Updated PiP avatar to ${config.user.avatar || "default-avatar.png"}.`
-        );
-      } else {
-        console.warn("Could not find the PiP avatar element to update.");
-      }
+      await startScreenShare(config); // Start screen share
     } else {
-      console.log("Stopping screen share...");
-
-      // Leave the RTC channel for screenShareUid
-      if (config.screenShareClient) {
-        console.log("Leaving RTC channel for screenShareUid...");
-        await config.screenShareClient.leave();
-        console.log("Screen share RTC client left the channel.");
-        config.screenShareClient = null; // Clean up client
-      }
-
-      // Leave the RTM client for screenShareUid
-      if (config.screenShareRTMClient) {
-        console.log("Logging out of RTM for screenShareUid...");
-        await config.screenShareRTMClient.logout();
-        console.log("Screen share RTM client logged out.");
-        config.screenShareRTMClient = null; // Clean up client
-      }
-
-      // Toggle the stage back to video stage
-      toggleStages(false, uid);
-
-      // Stop showing the screen share and PiP tracks
-      manageCameraState("stop", null, "#screen-share-video");
-      manageCameraState("stop", null, "#pip-video-track");
-
-      // Play back the local track in #stream-${config.uid} if available
-      const localVideoTrack = config.localVideoTrack || null;
-      if (localVideoTrack) {
-        manageCameraState("play", localVideoTrack, `#stream-${config.uid}`);
-        console.log(`Playing back local video track in #stream-${config.uid}.`);
-      } else {
-        console.warn(
-          "No local video track found to play back after stopping screen share."
-        );
-      }
+      await stopScreenShare(config); // Stop screen share
     }
   } catch (error) {
-    console.error("Error during screen sharing toggle:", error);
+    console.error("Error during screen share toggle:", error);
   }
 };
+
+
+export const startScreenShare = async (config) => {
+  const screenShareUid = 1; // Reserved UID for screen sharing
+  const uid = config.uid
+  try {
+    console.log("Starting screen share process...");
+
+    // Fetch tokens for the screenShareUid
+    console.log("Fetching tokens for screenShareUid...");
+    const tokens = await fetchTokens(config, screenShareUid);
+    if (!tokens || !tokens.rtcToken || !tokens.rtmToken) {
+      console.error("Failed to fetch RTC or RTM token for screen sharing.");
+      return;
+    }
+
+    // Create a dedicated RTM client for screen sharing if not already created
+    if (!config.screenShareRTMClient) {
+      console.log("Creating a new RTM client for screen sharing...");
+      config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
+      await config.screenShareRTMClient.login({
+        uid: screenShareUid.toString(),
+        token: tokens.rtmToken,
+      });
+      console.log("Screen share RTM client logged in successfully.");
+
+      // Set RTM attributes for the screen-sharing user
+      const attributes = {
+        name: config.user.name || "Unknown",
+        avatar: config.user.avatar || "default-avatar-url",
+        company: config.user.company || "Unknown",
+        designation: config.user.designation || "Unknown",
+        role: config.user.role || "audience",
+        rtmUid: screenShareUid.toString(),
+        bubbleid: config.user.bubbleid,
+        isRaisingHand: config.user.isRaisingHand,
+        sharingUserUid: uid.toString(),
+        roleInTheCall: config.user.roleInTheCall || "audience",
+      };
+
+      console.log("Setting RTM attributes for screen-sharing user...");
+      await config.screenShareRTMClient.setLocalUserAttributes(attributes);
+      console.log("RTM attributes set successfully for screen-sharing user.");
+    }
+
+    // Create a dedicated RTC client for screen sharing if not already created
+    if (!config.screenShareClient) {
+      console.log("Creating a new RTC client for screen sharing...");
+      config.screenShareClient = AgoraRTC.createClient({
+        mode: "rtc",
+        codec: "vp8",
+      });
+    }
+
+    // Join RTC with the dedicated screenShareClient
+    console.log("Joining RTC as screenShareUid:", screenShareUid);
+    await config.screenShareClient.join(
+      config.appId,
+      config.channelName,
+      tokens.rtcToken,
+      screenShareUid
+    );
+
+    // Create the screen share video track
+    console.log("Creating screen share video track...");
+    const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
+    if (!screenShareTrack) {
+      console.error("Failed to create screen share video track.");
+      return;
+    }
+
+    // Store the screen share track
+    userTracks[screenShareUid] = {
+      screenShareTrack,
+    };
+
+    // Publish the screen share track using the dedicated client
+    console.log("Publishing screen share video track...");
+    await config.screenShareClient.publish(screenShareTrack);
+
+    console.log("Screen sharing started for local user with UID:", uid);
+
+    // Toggle the stage to screen share
+    toggleStages(true, uid);
+
+    // Play the screen share track in #screen-share-content
+    playStreamInDiv(1, "#screen-share-content");
+    playStreamInDiv(uid, "#pip-video-track");
+
+
+    // Set the avatar for PiP to config avatar
+    const avatarElement = document.getElementById("pip-avatar");
+    if (avatarElement) {
+      avatarElement.src = config.user.avatar || "default-avatar.png";
+      console.log(
+        `Updated PiP avatar to ${config.user.avatar || "default-avatar.png"}.`
+      );
+    } else {
+      console.warn("Could not find the PiP avatar element to update.");
+    }
+  } catch (error) {
+    console.error("Error starting screen share:", error);
+  }
+};
+
+
+export const stopScreenShare = async (config) => {
+  const uid = config.uid;
+  const screenShareUid = 1; // Reserved UID for screen sharing
+  try {
+    console.log("Stopping screen share...");
+
+    // Leave the RTC channel for screenShareUid
+    if (config.screenShareClient) {
+      console.log("Leaving RTC channel for screenShareUid...");
+      await config.screenShareClient.leave();
+      console.log("Screen share RTC client left the channel.");
+      config.screenShareClient = null; // Clean up client
+    }
+
+    // Leave the RTM client for screenShareUid
+    if (config.screenShareRTMClient) {
+      console.log("Logging out of RTM for screenShareUid...");
+      await config.screenShareRTMClient.logout();
+      console.log("Screen share RTM client logged out.");
+      config.screenShareRTMClient = null; // Clean up client
+    }
+
+    // Toggle the stage back to video stage
+    toggleStages(false, uid);
+    playStreamInDiv(uid, `#stream-${uid}`);
+  
+  } catch (error) {
+    console.error("Error stopping screen share:", error);
+  }
+};
+
 
 
 
