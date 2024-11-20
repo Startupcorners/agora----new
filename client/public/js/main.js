@@ -348,6 +348,7 @@ const sendRTMMessage = async (message) => {
   // Join video stage function
   const joinToVideoStage = async (config) => {
     try {
+      const uid = config.uid;
   //     const { client, uid } = config;
 
   //     // Create and publish the local audio track if it doesn't exist
