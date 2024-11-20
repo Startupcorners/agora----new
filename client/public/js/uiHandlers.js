@@ -310,9 +310,9 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       // Set the avatar for PiP to config avatar
       const avatarElement = document.getElementById("pip-avatar");
       if (avatarElement) {
-        avatarElement.src = config.avatar || "default-avatar.png";
+        avatarElement.src = config.user.avatar || "default-avatar.png";
         console.log(
-          `Updated PiP avatar to ${config.avatar || "default-avatar.png"}.`
+          `Updated PiP avatar to ${config.user.avatar || "default-avatar.png"}.`
         );
       } else {
         console.warn("Could not find the PiP avatar element to update.");
