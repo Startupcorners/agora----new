@@ -294,7 +294,7 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       toggleStages(true, uid);
 
       // Play the screen share track in #screen-share-video
-      manageCameraState("play", screenShareTrack, "#screen-share-video");
+      manageCameraState("play", screenShareTrack, "#screen-share-content");
 
       // Play the local video track in #pip-video-track (PiP) if available
       const localVideoTrack = config.localVideoTrack || null;
