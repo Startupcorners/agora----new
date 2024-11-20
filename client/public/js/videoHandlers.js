@@ -24,14 +24,10 @@ export const playStreamInDiv = (userId, divId) => {
   }
 };
 
-export const toggleStages = (isScreenSharing, uid) => {
+export const toggleStages = (isScreenSharing) => {
   const videoStage = document.getElementById("video-stage");
   const screenShareStage = document.getElementById("screen-share-stage");
 
-  if (!uid) {
-    console.error("toggleStages: uid is undefined.");
-    return; // Exit early to prevent further errors
-  }
 
   if (!videoStage || !screenShareStage) {
     console.error(
@@ -41,7 +37,6 @@ export const toggleStages = (isScreenSharing, uid) => {
   }
 
   if (isScreenSharing) {
-    console.log(`Toggling to screen share stage for user with UID: ${uid}`);
     videoStage.classList.add("hidden"); // Hide video stage
     screenShareStage.classList.remove("hidden"); // Show screen share stage
   } else {

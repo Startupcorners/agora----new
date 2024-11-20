@@ -81,7 +81,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       userTracks[1].screenShareTrack = user.videoTrack;
 
       // Toggle stage to screen share
-      toggleStages(true, sharingUserUid);
+      toggleStages(true);
 
       // Play screen share track
       playStreamInDiv(user.videoTrack, "#screen-share-content");
@@ -125,6 +125,17 @@ const handleAudioPublished = async (user, userUid, config, client) => {
     // Play audio track directly
     user.audioTrack.play();
     console.log(`Playing audio track for user ${userUid}.`);
+
+    // Update the mic status element to show unmuted state
+    const micStatusElement = document.getElementById(`mic-status-${userUid}`);
+    if (micStatusElement) {
+      micStatusElement.classList.add("hidden"); // Hide the muted icon
+      console.log(
+        `Added 'hidden' class to mic-status-${userUid} to indicate unmuted status`
+      );
+    } else {
+      console.warn(`Mic status element not found for user ${userUid}`);
+    }
   } catch (error) {
     console.error(`Error subscribing to audio for user ${userUid}:`, error);
   }
@@ -135,90 +146,105 @@ const handleAudioPublished = async (user, userUid, config, client) => {
 
 
 
+
 export const handleUserUnpublished = async (user, mediaType, config) => {
+  const userUid = user.uid.toString();
   console.log(
-    `handleUserUnpublished called for user: ${user.uid}, mediaType: ${mediaType}`
+    `handleUserUnpublished called for user: ${userUid}, mediaType: ${mediaType}`
   );
 
-  const userUid = user.uid.toString();
-
-  // Skip handling for local user's own media (excluding screen share client)
-  if (userUid === config.uid.toString() && userUid !== "1") {
-    console.log("Skipping handling of local user's own media.");
-    return;
-  }
-
-  // Skip handling for virtual participant
-  if (userUid === "2") {
-    console.log("Skipping handling virtual participant.");
-    return;
-  }
-
-  // Handle video unpublishing (includes screen share)
   if (mediaType === "video") {
-    if (userUid === "1") {
-      console.log(`Screen share track unpublished for UID 1.`);
+    await handleVideoUnpublished(user, userUid, config);
+  } else if (mediaType === "audio") {
+    await handleAudioUnpublished(user, userUid, config);
+  } else {
+    console.warn(`Unsupported mediaType: ${mediaType}`);
+  }
+};
 
-      try {
-        // Fetch the attributes of UID 1 to determine who was sharing
-        console.log(
-          `Fetching attributes for screen-sharing user (UID: ${userUid})...`
-        );
-        const attributes = await config.clientRTM.getUserAttributes("1");
 
-        const sharingUserUid = attributes.sharingUserUid;
+const handleVideoUnpublished = async (user, userUid, config) => {
+  console.log(`Handling video unpublishing for user: ${userUid}`);
 
-        console.log(`Screen share was from user: ${sharingUserUid}`);
+  // Special case: Handle screen share (UID = "1")
+  if (userUid === "1") {
+    console.log("Screen share track unpublished for UID 1.");
 
-        // Update UI to stop showing screen share
-        toggleStages(false, sharingUserUid); // Hide screen share stage
-        playStreamInDiv(null, "#screen-share-content");
+    try {
+      // Fetch attributes to determine who was sharing
+      console.log(
+        `Fetching attributes for screen-sharing user (UID: ${userUid})...`
+      );
+      const attributes = await config.clientRTM.getUserAttributes("1");
 
-        // Remove and stop the screen share track
-        if (userTracks[1] && userTracks[1].screenShareTrack) {
-          userTracks[1].screenShareTrack.stop();
-          userTracks[1].screenShareTrack.close();
-          userTracks[1].screenShareTrack = null;
-          console.log("Screen share track stopped and removed.");
-        }
-      } catch (error) {
-        console.error("Error handling screen share unpublishing:", error);
-      }
-    } else {
-      // For other users, handle unpublishing of their video track
-      console.log(`User ${userUid} has unpublished their video track.`);
+      const sharingUserUid = attributes.sharingUserUid;
+      console.log(`Screen share was from user: ${sharingUserUid}`);
 
-      if (userTracks[userUid] && userTracks[userUid].videoTrack) {
-        userTracks[userUid].videoTrack.stop();
-        userTracks[userUid].videoTrack.close();
-        userTracks[userUid].videoTrack = null;
-        console.log(`Removed video track for user ${userUid}`);
+      // Skip if the screen-sharing user is the local user
+      if (sharingUserUid === config.uid.toString()) {
+        console.log("Screen share unpublishing skipped for local user.");
+        return;
       }
 
-      // Update UI to stop showing the user's video
-      playStreamInDiv(null, `#stream-${userUid}`);
+      // Stop screen sharing UI
+      toggleStages(false); // Hide screen share stage
+      playStreamInDiv(sharingUserUid, `#stream-${userUid}`);
+
+      // Remove and stop the screen share track
+      if (userTracks[1] && userTracks[1].screenShareTrack) {
+        userTracks[1].screenShareTrack.stop();
+        userTracks[1].screenShareTrack.close();
+        userTracks[1].screenShareTrack = null;
+        console.log("Screen share track stopped and removed.");
+      }
+    } catch (error) {
+      console.error("Error handling screen share unpublishing:", error);
     }
+
+    return;
   }
 
-  // Handle audio unpublishing
-  if (mediaType === "audio") {
-    console.log(`User ${userUid} has unpublished their audio track.`);
+  // General video handling for other users
+  console.log(`User ${userUid} has unpublished their video track.`);
 
-    if (userTracks[userUid] && userTracks[userUid].audioTrack) {
-      userTracks[userUid].audioTrack.stop();
-      userTracks[userUid].audioTrack = null;
-      console.log(`Removed audio track for user ${userUid}`);
-    }
+  if (userTracks[userUid] && userTracks[userUid].videoTrack) {
+    userTracks[userUid].videoTrack.stop();
+    userTracks[userUid].videoTrack.close();
+    userTracks[userUid].videoTrack = null;
+    console.log(`Removed video track for user ${userUid}`);
+  }
 
-    // Update UI to indicate muted audio (optional)
-    toggleMicIcon(userUid, true); // Show muted mic icon
+  // Stop displaying the user's video in the UI
+  playStreamInDiv(userid, `#stream-${userUid}`);
+};
 
-    // Set the wrapper border to transparent if available
-    const wrapper = document.querySelector(`#video-wrapper-${userUid}`);
-    if (wrapper) {
-      wrapper.style.borderColor = "transparent"; // Transparent when audio is unpublished
-      console.log(`Set border to transparent for user ${userUid}`);
-    }
+
+
+const handleAudioUnpublished = async (user, userUid, config) => {
+  console.log(`Handling audio unpublishing for user: ${userUid}`);
+
+  if (userTracks[userUid] && userTracks[userUid].audioTrack) {
+    userTracks[userUid].audioTrack.stop();
+    userTracks[userUid].audioTrack = null;
+    console.log(`Removed audio track for user ${userUid}`);
+  }
+
+  // Update the mic status element to show muted state
+  const micStatusElement = document.getElementById(`mic-status-${userUid}`);
+  if (micStatusElement) {
+    micStatusElement.classList.remove("hidden"); // Show the muted icon
+    console.log(
+      `Removed 'hidden' class from mic-status-${userUid} to indicate muted status`
+    );
+  } else {
+    console.warn(`Mic status element not found for user ${userUid}`);
+  }
+
+  // Update the wrapper's border style to indicate no active audio
+  const wrapper = document.querySelector(`#video-wrapper-${userUid}`);
+  if (wrapper) {
+    wrapper.style.borderColor = "transparent"; // Transparent when audio is unpublished
+    console.log(`Set border to transparent for user ${userUid}`);
   }
 };
 

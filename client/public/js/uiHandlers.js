@@ -294,7 +294,7 @@ export const startScreenShare = async (config) => {
     console.log(`Updated userTracks for screenShareUid ${screenShareUid}`);
 
     // Toggle the stage to screen share
-    toggleStages(true, uid);
+    toggleStages(true);
 
     // Play the screen share track in #screen-share-content
     playStreamInDiv(1, "#screen-share-content");
@@ -347,7 +347,7 @@ export const stopScreenShare = async (config) => {
     }
 
     // Toggle the stage back to video stage
-    toggleStages(false, uid);
+    toggleStages(false);
 
     // Resume playing the user's main video stream
     playStreamInDiv(uid, `#stream-${uid}`);
