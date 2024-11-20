@@ -396,7 +396,7 @@ export const stopScreenShare = async (config) => {
           }
 
           // Ensure the user (UID 1) logs out from the RTM session
-          if (user.screenShareRTMClient) {
+          if (config.screenShareRTMClient) {
             console.log("Logging out from RTM for screen-sharing user...");
             await config.screenShareRTMClient.logout();
             console.log("Screen-sharing RTM client has logged out.");
