@@ -149,6 +149,7 @@ const handleAudioPublished = async (user, userUid, config, client) => {
 
 
 export const handleUserUnpublished = async (user, mediaType, config) => {
+  console.log("User :",user);
   const userUid = user.uid.toString();
   console.log(
     `handleUserUnpublished called for user: ${userUid}, mediaType: ${mediaType}`
