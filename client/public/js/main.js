@@ -319,7 +319,7 @@ const sendRTMMessage = async (message) => {
         rtmUid: rtmUid,
         bubbleid: config.user.bubbleid,
         isRaisingHand: config.user.isRaisingHand,
-        isSharing: "false",
+        sharingUserUid: "0",
         roleInTheCall: config.user.roleInTheCall || "audience",
       };
 
