@@ -180,15 +180,9 @@ const handleVideoUnpublished = async (user, userUid, config) => {
       const sharingUserUid = attributes.sharingUserUid;
       console.log(`Screen share was from user: ${sharingUserUid}`);
 
-      // Skip if the screen-sharing user is the local user
-      if (sharingUserUid === config.uid.toString()) {
-        console.log("Screen share unpublishing skipped for local user.");
-        return;
-      }
-
       // Stop screen sharing UI
       toggleStages(false); // Hide screen share stage
-      playStreamInDiv(sharingUserUid, `#stream-${userUid}`);
+      playStreamInDiv(sharingUserUid, `#stream-${sharingUserUid}`);
 
       // Remove and stop the screen share track
       if (userTracks[1] && userTracks[1].screenShareTrack) {
@@ -196,6 +190,24 @@ const handleVideoUnpublished = async (user, userUid, config) => {
         userTracks[1].screenShareTrack.close();
         userTracks[1].screenShareTrack = null;
         console.log("Screen share track stopped and removed.");
+      }
+
+      // Ensure the user (UID 1) leaves the RTC session
+      if (user.rtcClient) {
+        console.log("Leaving RTC channel for screen-sharing user...");
+        await user.rtcClient.leave();
+        console.log("Screen-sharing RTC client has left the channel.");
+      } else {
+        console.warn("No RTC client found for the screen-sharing user.");
+      }
+
+      // Ensure the user (UID 1) logs out from the RTM session
+      if (user.rtmClient) {
+        console.log("Logging out from RTM for screen-sharing user...");
+        await user.rtmClient.logout();
+        console.log("Screen-sharing RTM client has logged out.");
+      } else {
+        console.warn("No RTM client found for the screen-sharing user.");
       }
     } catch (error) {
       console.error("Error handling screen share unpublishing:", error);
@@ -217,6 +229,9 @@ const handleVideoUnpublished = async (user, userUid, config) => {
   // Stop displaying the user's video in the UI
   playStreamInDiv(userid, `#stream-${userUid}`);
 };
+
+
+
 
 
 
