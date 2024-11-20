@@ -40,7 +40,6 @@ export const toggleStages = (isScreenSharing) => {
     videoStage.classList.add("hidden"); // Hide video stage
     screenShareStage.classList.remove("hidden"); // Show screen share stage
   } else {
-    console.log(`Toggling back to video stage for user with UID: ${uid}`);
     videoStage.classList.remove("hidden"); // Show video stage
     screenShareStage.classList.add("hidden"); // Hide screen share stage
   }
