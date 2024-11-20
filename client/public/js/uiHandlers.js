@@ -298,6 +298,7 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
 
       // Play the local video track in #pip-video-track (PiP) if available
       const localVideoTrack = config.localVideoTrack || null;
+      console.log("localVideoTrack: ", localVideoTrack)
       if (localVideoTrack) {
         manageCameraState("play", localVideoTrack, "#pip-video-track");
       } else {

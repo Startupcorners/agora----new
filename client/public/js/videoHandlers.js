@@ -5,12 +5,13 @@ import {
 import { toggleScreenShare } from "./uiHandlers.js"; 
 
 export const manageCameraState = (action, videoTrack, elementId) => {
-  console.log(
-    `manageCameraState called with action: ${action}, elementId: ${elementId}`
-  );
-  console.log("VideoTrack:", videoTrack);
-
   try {
+    console.log(
+      `manageCameraState called with action: ${action}, elementId: ${elementId}`
+    );
+    console.log("VideoTrack:", videoTrack);
+
+    // Validate the element
     const videoPlayer = document.querySelector(elementId);
     if (!videoPlayer) {
       console.warn(
@@ -22,9 +23,7 @@ export const manageCameraState = (action, videoTrack, elementId) => {
     if (action === "play") {
       if (videoTrack && typeof videoTrack.play === "function") {
         console.log(`Playing video on ${elementId}`);
-        videoTrack.play(videoPlayer).catch((error) => {
-          console.error(`Error playing video on ${elementId}:`, error);
-        });
+        videoTrack.play(videoPlayer); // Play without .catch()
         videoPlayer.classList.remove("hidden"); // Show the video player
       } else {
         console.warn(
