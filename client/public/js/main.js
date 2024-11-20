@@ -399,7 +399,7 @@ const sendRTMMessage = async (message) => {
 
 
       // Add the current user wrapper (for their own video/audio stream)
-      await addUserWrapper(config.user, config);
+      await addUserWrapper(config, config);
 
       console.log(
         "Joined the video stage with the camera off and active audio"
