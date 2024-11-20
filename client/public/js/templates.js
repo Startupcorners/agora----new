@@ -9,7 +9,7 @@ export const templateVideoParticipant = `
     <div id="name-{{uid}}" class="user-name">
       {{name}}
       <!-- Microphone Status Icon within user name -->
-      <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" style="display: none; margin-left: 5px;">
+      <span id="mic-status-{{uid}}" class="mic-status" title="Microphone is muted" margin-left: 5px;">
         <img src="https://startupcorners-df3e7.web.app/icons/mic-muted.svg" alt="Mic Muted Icon" class="mic-icon" />
       </span>
     </div>
