@@ -198,9 +198,6 @@ export const toggleCamera = async (config) => {
 
 
 export const toggleScreenShare = async (config) => {
-  console.log(
-    `Screen share toggle called for uid: ${uid}`
-  );
 
   try {
     if (!config.screenShareRTMClient) {
