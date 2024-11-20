@@ -257,6 +257,40 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       // Update the local config
       config.isSharing = true;
       console.log("Screen sharing started for local user with UID:", uid);
+
+      // Toggle the stage to screen share
+      toggleStages(true, uid);
+
+      // Play the screen share track in #screen-share-video
+      const screenShareTrack = userTracks[screenShareUid]?.screenShareTrack;
+      if (screenShareTrack) {
+        manageCameraState("play", screenShareTrack, "#screen-share-video");
+      } else {
+        console.warn(
+          `No screen share track found for UID ${screenShareUid}. Skipping screen share play.`
+        );
+      }
+
+      // Play the local video track in #pip-video-track (PiP) if available
+      const localVideoTrack = config.localVideoTrack || null;
+      if (localVideoTrack) {
+        manageCameraState("play", localVideoTrack, "#pip-video-track");
+      } else {
+        console.warn(
+          "No local video track found for PiP. Skipping local video play."
+        );
+      }
+
+      // Set the avatar for PiP to config avatar
+      const avatarElement = document.getElementById("pip-avatar");
+      if (avatarElement) {
+        avatarElement.src = config.avatar || "default-avatar.png";
+        console.log(
+          `Updated PiP avatar to ${config.avatar || "default-avatar.png"}.`
+        );
+      } else {
+        console.warn("Could not find the PiP avatar element to update.");
+      }
     } else {
       console.log("Stopping screen share...");
 
@@ -276,11 +310,30 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       // Update the local config
       config.isSharing = false;
       console.log("Screen sharing stopped for local user with UID:", uid);
+
+      // Toggle the stage back to video stage
+      toggleStages(false, uid);
+
+      // Stop showing the screen share and PiP tracks
+      manageCameraState("stop", null, "#screen-share-video");
+      manageCameraState("stop", null, "#pip-video-track");
+
+      // Play back the local track in #stream-${config.uid} if available
+      const localVideoTrack = config.localVideoTrack || null;
+      if (localVideoTrack) {
+        manageCameraState("play", localVideoTrack, `#stream-${config.uid}`);
+        console.log(`Playing back local video track in #stream-${config.uid}.`);
+      } else {
+        console.warn(
+          "No local video track found to play back after stopping screen share."
+        );
+      }
     }
   } catch (error) {
     console.error("Error during screen sharing toggle:", error);
   }
 };
+
 
 
 
