@@ -1,263 +1,137 @@
 /* Fullscreen wrapper for the screen share */
 .fullscreen-wrapper {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  z-index: 1;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 1;
 }
 
 /* Stream inside the fullscreen wrapper (positioned bottom-right) */
 .fullscreen-stream {
-  width: 150px;
-  height: 100px;
-  position: absolute;
-  bottom: 10px;
-  right: 10px;
-  z-index: 9999;
-  background-color: black;
-  border: 2px solid white;
+    width: 150px;
+    height: 100px;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 9999;
+    background-color: black;
+    border: 2px solid white;
 }
 
 .video-participant {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  background-color: #333; /* Dark gray background */
-  border: 2px solid #555; /* Border with slightly lighter gray */
-  border-radius: 8px; /* Optional: rounded corners for a softer look */
-  position: relative; /* Necessary for positioning child elements */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box; /* Ensures border is included in total dimensions */
-  overflow: hidden; /* Ensures content doesn’t spill out */
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background-color: #333;
+    /* Dark gray background */
+    border: 2px solid #555;
+    /* Border with slightly lighter gray */
+    border-radius: 8px;
+    /* Optional: rounded corners for a softer look */
+    position: relative;
+    /* Necessary for positioning child elements */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    /* Ensures border is included in total dimensions */
+    overflow: hidden;
+    /* Ensures content doesn’t spill out */
 }
 
 /* Style for the video player */
-.video-participant .video-player {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: none; /* Initially hidden if the camera is off */
+.video-player {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+    /* Initially hidden if the camera is off */
 }
 
 /* Style for the user avatar when the video is off */
-.video-participant .user-avatar {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #fff; /* White border around avatar */
+.user-avatar {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    /* White border around avatar */
 }
 
 /* Style for the user name */
 .video-participant .user-name {
-  position: absolute;
-  bottom: 10px;
-  left: 10px;
-  font-size: 16px;
-  color: #fff;
-  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
-  padding: 5px 10px;
-  border-radius: 4px; /* Optional: rounded corners */
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    font-size: 16px;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent background */
+    padding: 5px 10px;
+    border-radius: 4px;
+    /* Optional: rounded corners */
 }
 
 /* Style for the participant status indicators */
 .video-participant .status-indicators {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  display: flex;
-  gap: 5px;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
 }
 
 .user-name .mic-icon {
-  height: 1em; /* Matches icon height to font size */
-  width: auto; /* Maintains aspect ratio */
-  vertical-align: middle; /* Centers the icon vertically with text */
-  display: inline-block; /* Ensures it aligns properly with text */
-  margin-left: 5px; /* Adds a small gap between name and icon */
-}
-
-
-/* Video stage container */
-.video-stage {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Responsive columns */
-  justify-content: center;
-  gap: 10px; /* Space between each participant */
-  width: 100%;
-  height: 100%;
-  padding: 10px;
-  box-sizing: border-box;
-}
-
-/* When there's only 1 participant, center and limit max width */
-.video-stage.child-count-1 {
-  max-width: 800px; /* Limit max width of video stage */
-  margin: 0 auto; /* Center video stage on screen */
-}
-.video-stage.child-count-1 > div {
-  max-width: 100%; /* Allow child to take full width within 800px limit */
-}
-
-/* For 2 participants, display side by side */
-.video-stage.child-count-2 {
-  grid-template-columns: repeat(2, 1fr); /* Two equal columns */
-}
-
-/* For 3-4 participants, use a two-by-two grid */
-.video-stage.child-count-3,
-.video-stage.child-count-4 {
-  grid-template-columns: 1fr 1fr; /* Two columns */
-  grid-template-rows: repeat(2, 1fr); /* Adjust rows based on child count */
-}
-
-/* For 5+ participants, use a grid with auto-fit columns */
-.video-stage.child-count-5,
-.video-stage.child-count-6,
-.video-stage.child-count-7,
-.video-stage.child-count-8,
-.video-stage.child-count-9 {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Fit as many as possible per row */
-  grid-auto-rows: minmax(100px, auto); /* Allow flexible height */
-}
-
-/* Media Queries for responsive behavior */
-
-/* Default media queries when #right is NOT visible */
-/* Default media queries when #right is NOT visible */
-@media (max-width: 600px) {
-  /* 1 child: Full width and height */
-  .video-stage.child-count-1 > div {
-    width: 100%;
-    height: 100%;
-  }
-
-  /* 2 children: 1 column, 2 rows */
-  .video-stage.child-count-2 {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
-  }
-
-  /* 3 or 4 children: 2 columns, 2 rows */
-  .video-stage.child-count-3,
-  .video-stage.child-count-4 {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-  }
-
-  /* More than 4 children: 2 columns, multiple rows; row height min 250px */
-  .video-stage.child-count-5,
-  .video-stage.child-count-6,
-  .video-stage.child-count-7,
-  .video-stage.child-count-8,
-  .video-stage.child-count-9 {
-    grid-template-columns: 1fr 1fr;
-    grid-auto-rows: minmax(250px, auto);
-  }
-}
-
-@media (min-width: 601px) and (max-width: 900px) {
-  .video-stage.child-count-3,
-  .video-stage.child-count-4 {
-    grid-template-columns: 1fr 1fr;
-  }
-  .video-stage.child-count-5,
-  .video-stage.child-count-6,
-  .video-stage.child-count-7,
-  .video-stage.child-count-8,
-  .video-stage.child-count-9 {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-}
-
-@media (min-width: 901px) {
-  .video-stage.child-count-5,
-  .video-stage.child-count-6,
-  .video-stage.child-count-7,
-  .video-stage.child-count-8,
-  .video-stage.child-count-9 {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-}
-
-/* Adjusted media queries when #right IS visible, adding 350px to each breakpoint */
-@media (max-width: 950px) {
-  .right-visible .video-stage.child-count-1 > div {
-    width: 100%;
-    height: 100%;
-  }
-
-  .right-visible .video-stage.child-count-2 {
-    grid-template-columns: 1fr;
-    grid-template-rows: 1fr 1fr;
-  }
-
-  .right-visible .video-stage.child-count-3,
-  .right-visible .video-stage.child-count-4 {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 1fr 1fr;
-  }
-
-  .right-visible .video-stage.child-count-5,
-  .right-visible .video-stage.child-count-6,
-  .right-visible .video-stage.child-count-7,
-  .right-visible .video-stage.child-count-8,
-  .right-visible .video-stage.child-count-9 {
-    grid-template-columns: 1fr 1fr;
-    grid-auto-rows: minmax(250px, auto);
-  }
-}
-@media (min-width: 951px) and (max-width: 1250px) {
-  .right-visible .video-stage.child-count-3,
-  .right-visible .video-stage.child-count-4 {
-    grid-template-columns: 1fr 1fr;
-  }
-  .right-visible .video-stage.child-count-5,
-  .right-visible .video-stage.child-count-6,
-  .right-visible .video-stage.child-count-7,
-  .right-visible .video-stage.child-count-8,
-  .right-visible .video-stage.child-count-9 {
-    grid-template-columns: 1fr 1fr 1fr;
-  }
-}
-
-@media (min-width: 1251px) {
-  .right-visible .video-stage.child-count-5,
-  .right-visible .video-stage.child-count-6,
-  .right-visible .video-stage.child-count-7,
-  .right-visible .video-stage.child-count-8,
-  .right-visible .video-stage.child-count-9 {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
+    height: 1em;
+    /* Matches icon height to font size */
+    width: auto;
+    /* Maintains aspect ratio */
+    vertical-align: middle;
+    /* Centers the icon vertically with text */
+    display: inline-block;
+    /* Ensures it aligns properly with text */
+    margin-left: 5px;
+    /* Adds a small gap between name and icon */
 }
 
 /* Screen share elements */
 .screen-share-stage {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  display: none;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: none;
 }
 
 .screen-share-content {
-  width: 100%;
-  height: 100%;
-  background-color: #000; /* Placeholder background */
+    width: 100%;
+    height: 100%;
+    background-color: #000;
+    /* Placeholder background */
 }
 
+/* Small video container for PiP */
 .screen-share-video {
-  width: 200px;
-  height: 150px;
-  position: absolute;
-  bottom: 20px;
-  right: 20px;
-  border: 2px solid #fff;
-  background-color: #000;
+    background-color: #3c4043;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 200px;
+    height: 150px;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    border: 2px solid #fff;
 }
 
+/* Avatar for PiP when camera is off */
+.user-avatar {
+    display: block;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
