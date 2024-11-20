@@ -198,6 +198,7 @@ export const toggleCamera = async (config) => {
 
 
 export const toggleScreenShare = async (config) => {
+  console.log("config.screenShareRTMClient",config.screenShareRTMClient);
 
   try {
     if (!config.screenShareRTMClient) {
@@ -299,6 +300,7 @@ export const startScreenShare = async (config) => {
     }
 
     console.log("Screen sharing started successfully.");
+    console.log("config.screenShareRTMClient", config.screenShareRTMClient);
   } catch (error) {
     console.error(
       "Error during screen share initialization:",
