@@ -34,7 +34,6 @@ import {
   toggleScreenShare,
   changeUserRole,
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
-import { userTracks } from "./state.js";
 
 const newMainApp = function (initConfig) {
   let config = {
