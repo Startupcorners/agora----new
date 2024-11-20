@@ -2,10 +2,7 @@
 import { log, fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import {
-  startScreenShare,
-  stopScreenShare,
   manageCameraState,
-  playCameraVideo,
   toggleStages,
 } from "./videoHandlers.js";
 import { userTracks } from "./state.js"; 

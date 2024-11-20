@@ -3,10 +3,7 @@ import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging an
 import { fetchTokens } from "./helperFunctions.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; 
 import {
-  startScreenShare,
-  stopScreenShare,
   manageCameraState,
-  playCameraVideo,
 } from "./videoHandlers.js";
 import { userTracks } from "./state.js"; // Import userTracks from state.js
 
@@ -246,6 +243,23 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
         screenShareUid
       );
 
+      // Create the screen share video track
+      console.log("Creating screen share video track...");
+      const [screenShareTrack] = await AgoraRTC.createScreenVideoTrack();
+      if (!screenShareTrack) {
+        console.error("Failed to create screen share video track.");
+        return;
+      }
+
+      // Store the screen share track
+      userTracks[screenShareUid] = {
+        screenShareTrack,
+      };
+
+      // Publish the screen share track
+      console.log("Publishing screen share video track...");
+      await config.client.publish(screenShareTrack);
+
       // Update the local user's RTM attribute to indicate they are sharing
       console.log(
         "Updating RTM attribute for local user to indicate sharing..."
@@ -262,14 +276,7 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
       toggleStages(true, uid);
 
       // Play the screen share track in #screen-share-video
-      const screenShareTrack = userTracks[screenShareUid]?.screenShareTrack;
-      if (screenShareTrack) {
-        manageCameraState("play", screenShareTrack, "#screen-share-video");
-      } else {
-        console.warn(
-          `No screen share track found for UID ${screenShareUid}. Skipping screen share play.`
-        );
-      }
+      manageCameraState("play", screenShareTrack, "#screen-share-video");
 
       // Play the local video track in #pip-video-track (PiP) if available
       const localVideoTrack = config.localVideoTrack || null;

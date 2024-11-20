@@ -6,13 +6,6 @@ import {
   handleUserLeft,
   handleVolumeIndicator,
 } from "./rtcEventHandlers.js";
-import {
-  startScreenShare,
-  stopScreenShare,
-  manageCameraState,
-  playCameraVideo,
-  toggleStages,
-} from "./videoHandlers.js";
 import { userTracks } from "./state.js";
 import {
   fetchTokens,
