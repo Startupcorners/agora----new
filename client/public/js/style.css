@@ -22,25 +22,20 @@
     display: none;
 }
 
+/* Participants' video container */
 .video-participant {
     width: 100%;
     height: 100%;
     object-fit: cover;
     background-color: #333;
-    /* Dark gray background */
     border: 2px solid #555;
-    /* Border with slightly lighter gray */
     border-radius: 8px;
-    /* Optional: rounded corners for a softer look */
     position: relative;
-    /* Necessary for positioning child elements */
     display: flex;
     align-items: center;
     justify-content: center;
     box-sizing: border-box;
-    /* Ensures border is included in total dimensions */
     overflow: hidden;
-    /* Ensures content doesn’t spill out */
 }
 
 /* Style for the video player */
@@ -57,24 +52,20 @@
     left: 50%;
     transform: translate(-50%, -50%);
     width: 100px;
-    /* Larger size */
     height: 100px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid #fff;
-    /* White border around avatar */
 }
 
 /* Style for the smaller user avatar inside screen-share-stage */
 .screen-share-stage .user-avatar {
     display: block;
     width: 40px;
-    /* Smaller size */
     height: 40px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid #fff;
-    /* White border around avatar */
 }
 
 /* Style for the user name */
@@ -85,10 +76,8 @@
     font-size: 16px;
     color: #fff;
     background-color: rgba(0, 0, 0, 0.5);
-    /* Semi-transparent background */
     padding: 5px 10px;
     border-radius: 4px;
-    /* Optional: rounded corners */
 }
 
 /* Style for the participant status indicators */
@@ -102,37 +91,32 @@
 
 .user-name .mic-icon {
     height: 1em;
-    /* Matches icon height to font size */
     width: auto;
-    /* Maintains aspect ratio */
     vertical-align: middle;
-    /* Centers the icon vertically with text */
     display: inline-block;
-    /* Ensures it aligns properly with text */
     margin-left: 5px;
-    /* Adds a small gap between name and icon */
 }
 
-/* Screen share elements */
+/* Screen share stage */
 .screen-share-stage {
     width: 100%;
     height: 100%;
     position: relative;
+    z-index: 1;
 }
 
+/* Main screen share content */
 .screen-share-content {
     width: 100%;
     height: 100%;
     background-color: #000;
-    /* Placeholder background */
+    position: relative;
+    z-index: 1;
 }
 
 /* Small video container for PiP */
 .screen-share-video {
     background-color: #3c4043;
-    display: flex;
-    justify-content: center;
-    align-items: center;
     width: 200px;
     height: 150px;
     position: absolute;
@@ -140,6 +124,8 @@
     right: 20px;
     border: 2px solid #fff;
     overflow: hidden;
+    z-index: 10;
+    /* Ensure it's above screen-share-content */
 }
 
 /* Style for the PiP video track */
@@ -152,6 +138,8 @@
     object-fit: cover;
     z-index: 1;
     /* Below the avatar */
+    pointer-events: auto;
+    /* Allow interactions */
 }
 
 /* Style for the smaller user avatar inside screen-share-stage */
@@ -167,6 +155,8 @@
     border: 2px solid #fff;
     z-index: 2;
     /* Above the video */
+    pointer-events: none;
+    /* Prevent interactions */
 }
 
 /* General utilities for centering content */
