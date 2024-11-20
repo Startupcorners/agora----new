@@ -48,14 +48,27 @@
     /* Initially hidden if the camera is off */
 }
 
-/* Style for the user avatar when the video is off */
-.user-avatar {
+/* Style for the larger user avatar inside video-stage */
+.video-stage .user-avatar {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     width: 100px;
+    /* Larger size */
     height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+    /* White border around avatar */
+}
+
+/* Style for the smaller user avatar inside screen-share-stage */
+.screen-share-stage .user-avatar {
+    display: block;
+    width: 40px;
+    /* Smaller size */
+    height: 40px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid #fff;
@@ -125,13 +138,4 @@
     bottom: 20px;
     right: 20px;
     border: 2px solid #fff;
-}
-
-/* Avatar for PiP when camera is off */
-.user-avatar {
-    display: block;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
 }
