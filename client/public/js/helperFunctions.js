@@ -31,6 +31,8 @@ export const sendMessageToPeer = (clientRTM, data, uid) => {
 };
 
 export const fetchTokens = async (config, uidToFetch) => {
+  console.log(config)
+  console.log(uidToFetch);
   try {
     const uid = uidToFetch || config.uid; // Use screenShareUid if provided, otherwise default to main UID
 
