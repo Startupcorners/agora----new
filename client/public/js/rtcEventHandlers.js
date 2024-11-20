@@ -178,7 +178,7 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 
     try {
       // Check if the local user is the one sharing
-      if (config.screenShareRTMClient === config.uid) {
+      if (config.screenShareClient === config.uid) {
         console.log("Local user was sharing. Stopping local screen share.");
         return; // Exit as local user cleanup is already handled elsewhere
       }
@@ -186,15 +186,14 @@ const handleVideoUnpublished = async (user, userUid, config) => {
       // Stop screen sharing UI
       toggleStages(false); // Hide screen share stage
 
-      // If there's a previously sharing user, restore their video
-      if (config.screenShareRTMClient) {
+      // If another user was previously sharing, restore their video
+      if (config.screenShareClient !== config.uid) {
         playStreamInDiv(
-          config.screenShareRTMClient,
-          `#stream-${config.screenShareRTMClient}`
+          config.screenShareClient,
+          `#stream-${config.screenShareClient}`
         );
-        config.screenShareRTMClient = null; // Reset the screen share tracking
+        config.screenShareClient = null; // Reset the screen share tracking
       }
-
 
       // Ensure the user (UID 1) leaves the RTC session
     } catch (error) {
@@ -208,8 +207,6 @@ const handleVideoUnpublished = async (user, userUid, config) => {
   console.log(`User ${userUid} has unpublished their video track.`);
 
   if (userTracks[userUid] && userTracks[userUid].videoTrack) {
-    userTracks[userUid].videoTrack.stop();
-    userTracks[userUid].videoTrack.close();
     userTracks[userUid].videoTrack = null;
     console.log(`Removed video track for user ${userUid}`);
   }
