@@ -5,6 +5,7 @@ import {
   toggleStages,
 } from "./videoHandlers.js";
 import { userTracks } from "./state.js"; 
+import { playStreamInDiv } from "./videoHandlers.js"; 
 const userJoinPromises = {};
 
 let participantList = [];
@@ -84,7 +85,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       toggleStages(true);
 
       // Play screen share track
-      playStreamInDiv(user.videoTrack, "#screen-share-content");
+      playStreamInDiv(userUid, "#screen-share-content");
     } catch (error) {
       console.error("Error processing screen share:", error);
     }
@@ -102,7 +103,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     console.log(`Subscribed to video track for user ${userUid}`);
 
     userTracks[userUid].videoTrack = user.videoTrack;
-    playStreamInDiv(user.videoTrack, `#stream-${userUid}`);
+    playStreamInDiv(userUid, `#stream-${userUid}`);
   } catch (error) {
     console.error(`Error subscribing to video for user ${userUid}:`, error);
   }
