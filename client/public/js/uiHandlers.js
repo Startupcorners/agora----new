@@ -105,9 +105,6 @@ export const toggleCamera = async (isMuted, config) => {
       return;
     }
 
-    // Create a shallow copy of the userTrack to avoid direct mutation
-    userTrack = { ...userTrack };
-
     // Check if camera toggle is already in progress
     if (userTrack.cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
@@ -134,7 +131,7 @@ export const toggleCamera = async (isMuted, config) => {
           );
         }
 
-        // Disable the video track instead of setting it to null
+        // Disable the video track
         await config.localVideoTrack.setEnabled(false);
         console.log("Video track disabled for user:", uid);
 
@@ -145,8 +142,8 @@ export const toggleCamera = async (isMuted, config) => {
 
         console.log("Camera turned off and unpublished for user:", uid);
 
-        // Update camera state in the UI with false (camera off)
-        manageCameraState(uid, config, false);
+        // Update camera state to stop
+        manageCameraState("stop", null, `#stream-${uid}`);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(false);
@@ -188,8 +185,8 @@ export const toggleCamera = async (isMuted, config) => {
           uid
         );
 
-        // Update camera state in the UI with true (camera on)
-        manageCameraState(uid, config, true);
+        // Update camera state to play
+        manageCameraState("play", config.localVideoTrack, `#stream-${uid}`);
 
         if (typeof bubble_fn_isCamOn === "function") {
           bubble_fn_isCamOn(true);
@@ -217,15 +214,14 @@ export const toggleCamera = async (isMuted, config) => {
 
 // toggleScreenShare function
 export const toggleScreenShare = async (isEnabled, uid, config) => {
-  const screenShareUid = 1; // Define screenShareUid here
+  const screenShareUid = 1; // Reserved UID for screen sharing
 
   try {
-    if (!config.client) {
-      console.error("Agora client is not initialized!");
+    if (!config.client || !config.rtmClient) {
+      console.error("Agora client or RTM client is not initialized!");
       return;
     }
 
-    // Log the current state of screen sharing
     console.log(
       `Screen share toggle called. isEnabled: ${isEnabled}, uid: ${uid}`
     );
@@ -233,194 +229,59 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
     if (isEnabled) {
       console.log("Starting screen share process...");
 
-      // Check if there's already a screen-sharing client
-      if (!config.screenShareClient) {
-        console.log(
-          "No existing screen share client found. Creating a new one..."
-        );
-
-        // Initialize a new client for screen sharing
-        config.screenShareClient = AgoraRTC.createClient({
-          mode: "rtc",
-          codec: "vp8",
-        });
-        console.log("New screen share client created.");
-
-        // Create a separate RTM client for the screen share
-        if (!config.screenShareRTMClient) {
-          config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
-          console.log("Created new RTM client for screen share.");
-        }
-
-        // Join RTC and RTM for the screen share client
-        await joinScreenShareClient(screenShareUid, config, uid);
-      } else {
-        console.log("Screen share client already exists.");
+      // Fetch token for the screenShareUid
+      console.log("Fetching token for screenShareUid...");
+      const tokens = await fetchTokens(config, screenShareUid);
+      if (!tokens || !tokens.rtcToken) {
+        console.error("Failed to fetch RTC token for screen sharing.");
+        return;
       }
 
-      // Start screen sharing with the new client (only after joining RTC and RTM)
-      console.log("Starting the screen share...");
-      await startScreenShare(screenShareUid, config);
+      // Join RTC with screenShareUid
+      console.log("Joining RTC as screenShareUid:", screenShareUid);
+      await config.client.join(
+        config.appId,
+        config.channelName,
+        tokens.rtcToken,
+        screenShareUid
+      );
 
-      // Call the Bubble function to indicate screen sharing is on
-      if (typeof bubble_fn_isScreenOn === "function") {
-        bubble_fn_isScreenOn(true);
-      }
+      // Update the local user's RTM attribute to indicate they are sharing
+      console.log(
+        "Updating RTM attribute for local user to indicate sharing..."
+      );
+      await config.rtmClient.setLocalUserAttributes({
+        isSharing: "true",
+      });
+
+      // Update the local config
+      config.isSharing = true;
+      console.log("Screen sharing started for local user with UID:", uid);
     } else {
       console.log("Stopping screen share...");
 
-      // Stop screen sharing and clean up
-      if (config.screenShareClient) {
-        console.log("Stopping the screen share track...");
-        await stopScreenShare(screenShareUid, config); // Stop screen sharing
+      // Leave the RTC channel as screenShareUid
+      console.log("Leaving RTC channel for screenShareUid...");
+      await config.client.leave();
+      console.log("Screen share UID left the RTC channel.");
 
-        console.log("Screen share stopped and cleaned up.");
-      } else {
-        console.log("No screen share client to stop.");
-      }
+      // Update the local user's RTM attribute to indicate they are no longer sharing
+      console.log(
+        "Updating RTM attribute for local user to indicate not sharing..."
+      );
+      await config.rtmClient.setLocalUserAttributes({
+        isSharing: "false",
+      });
 
-      // Call the Bubble function to indicate screen sharing is off
-      if (typeof bubble_fn_isScreenOn === "function") {
-        bubble_fn_isScreenOn(false);
-      }
+      // Update the local config
+      config.isSharing = false;
+      console.log("Screen sharing stopped for local user with UID:", uid);
     }
   } catch (error) {
     console.error("Error during screen sharing toggle:", error);
   }
 };
 
-
-
-export const joinScreenShareClient = async (
-  screenShareUid,
-  config,
-  actualUserUid
-) => {
-  try {
-    // Log the actual user UID and config details for debugging
-    console.log("Joining screen share client. Actual User UID:", actualUserUid);
-
-    // Fetch RTC token for screen sharing
-    console.log("Fetching tokens for screen share UID...");
-    const tokens = await fetchTokens(config, screenShareUid);
-    if (!tokens || !tokens.rtcToken) {
-      console.error("Failed to fetch RTC token for screen sharing");
-      throw new Error("Failed to fetch RTC token for screen sharing");
-    }
-
-    console.log("Joining RTC with screen share client...");
-
-    // Join the RTC channel with the screen share client
-    await config.screenShareClient.join(
-      config.appId, // Your app ID
-      config.channelName, // Channel name
-      tokens.rtcToken, // RTC token for screen sharing
-      screenShareUid // Use the provided screenShareUid
-    );
-
-    console.log(
-      "Screen share client successfully joined RTC channel with UID:",
-      screenShareUid
-    );
-
-    // Join RTM for the screen share client and assign sharingUser attribute
-    console.log("Joining RTM for the screen share client...");
-    await joinScreenShareRTM(
-      screenShareUid,
-      tokens.rtmToken,
-      config,
-      actualUserUid
-    );
-
-    // Handle token renewal for the screen-share client
-    config.screenShareClient.on("token-privilege-will-expire", async () => {
-      try {
-        console.log("Fetching new tokens for screen sharing...");
-        const newTokens = await fetchTokens(config, screenShareUid);
-        await config.screenShareClient.renewToken(newTokens.rtcToken);
-        console.log("Screen share client token renewed.");
-      } catch (error) {
-        console.error("Error renewing screen share token:", error);
-      }
-    });
-  } catch (error) {
-    console.error("Error joining screen share client:", error);
-  }
-};
-
-
-const joinScreenShareRTM = async (
-  screenShareUid,
-  rtmToken,
-  config,
-  actualUserUid,
-  retryCount = 0
-) => {
-  try {
-    // Convert screenShareUid to string for RTM
-    const screenShareUidString = screenShareUid.toString();
-    console.log("Joining RTM with screen share UID:", screenShareUidString);
-
-    if (config.screenShareRTMClient._logined) {
-      console.log("Screen share RTM client already logged in. Logging out...");
-      await config.screenShareRTMClient.logout();
-    }
-
-    // Login to RTM with the screen share UID (as a string)
-    console.log("Logging into RTM with the screen share UID...");
-    await config.screenShareRTMClient.login({
-      uid: screenShareUidString,
-      token: rtmToken,
-    });
-
-    console.log("Setting local RTM user attributes...");
-    // Set RTM attributes for the screen share client, pointing to the actual user UID
-    const attributes = {
-      sharingUser: actualUserUid.toString(), // The actual user UID who is sharing
-    };
-
-    await config.screenShareRTMClient.setLocalUserAttributes(attributes); // Store attributes in RTM for the screen share client
-
-    console.log("Checking if RTM channel already exists...");
-    // **Create the RTM channel and assign it to config.screenShareRTMChannel if needed**
-    if (!config.screenShareRTMChannel) {
-      config.screenShareRTMChannel = config.screenShareRTMClient.createChannel(
-        config.channelName
-      );
-      console.log(
-        "RTM channel created for screen share with name:",
-        config.channelName
-      );
-    }
-
-    // **Join the RTM channel**
-    console.log("Joining the RTM channel...");
-    await config.screenShareRTMChannel.join();
-    console.log(
-      "Screen share client successfully joined RTM channel:",
-      config.channelName
-    );
-  } catch (error) {
-    console.error("Error during RTM join attempt:", error);
-    if (error.code === 5 && retryCount < 3) {
-      console.log("Retrying RTM join (attempt", retryCount + 1, ")...");
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait 2 seconds before retrying
-      return joinScreenShareRTM(
-        screenShareUid,
-        rtmToken,
-        config,
-        actualUserUid,
-        retryCount + 1
-      );
-    } else {
-      console.error(
-        "Failed to join RTM for screen share after multiple attempts:",
-        error
-      );
-      throw error;
-    }
-  }
-};
 
 
 export const changeUserRole = async (userUid, newRole, newRoleInTheCall, config) => {
