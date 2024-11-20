@@ -387,17 +387,26 @@ export const stopScreenShare = async (config) => {
 
     console.log("Stopping screen share...");
 
+          if (config.screenShareClient) {
+            console.log("Leaving RTC channel for screen-sharing user...");
+            await config.screenShareClient.leave();
+            console.log("Screen-sharing RTC client has left the channel.");
+          } else {
+            console.warn("No RTC client found for the screen-sharing user.");
+          }
+
+          // Ensure the user (UID 1) logs out from the RTM session
+          if (user.rtmClient) {
+            console.log("Logging out from RTM for screen-sharing user...");
+            await config.screenShareRTMClient.logout();
+            console.log("Screen-sharing RTM client has logged out.");
+          } else {
+            console.warn("No RTM client found for the screen-sharing user.");
+          }
+
+
     config.screenShareClient = null; // Clean up client
     config.screenShareRTMClient = null; // Clean up client
-    
-   if (userTracks[screenShareUid] && userTracks[screenShareUid].videoTrack) {
-     userTracks[screenShareUid].videoTrack.stop();
-     userTracks[screenShareUid].videoTrack.close();
-     delete userTracks[screenShareUid];
-     console.log("Screen share track stopped and removed.");
-   } else {
-     console.warn("No screen share track found for UID:", screenShareUid);
-   }
 
     
     // Toggle the stage back to video stage

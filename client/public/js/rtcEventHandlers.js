@@ -195,31 +195,8 @@ const handleVideoUnpublished = async (user, userUid, config) => {
         config.screenShareRTMClient = null; // Reset the screen share tracking
       }
 
-      // Remove and stop the screen share track
-      if (userTracks[1] && userTracks[1].screenShareTrack) {
-        userTracks[1].screenShareTrack.stop();
-        userTracks[1].screenShareTrack.close();
-        userTracks[1].screenShareTrack = null;
-        console.log("Screen share track stopped and removed.");
-      }
 
       // Ensure the user (UID 1) leaves the RTC session
-      if (user.rtcClient) {
-        console.log("Leaving RTC channel for screen-sharing user...");
-        await user.rtcClient.leave();
-        console.log("Screen-sharing RTC client has left the channel.");
-      } else {
-        console.warn("No RTC client found for the screen-sharing user.");
-      }
-
-      // Ensure the user (UID 1) logs out from the RTM session
-      if (user.rtmClient) {
-        console.log("Logging out from RTM for screen-sharing user...");
-        await user.rtmClient.logout();
-        console.log("Screen-sharing RTM client has logged out.");
-      } else {
-        console.warn("No RTM client found for the screen-sharing user.");
-      }
     } catch (error) {
       console.error("Error handling screen share unpublishing:", error);
     }
