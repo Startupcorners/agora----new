@@ -214,11 +214,6 @@ export const toggleScreenShare = async (isEnabled, uid, config) => {
   const screenShareUid = 1; // Reserved UID for screen sharing
 
   try {
-    if (!config.client || !config.rtmClient) {
-      console.error("Agora client or RTM client is not initialized!");
-      return;
-    }
-
     console.log(
       `Screen share toggle called. isEnabled: ${isEnabled}, uid: ${uid}`
     );
