@@ -18,7 +18,7 @@ export const toggleMic = async (config) => {
     const userTrack = userTracks[config.uid];
 
     if (userTrack.audioTrack) {
-      // User is trying to unpublish (mute)
+      // User is trying to mute the microphone
       console.log("Muting microphone for user:", config.uid);
 
       // Unpublish and stop the audio track
@@ -29,13 +29,15 @@ export const toggleMic = async (config) => {
 
       console.log("Microphone muted and unpublished");
 
-      // Add the hidden class to the mic status element
+      // Remove the hidden class to show mic is muted
       const micStatusElement = document.getElementById(
         `mic-status-${config.uid}`
       );
       if (micStatusElement) {
-        micStatusElement.classList.add("hidden");
-        console.log(`Added 'hidden' class to mic-status-${config.uid}`);
+        micStatusElement.classList.remove("hidden");
+        console.log(
+          `Removed 'hidden' class from mic-status-${config.uid} to indicate muted status`
+        );
       } else {
         console.warn(`Mic status element not found for user ${config.uid}`);
       }
@@ -54,7 +56,7 @@ export const toggleMic = async (config) => {
         console.warn("bubble_fn_isMicOff is not defined.");
       }
     } else {
-      // User is trying to publish (unmute)
+      // User is trying to unmute the microphone
       console.log("Unmuting microphone for user:", config.uid);
 
       // Create a new audio track
@@ -71,13 +73,15 @@ export const toggleMic = async (config) => {
       await config.client.publish([userTrack.audioTrack]);
       console.log("Microphone unmuted and published");
 
-      // Remove the hidden class from the mic status element
+      // Add the hidden class to hide mic muted status
       const micStatusElement = document.getElementById(
         `mic-status-${config.uid}`
       );
       if (micStatusElement) {
-        micStatusElement.classList.remove("hidden");
-        console.log(`Removed 'hidden' class from mic-status-${config.uid}`);
+        micStatusElement.classList.add("hidden");
+        console.log(
+          `Added 'hidden' class to mic-status-${config.uid} to indicate unmuted status`
+        );
       } else {
         console.warn(`Mic status element not found for user ${config.uid}`);
       }
