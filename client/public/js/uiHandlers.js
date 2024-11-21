@@ -212,6 +212,7 @@ export const toggleScreenShare = async (config) => {
 };
 
 
+
 export const startScreenShare = async (config) => {
   const screenShareUid = 1; // Reserved UID for screen sharing
   const uid = config.uid;
@@ -281,6 +282,10 @@ export const startScreenShare = async (config) => {
     // Create screen share video track
     console.log("Creating screen share video track...");
     const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
+    if (!screenShareTrack) {
+      console.error("Failed to create screen share video track.");
+      return;
+    }
     console.log("Screen share video track created successfully.");
 
     // Publish the screen share track
@@ -288,11 +293,15 @@ export const startScreenShare = async (config) => {
     await config.screenShareRTCClient.publish(screenShareTrack);
     console.log("Screen share video track published successfully.");
 
-    // Update userTracks and toggle UI
-    userTracks[screenShareUid] = { videoTrack: screenShareTrack };
+    // Update userTracks in state.js
+    if (!userTracks[screenShareUid]) {
+      userTracks[screenShareUid] = {}; // Ensure object structure exists
+    }
+    userTracks[screenShareUid].videoTrack = screenShareTrack;
 
-     console.log("User tracks ->", userTracks);
-     
+    console.log("Updated userTracks:", userTracks);
+
+    // Toggle UI
     toggleStages(true);
     playStreamInDiv(screenShareUid, "#screen-share-content");
     playStreamInDiv(uid, "#pip-video-track");
@@ -302,6 +311,8 @@ export const startScreenShare = async (config) => {
     if (avatarElement) {
       avatarElement.src = user.avatar || "default-avatar.png";
     }
+
+    // Update config
     config.sharingScreenUid = config.uid.toString();
 
     console.log("Screen sharing started successfully.");
@@ -312,7 +323,6 @@ export const startScreenShare = async (config) => {
       error.message,
       error.stack
     );
-
   }
 };
 
@@ -321,31 +331,22 @@ export const stopScreenShare = async (config) => {
   const screenShareUid = 1; // Reserved UID for screen sharing
 
   console.log("Stopping screen share...");
-  console.log("User tracks ->",userTracks);
+  const screenShareTrack = userTracks[screenShareUid]?.videoTrack;
 
-  // Assuming `userTracks[1]` is the screen share track
-  const screenShareTrack = userTracks[1];
+  if (screenShareTrack) {
+    await config.screenShareRTCClient.unpublish([screenShareTrack]);
+    screenShareTrack.stop();
+    screenShareTrack.close();
+    userTracks[screenShareUid].videoTrack = null;
 
-  if (screenShareTrack && screenShareTrack.videoTrack) {
-    // Unpublish the screen share track
-    await config.client.unpublish([screenShareTrack.videoTrack]);
-
-    // Stop and close the track
-    screenShareTrack.videoTrack.close();
-
-    // Remove the screen share track from userTracks
-    userTracks[1] = null;
-
-    console.log("Screen share stopped.");
+    console.log("Screen share stopped successfully.");
   } else {
-    console.error("No screen share track found.");
+    console.warn("No screen share track found in userTracks.");
   }
 
-  // Resume playing the user's main video stream
-  const uid = config.uid; // Ensure this is the main user's UID
+  const uid = config.uid;
   playStreamInDiv(uid, `#stream-${uid}`);
 };
-
 
 
 
