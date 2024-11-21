@@ -52,7 +52,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       );
       const attributes = await config.clientRTM.getUserAttributes("1");
 
-      const sharingUserUid = attributes.sharingUserUid;
+      const sharingUserUid = attributes.sharingScreenUid;
       const sharingAvatar = attributes.avatar || "default-avatar.png";
 
       console.log(`Screen share is from remote user: ${sharingUserUid}`);
