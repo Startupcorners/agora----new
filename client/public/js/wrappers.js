@@ -1,28 +1,28 @@
 let addUserWrapperRunning = false;
 
-const waitForElementVisible = async (selector, timeout = 5000) => {
+const pollForVisibility = async (id, timeout = 10000, interval = 100) => {
   const start = Date.now();
 
   return new Promise((resolve, reject) => {
-    const interval = 100; // Poll every 100ms
-
     const checkVisibility = () => {
-      const element = document.querySelector(selector);
+      const element = document.getElementById(id); // Directly fetch by ID
       const isVisible =
         element &&
         element.offsetParent !== null &&
         getComputedStyle(element).visibility !== "hidden";
 
       if (isVisible) {
+        console.log(`Element #${id} is now visible.`);
         resolve();
         return;
       }
 
       if (Date.now() - start > timeout) {
+        console.error(
+          `Timeout: Element #${id} not visible within ${timeout}ms.`
+        );
         reject(
-          new Error(
-            `Timeout: Element ${selector} not visible within ${timeout}ms.`
-          )
+          new Error(`Timeout: Element #${id} not visible within ${timeout}ms.`)
         );
         return;
       }
@@ -33,6 +33,7 @@ const waitForElementVisible = async (selector, timeout = 5000) => {
     checkVisibility();
   });
 };
+
 
 
 export const addUserWrapper = async (user, config) => {
@@ -53,8 +54,9 @@ export const addUserWrapper = async (user, config) => {
       return;
     }
 
-    // Wait for the parent container to become visible
-    await waitForElementVisible(config.callContainerSelector);
+    // Poll for the visibility of the #video-stage
+    console.log("Polling for visibility of #video-stage...");
+    await pollForVisibility("video-stage");
 
     // Fetch user attributes from RTM (name, avatar)
     let userAttr = {};
@@ -79,12 +81,10 @@ export const addUserWrapper = async (user, config) => {
       .replace(/{{name}}/g, userAttr.name || "Unknown")
       .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
 
-    // Validate the container selector
-    const container = document.querySelector(config.callContainerSelector);
+    // Directly fetch the #video-stage container
+    const container = document.getElementById("video-stage");
     if (!container) {
-      console.error(
-        `Invalid call container selector: ${config.callContainerSelector}`
-      );
+      console.error("The #video-stage container is not found.");
       return;
     }
 
@@ -110,6 +110,7 @@ export const addUserWrapper = async (user, config) => {
     window[userKey] = false;
   }
 };
+
 
 
 // Wrapper for removing users from the video stage
