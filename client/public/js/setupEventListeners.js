@@ -388,5 +388,15 @@ function handleMicPermissionChange(state, config) {
   if (!isMicAvailable) {
     console.log("Microphone permission not granted. Updating UI...");
     toggleMic(config); // Call toggleMic to handle the UI and notify the user
+  } else {
+    // If microphone is granted, notify Bubble using bubble_fn_systemmuted(false)
+    if (typeof bubble_fn_systemmuted === "function") {
+      bubble_fn_systemmuted(false);
+      console.log(
+        "Microphone permission granted. Bubble notified system is unmuted."
+      );
+    } else {
+      console.warn("bubble_fn_systemmuted is not defined.");
+    }
   }
 }
