@@ -256,7 +256,6 @@ export const startScreenShare = async (config) => {
       avatar: user.avatar || "default-avatar-url",
       company: user.company || "Unknown",
       sharingScreenUid: uid.toString(),
-      // Other attributes...
     };
     console.log("Setting RTM attributes:", attributes);
     await config.screenShareRTMClient.setLocalUserAttributes(attributes);
@@ -288,6 +287,12 @@ export const startScreenShare = async (config) => {
       return;
     }
     console.log("Screen share video track created successfully.");
+
+    // Listen for the browser's stop screen sharing event
+    screenShareTrack.on("track-ended", async () => {
+      console.log("Screen sharing stopped via browser UI.");
+      await stopScreenShare(config); // Cleanup resources and update UI
+    });
 
     // Publish the screen share track
     console.log("Publishing screen share video track...");
@@ -326,6 +331,7 @@ export const startScreenShare = async (config) => {
     );
   }
 };
+
 
 
 export const stopScreenShare = async (config) => {
