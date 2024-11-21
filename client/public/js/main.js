@@ -259,8 +259,16 @@ const newMainApp = function (initConfig) {
         bubble_fn_joining("Joined");
         const stage = document.getElementById(`video-stage`);
         stage.classList.remove("hidden");
+
+        // Check if the user's role is "host" (string comparison)
+        if (config.user.role === "host") {
+          await addUserWrapper(config, config);
+        }
+
         updateLayout();
       }
+
+     
 
       // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
       if (config.user.roleInTheCall !== "waiting") {
@@ -363,9 +371,6 @@ const joinToVideoStage = async (config) => {
       userTracks[config.uid].videoTrack || null;
     userTracks[config.uid].audioTrack =
       userTracks[config.uid].audioTrack || null;
-
-    // Add user wrapper for UI or other purposes
-    await addUserWrapper(config, config);
 
     let audioTrackCreated = false;
 
