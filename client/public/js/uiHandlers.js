@@ -16,6 +16,7 @@ export const toggleMic = async (config) => {
     }
 
     const userTrack = userTracks[config.uid];
+    console.log(`Usertrack:`, userTrack);
 
     if (userTrack.audioTrack) {
       // User is trying to mute the microphone
