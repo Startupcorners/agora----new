@@ -583,39 +583,44 @@ export const handleVolumeIndicator = (() => {
 
       const audioLevel = volume.level; // The audio level, used to determine when the user is speaking
       let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
-      console.log(userUID, audioLevel);
+      console.log(`UID: ${userUID}, Audio Level: ${audioLevel}`);
 
+      // Determine the current status based on audio level
       const currentStatus = audioLevel < 3 ? "yes" : "no";
 
       // Apply audio level indicator styles if the wrapper is available
       if (wrapper) {
         if (audioLevel > 60) {
-          // Adjust the threshold based on your needs
           wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
         } else {
           wrapper.style.borderColor = "transparent"; // Transparent when not speaking
         }
       }
 
-      // Only send to Bubble for the current user UID
+      // Only process and send notifications for the current user UID
       if (userUID === currentUserUid) {
         // Initialize lastMutedStatus for the current user UID if it doesn't exist
         if (!lastMutedStatuses[userUID]) {
-          lastMutedStatuses[userUID] = "no"; // Default to "no"
+          lastMutedStatuses[userUID] = "unknown"; // Default to "unknown" for first-time detection
         }
 
-        // Only send to Bubble if the status has changed for the current user UID
+        // Notify Bubble only when the status changes
         if (currentStatus !== lastMutedStatuses[userUID]) {
           console.log(
             `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for UID ${userUID}`
           );
           bubble_fn_systemmuted(currentStatus);
-          lastMutedStatuses[userUID] = currentStatus; // Update the last status for the current user UID
+          lastMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
+        } else {
+          console.log(
+            `Status for UID ${userUID} remains unchanged (${currentStatus}), no notification sent.`
+          );
         }
       }
     }
   };
 })();
+
 
 
 
