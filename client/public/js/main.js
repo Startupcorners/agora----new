@@ -158,7 +158,7 @@ const newMainApp = function (initConfig) {
     // Initialize RTM Channel
     config.channelRTM = config.clientRTM.createChannel(config.channelName);
     setupRTMMessageListener(config.channelRTM, manageParticipants, config);
-    checkMicrophonePermissions();
+    checkMicrophonePermissions(config);
 
     // Initialize event callbacks with clientRTM passed
     const callbacks = eventCallbacks(config, config.clientRTM);
