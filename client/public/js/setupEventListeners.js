@@ -391,7 +391,7 @@ function handleMicPermissionChange(state, config) {
   } else {
     // If microphone is granted, notify Bubble using bubble_fn_systemmuted(false)
     if (typeof bubble_fn_systemmuted === "function") {
-      bubble_fn_systemmuted(false);
+      bubble_fn_systemmuted("no");
       console.log(
         "Microphone permission granted. Bubble notified system is unmuted."
       );
