@@ -344,7 +344,6 @@ export const stopScreenShare = async (config) => {
     console.warn("No screen share track found in userTracks.");
   }
 
-  config.sharingScreenUid = null;
   const uid = config.uid;
   console.log("Toggling Stage..");
   toggleStages(false);

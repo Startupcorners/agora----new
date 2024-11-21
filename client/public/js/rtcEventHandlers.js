@@ -203,6 +203,9 @@ const handleVideoUnpublished = async (user, userUid, config) => {
         console.log(
           `Successfully left screenShareRTCClient for UID: ${config.screenShareRTCClient.uid}.`
         );
+        config.screenShareRTMClient = null;
+        config.screenShareRTCClient = null;
+        config.sharingScreenUid = null;
 
         return; // Exit as local user cleanup is already handled elsewhere
       }
