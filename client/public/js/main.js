@@ -353,18 +353,37 @@ const newMainApp = function (initConfig) {
         userTracks[config.uid] = {};
       }
 
-      // Initialize tracks to null since we don't publish on join
-      userTracks[config.uid].videoTrack = null;
-      userTracks[config.uid].audioTrack = null;
+      // Initialize tracks to null if they don't already exist
+      userTracks[config.uid].videoTrack =
+        userTracks[config.uid].videoTrack || null;
+      userTracks[config.uid].audioTrack =
+        userTracks[config.uid].audioTrack || null;
 
       // Add user wrapper for UI or other purposes
       await addUserWrapper(config, config);
 
-      console.log("Joined the video stage with the camera and mic off.");
+      // Create and publish an audio track
+      if (!userTracks[config.uid].audioTrack) {
+        console.log("Creating and enabling audio track...");
+        userTracks[config.uid].audioTrack =
+          await AgoraRTC.createMicrophoneAudioTrack();
+        await userTracks[config.uid].audioTrack.setEnabled(true);
+        console.log("Audio track created and enabled.");
+      }
+
+      // Publish the audio track
+      if (userTracks[config.uid].audioTrack) {
+        console.log("Publishing audio track...");
+        await config.client.publish([userTracks[config.uid].audioTrack]);
+        console.log("Audio track published.");
+      }
+
+      console.log("Joined the video stage with audio published and enabled.");
     } catch (error) {
       console.error("Error in joinToVideoStage:", error);
     }
   };
+
 
   return {
     config,
