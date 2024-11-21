@@ -2,14 +2,13 @@
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { fetchTokens } from "./helperFunctions.js";
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
-import { userTracks, lastMutedStatuses } from "./state.js";
+import { userTracks } from "./state.js";
+
 
 
 export const toggleMic = async (config) => {
   try {
     console.log(`toggleMic called for user: ${config.uid}`);
-    console.log(`Usertracks:`, userTracks);
-    console.log(`userTracks[config.uid]:`, userTracks[config.uid]);
 
     if (!userTracks[config.uid]) {
       console.error(`User track for UID ${config.uid} is undefined.`);
@@ -19,74 +18,90 @@ export const toggleMic = async (config) => {
     const userTrack = userTracks[config.uid];
 
     if (userTrack.audioTrack) {
-      // Microphone is active; mute it
-      await endMic(config);
+      // User is trying to mute the microphone
+      console.log("Muting microphone for user:", config.uid);
+
+      // Unpublish and stop the audio track
+      await config.client.unpublish([userTrack.audioTrack]);
+      userTrack.audioTrack.stop();
+      userTrack.audioTrack.close();
+      userTrack.audioTrack = null; // Set to null to indicate mic is muted
+
+      console.log("Microphone muted and unpublished");
+
+      // Remove the hidden class to show mic is muted
+      const micStatusElement = document.getElementById(
+        `mic-status-${config.uid}`
+      );
+      if (micStatusElement) {
+        micStatusElement.classList.remove("hidden");
+        console.log(
+          `Removed 'hidden' class from mic-status-${config.uid} to indicate muted status`
+        );
+      } else {
+        console.warn(`Mic status element not found for user ${config.uid}`);
+      }
+
+      // Set wrapper border to transparent
+      const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
+      if (wrapper) {
+        wrapper.style.borderColor = "transparent"; // Transparent when muted
+        console.log(`Set border to transparent for user ${config.uid}`);
+      }
+
+      // Call bubble_fn_isMicOff with `true` to indicate mic is off
+      if (typeof bubble_fn_isMicOff === "function") {
+        bubble_fn_isMicOff(true);
+      } else {
+        console.warn("bubble_fn_isMicOff is not defined.");
+      }
     } else {
-      // Microphone is muted; activate it
-      await startMic(config);
+      // User is trying to unmute the microphone
+      console.log("Unmuting microphone for user:", config.uid);
+
+      // Create a new audio track
+      userTrack.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+
+      if (!userTrack.audioTrack) {
+        console.error("Failed to create a new audio track!");
+        return;
+      }
+
+      console.log("Created new audio track for user:", config.uid);
+
+      // Publish the new audio track
+      await config.client.publish([userTrack.audioTrack]);
+      console.log("Microphone unmuted and published");
+
+      // Add the hidden class to hide mic muted status
+      const micStatusElement = document.getElementById(
+        `mic-status-${config.uid}`
+      );
+      if (micStatusElement) {
+        micStatusElement.classList.add("hidden");
+        console.log(
+          `Added 'hidden' class to mic-status-${config.uid} to indicate unmuted status`
+        );
+      } else {
+        console.warn(`Mic status element not found for user ${config.uid}`);
+      }
+
+      // Set wrapper border to active (optional)
+      const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
+      if (wrapper) {
+        wrapper.style.borderColor = "#00ff00"; // Green border to indicate active mic
+        console.log(`Set border to green for user ${config.uid}`);
+      }
+
+      // Call bubble_fn_isMicOff with `false` to indicate mic is on
+      if (typeof bubble_fn_isMicOff === "function") {
+        bubble_fn_isMicOff(false);
+      } else {
+        console.warn("bubble_fn_isMicOff is not defined.");
+      }
     }
   } catch (error) {
     console.error("Error in toggleMic for user:", config.uid, error);
-  }
-};
-
-const startMic = async (config) => {
-  try {
-    console.log("Starting microphone for user:", config.uid);
-
-    const userTrack = userTracks[config.uid];
-    userTrack.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-
-    // Update the userTracks object
-    userTracks[config.uid].audioTrack = userTrack.audioTrack;
-
-    // Publish the new audio track
-    await config.client.publish([userTrack.audioTrack]);
-    console.log("Microphone started and published");
-
-    // Update UI to show mic is active
-    updateMicStatusElement(config.uid, false); // Mic is unmuted
-    bubble_fn_isMicOff(false);
-
-  } catch (error) {
-    console.warn(
-      "Error accessing or creating microphone track, setting mic to off.",
-      error
-    );
-  }
-};
-
-const endMic = async (config) => {
-  try {
-    console.log("Ending microphone for user:", config.uid);
-
-    const userTrack = userTracks[config.uid];
-
-    // Unpublish and stop the audio track
-    await config.client.unpublish([userTrack.audioTrack]);
-    userTrack.audioTrack.stop();
-    userTrack.audioTrack.close();
-    userTrack.audioTrack = null; // Set to null to indicate mic is muted
-
-    // Update the userTracks object
-    userTracks[config.uid].audioTrack = null;
-
-    console.log("Microphone ended and unpublished");
-
-    // Update UI to show mic is muted
-    updateMicStatusElement(config.uid, true); // Mic is muted
-
-    // Set wrapper border to transparent
-    const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
-    if (wrapper) {
-      wrapper.style.borderColor = "transparent"; // Transparent when muted
-      console.log(`Set border to transparent for user ${config.uid}`);
-    }
-
-    bubble_fn_isMicOff(true);
-
-  } catch (error) {
-    console.error("Error in endMic for user:", config.uid, error);
   }
 };
 
@@ -196,40 +211,20 @@ export const toggleScreenShare = async (config) => {
   }
 };
 
-const generateRandomScreenShareUid = () => {
-  return Math.floor(Math.random() * (4294967295 - 1000000000 + 1)) + 1000000000;
-};
-
-
 
 
 export const startScreenShare = async (config) => {
-  const screenShareUid = generateRandomScreenShareUid();
+  const screenShareUid = 1; // Reserved UID for screen sharing
   const uid = config.uid;
 
   console.log("Initializing screen share process...");
 
   try {
-    // Step 1: Create a new screen share session
-    console.log("Creating screen share video track...");
-    const screenShareTrack = await AgoraRTC.createScreenVideoTrack().catch(
-      (error) => {
-        console.warn("Screen sharing was canceled by the user.", error);
-        return null; // Gracefully handle cancellation
-      }
-    );
-
-    if (!screenShareTrack) {
-      console.log(
-        "Screen share track creation was canceled. Aborting screen share setup."
-      );
-      return; // Exit early if user cancels
-    }
-
-    console.log("Screen share video track created successfully.");
+    console.log(`Local user UID: ${uid}`);
+    console.log(`Screen share UID: ${screenShareUid}`);
+    console.log("Fetching tokens for screenShareUid...");
 
     // Fetch tokens for the screenShareUid
-    console.log("Fetching tokens for screenShareUid...");
     const tokens = await fetchTokens(config, screenShareUid);
     if (
       !tokens ||
@@ -237,20 +232,21 @@ export const startScreenShare = async (config) => {
       typeof tokens.rtmToken !== "string"
     ) {
       console.error("Invalid RTC or RTM tokens for screen sharing.");
-      screenShareTrack.stop();
-      screenShareTrack.close();
       return;
     }
     console.log("Tokens fetched successfully:", tokens);
 
     // Initialize RTM client for screen sharing
-    console.log("Creating a new RTM client for screen sharing...");
-    const rtmClient = AgoraRTM.createInstance(config.appId);
-    await rtmClient.login({
-      uid: screenShareUid.toString(),
-      token: tokens.rtmToken,
-    });
-    console.log("Screen share RTM client logged in successfully.");
+    if (!config.screenShareRTMClient) {
+      console.log("Creating a new RTM client for screen sharing...");
+      config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
+      console.log("RTM client instance created.");
+      await config.screenShareRTMClient.login({
+        uid: screenShareUid.toString(),
+        token: tokens.rtmToken,
+      });
+      console.log("Screen share RTM client logged in successfully.");
+    }
 
     // Set RTM attributes
     const user = config.user || {};
@@ -259,40 +255,51 @@ export const startScreenShare = async (config) => {
       avatar: user.avatar || "default-avatar-url",
       company: user.company || "Unknown",
       sharingScreenUid: uid.toString(),
+      // Other attributes...
     };
     console.log("Setting RTM attributes:", attributes);
-    await rtmClient.setLocalUserAttributes(attributes);
+    await config.screenShareRTMClient.setLocalUserAttributes(attributes);
 
     // Initialize RTC client for screen sharing
-    console.log("Creating a new RTC client for screen sharing...");
-    const rtcClient = AgoraRTC.createClient({
-      mode: "rtc",
-      codec: "vp8",
-    });
+    if (!config.screenShareRTCClient) {
+      console.log("Creating a new RTC client for screen sharing...");
+      config.screenShareRTCClient = AgoraRTC.createClient({
+        mode: "rtc",
+        codec: "vp8",
+      });
+      console.log("RTC client instance created.");
+    }
 
     // Join RTC channel
     console.log(`Joining RTC with screenShareUid ${screenShareUid}...`);
-    await rtcClient.join(
+    await config.screenShareRTCClient.join(
       config.appId,
       config.channelName,
       tokens.rtcToken,
       screenShareUid
     );
 
+    // Create screen share video track
+    console.log("Creating screen share video track...");
+    const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
+    if (!screenShareTrack) {
+      console.error("Failed to create screen share video track.");
+      return;
+    }
+    console.log("Screen share video track created successfully.");
+
     // Publish the screen share track
     console.log("Publishing screen share video track...");
-    await rtcClient.publish(screenShareTrack);
+    await config.screenShareRTCClient.publish(screenShareTrack);
     console.log("Screen share video track published successfully.");
 
-    // Update userTracks
-    userTracks[screenShareUid] = { videoTrack: screenShareTrack };
-    console.log("Updated userTracks:", userTracks);
+    // Update userTracks in state.js
+    if (!userTracks[screenShareUid]) {
+      userTracks[screenShareUid] = {}; // Ensure object structure exists
+    }
+    userTracks[screenShareUid].videoTrack = screenShareTrack;
 
-    // Listen for the browser's stop screen sharing event
-    screenShareTrack.on("track-ended", async () => {
-      console.log("Screen sharing stopped via browser UI.");
-      await stopScreenShare(config); // Cleanup resources and update UI
-    });
+    console.log("Updated userTracks:", userTracks);
 
     // Toggle UI
     toggleStages(true);
@@ -306,12 +313,10 @@ export const startScreenShare = async (config) => {
     }
 
     // Update config
-    config.screenShareRTMClient = rtmClient;
-    config.screenShareRTCClient = rtcClient;
-    config.sharingScreenUid = config.uid;
-    config.generatedScreenShareId = screenShareUid;
+    config.sharingScreenUid = config.uid.toString();
 
     console.log("Screen sharing started successfully.");
+    console.log("config.screenShareRTMClient", config.screenShareRTMClient);
   } catch (error) {
     console.error(
       "Error during screen share initialization:",
@@ -322,13 +327,10 @@ export const startScreenShare = async (config) => {
 };
 
 
-
-
-
 export const stopScreenShare = async (config) => {
-  const screenShareUid = config.generatedScreenShareId; // Use the dynamic UID
+  const screenShareUid = 1; // Reserved UID for screen sharing
 
-  console.log("Stopping screen share for UID:", screenShareUid);
+  console.log("Stopping screen share...");
   const screenShareTrack = userTracks[screenShareUid]?.videoTrack;
 
   if (screenShareTrack) {
@@ -337,18 +339,19 @@ export const stopScreenShare = async (config) => {
     screenShareTrack.close();
     userTracks[screenShareUid].videoTrack = null;
 
+    toggleStages();
+    playStreamInDiv(screenShareUid, "#screen-share-content");
+    playStreamInDiv(uid, "#pip-video-track");
+
+
     console.log("Screen share stopped successfully.");
   } else {
     console.warn("No screen share track found in userTracks.");
   }
 
-  // Toggle UI
-  toggleStages(false);
-
-  // Clear the screen share UID from config
-  config.sharingScreenUid = null;
+  const uid = config.uid;
+  playStreamInDiv(uid, `#stream-${uid}`);
 };
-
 
 
 
@@ -423,19 +426,3 @@ export const removeParticipant = async (clientRTM, uid, config) => {
     console.error(`Error removing participant with UID ${uid}:`, error);
   }
 };
-
-
-export function updateMicStatusElement(uid, isMuted) {
-  const micStatusElement = document.getElementById(`mic-status-${uid}`);
-  if (micStatusElement) {
-    if (isMuted) {
-      micStatusElement.classList.remove("hidden");
-      console.log(`Removed 'hidden' class from mic-status-${uid} to indicate muted status.`);
-    } else {
-      micStatusElement.classList.add("hidden");
-      console.log(`Added 'hidden' class to mic-status-${uid} to indicate unmuted status.`);
-    }
-  } else {
-    console.warn(`Mic status element not found for UID ${uid}.`);
-  }
-}
