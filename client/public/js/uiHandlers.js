@@ -221,11 +221,27 @@ export const startScreenShare = async (config) => {
   console.log("Initializing screen share process...");
 
   try {
-    console.log(`Local user UID: ${uid}`);
-    console.log(`Screen share UID: ${screenShareUid}`);
-    console.log("Fetching tokens for screenShareUid...");
+    console.log("Creating screen share video track...");
 
-    // Fetch tokens for the screenShareUid
+    // Attempt to create a screen share video track
+    const screenShareTrack = await AgoraRTC.createScreenVideoTrack().catch(
+      (error) => {
+        console.warn("Screen sharing was canceled by the user.", error);
+        return null; // Gracefully handle cancelation
+      }
+    );
+
+    if (!screenShareTrack) {
+      console.log(
+        "Screen share track creation was canceled. Aborting screen share setup."
+      );
+      return; // Exit early if user cancels
+    }
+
+    console.log("Screen share video track created successfully.");
+
+    // Fetch tokens for the screenShareUid (only now that sharing is confirmed)
+    console.log("Fetching tokens for screenShareUid...");
     const tokens = await fetchTokens(config, screenShareUid);
     if (
       !tokens ||
@@ -233,6 +249,8 @@ export const startScreenShare = async (config) => {
       typeof tokens.rtmToken !== "string"
     ) {
       console.error("Invalid RTC or RTM tokens for screen sharing.");
+      screenShareTrack.stop();
+      screenShareTrack.close();
       return;
     }
     console.log("Tokens fetched successfully:", tokens);
@@ -279,21 +297,6 @@ export const startScreenShare = async (config) => {
       screenShareUid
     );
 
-    // Create screen share video track
-    console.log("Creating screen share video track...");
-    const screenShareTrack = await AgoraRTC.createScreenVideoTrack();
-    if (!screenShareTrack) {
-      console.error("Failed to create screen share video track.");
-      return;
-    }
-    console.log("Screen share video track created successfully.");
-
-    // Listen for the browser's stop screen sharing event
-    screenShareTrack.on("track-ended", async () => {
-      console.log("Screen sharing stopped via browser UI.");
-      await stopScreenShare(config); // Cleanup resources and update UI
-    });
-
     // Publish the screen share track
     console.log("Publishing screen share video track...");
     await config.screenShareRTCClient.publish(screenShareTrack);
@@ -306,6 +309,12 @@ export const startScreenShare = async (config) => {
     userTracks[screenShareUid].videoTrack = screenShareTrack;
 
     console.log("Updated userTracks:", userTracks);
+
+    // Listen for the browser's stop screen sharing event
+    screenShareTrack.on("track-ended", async () => {
+      console.log("Screen sharing stopped via browser UI.");
+      await stopScreenShare(config); // Cleanup resources and update UI
+    });
 
     // Toggle UI
     toggleStages(true);
