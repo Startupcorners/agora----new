@@ -325,6 +325,7 @@ export const startScreenShare = async (config) => {
     config.screenShareRTMClient = rtmClient;
     config.screenShareRTCClient = rtcClient;
     config.sharingScreenUid = config.uid;
+    config.generatedScreenShareId = screenShareUid;
 
     console.log("Screen sharing started successfully.");
   } catch (error) {
@@ -341,7 +342,7 @@ export const startScreenShare = async (config) => {
 
 
 export const stopScreenShare = async (config) => {
-  const screenShareUid = config.sharingScreenUid; // Use the dynamic UID
+  const screenShareUid = config.generatedScreenShareId; // Use the dynamic UID
 
   console.log("Stopping screen share for UID:", screenShareUid);
   const screenShareTrack = userTracks[screenShareUid]?.videoTrack;

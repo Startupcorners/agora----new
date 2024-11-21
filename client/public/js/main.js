@@ -72,6 +72,7 @@ const newMainApp = function (initConfig) {
     screenShareRTCClient: null,
     screenShareRTMClient: null,
     sharingScreenUid: null,
+    generatedScreenShareId: null,
     isVirtualBackGroundEnabled: false,
     localAudioTrack: null, // Ensure local tracks are initialized as null initially
     localVideoTrack: null,
