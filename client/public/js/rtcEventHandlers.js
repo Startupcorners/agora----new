@@ -82,7 +82,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       if (!userTracks[1]) {
         userTracks[1] = {};
       }
-      userTracks[1].screenShareTrack = user.videoTrack;
+      userTracks[1].videoTrack = user.videoTrack;
 
       // Toggle stage to screen share
       toggleStages(true);
@@ -101,7 +101,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     if (!userTracks[userUid]) {
       userTracks[userUid] = {};
     }
-    console.log("Subscribed to video tracks: ",userTracks);
+    console.log("Video tracks: ",userTracks);
 
     await client.subscribe(user, "video");
     console.log(`Subscribed to video track for user ${userUid}`);
