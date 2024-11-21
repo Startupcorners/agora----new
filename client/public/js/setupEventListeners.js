@@ -311,10 +311,6 @@ console.log(
 );
 };
 
-let lastMicPermissionState = null; // Track the last known microphone permission state
-
-// Global variable for lastMutedStatuses
-export const lastMutedStatuses = {}; // Ensure this is imported or globally accessible
 
 let lastMicPermissionState = null; // Track the last known microphone permission state
 
