@@ -1,40 +1,5 @@
 let addUserWrapperRunning = false;
 
-const pollForVisibility = async (id, timeout = 10000, interval = 100) => {
-  const start = Date.now();
-
-  return new Promise((resolve, reject) => {
-    const checkVisibility = () => {
-      const element = document.getElementById(id); // Directly fetch by ID
-      const isVisible =
-        element &&
-        element.offsetParent !== null &&
-        getComputedStyle(element).visibility !== "hidden";
-
-      if (isVisible) {
-        console.log(`Element #${id} is now visible.`);
-        resolve();
-        return;
-      }
-
-      if (Date.now() - start > timeout) {
-        console.error(
-          `Timeout: Element #${id} not visible within ${timeout}ms.`
-        );
-        reject(
-          new Error(`Timeout: Element #${id} not visible within ${timeout}ms.`)
-        );
-        return;
-      }
-
-      setTimeout(checkVisibility, interval);
-    };
-
-    checkVisibility();
-  });
-};
-
-
 
 export const addUserWrapper = async (user, config) => {
   const userKey = `addUserWrapperRunning_${user.uid}`;
@@ -54,9 +19,18 @@ export const addUserWrapper = async (user, config) => {
       return;
     }
 
-    // Poll for the visibility of the #video-stage
-    console.log("Polling for visibility of #video-stage...");
-    await pollForVisibility("main");
+    // Ensure #video-stage exists and is not hidden
+    const container = document.getElementById("main");
+    if (!container) {
+      console.error("The #main container is not found.");
+      return;
+    }
+
+    // Remove the hidden class if present
+    if (container.classList.contains("hidden")) {
+      container.classList.remove("hidden");
+      console.log("#main is now visible.");
+    }
 
     // Fetch user attributes from RTM (name, avatar)
     let userAttr = {};
@@ -80,13 +54,6 @@ export const addUserWrapper = async (user, config) => {
       .replace(/{{uid}}/g, user.uid)
       .replace(/{{name}}/g, userAttr.name || "Unknown")
       .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
-
-    // Directly fetch the #video-stage container
-    const container = document.getElementById("video-stage");
-    if (!container) {
-      console.error("The #video-stage container is not found.");
-      return;
-    }
 
     // Insert the player into the DOM
     container.insertAdjacentHTML("beforeend", playerHTML);
