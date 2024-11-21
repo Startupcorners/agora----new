@@ -345,6 +345,7 @@ export const stopScreenShare = async (config) => {
   }
 
   const uid = config.uid;
+  toggleStages(false);
   playStreamInDiv(uid, `#stream-${uid}`);
 };
 
