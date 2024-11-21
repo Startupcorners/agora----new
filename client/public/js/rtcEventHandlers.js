@@ -42,16 +42,18 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
 const handleVideoPublished = async (user, userUid, config, client) => {
   console.log(`Handling video published for user: ${userUid}`);
 
-  // Special case: Handle screen share (userUid === "1")
-  if (userUid === "1") {
+  // Special case: Handle screen share (userUid > 999999999)
+  if (userUid > 999999999) {
     console.log(`User ${userUid} is a screen share publisher.`);
 
     try {
-      // Fetch attributes for UID 1 to get sharing user details
+      // Fetch attributes for UID > 999999999 to get sharing user details
       console.log(
         `Fetching attributes for screen-sharing user (UID: ${userUid})...`
       );
-      const attributes = await config.clientRTM.getUserAttributes("1");
+      const attributes = await config.clientRTM.getUserAttributes(
+        userUid.toString()
+      );
 
       const sharingUserUid = attributes.sharingScreenUid;
       const sharingAvatar = attributes.avatar || "default-avatar.png";
@@ -80,10 +82,10 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       await client.subscribe(user, "video");
 
       // Store the screen share track
-      if (!userTracks[1]) {
-        userTracks[1] = {};
+      if (!userTracks[userUid]) {
+        userTracks[userUid] = {};
       }
-      userTracks[1].videoTrack = user.videoTrack;
+      userTracks[userUid].videoTrack = user.videoTrack;
 
       // Toggle stage to screen share
       toggleStages(true);
@@ -102,7 +104,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     if (!userTracks[userUid]) {
       userTracks[userUid] = {};
     }
-    console.log("Video tracks: ",userTracks);
+    console.log("Video tracks: ", userTracks);
 
     await client.subscribe(user, "video");
     console.log(`Subscribed to video track for user ${userUid}`);
@@ -114,11 +116,11 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     } else {
       playStreamInDiv(userUid, `#stream-${userUid}`);
     }
-    
   } catch (error) {
     console.error(`Error subscribing to video for user ${userUid}:`, error);
   }
 };
+
 
 
 const handleAudioPublished = async (user, userUid, config, client) => {
@@ -175,12 +177,14 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
     console.warn(`Unsupported mediaType: ${mediaType}`);
   }
 };
+
+
 const handleVideoUnpublished = async (user, userUid, config) => {
   console.log(`Handling video unpublishing for user: ${userUid}`);
 
-  // Special case: Handle screen share (UID = "1")
-  if (userUid === "1") {
-    console.log("Screen share track unpublished for UID 1.");
+  // Special case: Handle screen share (UID > 999999999)
+  if (userUid > 999999999) {
+    console.log(`Screen share track unpublished for UID: ${userUid}.`);
 
     try {
       // Check if the local user is the one sharing
@@ -224,10 +228,10 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 
         toggleStages(false); // Hide screen share stage
 
-        if (userTracks[1] && userTracks[1].videoTrack) {
-          userTracks[1].videoTrack.stop();
-          userTracks[1].videoTrack = null;
-          console.log(`Removed video track for user 1`);
+        if (userTracks[userUid] && userTracks[userUid].videoTrack) {
+          userTracks[userUid].videoTrack.stop();
+          userTracks[userUid].videoTrack = null;
+          console.log(`Removed video track for user ${userUid}`);
         }
 
         playStreamInDiv(
@@ -426,14 +430,15 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   const userUid = user.uid.toString();
   console.log("Entering handleUserJoined function for user:", userUid);
 
-  // Handle specific UIDs (2 triggers a special Bubble function, and 1/2 are skipped)
+  // Handle specific UIDs (2 triggers a special Bubble function)
   if (userUid === "2") {
     console.log("UID is 2. Triggering bubble_fn_waitingForAcceptance.");
     bubble_fn_isVideoRecording("yes");
     bubble_fn_waitingForAcceptance();
   }
 
-  if (userUid === "1" || userUid === "2") {
+  // Skip handling for special UIDs (1 -> replaced with > 999999999, and 2 remains)
+  if (userUid > 999999999 || userUid === "2") {
     console.log(`Skipping handling for special UID (${userUid}).`);
     userJoinPromises[userUid] = Promise.resolve(); // Ensure a resolved promise is set
     console.log(`Promise for UID ${userUid} resolved and skipped.`);
@@ -524,12 +529,12 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
-  console.log("Entered handleuserleft:", user);
+  console.log("Entered handleUserLeft:", user);
   try {
     console.log(`User ${user.uid} left`);
 
-    // Skip handling for screen share UID (RTC UID 1)
-    if (user.uid === 1) {
+    // Skip handling for screen share UID (RTC UID > 999999999)
+    if (user.uid > 999999999) {
       console.log(`Skipping handling for screen share UID: ${user.uid}`);
       return;
     }

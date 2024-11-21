@@ -212,22 +212,25 @@ export const toggleScreenShare = async (config) => {
   }
 };
 
+const generateRandomScreenShareUid = () => {
+  return Math.floor(Math.random() * (4294967295 - 1000000000 + 1)) + 1000000000;
+};
+
+
 
 
 export const startScreenShare = async (config) => {
-  const screenShareUid = 1; // Reserved UID for screen sharing
-  const uid = config.uid;
-
-  console.log("Initializing screen share process...");
+  const screenShareUid = generateRandomScreenShareUid(); // Generate a random UID
+  console.log("Generated screen share UID:", screenShareUid);
 
   try {
-    console.log("Creating screen share video track...");
+    console.log("Prompting user to select a window for screen sharing...");
 
-    // Attempt to create a screen share video track
+    // Step 1: Prompt the user to select a window to share
     const screenShareTrack = await AgoraRTC.createScreenVideoTrack().catch(
       (error) => {
         console.warn("Screen sharing was canceled by the user.", error);
-        return null; // Gracefully handle cancelation
+        return null;
       }
     );
 
@@ -238,47 +241,19 @@ export const startScreenShare = async (config) => {
       return; // Exit early if user cancels
     }
 
-    console.log("Screen share video track created successfully.");
+    console.log("User selected a window to share.");
 
-    // Fetch tokens for the screenShareUid (only now that sharing is confirmed)
-    console.log("Fetching tokens for screenShareUid...");
+    // Step 2: Fetch tokens for the screenShareUid
     const tokens = await fetchTokens(config, screenShareUid);
-    if (
-      !tokens ||
-      typeof tokens.rtcToken !== "string" ||
-      typeof tokens.rtmToken !== "string"
-    ) {
-      console.error("Invalid RTC or RTM tokens for screen sharing.");
+    if (!tokens || typeof tokens.rtcToken !== "string") {
+      console.error("Invalid RTC token for screen sharing.");
       screenShareTrack.stop();
       screenShareTrack.close();
       return;
     }
     console.log("Tokens fetched successfully:", tokens);
 
-    // Initialize RTM client for screen sharing
-    if (!config.screenShareRTMClient) {
-      console.log("Creating a new RTM client for screen sharing...");
-      config.screenShareRTMClient = AgoraRTM.createInstance(config.appId);
-      console.log("RTM client instance created.");
-      await config.screenShareRTMClient.login({
-        uid: screenShareUid.toString(),
-        token: tokens.rtmToken,
-      });
-      console.log("Screen share RTM client logged in successfully.");
-    }
-
-    // Set RTM attributes
-    const user = config.user || {};
-    const attributes = {
-      name: user.name || "Unknown",
-      avatar: user.avatar || "default-avatar-url",
-      company: user.company || "Unknown",
-      sharingScreenUid: uid.toString(),
-    };
-    console.log("Setting RTM attributes:", attributes);
-    await config.screenShareRTMClient.setLocalUserAttributes(attributes);
-
-    // Initialize RTC client for screen sharing
+    // Step 3: Initialize and join the RTC client for screen sharing
     if (!config.screenShareRTCClient) {
       console.log("Creating a new RTC client for screen sharing...");
       config.screenShareRTCClient = AgoraRTC.createClient({
@@ -288,7 +263,6 @@ export const startScreenShare = async (config) => {
       console.log("RTC client instance created.");
     }
 
-    // Join RTC channel
     console.log(`Joining RTC with screenShareUid ${screenShareUid}...`);
     await config.screenShareRTCClient.join(
       config.appId,
@@ -297,12 +271,12 @@ export const startScreenShare = async (config) => {
       screenShareUid
     );
 
-    // Publish the screen share track
+    // Step 4: Publish the screen share track
     console.log("Publishing screen share video track...");
     await config.screenShareRTCClient.publish(screenShareTrack);
     console.log("Screen share video track published successfully.");
 
-    // Update userTracks in state.js
+    // Step 5: Update userTracks and UI
     if (!userTracks[screenShareUid]) {
       userTracks[screenShareUid] = {}; // Ensure object structure exists
     }
@@ -310,43 +284,36 @@ export const startScreenShare = async (config) => {
 
     console.log("Updated userTracks:", userTracks);
 
-    // Listen for the browser's stop screen sharing event
-    screenShareTrack.on("track-ended", async () => {
-      console.log("Screen sharing stopped via browser UI.");
-      await stopScreenShare(config); // Cleanup resources and update UI
-    });
-
     // Toggle UI
     toggleStages(true);
     playStreamInDiv(screenShareUid, "#screen-share-content");
-    playStreamInDiv(uid, "#pip-video-track");
 
-    // Update PiP avatar
-    const avatarElement = document.getElementById("pip-avatar");
-    if (avatarElement) {
-      avatarElement.src = user.avatar || "default-avatar.png";
-    }
+    // Update config with the screen share UID
+    config.sharingScreenUid = screenShareUid;
 
-    // Update config
-    config.sharingScreenUid = config.uid.toString();
-
-    console.log("Screen sharing started successfully.");
-    console.log("config.screenShareRTMClient", config.screenShareRTMClient);
-  } catch (error) {
-    console.error(
-      "Error during screen share initialization:",
-      error.message,
-      error.stack
+    console.log(
+      "Screen sharing started successfully with UID:",
+      screenShareUid
     );
+
+    // Handle the browser's "Stop Sharing" event
+    screenShareTrack.on("track-ended", async () => {
+      console.log("Screen sharing stopped via browser UI.");
+      await stopScreenShare(config);
+    });
+  } catch (error) {
+    console.error("Error during screen share setup:", error);
   }
 };
 
 
 
-export const stopScreenShare = async (config) => {
-  const screenShareUid = 1; // Reserved UID for screen sharing
 
-  console.log("Stopping screen share...");
+
+export const stopScreenShare = async (config) => {
+  const screenShareUid = config.sharingScreenUid; // Use the dynamic UID
+
+  console.log("Stopping screen share for UID:", screenShareUid);
   const screenShareTrack = userTracks[screenShareUid]?.videoTrack;
 
   if (screenShareTrack) {
@@ -360,11 +327,13 @@ export const stopScreenShare = async (config) => {
     console.warn("No screen share track found in userTracks.");
   }
 
-  const uid = config.uid;
-  console.log("Toggling Stage..");
+  // Toggle UI
   toggleStages(false);
-  playStreamInDiv(uid, `#stream-${uid}`);
+
+  // Clear the screen share UID from config
+  config.sharingScreenUid = null;
 };
+
 
 
 
