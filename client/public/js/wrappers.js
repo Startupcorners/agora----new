@@ -56,7 +56,7 @@ export const addUserWrapper = async (user, config) => {
 
     // Poll for the visibility of the #video-stage
     console.log("Polling for visibility of #video-stage...");
-    await pollForVisibility("video-stage");
+    await pollForVisibility("main");
 
     // Fetch user attributes from RTM (name, avatar)
     let userAttr = {};
