@@ -9,6 +9,7 @@ import { userTracks, lastMutedStatuses } from "./state.js";
 export const toggleMic = async (config) => {
   try {
     console.log(`toggleMic called for user: ${config.uid}`);
+    console.log(`Usertracks:`, userTracks);
 
     if (!userTracks[config.uid]) {
       console.error(`User track for UID ${config.uid} is undefined.`);
