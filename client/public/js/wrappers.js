@@ -56,28 +56,7 @@ export const addUserWrapper = async (user, config) => {
 
     console.log(`Added wrapper for user: ${user.uid}`);
     updateLayout();
-
-    // Hide video player and show avatar initially
-    const videoPlayer = document.querySelector(`#stream-${user.uid}`);
-    const avatarDiv = document.querySelector(`#avatar-${user.uid}`);
-
-    // Check the user's media state based on whether their tracks exist and are published
-    const userVideoTrackExists = user.videoTrack && user.videoTrack.isPlaying();
-    const userAudioTrackExists = user.audioTrack && user.audioTrack.isPlaying();
-
-    if (videoPlayer && avatarDiv) {
-      if (userVideoTrackExists) {
-        // If video is available, show the video player and hide the avatar
-        videoPlayer.style.display = "block";
-        avatarDiv.style.display = "none";
-        user.videoTrack.play(videoPlayer); // Ensure video starts playing
-      } else {
-        // If no video track, hide the video player and show the avatar
-        videoPlayer.style.display = "none";
-        avatarDiv.style.display = "block";
-      }
-
-    }
+    
   } catch (error) {
     console.error("Error in addUserWrapper:", error);
   } finally {
