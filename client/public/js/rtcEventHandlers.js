@@ -167,8 +167,6 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
     console.warn(`Unsupported mediaType: ${mediaType}`);
   }
 };
-
-
 const handleVideoUnpublished = async (user, userUid, config) => {
   console.log(`Handling video unpublishing for user: ${userUid}`);
 
@@ -179,34 +177,58 @@ const handleVideoUnpublished = async (user, userUid, config) => {
     try {
       // Check if the local user is the one sharing
       if (config.sharingScreenUid === config.uid.toString()) {
-        console.log("Local user was sharing. Stopping local screen share.");
+        console.log(
+          `Local user (UID: ${config.uid}) was sharing. Stopping local screen share.`
+        );
+
+        // Log the UID of the screenShareRTCClient
+        console.log(
+          `UID of the screenShareRTCClient being logged out: ${config.screenShareRTCClient.uid}`
+        );
+
+        // Log and logout from screenShareRTMClient
+        console.log(
+          `Attempting to log out from screenShareRTMClient for UID: ${config.screenShareRTCClient.uid}...`
+        );
         await config.screenShareRTMClient.logout();
+        console.log(
+          `Successfully logged out from screenShareRTMClient for UID: ${config.screenShareRTCClient.uid}.`
+        );
+
+        // Log and leave screenShareRTCClient
+        console.log(
+          `Attempting to leave screenShareRTCClient for UID: ${config.screenShareRTCClient.uid}...`
+        );
         await config.screenShareRTCClient.leave();
+        console.log(
+          `Successfully left screenShareRTCClient for UID: ${config.screenShareRTCClient.uid}.`
+        );
+
         return; // Exit as local user cleanup is already handled elsewhere
       }
-      
 
       // If another user was previously sharing, restore their video
       if (config.sharingScreenUid !== config.uid.toString()) {
+        console.log("Restoring previous user's video.");
+
         toggleStages(false); // Hide screen share stage
-        
+
         if (userTracks[1] && userTracks[1].videoTrack) {
           userTracks[1].videoTrack.stop();
           userTracks[1].videoTrack = null;
           console.log(`Removed video track for user 1`);
         }
-        
+
         playStreamInDiv(
           config.sharingScreenUid,
           `#stream-${config.sharingScreenUid}`
         );
+
+        // Reset screen share tracking
         config.screenShareRTMClient = null;
         config.screenShareRTCClient = null;
         config.sharingScreenUid = null;
-        // Reset the screen share tracking
       }
-
-      // Ensure the user (UID 1) leaves the RTC session
     } catch (error) {
       console.error("Error handling screen share unpublishing:", error);
     }
