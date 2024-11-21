@@ -7,6 +7,7 @@ import {
   handleVolumeIndicator,
 } from "./rtcEventHandlers.js";
 import { userTracks } from "./state.js";
+import { toggleMic } from "./uiHandlers.js";
 import {
   fetchTokens,
   switchCam,
@@ -312,7 +313,7 @@ console.log(
 
 let lastMicPermissionState = null; // Track the last known microphone permission state
 
-export async function checkMicrophonePermissions() {
+export async function checkMicrophonePermissions(config) {
   if (navigator.permissions) {
     try {
       const micPermission = await navigator.permissions.query({
@@ -321,7 +322,7 @@ export async function checkMicrophonePermissions() {
 
       // Notify Bubble on initial state
       if (micPermission.state !== lastMicPermissionState) {
-        notifyBubbleAboutMicPermission(micPermission.state);
+        handleMicPermissionChange(micPermission.state, config);
         lastMicPermissionState = micPermission.state;
       }
 
@@ -332,7 +333,7 @@ export async function checkMicrophonePermissions() {
             `Microphone permission changed to: ${micPermission.state}`
           );
           if (micPermission.state !== lastMicPermissionState) {
-            notifyBubbleAboutMicPermission(micPermission.state);
+            handleMicPermissionChange(micPermission.state, config);
             lastMicPermissionState = micPermission.state; // Update the tracked state
           }
         };
@@ -350,7 +351,7 @@ export async function checkMicrophonePermissions() {
             console.log(
               `Detected permission change via polling: ${newPermission.state}`
             );
-            notifyBubbleAboutMicPermission(newPermission.state);
+            handleMicPermissionChange(newPermission.state, config);
             lastMicPermissionState = newPermission.state; // Update the tracked state
           }
         }, 5000); // Poll every 5 seconds
@@ -367,10 +368,12 @@ export async function checkMicrophonePermissions() {
   }
 }
 
-// Notify Bubble about microphone permission state
-function notifyBubbleAboutMicPermission(state) {
+// Handle microphone permission changes
+function handleMicPermissionChange(state, config) {
+  const isMicAvailable = state === "granted";
+
+  // Notify Bubble about the microphone permission change
   if (typeof bubble_fn_micPermissionChanged === "function") {
-    const isMicAvailable = state === "granted";
     bubble_fn_micPermissionChanged(isMicAvailable);
     console.log(
       `Bubble notified about microphone permission change: ${
@@ -379,5 +382,11 @@ function notifyBubbleAboutMicPermission(state) {
     );
   } else {
     console.warn("bubble_fn_micPermissionChanged is not defined.");
+  }
+
+  // If the microphone is not granted, toggle the mic to update the UI
+  if (!isMicAvailable) {
+    console.log("Microphone permission not granted. Updating UI...");
+    toggleMic(config); // Call toggleMic to handle the UI and notify the user
   }
 }
