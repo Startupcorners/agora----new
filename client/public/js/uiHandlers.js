@@ -314,26 +314,33 @@ export const startScreenShare = async (config) => {
 };
 
 
-
-
-
 export const stopScreenShare = async (config) => {
-  const uid = config.uid;
   const screenShareUid = 1; // Reserved UID for screen sharing
 
-    console.log("Stopping screen share...");
-    const userTrack = userTracks[1];
+  console.log("Stopping screen share...");
 
-    await config.client.unpublish([userTrack.videoTrack]);
-    userTrack.videoTrack.stop();
-    userTrack.videoTrack.close();
-    userTrack.videoTrack = null;
+  // Assuming `userTracks[1]` is the screen share track
+  const screenShareTrack = userTracks[1];
 
-    toggleStages(false);
+  if (screenShareTrack && screenShareTrack.videoTrack) {
+    // Unpublish the screen share track
+    await config.client.unpublish([screenShareTrack.videoTrack]);
 
-    // Resume playing the user's main video stream
-    playStreamInDiv(uid, `#stream-${uid}`);
-  
+    // Stop and close the track
+    screenShareTrack.videoTrack.stop();
+    screenShareTrack.videoTrack.close();
+
+    // Remove the screen share track from userTracks
+    userTracks[1] = null;
+
+    console.log("Screen share stopped.");
+  } else {
+    console.error("No screen share track found.");
+  }
+
+  // Resume playing the user's main video stream
+  const uid = config.uid; // Ensure this is the main user's UID
+  playStreamInDiv(uid, `#stream-${uid}`);
 };
 
 
