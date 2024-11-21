@@ -107,7 +107,13 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     console.log(`Subscribed to video track for user ${userUid}`);
 
     userTracks[userUid].videoTrack = user.videoTrack;
-    playStreamInDiv(userUid, `#stream-${userUid}`);
+
+    if (config.sharingScreenUid) {
+      playStreamInDiv(userUid, "#pip-video-track");
+    } else {
+      playStreamInDiv(userUid, `#stream-${userUid}`);
+    }
+    
   } catch (error) {
     console.error(`Error subscribing to video for user ${userUid}:`, error);
   }
