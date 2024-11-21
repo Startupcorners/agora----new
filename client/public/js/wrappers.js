@@ -75,6 +75,21 @@ export const addUserWrapper = async (user, config) => {
   }
 };
 
+// Wrapper for removing users from the video stage
+export const removeUserWrapper = (uid) => {
+  try {
+    const player = document.querySelector(`#video-wrapper-${uid}`);
+    if (player) {
+      player.remove(); // Remove the user's video/audio wrapper from the DOM
+      console.log(`Removed player for user: ${uid}`);
+    } else {
+      console.log(`Player not found for user: ${uid}`);
+    }
+  } catch (error) {
+    console.log("Failed to remove user wrapper:", error);
+  }
+};
+
 export const addScreenShareWrapper = (screenShareUid, uid, config) => {
   try {
     // Hide all other video wrappers
