@@ -4,7 +4,7 @@ import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import {
   toggleStages,
 } from "./videoHandlers.js";
-import { userTracks } from "./state.js"; 
+import { userTracks, lastMutedStatuses } from "./state.js"; 
 import { playStreamInDiv } from "./videoHandlers.js"; 
 const userJoinPromises = {};
 
