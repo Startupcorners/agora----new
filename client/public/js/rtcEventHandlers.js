@@ -58,13 +58,13 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       console.log(`Screen share is from remote user: ${sharingUserUid}`);
 
       // Skip if the current screen share is from the local user
-      if (config.screenShareRTMClient === sharingUserUid) {
+      if (config.sharingUserUid === sharingUserUid) {
         console.log("Local user is currently sharing. Skipping processing.");
         return;
       }
 
       // Set screenShareRTMClient to the sharing user's UID
-      config.screenShareRTMClient = sharingUserUid;
+      config.sharingUserUid = sharingUserUid;
 
       // Update the PiP avatar
       const avatarElement = document.getElementById("pip-avatar");
@@ -178,8 +178,10 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 
     try {
       // Check if the local user is the one sharing
-      if (config.screenShareClient === config.uid) {
+      if (config.sharingUserUid === config.uid.toString()) {
         console.log("Local user was sharing. Stopping local screen share.");
+        await config.screenShareRTMClient.logout();
+        await config.screenShareRTCClient.leave();
         return; // Exit as local user cleanup is already handled elsewhere
       }
 
@@ -187,12 +189,15 @@ const handleVideoUnpublished = async (user, userUid, config) => {
       toggleStages(false); // Hide screen share stage
 
       // If another user was previously sharing, restore their video
-      if (config.screenShareClient !== config.uid) {
+      if (config.sharingUserUid !== config.uid.toString()) {
         playStreamInDiv(
-          config.screenShareClient,
-          `#stream-${config.screenShareClient}`
+          config.sharingUserUid,
+          `#stream-${config.sharingUserUid}`
         );
-        config.screenShareClient = null; // Reset the screen share tracking
+        config.screenShareRTMClient = null;
+        config.screenShareRTCClient = null;
+        config.sharingUserUid = null;
+         // Reset the screen share tracking
       }
 
       // Ensure the user (UID 1) leaves the RTC session

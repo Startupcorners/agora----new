@@ -146,7 +146,7 @@ export const toggleCamera = async (config) => {
       console.log("Camera turned off and unpublished");
 
       // Update UI
-      if (config.screenShareClient) {
+      if (config.sharingUserUid === config.uid.toString()) {
         playStreamInDiv(config.uid, "#pip-video-track");
       } else {
         playStreamInDiv(config.uid, `#stream-${config.uid}`);
@@ -175,7 +175,7 @@ export const toggleCamera = async (config) => {
       console.log("Camera turned on and published");
 
       // Update UI
-      if (config.screenShareClient) {
+      if (config.sharingUserUid === config.uid.toString()) {
         playStreamInDiv(config.uid, "#pip-video-track");
       } else {
         playStreamInDiv(config.uid, `#stream-${config.uid}`);
@@ -198,10 +198,10 @@ export const toggleCamera = async (config) => {
 
 
 export const toggleScreenShare = async (config) => {
-  console.log("config.screenShareRTMClient",config.screenShareRTMClient);
+  console.log("config.screenShareRTMClient", config.screenShareRTCClient);
 
   try {
-    if (!config.screenShareRTMClient) {
+    if (config.sharingScreenUid !== config.uid.toString()) {
       await startScreenShare(config); // Start screen share
     } else {
       await stopScreenShare(config); // Stop screen share
@@ -253,15 +253,16 @@ export const startScreenShare = async (config) => {
       name: user.name || "Unknown",
       avatar: user.avatar || "default-avatar-url",
       company: user.company || "Unknown",
+      sharingUserUid: uid.toString(),
       // Other attributes...
     };
     console.log("Setting RTM attributes:", attributes);
     await config.screenShareRTMClient.setLocalUserAttributes(attributes);
 
     // Initialize RTC client for screen sharing
-    if (!config.screenShareClient) {
+    if (!config.screenShareRTCClient) {
       console.log("Creating a new RTC client for screen sharing...");
-      config.screenShareClient = AgoraRTC.createClient({
+      config.screenShareRTCClient = AgoraRTC.createClient({
         mode: "rtc",
         codec: "vp8",
       });
@@ -270,7 +271,7 @@ export const startScreenShare = async (config) => {
 
     // Join RTC channel
     console.log(`Joining RTC with screenShareUid ${screenShareUid}...`);
-    await config.screenShareClient.join(
+    await config.screenShareRTCClient.join(
       config.appId,
       config.channelName,
       tokens.rtcToken,
@@ -284,7 +285,7 @@ export const startScreenShare = async (config) => {
 
     // Publish the screen share track
     console.log("Publishing screen share video track...");
-    await config.screenShareClient.publish(screenShareTrack);
+    await config.screenShareRTCClient.publish(screenShareTrack);
     console.log("Screen share video track published successfully.");
 
     // Update userTracks and toggle UI
@@ -298,6 +299,7 @@ export const startScreenShare = async (config) => {
     if (avatarElement) {
       avatarElement.src = user.avatar || "default-avatar.png";
     }
+    config.sharingUserUid = config.uid.toString();
 
     console.log("Screen sharing started successfully.");
     console.log("config.screenShareRTMClient", config.screenShareRTMClient);
@@ -308,24 +310,6 @@ export const startScreenShare = async (config) => {
       error.stack
     );
 
-    // Cleanup on failure
-    if (config.screenShareClient) {
-      try {
-        await config.screenShareClient.leave();
-      } catch (leaveError) {
-        console.warn("Error while leaving RTC client:", leaveError);
-      }
-      config.screenShareClient = null;
-    }
-
-    if (config.screenShareRTMClient) {
-      try {
-        await config.screenShareRTMClient.logout();
-      } catch (logoutError) {
-        console.warn("Error while logging out RTM client:", logoutError);
-      }
-      config.screenShareRTMClient = null;
-    }
   }
 };
 
@@ -338,30 +322,13 @@ export const stopScreenShare = async (config) => {
   const screenShareUid = 1; // Reserved UID for screen sharing
 
     console.log("Stopping screen share...");
+    const userTrack = userTracks[1];
 
-          if (config.screenShareClient) {
-            console.log("Leaving RTC channel for screen-sharing user...");
-            await config.screenShareClient.leave();
-            console.log("Screen-sharing RTC client has left the channel.");
-          } else {
-            console.warn("No RTC client found for the screen-sharing user.");
-          }
+    await config.client.unpublish([userTrack.videoTrack]);
+    userTrack.videoTrack.stop();
+    userTrack.videoTrack.close();
+    userTrack.videoTrack = null;
 
-          // Ensure the user (UID 1) logs out from the RTM session
-          if (config.screenShareRTMClient) {
-            console.log("Logging out from RTM for screen-sharing user...");
-            await config.screenShareRTMClient.logout();
-            console.log("Screen-sharing RTM client has logged out.");
-          } else {
-            console.warn("No RTM client found for the screen-sharing user.");
-          }
-
-
-    config.screenShareClient = null; // Clean up client
-    config.screenShareRTMClient = null; // Clean up client
-
-    
-    // Toggle the stage back to video stage
     toggleStages(false);
 
     // Resume playing the user's main video stream
