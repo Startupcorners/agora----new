@@ -122,7 +122,7 @@ client.on("user-joined", async (user) => {
 
   // Handle volume indicator changes
   client.on("volume-indicator", async (volumes) => {
-    await handleVolumeIndicator(volumes);
+    await handleVolumeIndicator(volumes, config);
   });
 
 config.client.on("onMicrophoneChanged", async (info) => {
