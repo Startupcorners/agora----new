@@ -290,6 +290,9 @@ export const startScreenShare = async (config) => {
 
     // Update userTracks and toggle UI
     userTracks[screenShareUid] = { videoTrack: screenShareTrack };
+
+     console.log("User tracks ->", userTracks);
+     
     toggleStages(true);
     playStreamInDiv(screenShareUid, "#screen-share-content");
     playStreamInDiv(uid, "#pip-video-track");
@@ -318,7 +321,7 @@ export const stopScreenShare = async (config) => {
   const screenShareUid = 1; // Reserved UID for screen sharing
 
   console.log("Stopping screen share...");
-  console.log("Stopping screen share...",userTracks);
+  console.log("User tracks ->",userTracks);
 
   // Assuming `userTracks[1]` is the screen share track
   const screenShareTrack = userTracks[1];
