@@ -572,7 +572,7 @@ export const handleUserLeft = async (user, config) => {
 export const handleVolumeIndicator = (() => {
   let lastMutedStatuses = {}; // Store the last muted status for each UID ("yes" or "no")
 
-  return async (result) => {
+  return async (result, currentUserUid) => {
     for (const volume of result) {
       const userUID = volume.uid;
 
@@ -587,20 +587,6 @@ export const handleVolumeIndicator = (() => {
 
       const currentStatus = audioLevel < 3 ? "yes" : "no";
 
-      // Initialize lastMutedStatus for this userUID if it doesn't exist
-      if (!lastMutedStatuses[userUID]) {
-        lastMutedStatuses[userUID] = "no"; // Default to "no"
-      }
-
-      // Only send to Bubble if the status has changed for this userUID
-      if (currentStatus !== lastMutedStatuses[userUID]) {
-        console.log(
-          `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for UID ${userUID}`
-        );
-        bubble_fn_systemmuted(currentStatus);
-        lastMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
-      }
-
       // Apply audio level indicator styles if the wrapper is available
       if (wrapper) {
         if (audioLevel > 60) {
@@ -610,9 +596,27 @@ export const handleVolumeIndicator = (() => {
           wrapper.style.borderColor = "transparent"; // Transparent when not speaking
         }
       }
+
+      // Only send to Bubble for the current user UID
+      if (userUID === currentUserUid) {
+        // Initialize lastMutedStatus for the current user UID if it doesn't exist
+        if (!lastMutedStatuses[userUID]) {
+          lastMutedStatuses[userUID] = "no"; // Default to "no"
+        }
+
+        // Only send to Bubble if the status has changed for the current user UID
+        if (currentStatus !== lastMutedStatuses[userUID]) {
+          console.log(
+            `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for UID ${userUID}`
+          );
+          bubble_fn_systemmuted(currentStatus);
+          lastMutedStatuses[userUID] = currentStatus; // Update the last status for the current user UID
+        }
+      }
     }
   };
 })();
+
 
 
 
