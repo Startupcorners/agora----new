@@ -5,7 +5,6 @@ import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { userTracks, lastMutedStatuses } from "./state.js";
 
 
-
 export const toggleMic = async (config) => {
   try {
     console.log(`toggleMic called for user: ${config.uid}`);
@@ -18,7 +17,7 @@ export const toggleMic = async (config) => {
 
     const userTrack = userTracks[config.uid];
 
-    if (userTrack.audioTrack) {
+    if (userTrack.audioTrack && userTrack.audioTrack.isPlaying) {
       // User is trying to mute the microphone
       console.log("Muting microphone for user:", config.uid);
 
@@ -30,7 +29,7 @@ export const toggleMic = async (config) => {
 
       console.log("Microphone muted and unpublished");
 
-      updateMicStatusElement(config.uid, true)
+      updateMicStatusElement(config.uid, true); // Mic is muted
 
       // Set wrapper border to transparent
       const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
@@ -51,9 +50,10 @@ export const toggleMic = async (config) => {
 
       try {
         // Create a new audio track
-        userTrack.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        const newAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+        userTrack.audioTrack = newAudioTrack;
 
-        if (!userTrack.audioTrack) {
+        if (!newAudioTrack) {
           console.error("Failed to create a new audio track!");
           throw new Error("Microphone audio track creation failed");
         }
@@ -61,12 +61,11 @@ export const toggleMic = async (config) => {
         console.log("Created new audio track for user:", config.uid);
 
         // Publish the new audio track
-        await config.client.publish([userTrack.audioTrack]);
+        await config.client.publish([newAudioTrack]);
         console.log("Microphone unmuted and published");
 
         // Update UI to show mic is unmuted
-        updateMicStatusElement(config.uid, false);
-
+        updateMicStatusElement(config.uid, false); // Mic is unmuted
 
         // Set wrapper border to active
         const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
@@ -93,7 +92,7 @@ export const toggleMic = async (config) => {
         }
 
         // Update UI to reflect muted state due to error
-        updateMicStatusElement(config.uid, true);
+        updateMicStatusElement(config.uid, true); // Mic remains muted
 
         const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
         if (wrapper) {
@@ -106,7 +105,6 @@ export const toggleMic = async (config) => {
     console.error("Error in toggleMic for user:", config.uid, error);
   }
 };
-
 
 
 
