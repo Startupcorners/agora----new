@@ -29,18 +29,7 @@ export const toggleMic = async (config) => {
 
       console.log("Microphone muted and unpublished");
 
-      // Update UI to show mic is muted
-      const micStatusElement = document.getElementById(
-        `mic-status-${config.uid}`
-      );
-      if (micStatusElement) {
-        micStatusElement.classList.remove("hidden");
-        console.log(
-          `Removed 'hidden' class from mic-status-${config.uid} to indicate muted status`
-        );
-      } else {
-        console.warn(`Mic status element not found for user ${config.uid}`);
-      }
+      updateMicStatusElement(config.uid, true)
 
       // Set wrapper border to transparent
       const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
@@ -75,17 +64,8 @@ export const toggleMic = async (config) => {
         console.log("Microphone unmuted and published");
 
         // Update UI to show mic is unmuted
-        const micStatusElement = document.getElementById(
-          `mic-status-${config.uid}`
-        );
-        if (micStatusElement) {
-          micStatusElement.classList.add("hidden");
-          console.log(
-            `Added 'hidden' class to mic-status-${config.uid} to indicate unmuted status`
-          );
-        } else {
-          console.warn(`Mic status element not found for user ${config.uid}`);
-        }
+        updateMicStatusElement(config.uid, false);
+
 
         // Set wrapper border to active
         const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
@@ -112,15 +92,7 @@ export const toggleMic = async (config) => {
         }
 
         // Update UI to reflect muted state due to error
-        const micStatusElement = document.getElementById(
-          `mic-status-${config.uid}`
-        );
-        if (micStatusElement) {
-          micStatusElement.classList.remove("hidden");
-          console.log(
-            `Removed 'hidden' class from mic-status-${config.uid} to indicate muted status`
-          );
-        }
+        updateMicStatusElement(config.uid, true);
 
         const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
         if (wrapper) {
@@ -452,3 +424,19 @@ export const removeParticipant = async (clientRTM, uid, config) => {
     console.error(`Error removing participant with UID ${uid}:`, error);
   }
 };
+
+
+export function updateMicStatusElement(uid, isMuted) {
+  const micStatusElement = document.getElementById(`mic-status-${uid}`);
+  if (micStatusElement) {
+    if (isMuted) {
+      micStatusElement.classList.remove("hidden");
+      console.log(`Removed 'hidden' class from mic-status-${uid} to indicate muted status.`);
+    } else {
+      micStatusElement.classList.add("hidden");
+      console.log(`Added 'hidden' class to mic-status-${uid} to indicate unmuted status.`);
+    }
+  } else {
+    console.warn(`Mic status element not found for UID ${uid}.`);
+  }
+}

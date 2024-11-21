@@ -7,7 +7,7 @@ import {
   handleVolumeIndicator,
 } from "./rtcEventHandlers.js";
 import { userTracks, lastMutedStatuses } from "./state.js";
-import { toggleMic } from "./uiHandlers.js";
+import { toggleMic, updateMicStatusElement } from "./uiHandlers.js";
 import {
   fetchTokens,
   switchCam,

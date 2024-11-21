@@ -1,4 +1,4 @@
-
+import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 let addUserWrapperRunning = false;
 

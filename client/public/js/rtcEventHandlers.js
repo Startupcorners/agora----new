@@ -5,6 +5,7 @@ import {
   toggleStages,
 } from "./videoHandlers.js";
 import { userTracks, lastMutedStatuses } from "./state.js"; 
+import { updateMicStatusElement } from "./uiHandlers.js"; 
 import { playStreamInDiv } from "./videoHandlers.js"; 
 const userJoinPromises = {};
 
@@ -587,10 +588,12 @@ export const handleVolumeIndicator = (() => {
 
       // Determine the current status based on audio level
       const currentStatus = audioLevel < 3 ? "yes" : "no";
+      updateMicStatusElement(userUID, true);
 
       // Apply audio level indicator styles if the wrapper is available
       if (wrapper) {
         if (audioLevel > 60) {
+          updateMicStatusElement(userUID, false);
           wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
         } else {
           wrapper.style.borderColor = "transparent"; // Transparent when not speaking

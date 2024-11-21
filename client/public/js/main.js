@@ -33,6 +33,7 @@ import {
   toggleCamera,
   toggleScreenShare,
   changeUserRole,
+  updateMicStatusElement,
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
 const newMainApp = function (initConfig) {
@@ -374,6 +375,7 @@ const joinToVideoStage = async (config) => {
         await userTracks[config.uid].audioTrack.setEnabled(true);
         audioTrackCreated = true;
         console.log("Audio track created and enabled.");
+        updateMicStatusElement(config.uid, false);
       } catch (error) {
         if (error.name === "NotAllowedError") {
           console.warn(
@@ -390,6 +392,7 @@ const joinToVideoStage = async (config) => {
           "Triggering Bubble function: system muted (no audio available)."
         );
         bubble_fn_systemmuted("yes");
+        updateMicStatusElement(config.uid, true);
       }
     }
 
