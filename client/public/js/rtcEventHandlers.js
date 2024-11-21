@@ -89,7 +89,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
         userTracks[userUid] = {};
       }
       userTracks[userUid].videoTrack = user.videoTrack;
-
+      
       // Toggle stage to screen share
       toggleStages(true);
 
@@ -191,7 +191,7 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 
     try {
       // Check if the local user is the one sharing
-      if (config.sharingScreenUid === config.uid.toString()) {
+      if (config.sharingScreenUid === config.uid) {
         console.log(
           `Local user (UID: ${config.uid}) was sharing. Stopping local screen share.`
         );
@@ -221,12 +221,13 @@ const handleVideoUnpublished = async (user, userUid, config) => {
         config.screenShareRTMClient = null;
         config.screenShareRTCClient = null;
         config.sharingScreenUid = null;
+        config.generatedScreenShareId = null;
 
         return; // Exit as local user cleanup is already handled elsewhere
       }
 
       // If another user was previously sharing, restore their video
-      if (config.sharingScreenUid !== config.uid.toString()) {
+      if (config.sharingScreenUid !== config.uid) {
         console.log("Restoring previous user's video.");
 
         toggleStages(false); // Hide screen share stage
@@ -246,6 +247,7 @@ const handleVideoUnpublished = async (user, userUid, config) => {
         config.screenShareRTMClient = null;
         config.screenShareRTCClient = null;
         config.sharingScreenUid = null;
+        config.generatedScreenShareId = null;
       }
     } catch (error) {
       console.error("Error handling screen share unpublishing:", error);
