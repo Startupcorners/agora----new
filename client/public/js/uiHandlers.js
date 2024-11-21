@@ -327,7 +327,6 @@ export const stopScreenShare = async (config) => {
     await config.client.unpublish([screenShareTrack.videoTrack]);
 
     // Stop and close the track
-    screenShareTrack.videoTrack.stop();
     screenShareTrack.videoTrack.close();
 
     // Remove the screen share track from userTracks
