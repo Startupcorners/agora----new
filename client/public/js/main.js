@@ -320,7 +320,7 @@ const newMainApp = function (initConfig) {
         rtmUid: rtmUid,
         bubbleid: config.user.bubbleid,
         isRaisingHand: config.user.isRaisingHand,
-        sharingUserUid: "0",
+        sharingScreenUid: "0",
         roleInTheCall: config.user.roleInTheCall || "audience",
       };
 

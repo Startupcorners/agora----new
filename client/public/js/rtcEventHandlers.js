@@ -58,13 +58,13 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       console.log(`Screen share is from remote user: ${sharingUserUid}`);
 
       // Skip if the current screen share is from the local user
-      if (config.sharingUserUid === sharingUserUid) {
+      if (config.sharingScreenUid === sharingUserUid) {
         console.log("Local user is currently sharing. Skipping processing.");
         return;
       }
 
       // Set screenShareRTMClient to the sharing user's UID
-      config.sharingUserUid = sharingUserUid;
+      config.sharingScreenUid = sharingUserUid;
 
       // Update the PiP avatar
       const avatarElement = document.getElementById("pip-avatar");
@@ -178,7 +178,7 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 
     try {
       // Check if the local user is the one sharing
-      if (config.sharingUserUid === config.uid.toString()) {
+      if (config.sharingScreenUid === config.uid.toString()) {
         console.log("Local user was sharing. Stopping local screen share.");
         await config.screenShareRTMClient.logout();
         await config.screenShareRTCClient.leave();
@@ -189,15 +189,15 @@ const handleVideoUnpublished = async (user, userUid, config) => {
       toggleStages(false); // Hide screen share stage
 
       // If another user was previously sharing, restore their video
-      if (config.sharingUserUid !== config.uid.toString()) {
+      if (config.sharingScreenUid !== config.uid.toString()) {
         playStreamInDiv(
-          config.sharingUserUid,
-          `#stream-${config.sharingUserUid}`
+          config.sharingScreenUid,
+          `#stream-${config.sharingScreenUid}`
         );
         config.screenShareRTMClient = null;
         config.screenShareRTCClient = null;
-        config.sharingUserUid = null;
-         // Reset the screen share tracking
+        config.sharingScreenUid = null;
+        // Reset the screen share tracking
       }
 
       // Ensure the user (UID 1) leaves the RTC session

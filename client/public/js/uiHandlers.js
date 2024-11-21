@@ -146,7 +146,7 @@ export const toggleCamera = async (config) => {
       console.log("Camera turned off and unpublished");
 
       // Update UI
-      if (config.sharingUserUid === config.uid.toString()) {
+      if (config.sharingScreenUid === config.uid.toString()) {
         playStreamInDiv(config.uid, "#pip-video-track");
       } else {
         playStreamInDiv(config.uid, `#stream-${config.uid}`);
@@ -175,7 +175,7 @@ export const toggleCamera = async (config) => {
       console.log("Camera turned on and published");
 
       // Update UI
-      if (config.sharingUserUid === config.uid.toString()) {
+      if (config.sharingScreenUid === config.uid.toString()) {
         playStreamInDiv(config.uid, "#pip-video-track");
       } else {
         playStreamInDiv(config.uid, `#stream-${config.uid}`);
@@ -253,7 +253,7 @@ export const startScreenShare = async (config) => {
       name: user.name || "Unknown",
       avatar: user.avatar || "default-avatar-url",
       company: user.company || "Unknown",
-      sharingUserUid: uid.toString(),
+      sharingScreenUid: uid.toString(),
       // Other attributes...
     };
     console.log("Setting RTM attributes:", attributes);
@@ -299,7 +299,7 @@ export const startScreenShare = async (config) => {
     if (avatarElement) {
       avatarElement.src = user.avatar || "default-avatar.png";
     }
-    config.sharingUserUid = config.uid.toString();
+    config.sharingScreenUid = config.uid.toString();
 
     console.log("Screen sharing started successfully.");
     console.log("config.screenShareRTMClient", config.screenShareRTMClient);
