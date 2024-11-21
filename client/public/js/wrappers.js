@@ -1,4 +1,3 @@
-import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
 
 let addUserWrapperRunning = false;
 
@@ -78,8 +77,6 @@ export const addUserWrapper = async (user, config) => {
         avatarDiv.style.display = "block";
       }
 
-      // Update the mic icon based on the user's audio state
-      toggleMicIcon(user.uid, !userAudioTrackExists); // true if muted, false if unmuted
     }
   } catch (error) {
     console.error("Error in addUserWrapper:", error);
