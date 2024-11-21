@@ -17,7 +17,7 @@ export const toggleMic = async (config) => {
 
     const userTrack = userTracks[config.uid];
 
-    if (userTrack.audioTrack && userTrack.audioTrack.isPlaying) {
+    if (userTrack.audioTrack) {
       // User is trying to mute the microphone
       console.log("Muting microphone for user:", config.uid);
 
@@ -50,10 +50,9 @@ export const toggleMic = async (config) => {
 
       try {
         // Create a new audio track
-        const newAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        userTrack.audioTrack = newAudioTrack;
+        userTrack.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
-        if (!newAudioTrack) {
+        if (!userTrack.audioTrack) {
           console.error("Failed to create a new audio track!");
           throw new Error("Microphone audio track creation failed");
         }
@@ -61,7 +60,7 @@ export const toggleMic = async (config) => {
         console.log("Created new audio track for user:", config.uid);
 
         // Publish the new audio track
-        await config.client.publish([newAudioTrack]);
+        await config.client.publish([userTrack.audioTrack]);
         console.log("Microphone unmuted and published");
 
         // Update UI to show mic is unmuted
