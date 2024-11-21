@@ -568,10 +568,8 @@ export const handleUserLeft = async (user, config) => {
 };
 
 
-// Handles volume indicator change
-export const handleVolumeIndicator = (() => {
-  let lastMutedStatuses = {}; // Store the last muted status for each UID ("yes" or "no")
 
+export const handleVolumeIndicator = (() => {
   return async (result, config) => {
     const currentUserUid = config.uid; // Extract the current user's UID from the config
 

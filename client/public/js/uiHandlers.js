@@ -2,7 +2,7 @@
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { fetchTokens } from "./helperFunctions.js";
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
-import { userTracks } from "./state.js";
+import { userTracks, lastMutedStatuses } from "./state.js";
 
 
 

@@ -6,7 +6,7 @@ import {
   handleUserLeft,
   handleVolumeIndicator,
 } from "./rtcEventHandlers.js";
-import { userTracks } from "./state.js";
+import { userTracks, lastMutedStatuses } from "./state.js";
 import { toggleMic } from "./uiHandlers.js";
 import {
   fetchTokens,
@@ -313,6 +313,11 @@ console.log(
 
 let lastMicPermissionState = null; // Track the last known microphone permission state
 
+// Global variable for lastMutedStatuses
+export const lastMutedStatuses = {}; // Ensure this is imported or globally accessible
+
+let lastMicPermissionState = null; // Track the last known microphone permission state
+
 export async function checkMicrophonePermissions(config) {
   if (navigator.permissions) {
     try {
@@ -397,6 +402,16 @@ function handleMicPermissionChange(state, config) {
       );
     } else {
       console.warn("bubble_fn_systemmuted is not defined.");
+    }
+
+    // Update lastMutedStatuses for the current user
+    if (config && config.uid) {
+      lastMutedStatuses[config.uid] = "no";
+      console.log(
+        `Updated lastMutedStatuses for UID ${config.uid} to "no" (unmuted).`
+      );
+    } else {
+      console.warn("Config or UID is undefined; could not update lastMutedStatuses.");
     }
   }
 }
