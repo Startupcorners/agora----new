@@ -1,3 +1,5 @@
+import { updateMicStatusElement } from "./uiHandlers.js";
+import { userTracks, lastMutedStatuses } from "./state.js";
 
 let addUserWrapperRunning = false;
 
@@ -6,12 +8,6 @@ export const addUserWrapper = async (user, config) => {
   if (addUserWrapperRunning) {
     console.log(`addUserWrapper is already running for user: ${user.uid}`);
     return;
-  }
-
-  // Remove the 'hidden' class from the element with the ID 'main' if it exists
-  const mainElement = document.getElementById("main");
-  if (mainElement && mainElement.classList.contains("hidden")) {
-    mainElement.classList.remove("hidden");
   }
 
   // Set running state to true
@@ -55,30 +51,27 @@ export const addUserWrapper = async (user, config) => {
       .insertAdjacentHTML("beforeend", playerHTML);
 
     console.log(`Added wrapper for user: ${user.uid}`);
+
+    // Set audio track and update mic status
+    if (user.audioTrack) {
+      userTracks[user.uid] = {
+        ...userTracks[user.uid],
+        audioTrack: user.audioTrack,
+      };
+      updateMicStatusElement(user.uid, true); // Mic is active
+    } else {
+      if (userTracks[user.uid]) {
+        userTracks[user.uid].audioTrack = null; // Ensure audioTrack is cleared
+      }
+      updateMicStatusElement(user.uid, false); // Mic is inactive
+    }
+
     updateLayout();
-    
   } catch (error) {
     console.error("Error in addUserWrapper:", error);
   } finally {
     // Set running state to false after completion
     addUserWrapperRunning = false;
-  }
-};
-
-
-
-// Wrapper for removing users from the video stage
-export const removeUserWrapper = (uid) => {
-  try {
-    const player = document.querySelector(`#video-wrapper-${uid}`);
-    if (player) {
-      player.remove(); // Remove the user's video/audio wrapper from the DOM
-      console.log(`Removed player for user: ${uid}`);
-    } else {
-      console.log(`Player not found for user: ${uid}`);
-    }
-  } catch (error) {
-    console.log("Failed to remove user wrapper:", error);
   }
 };
 
