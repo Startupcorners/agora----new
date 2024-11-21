@@ -1,5 +1,3 @@
-import { toggleVideoOrAvatar, toggleMicIcon } from "./updateWrappers.js";
-
 let addUserWrapperRunning = false;
 
 export const addUserWrapper = async (user, config) => {
