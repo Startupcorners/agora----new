@@ -309,3 +309,75 @@ console.log(
   "RTM message listener with member join/leave handlers initialized."
 );
 };
+
+let lastMicPermissionState = null; // Track the last known microphone permission state
+
+export async function checkMicrophonePermissions() {
+  if (navigator.permissions) {
+    try {
+      const micPermission = await navigator.permissions.query({
+        name: "microphone",
+      });
+
+      // Notify Bubble on initial state
+      if (micPermission.state !== lastMicPermissionState) {
+        notifyBubbleAboutMicPermission(micPermission.state);
+        lastMicPermissionState = micPermission.state;
+      }
+
+      // Use onchange if supported
+      if ("onchange" in micPermission) {
+        micPermission.onchange = () => {
+          console.log(
+            `Microphone permission changed to: ${micPermission.state}`
+          );
+          if (micPermission.state !== lastMicPermissionState) {
+            notifyBubbleAboutMicPermission(micPermission.state);
+            lastMicPermissionState = micPermission.state; // Update the tracked state
+          }
+        };
+      } else {
+        console.warn(
+          "Permission change listener (onchange) is not supported in this browser."
+        );
+
+        // Fallback: Polling for permission changes
+        setInterval(async () => {
+          const newPermission = await navigator.permissions.query({
+            name: "microphone",
+          });
+          if (newPermission.state !== lastMicPermissionState) {
+            console.log(
+              `Detected permission change via polling: ${newPermission.state}`
+            );
+            notifyBubbleAboutMicPermission(newPermission.state);
+            lastMicPermissionState = newPermission.state; // Update the tracked state
+          }
+        }, 5000); // Poll every 5 seconds
+      }
+
+      console.log(
+        `Initial microphone permission state: ${micPermission.state}`
+      );
+    } catch (error) {
+      console.error("Error checking microphone permissions:", error);
+    }
+  } else {
+    console.warn("Permission API is not supported in this browser.");
+  }
+}
+
+// Notify Bubble about microphone permission state
+function notifyBubbleAboutMicPermission(state) {
+  if (typeof bubble_fn_micPermissionChanged === "function") {
+    const isMicAvailable = state === "granted";
+    bubble_fn_micPermissionChanged(isMicAvailable);
+    console.log(
+      `Bubble notified about microphone permission change: ${
+        isMicAvailable ? "granted" : "not granted"
+      }`
+    );
+  } else {
+    console.warn("bubble_fn_micPermissionChanged is not defined.");
+  }
+}

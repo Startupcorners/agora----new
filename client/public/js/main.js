@@ -3,7 +3,7 @@ import { templateVideoParticipant } from "./templates.js"; // Import the templat
 import { eventCallbacks } from "./eventCallbacks.js";
 import {
   setupEventListeners,
-  setupRTMMessageListener,
+  setupRTMMessageListener, checkMicrophonePermissions,
 } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
@@ -158,6 +158,7 @@ const newMainApp = function (initConfig) {
     // Initialize RTM Channel
     config.channelRTM = config.clientRTM.createChannel(config.channelName);
     setupRTMMessageListener(config.channelRTM, manageParticipants, config);
+    checkMicrophonePermissions();
 
     // Initialize event callbacks with clientRTM passed
     const callbacks = eventCallbacks(config, config.clientRTM);
@@ -346,44 +347,64 @@ const newMainApp = function (initConfig) {
     }
   };
   // Join video stage function
-  const joinToVideoStage = async (config) => {
-    try {
-      // Ensure userTracks has an entry for the user
-      if (!userTracks[config.uid]) {
-        userTracks[config.uid] = {};
-      }
+const joinToVideoStage = async (config) => {
+  try {
+    // Ensure userTracks has an entry for the user
+    if (!userTracks[config.uid]) {
+      userTracks[config.uid] = {};
+    }
 
-      // Initialize tracks to null if they don't already exist
-      userTracks[config.uid].videoTrack =
-        userTracks[config.uid].videoTrack || null;
-      userTracks[config.uid].audioTrack =
-        userTracks[config.uid].audioTrack || null;
+    // Initialize tracks to null if they don't already exist
+    userTracks[config.uid].videoTrack =
+      userTracks[config.uid].videoTrack || null;
+    userTracks[config.uid].audioTrack =
+      userTracks[config.uid].audioTrack || null;
 
-      // Add user wrapper for UI or other purposes
-      await addUserWrapper(config, config);
+    // Add user wrapper for UI or other purposes
+    await addUserWrapper(config, config);
 
-      // Create and publish an audio track
-      if (!userTracks[config.uid].audioTrack) {
-        console.log("Creating and enabling audio track...");
+    let audioTrackCreated = false;
+
+    // Try to create and enable an audio track
+    if (!userTracks[config.uid].audioTrack) {
+      console.log("Creating and enabling audio track...");
+      try {
         userTracks[config.uid].audioTrack =
           await AgoraRTC.createMicrophoneAudioTrack();
         await userTracks[config.uid].audioTrack.setEnabled(true);
+        audioTrackCreated = true;
         console.log("Audio track created and enabled.");
-      }
+      } catch (error) {
+        if (error.name === "NotAllowedError") {
+          console.warn(
+            "Microphone access denied by the user or browser settings."
+          );
+        } else if (error.name === "NotFoundError") {
+          console.warn("No microphone found on this device.");
+        } else {
+          console.warn("Unexpected error creating microphone track:", error);
+        }
 
-      // Publish the audio track
-      if (userTracks[config.uid].audioTrack) {
-        console.log("Publishing audio track...");
-        await config.client.publish([userTracks[config.uid].audioTrack]);
-        console.log("Audio track published.");
+        // Trigger the Bubble function with "yes" to indicate muted status
+        console.log(
+          "Triggering Bubble function: system muted (no audio available)."
+        );
+        bubble_fn_systemmuted("yes");
       }
-
-      console.log("Joined the video stage with audio published and enabled.");
-    } catch (error) {
-      console.error("Error in joinToVideoStage:", error);
     }
-  };
 
+    // If an audio track was successfully created, publish it
+    if (audioTrackCreated && userTracks[config.uid].audioTrack) {
+      console.log("Publishing audio track...");
+      await config.client.publish([userTracks[config.uid].audioTrack]);
+      console.log("Audio track published.");
+    }
+
+    console.log("Joined the video stage with audio status updated.");
+  } catch (error) {
+    console.error("Error in joinToVideoStage:", error);
+  }
+};
 
   return {
     config,

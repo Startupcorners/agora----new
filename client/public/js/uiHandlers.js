@@ -29,7 +29,7 @@ export const toggleMic = async (config) => {
 
       console.log("Microphone muted and unpublished");
 
-      // Remove the hidden class to show mic is muted
+      // Update UI to show mic is muted
       const micStatusElement = document.getElementById(
         `mic-status-${config.uid}`
       );
@@ -49,7 +49,7 @@ export const toggleMic = async (config) => {
         console.log(`Set border to transparent for user ${config.uid}`);
       }
 
-      // Call bubble_fn_isMicOff with `true` to indicate mic is off
+      // Notify Bubble that the mic is off
       if (typeof bubble_fn_isMicOff === "function") {
         bubble_fn_isMicOff(true);
       } else {
@@ -59,45 +59,74 @@ export const toggleMic = async (config) => {
       // User is trying to unmute the microphone
       console.log("Unmuting microphone for user:", config.uid);
 
-      // Create a new audio track
-      userTrack.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      try {
+        // Create a new audio track
+        userTrack.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
-      if (!userTrack.audioTrack) {
-        console.error("Failed to create a new audio track!");
-        return;
-      }
+        if (!userTrack.audioTrack) {
+          console.error("Failed to create a new audio track!");
+          throw new Error("Microphone audio track creation failed");
+        }
 
-      console.log("Created new audio track for user:", config.uid);
+        console.log("Created new audio track for user:", config.uid);
 
-      // Publish the new audio track
-      await config.client.publish([userTrack.audioTrack]);
-      console.log("Microphone unmuted and published");
+        // Publish the new audio track
+        await config.client.publish([userTrack.audioTrack]);
+        console.log("Microphone unmuted and published");
 
-      // Add the hidden class to hide mic muted status
-      const micStatusElement = document.getElementById(
-        `mic-status-${config.uid}`
-      );
-      if (micStatusElement) {
-        micStatusElement.classList.add("hidden");
-        console.log(
-          `Added 'hidden' class to mic-status-${config.uid} to indicate unmuted status`
+        // Update UI to show mic is unmuted
+        const micStatusElement = document.getElementById(
+          `mic-status-${config.uid}`
         );
-      } else {
-        console.warn(`Mic status element not found for user ${config.uid}`);
-      }
+        if (micStatusElement) {
+          micStatusElement.classList.add("hidden");
+          console.log(
+            `Added 'hidden' class to mic-status-${config.uid} to indicate unmuted status`
+          );
+        } else {
+          console.warn(`Mic status element not found for user ${config.uid}`);
+        }
 
-      // Set wrapper border to active (optional)
-      const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
-      if (wrapper) {
-        wrapper.style.borderColor = "#00ff00"; // Green border to indicate active mic
-        console.log(`Set border to green for user ${config.uid}`);
-      }
+        // Set wrapper border to active
+        const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
+        if (wrapper) {
+          wrapper.style.borderColor = "#00ff00"; // Green border to indicate active mic
+          console.log(`Set border to green for user ${config.uid}`);
+        }
 
-      // Call bubble_fn_isMicOff with `false` to indicate mic is on
-      if (typeof bubble_fn_isMicOff === "function") {
-        bubble_fn_isMicOff(false);
-      } else {
-        console.warn("bubble_fn_isMicOff is not defined.");
+        // Notify Bubble that the mic is on
+        if (typeof bubble_fn_isMicOff === "function") {
+          bubble_fn_isMicOff(false);
+        } else {
+          console.warn("bubble_fn_isMicOff is not defined.");
+        }
+      } catch (error) {
+        console.warn(
+          "Error accessing or creating microphone track, setting mic to off.",
+          error
+        );
+
+        // Notify Bubble that the mic is off due to an error
+        if (typeof bubble_fn_isMicOff === "function") {
+          bubble_fn_isMicOff(true);
+        }
+
+        // Update UI to reflect muted state due to error
+        const micStatusElement = document.getElementById(
+          `mic-status-${config.uid}`
+        );
+        if (micStatusElement) {
+          micStatusElement.classList.remove("hidden");
+          console.log(
+            `Removed 'hidden' class from mic-status-${config.uid} to indicate muted status`
+          );
+        }
+
+        const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
+        if (wrapper) {
+          wrapper.style.borderColor = "transparent"; // Transparent for muted state
+          console.log(`Set border to transparent for user ${config.uid}`);
+        }
       }
     }
   } catch (error) {
