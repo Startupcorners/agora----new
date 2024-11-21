@@ -318,6 +318,7 @@ export const stopScreenShare = async (config) => {
   const screenShareUid = 1; // Reserved UID for screen sharing
 
   console.log("Stopping screen share...");
+  console.log("Stopping screen share...",userTracks);
 
   // Assuming `userTracks[1]` is the screen share track
   const screenShareTrack = userTracks[1];
