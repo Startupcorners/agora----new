@@ -101,7 +101,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     if (!userTracks[userUid]) {
       userTracks[userUid] = {};
     }
-    console.log(userTracks);
+    console.log("Subscribed to video tracks: ",userTracks);
 
     await client.subscribe(user, "video");
     console.log(`Subscribed to video track for user ${userUid}`);
