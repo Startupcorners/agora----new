@@ -11,102 +11,85 @@ export const toggleMic = async (config) => {
     console.log(`Usertracks:`, userTracks);
     console.log(`userTracks[config.uid]:`, userTracks[config.uid]);
 
-
     if (!userTracks[config.uid]) {
       console.error(`User track for UID ${config.uid} is undefined.`);
       return;
     }
 
     const userTrack = userTracks[config.uid];
-    console.log(`Usertrack:`, userTrack);
 
     if (userTrack.audioTrack) {
-      // User is trying to mute the microphone
-      console.log("Muting microphone for user:", config.uid);
-
-      // Unpublish and stop the audio track
-      await config.client.unpublish([userTrack.audioTrack]);
-      userTrack.audioTrack.stop();
-      userTrack.audioTrack.close();
-      userTrack.audioTrack = null; // Set to null to indicate mic is muted
-
-      console.log("Microphone muted and unpublished");
-
-      updateMicStatusElement(config.uid, true); // Mic is muted
-
-      // Set wrapper border to transparent
-      const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
-      if (wrapper) {
-        wrapper.style.borderColor = "transparent"; // Transparent when muted
-        console.log(`Set border to transparent for user ${config.uid}`);
-      }
-
-      // Notify Bubble that the mic is off
-      if (typeof bubble_fn_isMicOff === "function") {
-        bubble_fn_isMicOff(true);
-      } else {
-        console.warn("bubble_fn_isMicOff is not defined.");
-      }
+      // Microphone is active; mute it
+      await endMic(config);
     } else {
-      // User is trying to unmute the microphone
-      console.log("Unmuting microphone for user:", config.uid);
-
-      try {
-        // Create a new audio track
-        userTrack.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-
-        if (!userTrack.audioTrack) {
-          console.error("Failed to create a new audio track!");
-          throw new Error("Microphone audio track creation failed");
-        }
-
-        console.log("Created new audio track for user:", config.uid);
-
-        // Publish the new audio track
-        await config.client.publish([userTrack.audioTrack]);
-        console.log("Microphone unmuted and published");
-
-        // Update UI to show mic is unmuted
-        updateMicStatusElement(config.uid, false); // Mic is unmuted
-
-        // Set wrapper border to active
-        const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
-        if (wrapper) {
-          wrapper.style.borderColor = "#00ff00"; // Green border to indicate active mic
-          console.log(`Set border to green for user ${config.uid}`);
-        }
-
-        // Notify Bubble that the mic is on
-        if (typeof bubble_fn_isMicOff === "function") {
-          bubble_fn_isMicOff(false);
-        } else {
-          console.warn("bubble_fn_isMicOff is not defined.");
-        }
-      } catch (error) {
-        console.warn(
-          "Error accessing or creating microphone track, setting mic to off.",
-          error
-        );
-
-        // Notify Bubble that the mic is off due to an error
-        if (typeof bubble_fn_isMicOff === "function") {
-          bubble_fn_isMicOff(true);
-        }
-
-        // Update UI to reflect muted state due to error
-        updateMicStatusElement(config.uid, true); // Mic remains muted
-
-        const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
-        if (wrapper) {
-          wrapper.style.borderColor = "transparent"; // Transparent for muted state
-          console.log(`Set border to transparent for user ${config.uid}`);
-        }
-      }
+      // Microphone is muted; activate it
+      await startMic(config);
     }
   } catch (error) {
     console.error("Error in toggleMic for user:", config.uid, error);
   }
 };
+
+const startMic = async (config) => {
+  try {
+    console.log("Starting microphone for user:", config.uid);
+
+    const userTrack = userTracks[config.uid];
+    userTrack.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+
+    // Update the userTracks object
+    userTracks[config.uid].audioTrack = userTrack.audioTrack;
+
+    // Publish the new audio track
+    await config.client.publish([userTrack.audioTrack]);
+    console.log("Microphone started and published");
+
+    // Update UI to show mic is active
+    updateMicStatusElement(config.uid, false); // Mic is unmuted
+    bubble_fn_isMicOff(false);
+
+  } catch (error) {
+    console.warn(
+      "Error accessing or creating microphone track, setting mic to off.",
+      error
+    );
+  }
+};
+
+const endMic = async (config) => {
+  try {
+    console.log("Ending microphone for user:", config.uid);
+
+    const userTrack = userTracks[config.uid];
+
+    // Unpublish and stop the audio track
+    await config.client.unpublish([userTrack.audioTrack]);
+    userTrack.audioTrack.stop();
+    userTrack.audioTrack.close();
+    userTrack.audioTrack = null; // Set to null to indicate mic is muted
+
+    // Update the userTracks object
+    userTracks[config.uid].audioTrack = null;
+
+    console.log("Microphone ended and unpublished");
+
+    // Update UI to show mic is muted
+    updateMicStatusElement(config.uid, true); // Mic is muted
+
+    // Set wrapper border to transparent
+    const wrapper = document.querySelector(`#video-wrapper-${config.uid}`);
+    if (wrapper) {
+      wrapper.style.borderColor = "transparent"; // Transparent when muted
+      console.log(`Set border to transparent for user ${config.uid}`);
+    }
+
+    bubble_fn_isMicOff(true);
+
+  } catch (error) {
+    console.error("Error in endMic for user:", config.uid, error);
+  }
+};
+
 
 
 
