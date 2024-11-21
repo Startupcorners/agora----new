@@ -59,6 +59,9 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       const sharingAvatar = attributes.avatar || "default-avatar.png";
 
       console.log(`Screen share is from remote user: ${sharingUserUid}`);
+      console.log(
+        `current user config.sharingScreenUid: ${config.sharingScreenUid}`
+      );
 
       // Skip if the current screen share is from the local user
       if (config.sharingScreenUid === sharingUserUid) {
