@@ -257,6 +257,8 @@ const newMainApp = function (initConfig) {
 
       if (typeof bubble_fn_joining === "function") {
         bubble_fn_joining("Joined");
+        const stage = document.getElementById(`video-stage`);
+        stage.classList.remove("hidden");
         updateLayout();
       }
 
