@@ -117,14 +117,15 @@
 /* Small video container for PiP */
 .screen-share-video {
     background-color: #3c4043;
-    width: 150px;
-    height: 150px;
+    width: 180px;
+    /* Slightly smaller size */
+    height: 120px;
     position: absolute;
     bottom: 20px;
     right: 20px;
     border: 2px solid #fff;
-    border-radius: 50%;
-    /* Make it round */
+    border-radius: 12px;
+    /* Rounded corners */
     overflow: hidden;
     z-index: 10;
     /* Ensure it's above screen-share-content */
