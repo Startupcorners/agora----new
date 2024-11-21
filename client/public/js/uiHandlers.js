@@ -324,7 +324,7 @@ export const startScreenShare = async (config) => {
     // Update config
     config.screenShareRTMClient = rtmClient;
     config.screenShareRTCClient = rtcClient;
-    config.sharingScreenUid = screenShareUid;
+    config.sharingScreenUid = config.uid;
 
     console.log("Screen sharing started successfully.");
   } catch (error) {
