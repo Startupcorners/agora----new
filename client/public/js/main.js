@@ -376,45 +376,41 @@ const newMainApp = function (initConfig) {
   // Join video stage function
 const joinToVideoStage = async (config) => {
   try {
-    // Ensure userTracks has an entry for the user
-    let audioTrackCreated = false;
+    console.log("Creating and enabling audio track...");
 
-    // Try to create and enable an audio track
-    if (!config.userTracks[config.uid].audioTrack) {
-      console.log("Creating and enabling audio track...");
-      try {
-        config.userTracks[config.uid].audioTrack =
-          await AgoraRTC.createMicrophoneAudioTrack();
-        await config.userTracks[config.uid].audioTrack.setEnabled(true);
-        audioTrackCreated = true;
-        console.log("Audio track created and enabled.");
-        console.log(config);
-        updateMicStatusElement(config.uid, false);
-      } catch (error) {
-        if (error.name === "NotAllowedError") {
-          console.warn(
-            "Microphone access denied by the user or browser settings."
-          );
-        } else if (error.name === "NotFoundError") {
-          console.warn("No microphone found on this device.");
-        } else {
-          console.warn("Unexpected error creating microphone track:", error);
-        }
+    try {
+      // Create and enable a new audio track
+      config.userTracks[config.uid] = {
+        audioTrack: await AgoraRTC.createMicrophoneAudioTrack(),
+      };
+      await config.userTracks[config.uid].audioTrack.setEnabled(true);
 
-        // Trigger the Bubble function with "yes" to indicate muted status
-        console.log(
-          "Triggering Bubble function: system muted (no audio available)."
-        );
-        bubble_fn_systemmuted("yes");
-        updateMicStatusElement(config.uid, true);
-      }
-    }
+      console.log("Audio track created and enabled.");
+      updateMicStatusElement(config.uid, false);
 
-    // If an audio track was successfully created, publish it
-    if (audioTrackCreated && config.userTracks[config.uid].audioTrack) {
+      // Publish the audio track
       console.log("Publishing audio track...");
       await config.client.publish([config.userTracks[config.uid].audioTrack]);
       console.log("Audio track published.");
+      console.log(config)
+    } catch (error) {
+      // Handle specific microphone-related errors
+      if (error.name === "NotAllowedError") {
+        console.warn(
+          "Microphone access denied by the user or browser settings."
+        );
+      } else if (error.name === "NotFoundError") {
+        console.warn("No microphone found on this device.");
+      } else {
+        console.warn("Unexpected error creating microphone track:", error);
+      }
+
+      // Trigger the Bubble function with "yes" to indicate muted status
+      console.log(
+        "Triggering Bubble function: system muted (no audio available)."
+      );
+      bubble_fn_systemmuted("yes");
+      updateMicStatusElement(config.uid, true);
     }
 
     console.log("Joined the video stage with audio status updated.");
@@ -422,6 +418,7 @@ const joinToVideoStage = async (config) => {
     console.error("Error in joinToVideoStage:", error);
   }
 };
+
 
   return {
     config,
