@@ -35,6 +35,8 @@ import {
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
 export const newMainApp = function (initConfig) {
+  console.log("newMainApp called with initConfig:", initConfig);
+
   let config = {
     debugEnabled: true,
     callContainerSelector: "#video-stage",
@@ -182,7 +184,11 @@ export const newMainApp = function (initConfig) {
 
   // Function to ensure RTM is joined
   const ensureRTMJoined = async () => {
-    if (config.isRTMJoined) return;
+    console.log("ensureRTMJoined called");
+    if (config.isRTMJoined) {
+      console.log("Already joined RTM");
+      return;
+    }
 
     const tokens = await fetchTokens(config);
     if (!tokens) throw new Error("Failed to fetch RTM token");
@@ -193,6 +199,11 @@ export const newMainApp = function (initConfig) {
 
   // Function to handle role changes
   const handleRoleChange = async (newRoleInTheCall) => {
+    console.log(
+      "handleRoleChange called with newRoleInTheCall:",
+      newRoleInTheCall
+    );
+
     const rolesRequiringRTC = [
       "host",
       "speaker",
@@ -216,20 +227,31 @@ export const newMainApp = function (initConfig) {
     const prevRequiresStage = rolesRequiringStage.includes(prevRole);
     const newRequiresStage = rolesRequiringStage.includes(newRoleInTheCall);
 
+    console.log("Previous role:", prevRole);
+    console.log("New role:", newRoleInTheCall);
+    console.log("prevRequiresRTC:", prevRequiresRTC);
+    console.log("newRequiresRTC:", newRequiresRTC);
+    console.log("prevRequiresStage:", prevRequiresStage);
+    console.log("newRequiresStage:", newRequiresStage);
+
     // Handle RTC join/leave
     if (!prevRequiresRTC && newRequiresRTC && !config.isRTCJoined) {
+      console.log("Joining RTC...");
       await joinRTC();
       config.isRTCJoined = true;
     } else if (prevRequiresRTC && !newRequiresRTC && config.isRTCJoined) {
+      console.log("Leaving RTC...");
       await leaveRTC();
       config.isRTCJoined = false;
     }
 
     // Handle video stage join/leave
     if (!prevRequiresStage && newRequiresStage && !config.isOnStage) {
+      console.log("Joining video stage...");
       await joinVideoStage();
       config.isOnStage = true;
     } else if (prevRequiresStage && !newRequiresStage && config.isOnStage) {
+      console.log("Leaving video stage...");
       await leaveVideoStage();
       config.isOnStage = false;
     }
@@ -237,6 +259,7 @@ export const newMainApp = function (initConfig) {
 
   // Main join function
   const join = async () => {
+    console.log("join function called");
     bubble_fn_role(config.user.roleInTheCall);
 
     try {
@@ -248,6 +271,7 @@ export const newMainApp = function (initConfig) {
 
       // Additional host setup
       if (config.user.role === "host" && config.isOnStage) {
+        console.log("User is host and on stage, performing additional setup");
         await addUserWrapper(config, config);
       }
 
@@ -285,6 +309,13 @@ export const newMainApp = function (initConfig) {
 
   // Function to join RTM
   const joinRTM = async (rtmToken, retryCount = 0) => {
+    console.log(
+      "joinRTM called with rtmToken:",
+      rtmToken,
+      "retryCount:",
+      retryCount
+    );
+
     try {
       const rtmUid = config.uid.toString();
       console.log("rtmuid value", rtmUid);
@@ -322,6 +353,7 @@ export const newMainApp = function (initConfig) {
       }
     } catch (error) {
       if (error.code === 5 && retryCount < 3) {
+        console.log("RTM join failed with code 5, retrying...");
         await new Promise((resolve) => setTimeout(resolve, 2000));
         return joinRTM(rtmToken, retryCount + 1);
       } else {
@@ -333,6 +365,8 @@ export const newMainApp = function (initConfig) {
 
   // Function to join RTC
   const joinRTC = async () => {
+    console.log("joinRTC called");
+
     // Fetch RTC token
     const tokens = await fetchTokens(config);
     if (!tokens) throw new Error("Failed to fetch RTC token");
@@ -343,6 +377,7 @@ export const newMainApp = function (initConfig) {
       tokens.rtcToken,
       config.uid
     );
+    console.log("Successfully joined RTC channel");
 
     setupEventListeners(config);
     await fetchAndSendDeviceList(config);
@@ -354,12 +389,16 @@ export const newMainApp = function (initConfig) {
 
   // Function to leave RTC
   const leaveRTC = async () => {
+    console.log("leaveRTC called");
     await config.client.leave();
     config.isRTCJoined = false;
+    console.log("Successfully left RTC channel");
   };
 
   // Function to join the video stage
   const joinVideoStage = async () => {
+    console.log("joinVideoStage called");
+
     try {
       console.log("Creating and enabling audio track...");
 
@@ -404,6 +443,8 @@ export const newMainApp = function (initConfig) {
 
   // Function to leave the video stage
   const leaveVideoStage = async () => {
+    console.log("leaveVideoStage called");
+
     try {
       // Unpublish and close audio track
       if (config.userTracks[config.uid].audioTrack) {
@@ -414,6 +455,7 @@ export const newMainApp = function (initConfig) {
         config.userTracks[config.uid].audioTrack = null;
       }
       config.isOnStage = false;
+      console.log("Left the video stage successfully");
     } catch (error) {
       console.error("Error in leaveVideoStage:", error);
     }
@@ -421,6 +463,8 @@ export const newMainApp = function (initConfig) {
 
   // Function to send an RTM message to the channel
   const sendRTMMessage = async (message) => {
+    console.log("sendRTMMessage called with message:", message);
+
     try {
       if (config.channelRTM) {
         await config.channelRTM.sendMessage({ text: message });
@@ -435,9 +479,9 @@ export const newMainApp = function (initConfig) {
 
   // Function to handle external role changes
   const onRoleChange = async (newRoleInTheCall) => {
+    console.log("onRoleChange called with newRoleInTheCall:", newRoleInTheCall);
     await handleRoleChange(newRoleInTheCall);
   };
-
 
   // Expose the onRoleChange function for external calls
   config.onRoleChange = onRoleChange;
