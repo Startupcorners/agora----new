@@ -520,6 +520,7 @@ export const newMainApp = function (initConfig) {
 
     // Update the user's role in config
     config.user.roleInTheCall = newRoleInTheCall;
+    bubble_fn_role(config.user.roleInTheCall);
 
     // Update the user's attributes in RTM
     const attributes = {
