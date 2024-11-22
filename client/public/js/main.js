@@ -378,9 +378,7 @@ const joinToVideoStage = async () => {
 
     try {
       // Create and enable a new audio track
-      config.userTracks[config.uid] = {
-        audioTrack: await AgoraRTC.createMicrophoneAudioTrack(),
-      };
+      config.userTracks[config.uid].audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
       await config.userTracks[config.uid].audioTrack.setEnabled(true);
 
       console.log("Audio track created and enabled.");

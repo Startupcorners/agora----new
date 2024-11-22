@@ -52,16 +52,10 @@ export const addUserWrapper = async (user, config) => {
     console.log(`Added wrapper for user: ${user.uid}`);
 
     // Set audio track and update mic status
-    if (user.audioTrack) {
-      config.userTracks[user.uid] = {
-        ...config.userTracks[user.uid],
-        audioTrack: user.audioTrack,
-      };
+    // Check if there is an audio track for the given UID and update mic status
+    if (config.userTracks[user.uid]?.audioTrack) {
       updateMicStatusElement(user.uid, true); // Mic is active
     } else {
-      if (config.userTracks[user.uid]) {
-        config.userTracks[user.uid].audioTrack = null; // Ensure audioTrack is cleared
-      }
       updateMicStatusElement(user.uid, false); // Mic is inactive
     }
 
