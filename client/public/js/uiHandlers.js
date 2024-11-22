@@ -6,17 +6,11 @@ import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 
 export const toggleMic = async (config) => {
   try {
-    console.log(`toggleMic called for user: ${config.uid}`);
+    console.log("configs:",config);
     console.log(`UserTracks:`, config.userTracks);
+    console.log(`UserTracks:`, config.userTracks[config.uid]);
+    return;
 
-    // Ensure userTracks is initialized
-    if (!config.userTracks[config.uid]) {
-      config.userTracks[config.uid] = {};
-    }
-
-    // Initialize audioTrack to null if it doesn't exist
-    config.userTracks[config.uid].audioTrack =
-      config.userTracks[config.uid].audioTrack || null;
 
     const userTrack = config.userTracks[config.uid];
 
