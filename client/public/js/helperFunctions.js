@@ -281,7 +281,7 @@ export const switchSpeaker = async (config, speakerInfo) => {
 };
 
 
-export const switchCam = async (config, userTracks, camInfo) => {
+export const switchCam = async (config, camInfo) => {
   try {
     // Check if camInfo is a string and try to parse it as JSON
     if (typeof camInfo === "string") {
@@ -296,33 +296,35 @@ export const switchCam = async (config, userTracks, camInfo) => {
     console.log(`Switching to new camera with deviceId: ${camInfo.deviceId}`);
 
     const { client, uid } = config;
-    let userTrack = userTracks[uid] || {}; // Get or initialize the user track
+    let userTrack = config.userTracks[uid] || {}; // Get or initialize the user track
 
     // Check if the video track was actively publishing before switching
     const wasPublishing =
-      config.localVideoTrack && !config.localVideoTrack.muted;
+      config.userTracks[config.uid].videoTrack &&
+      !config.config.userTracks[config.uid].videoTrack.muted;
 
     // If there's an existing video track, unpublish, stop, and close it
-    if (config.localVideoTrack) {
+    if (config.userTracks[config.uid].videoTrack) {
       if (wasPublishing) {
-        await client.unpublish(config.localVideoTrack);
+        await client.unpublish(config.userTracks[config.uid].videoTrack);
         console.log("Previous video track unpublished.");
       }
-      config.localVideoTrack.stop();
-      config.localVideoTrack.close();
+      config.userTracks[config.uid].videoTrack.stop();
+      config.userTracks[config.uid].videoTrack.close();
       console.log("Previous video track stopped and closed.");
     }
 
     // Create a new video track with the selected camera device
-    config.localVideoTrack = await AgoraRTC.createCameraVideoTrack({
-      cameraId: camInfo.deviceId,
-    });
+    config.userTracks[config.uid].videoTrack =
+      await AgoraRTC.createCameraVideoTrack({
+        cameraId: camInfo.deviceId,
+      });
     config.selectedCam = camInfo;
 
     // Notify Bubble of the new selected camera with deviceId and label
     if (typeof bubble_fn_selectedCam === "function") {
       bubble_fn_selectedCam(
-        config.localVideoTrack.getTrackLabel() || "No label"
+        config.userTracks[config.uid].videoTrack.getTrackLabel() || "No label"
       );
     }
 
@@ -340,27 +342,27 @@ export const switchCam = async (config, userTracks, camInfo) => {
 
     // Republish the new video track if it was publishing before the switch
     if (wasPublishing) {
-      await client.publish(config.localVideoTrack);
+      await client.publish(config.userTracks[config.uid].videoTrack);
       console.log("New video track published successfully.");
 
-      userTracks[uid] = {
+      config.userTracks[uid] = {
         ...userTrack,
-        videoTrack: config.localVideoTrack,
+        videoTrack: config.userTracks[config.uid].videoTrack,
       };
 
       // Update the video player element with the new video feed
       const videoPlayer = document.querySelector(`#stream-${uid}`);
       if (videoPlayer) {
-        config.localVideoTrack.play(videoPlayer);
+        config.userTracks[config.uid].videoTrack.play(videoPlayer);
         console.log("Video player updated with new camera feed.");
       }
     } else {
       // If the track was muted, keep the new track muted and unpublished
-      userTracks[uid] = {
+      config.userTracks[uid] = {
         ...userTrack,
         videoTrack: null,
       };
-      await config.localVideoTrack.setEnabled(false);
+      await config.userTracks[config.uid].videoTrack.setEnabled(false);
       console.log("New video track created but kept muted and unpublished.");
     }
 

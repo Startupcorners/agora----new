@@ -2,24 +2,23 @@
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { fetchTokens } from "./helperFunctions.js";
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
-import { userTracks, lastMutedStatuses } from "./state.js";
 
 
 export const toggleMic = async (config) => {
   try {
     console.log(`toggleMic called for user: ${config.uid}`);
-    console.log(`UserTracks:`, userTracks);
+    console.log(`UserTracks:`, config.userTracks);
 
     // Ensure userTracks is initialized
-    if (!userTracks[config.uid]) {
-      userTracks[config.uid] = {};
+    if (!config.userTracks[config.uid]) {
+      config.userTracks[config.uid] = {};
     }
 
     // Initialize audioTrack to null if it doesn't exist
-    userTracks[config.uid].audioTrack =
-      userTracks[config.uid].audioTrack || null;
+    config.userTracks[config.uid].audioTrack =
+      config.userTracks[config.uid].audioTrack || null;
 
-    const userTrack = userTracks[config.uid];
+    const userTrack = config.userTracks[config.uid];
 
     if (userTrack.audioTrack) {
       // Microphone is active; mute it
@@ -38,17 +37,17 @@ const startMic = async (config) => {
     console.log("Starting microphone for user:", config.uid);
 
     // Ensure userTracks is initialized
-    if (!userTracks[config.uid]) {
-      userTracks[config.uid] = {};
+    if (!config.userTracks[config.uid]) {
+      config.userTracks[config.uid] = {};
     }
 
     // Initialize audioTrack to null if it doesn't exist
-    userTracks[config.uid].audioTrack =
-      userTracks[config.uid].audioTrack || null;
+    config.userTracks[config.uid].audioTrack =
+      config.userTracks[config.uid].audioTrack || null;
 
     // Create and assign a new microphone audio track
     const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    userTracks[config.uid].audioTrack = audioTrack;
+    config.userTracks[config.uid].audioTrack = audioTrack;
 
     // Publish the audio track
     await config.client.publish([audioTrack]);
@@ -74,12 +73,12 @@ const endMic = async (config) => {
     console.log("Ending microphone for user:", config.uid);
 
     // Ensure userTracks is initialized
-    if (!userTracks[config.uid]) {
+    if (!config.userTracks[config.uid]) {
       console.error(`User track for UID ${config.uid} is not initialized.`);
       return;
     }
 
-    const userTrack = userTracks[config.uid];
+    const userTrack = config.userTracks[config.uid];
 
     // Check if audioTrack exists before attempting to stop/unpublish
     if (userTrack.audioTrack) {
@@ -126,14 +125,14 @@ export const toggleCamera = async (config) => {
     config.cameraToggleInProgress = true; // Prevent simultaneous toggles
 
     // Ensure userTracks has an entry for the user
-    if (!userTracks[config.uid]) {
-      userTracks[config.uid] = {
+    if (!config.userTracks[config.uid]) {
+      config.userTracks[config.uid] = {
         videoTrack: null,
         audioTrack: null,
       };
     }
 
-    const userTrack = userTracks[config.uid];
+    const userTrack = config.userTracks[config.uid];
 
     if (userTrack.videoTrack) {
       // User is trying to turn off the camera
@@ -302,8 +301,8 @@ export const startScreenShare = async (config) => {
     console.log("Screen share video track published successfully.");
 
     // Update userTracks
-    userTracks[screenShareUid] = { videoTrack: screenShareTrack };
-    console.log("Updated userTracks:", userTracks);
+    config.userTracks[screenShareUid] = { videoTrack: screenShareTrack };
+    console.log("Updated userTracks:", config.userTracks);
 
     // Listen for the browser's stop screen sharing event
     screenShareTrack.on("track-ended", async () => {
@@ -346,13 +345,13 @@ export const stopScreenShare = async (config) => {
   const screenShareUid = config.generatedScreenShareId; // Use the dynamic UID
 
   console.log("Stopping screen share for UID:", screenShareUid);
-  const screenShareTrack = userTracks[screenShareUid]?.videoTrack;
+  const screenShareTrack = config.userTracks[screenShareUid]?.videoTrack;
 
   if (screenShareTrack) {
     await config.screenShareRTCClient.unpublish([screenShareTrack]);
     screenShareTrack.stop();
     screenShareTrack.close();
-    userTracks[screenShareUid].videoTrack = null;
+    config.userTracks[screenShareUid].videoTrack = null;
 
     console.log("Screen share stopped successfully.");
   } else {

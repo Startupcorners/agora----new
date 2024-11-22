@@ -1,4 +1,3 @@
-import { userTracks } from "./state.js"; 
 
 export const playStreamInDiv = (
   userId,
@@ -18,8 +17,8 @@ export const playStreamInDiv = (
       }
 
       // Check if the user has a valid video track
-      const userTrack = userTracks[userId];
-      console.log("UserTracks in playStreamInDiv", userTracks);
+      const userTrack = config.userTracks[userId];
+      console.log("UserTracks in playStreamInDiv", config.userTracks);
       if (!userTrack || !userTrack.videoTrack) {
         console.log(
           `Attempt ${attempt}: No valid video track found for user ${userId}.`

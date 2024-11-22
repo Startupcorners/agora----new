@@ -1,5 +1,4 @@
 import { updateMicStatusElement } from "./uiHandlers.js";
-import { userTracks, lastMutedStatuses } from "./state.js";
 
 let addUserWrapperRunning = false;
 
@@ -54,14 +53,14 @@ export const addUserWrapper = async (user, config) => {
 
     // Set audio track and update mic status
     if (user.audioTrack) {
-      userTracks[user.uid] = {
-        ...userTracks[user.uid],
+      config.userTracks[user.uid] = {
+        ...config.userTracks[user.uid],
         audioTrack: user.audioTrack,
       };
       updateMicStatusElement(user.uid, true); // Mic is active
     } else {
-      if (userTracks[user.uid]) {
-        userTracks[user.uid].audioTrack = null; // Ensure audioTrack is cleared
+      if (config.userTracks[user.uid]) {
+        config.userTracks[user.uid].audioTrack = null; // Ensure audioTrack is cleared
       }
       updateMicStatusElement(user.uid, false); // Mic is inactive
     }

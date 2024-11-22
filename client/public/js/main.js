@@ -7,7 +7,6 @@ import {
 } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
-import { userTracks } from "./state.js";
 import {
   fetchTokens,
   switchCam,
@@ -81,9 +80,11 @@ const newMainApp = function (initConfig) {
     resourceId: null,
     recordId: null,
     audioResourceId: null,
+    userTracks: {},
     audioRecordId: null,
     audioTimestamp: null,
     timestamp: null,
+    lastMutedStatuses: null,
     sid: null,
     audioSid: null,
     audioResourceId: null,
@@ -362,25 +363,25 @@ const newMainApp = function (initConfig) {
 const joinToVideoStage = async (config) => {
   try {
     // Ensure userTracks has an entry for the user
-    if (!userTracks[config.uid]) {
-      userTracks[config.uid] = {};
+    if (!config.userTracks[config.uid]) {
+      config.userTracks[config.uid] = {};
     }
 
     // Initialize tracks to null if they don't already exist
-    userTracks[config.uid].videoTrack =
-      userTracks[config.uid].videoTrack || null;
-    userTracks[config.uid].audioTrack =
-      userTracks[config.uid].audioTrack || null;
+    config.userTracks[config.uid].videoTrack =
+      config.userTracks[config.uid].videoTrack || null;
+    config.userTracks[config.uid].audioTrack =
+      config.userTracks[config.uid].audioTrack || null;
 
     let audioTrackCreated = false;
 
     // Try to create and enable an audio track
-    if (!userTracks[config.uid].audioTrack) {
+    if (!config.userTracks[config.uid].audioTrack) {
       console.log("Creating and enabling audio track...");
       try {
-        userTracks[config.uid].audioTrack =
+        config.userTracks[config.uid].audioTrack =
           await AgoraRTC.createMicrophoneAudioTrack();
-        await userTracks[config.uid].audioTrack.setEnabled(true);
+        await config.userTracks[config.uid].audioTrack.setEnabled(true);
         audioTrackCreated = true;
         console.log("Audio track created and enabled.");
         updateMicStatusElement(config.uid, false);
@@ -405,9 +406,9 @@ const joinToVideoStage = async (config) => {
     }
 
     // If an audio track was successfully created, publish it
-    if (audioTrackCreated && userTracks[config.uid].audioTrack) {
+    if (audioTrackCreated && config.userTracks[config.uid].audioTrack) {
       console.log("Publishing audio track...");
-      await config.client.publish([userTracks[config.uid].audioTrack]);
+      await config.client.publish([config.userTracks[config.uid].audioTrack]);
       console.log("Audio track published.");
     }
 
@@ -434,7 +435,6 @@ const joinToVideoStage = async (config) => {
     stopCloudRecording,
     startAudioRecording,
     stopAudioRecording,
-    userTracks,
   };
 };
 

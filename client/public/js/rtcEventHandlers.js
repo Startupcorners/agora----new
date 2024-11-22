@@ -4,7 +4,6 @@ import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import {
   toggleStages,
 } from "./videoHandlers.js";
-import { userTracks, lastMutedStatuses } from "./state.js"; 
 import { updateMicStatusElement } from "./uiHandlers.js"; 
 import { playStreamInDiv } from "./videoHandlers.js"; 
 const userJoinPromises = {};
@@ -85,10 +84,10 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       await client.subscribe(user, "video");
 
       // Store the screen share track
-      if (!userTracks[userUid]) {
-        userTracks[userUid] = {};
+      if (!config.userTracks[userUid]) {
+        config.userTracks[userUid] = {};
       }
-      userTracks[userUid].videoTrack = user.videoTrack;
+      config.userTracks[userUid].videoTrack = user.videoTrack;
       
       // Toggle stage to screen share
       toggleStages(true);
@@ -104,15 +103,15 @@ const handleVideoPublished = async (user, userUid, config, client) => {
 
   // General video handling for other users
   try {
-    if (!userTracks[userUid]) {
-      userTracks[userUid] = {};
+    if (!config.userTracks[userUid]) {
+      config.userTracks[userUid] = {};
     }
-    console.log("Video tracks: ", userTracks);
+    console.log("Video tracks: ", config.userTracks);
 
     await client.subscribe(user, "video");
     console.log(`Subscribed to video track for user ${userUid}`);
 
-    userTracks[userUid].videoTrack = user.videoTrack;
+    config.userTracks[userUid].videoTrack = user.videoTrack;
 
     if (config.sharingScreenUid) {
       playStreamInDiv(userUid, "#pip-video-track");
@@ -130,14 +129,14 @@ const handleAudioPublished = async (user, userUid, config, client) => {
   console.log(`Handling audio published for user: ${userUid}`);
 
   try {
-    if (!userTracks[userUid]) {
-      userTracks[userUid] = {};
+    if (!config.userTracks[userUid]) {
+      config.userTracks[userUid] = {};
     }
 
     await client.subscribe(user, "audio");
     console.log(`Subscribed to audio track for user ${userUid}`);
 
-    userTracks[userUid].audioTrack = user.audioTrack;
+    config.userTracks[userUid].audioTrack = user.audioTrack;
 
     // Play audio track directly
     user.audioTrack.play();
@@ -232,9 +231,12 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 
         toggleStages(false); // Hide screen share stage
 
-        if (userTracks[userUid] && userTracks[userUid].videoTrack) {
-          userTracks[userUid].videoTrack.stop();
-          userTracks[userUid].videoTrack = null;
+        if (
+          config.userTracks[userUid] &&
+          config.userTracks[userUid].videoTrack
+        ) {
+          config.userTracks[userUid].videoTrack.stop();
+          config.userTracks[userUid].videoTrack = null;
           console.log(`Removed video track for user ${userUid}`);
         }
 
@@ -259,9 +261,9 @@ const handleVideoUnpublished = async (user, userUid, config) => {
   // General video handling for other users
   console.log(`User ${userUid} has unpublished their video track.`);
 
-  if (userTracks[userUid] && userTracks[userUid].videoTrack) {
-    userTracks[userUid].videoTrack.stop();
-    userTracks[userUid].videoTrack = null;
+  if (config.userTracks[userUid] && config.userTracks[userUid].videoTrack) {
+    config.userTracks[userUid].videoTrack.stop();
+    config.userTracks[userUid].videoTrack = null;
     console.log(`Removed video track for user ${userUid}`);
   }
 
@@ -276,9 +278,9 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 const handleAudioUnpublished = async (user, userUid, config) => {
   console.log(`Handling audio unpublishing for user: ${userUid}`);
 
-  if (userTracks[userUid] && userTracks[userUid].audioTrack) {
-    userTracks[userUid].audioTrack.stop();
-    userTracks[userUid].audioTrack = null;
+  if (config.userTracks[userUid] && config.userTracks[userUid].audioTrack) {
+    config.userTracks[userUid].audioTrack.stop();
+    config.userTracks[userUid].audioTrack = null;
     console.log(`Removed audio track for user ${userUid}`);
   }
 
@@ -612,17 +614,17 @@ export const handleVolumeIndicator = (() => {
       // Only process and send notifications for the local user (currentUserUid)
       if (userUID === currentUserUid) {
         // Initialize lastMutedStatus for the local user UID if it doesn't exist
-        if (!lastMutedStatuses[userUID]) {
-          lastMutedStatuses[userUID] = "unknown"; // Default to "unknown" for first-time detection
+        if (!config.lastMutedStatuses[userUID]) {
+          config.lastMutedStatuses[userUID] = "unknown"; // Default to "unknown" for first-time detection
         }
 
         // Notify Bubble only when the status changes
-        if (currentStatus !== lastMutedStatuses[userUID]) {
+        if (currentStatus !== config.lastMutedStatuses[userUID]) {
           console.log(
             `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for UID ${userUID}`
           );
           bubble_fn_systemmuted(currentStatus);
-          lastMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
+          config.lastMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
         } else {
           console.log(
             `Status for UID ${userUID} remains unchanged (${currentStatus}), no notification sent.`

@@ -6,7 +6,6 @@ import {
   handleUserLeft,
   handleVolumeIndicator,
 } from "./rtcEventHandlers.js";
-import { userTracks, lastMutedStatuses } from "./state.js";
 import { toggleMic, updateMicStatusElement } from "./uiHandlers.js";
 import {
   fetchTokens,
@@ -200,7 +199,7 @@ config.client.on("onCameraChanged", async (info) => {
 
       if (cameras.length > 0) {
         // If there's at least one camera left, switch to it
-        await switchCam(config, userTracks, cameras[0]);
+        await switchCam(config, cameras[0]);
       } else {
         console.log("No cameras available to switch to after removal.");
       }
@@ -402,7 +401,7 @@ function handleMicPermissionChange(state, config) {
 
     // Update lastMutedStatuses for the current user
     if (config && config.uid) {
-      lastMutedStatuses[config.uid] = "no";
+      config.lastMutedStatuses[config.uid] = "no";
       console.log(
         `Updated lastMutedStatuses for UID ${config.uid} to "no" (unmuted).`
       );
