@@ -483,18 +483,22 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         return;
       }
 
-      // Log the role for clarity
+      // Log the role and roleInTheCall for clarity
       const role = userAttr.role || "audience";
+      const roleInTheCall = userAttr.roleInTheCall || "waiting";
       console.log(`Role for user ${userUid}: ${role}`);
+      console.log(`RoleInTheCall for user ${userUid}: ${roleInTheCall}`);
 
       // Initialize remoteTracks if needed
       config.remoteTracks = config.remoteTracks || {};
       config.remoteTracks[userUid] = config.remoteTracks[userUid] || {};
       config.remoteTracks[userUid].wrapperReady = false;
 
-      // Only proceed with wrapper if the user is a host
-      if (role === "host") {
-        console.log(`User ${userUid} is a host. Checking video wrapper.`);
+      // Only proceed with wrapper if the user is a host and not in the "waiting" state
+      if (role === "host" && roleInTheCall !== "waiting") {
+        console.log(
+          `User ${userUid} is a host and not waiting. Checking video wrapper.`
+        );
         let participantWrapper = document.querySelector(
           `#video-wrapper-${userUid}`
         );
@@ -513,7 +517,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         console.log(`Wrapper marked as ready for user ${userUid}.`);
       } else {
         console.log(
-          `User ${userUid} is not a host. Skipping wrapper creation.`
+          `User ${userUid} does not meet criteria (host and not waiting). Skipping wrapper creation.`
         );
       }
 
@@ -545,9 +549,6 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   console.log(`Returning promise for user ${userUid}.`);
   return config.userJoinPromises[userUid];
 };
-
-
-
 
 
 // Handles user left event

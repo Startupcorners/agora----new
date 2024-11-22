@@ -361,7 +361,12 @@ export const stopScreenShare = async (config) => {
 
 
 
-export const changeUserRole = async (userUid, newRole, newRoleInTheCall, config) => {
+export const changeUserRole = async (
+  userUid,
+  newRole,
+  newRoleInTheCall,
+  config
+) => {
   console.log(
     `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
@@ -372,7 +377,49 @@ export const changeUserRole = async (userUid, newRole, newRoleInTheCall, config)
     roleInTheCall: newRoleInTheCall,
   };
 
-  
+  // Define roles that require a wrapper
+  const rolesRequiringWrapper = [
+    "master",
+    "host",
+    "speaker",
+    "meetingParticipant",
+    "audienceOnStage",
+  ];
+
+  // Check if the new role requires a wrapper
+  if (rolesRequiringWrapper.includes(newRole)) {
+    console.log(
+      `Role ${newRole} requires a video wrapper. Checking and creating if necessary.`
+    );
+
+    // Ensure the wrapper is created
+    let participantWrapper = document.querySelector(
+      `#video-wrapper-${userUid}`
+    );
+    if (!participantWrapper) {
+      console.log(`No wrapper found for user ${userUid}. Creating one now.`);
+      await addUserWrapper({ uid: userUid, ...updatedAttributes }, config);
+      console.log(`Wrapper successfully created for user ${userUid}.`);
+    } else {
+      console.log(`Wrapper already exists for user ${userUid}.`);
+    }
+  } else {
+    console.log(
+      `Role ${newRole} does not require a video wrapper. Removing if exists.`
+    );
+
+    // Remove the wrapper if it exists
+    let participantWrapper = document.querySelector(
+      `#video-wrapper-${userUid}`
+    );
+    if (participantWrapper) {
+      participantWrapper.remove();
+      console.log(`Wrapper successfully removed for user ${userUid}.`);
+    } else {
+      console.log(`No wrapper found for user ${userUid} to remove.`);
+    }
+  }
+
   // Broadcast the role change to others in the RTM channel
   if (config.channelRTM) {
     const message = JSON.stringify({
@@ -390,46 +437,6 @@ export const changeUserRole = async (userUid, newRole, newRoleInTheCall, config)
   console.log(
     `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
-};
-
-export const removeParticipant = async (clientRTM, uid, config) => {
-  try {
-    // If RTM is enabled, you can also send a message or notification to the participant before removal
-    if (clientRTM) {
-      const message = "You have been removed from the session";
-      await sendMessageToPeer(clientRTM, uid.toString(), message);
-    }
-
-    // Remove the participant's tracks from the Agora RTC client
-    const participant = config.remoteTracks[uid];
-    if (participant && participant.videoTrack) {
-      participant.videoTrack.stop();
-      participant.videoTrack.close();
-    }
-    if (participant && participant.audioTrack) {
-      participant.audioTrack.stop();
-      participant.audioTrack.close();
-    }
-
-    // Unpublish the participant from the Agora RTC client
-    await config.client.unpublish([
-      participant.audioTrack,
-      participant.videoTrack,
-    ]);
-
-    // Remove the participant from the remoteTracks object
-    delete config.remoteTracks[uid];
-
-    // Remove the participant's UI element from the DOM
-    const player = document.querySelector(`#video-wrapper-${uid}`);
-    if (player) {
-      player.remove();
-    }
-
-    log(`Participant with UID ${uid} has been removed from the session`);
-  } catch (error) {
-    console.error(`Error removing participant with UID ${uid}:`, error);
-  }
 };
 
 

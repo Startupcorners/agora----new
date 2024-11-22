@@ -248,6 +248,12 @@ export const setupRTMMessageListener = (
   channelRTM.on("ChannelMessage", async (message, memberId, messagePros) => {
     console.log("Received RTM message:", message.text);
 
+    // Ignore messages sent by yourself
+    if (memberId === config.user.rtmUid) {
+      console.log("Message is from the current user. Ignoring.");
+      return;
+    }
+
     let userAttributes = {};
     try {
       userAttributes = await config.clientRTM.getUserAttributes(memberId);
@@ -266,27 +272,58 @@ export const setupRTMMessageListener = (
       parsedMessage = { text: message.text };
     }
 
+    // Handle role change messages
     if (parsedMessage.type === "roleChange") {
       const { userUid, newRole, newRoleInTheCall } = parsedMessage;
       console.log(
         `Received role change for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
       );
 
-      if (userUid === config.user.rtmUid) {
+      // Define roles that require a wrapper
+      const rolesRequiringWrapper = [
+        "master",
+        "host",
+        "speaker",
+        "meetingParticipant",
+        "audienceOnStage",
+      ];
+
+      // Handle adding or removing wrappers based on the role
+      if (rolesRequiringWrapper.includes(newRole)) {
         console.log(
-          "Role change is for the current user. Updating role and calling onRoleChange."
+          `Role ${newRole} requires a video wrapper. Checking and creating if necessary.`
         );
 
-        // Update user's role in config
-        config.user.role = newRole;
-        config.user.roleInTheCall = newRoleInTheCall;
+        // Ensure the wrapper is created
+        let participantWrapper = document.querySelector(
+          `#video-wrapper-${userUid}`
+        );
+        if (!participantWrapper) {
+          console.log(
+            `No wrapper found for user ${userUid}. Creating one now.`
+          );
+          await addUserWrapper(
+            { uid: userUid, role: newRole, roleInTheCall: newRoleInTheCall },
+            config
+          );
+          console.log(`Wrapper successfully created for user ${userUid}.`);
+        } else {
+          console.log(`Wrapper already exists for user ${userUid}.`);
+        }
+      } else {
+        console.log(
+          `Role ${newRole} does not require a video wrapper. Removing if exists.`
+        );
 
-        // Call the onRoleChange function
-        try {
-          await config.onRoleChange(newRoleInTheCall);
-          console.log("Successfully handled role change.");
-        } catch (error) {
-          console.error("Error handling role change:", error);
+        // Remove the wrapper if it exists
+        let participantWrapper = document.querySelector(
+          `#video-wrapper-${userUid}`
+        );
+        if (participantWrapper) {
+          participantWrapper.remove();
+          console.log(`Wrapper successfully removed for user ${userUid}.`);
+        } else {
+          console.log(`No wrapper found for user ${userUid} to remove.`);
         }
       }
     } else if (
@@ -305,11 +342,10 @@ export const setupRTMMessageListener = (
     console.log(`RTM Member joined: ${memberId}`);
   });
 
-
   // Handle RTM member left event
-channelRTM.on("MemberLeft", (memberId) => {
-  console.log(`RTM Member left: ${memberId}`);
-});
+  channelRTM.on("MemberLeft", (memberId) => {
+    console.log(`RTM Member left: ${memberId}`);
+  });
 
   console.log(
     "RTM message listener with member join/leave handlers initialized."
