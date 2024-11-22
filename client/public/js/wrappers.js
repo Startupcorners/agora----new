@@ -54,9 +54,9 @@ export const addUserWrapper = async (user, config) => {
     // Set audio track and update mic status
     // Check if there is an audio track for the given UID and update mic status
     if (config.userTracks[user.uid]?.audioTrack) {
-      updateMicStatusElement(user.uid, true); // Mic is active
+      updateMicStatusElement(user.uid, false); // Mic is active
     } else {
-      updateMicStatusElement(user.uid, false); // Mic is inactive
+      updateMicStatusElement(user.uid, true); // Mic is inactive
     }
 
     updateLayout();

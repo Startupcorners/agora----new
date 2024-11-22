@@ -9,8 +9,6 @@ export const toggleMic = async (config) => {
     console.log("configs:",config);
     console.log(`UserTracks:`, config.userTracks);
     console.log(`UserTracks:`, config.userTracks[config.uid]);
-    return;
-
 
     const userTrack = config.userTracks[config.uid];
 
