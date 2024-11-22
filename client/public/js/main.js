@@ -199,108 +199,118 @@ export const newMainApp = function (initConfig) {
   };
 
   // Function to handle role changes
-  const handleRoleChange = async (newRoleInTheCall) => {
-    console.warn(
-      "handleRoleChange called with newRoleInTheCall:",
-      newRoleInTheCall
+const handleRoleChange = async (newRoleInTheCall) => {
+  console.warn(
+    "handleRoleChange called with newRoleInTheCall:",
+    newRoleInTheCall
+  );
+
+  const rolesRequiringRTC = [
+    "master",
+    "host",
+    "speaker",
+    "meetingParticipant",
+    "audienceOnStage",
+    "audience",
+    "waiting",
+  ];
+  const rolesRequiringStage = [
+    "master",
+    "host",
+    "speaker",
+    "meetingParticipant",
+    "audienceOnStage",
+  ];
+
+  const prevRole = config.previousRoleInTheCall;
+  config.previousRoleInTheCall = newRoleInTheCall;
+
+  const prevRequiresRTC = rolesRequiringRTC.includes(prevRole);
+  const newRequiresRTC = rolesRequiringRTC.includes(newRoleInTheCall);
+
+  const prevRequiresStage = rolesRequiringStage.includes(prevRole);
+  const newRequiresStage = rolesRequiringStage.includes(newRoleInTheCall);
+
+  console.log("Previous role:", prevRole);
+  console.log("New role:", newRoleInTheCall);
+  console.log("prevRequiresRTC:", prevRequiresRTC);
+  console.log("newRequiresRTC:", newRequiresRTC);
+  console.log("prevRequiresStage:", prevRequiresStage);
+  console.log("newRequiresStage:", newRequiresStage);
+
+  // Run setupEventListeners if transitioning from "waiting" to another role
+  if (prevRole === "waiting" && newRoleInTheCall !== "waiting") {
+    console.log(
+      "Role changed from 'waiting' to another role. Setting up event listeners..."
     );
+    setupEventListeners(config);
+  }
 
-    const rolesRequiringRTC = [
-      "master",
-      "host",
-      "speaker",
-      "meetingParticipant",
-      "audienceOnStage",
-      "audience",
-    ];
-    const rolesRequiringStage = [
-      "master",
-      "host",
-      "speaker",
-      "meetingParticipant",
-      "audienceOnStage",
-    ];
+  // Handle RTC join/leave
+  if (!prevRequiresRTC && newRequiresRTC && !config.isRTCJoined) {
+    console.log("Joining RTC...");
+    await joinRTC();
+    config.isRTCJoined = true;
+  } else if (prevRequiresRTC && !newRequiresRTC && config.isRTCJoined) {
+    console.log("Leaving RTC...");
+    await leaveRTC();
+    config.isRTCJoined = false;
+  }
 
-    const prevRole = config.previousRoleInTheCall;
-    config.previousRoleInTheCall = newRoleInTheCall;
+  // Handle video stage join/leave
+  if (!prevRequiresStage && newRequiresStage && !config.isOnStage) {
+    console.log("Joining video stage...");
+    await joinVideoStage();
+    config.isOnStage = true;
+  } else if (prevRequiresStage && !newRequiresStage && config.isOnStage) {
+    console.log("Leaving video stage...");
+    await leaveVideoStage();
+    config.isOnStage = false;
+  }
+};
 
-    const prevRequiresRTC = rolesRequiringRTC.includes(prevRole);
-    const newRequiresRTC = rolesRequiringRTC.includes(newRoleInTheCall);
+// Main join function
+const join = async () => {
+  console.warn("join function called");
+  bubble_fn_role(config.user.roleInTheCall);
 
-    const prevRequiresStage = rolesRequiringStage.includes(prevRole);
-    const newRequiresStage = rolesRequiringStage.includes(newRoleInTheCall);
+  try {
+    // Ensure RTM is joined
+    await ensureRTMJoined();
 
-    console.log("Previous role:", prevRole);
-    console.log("New role:", newRoleInTheCall);
-    console.log("prevRequiresRTC:", prevRequiresRTC);
-    console.log("newRequiresRTC:", newRequiresRTC);
-    console.log("prevRequiresStage:", prevRequiresStage);
-    console.log("newRequiresStage:", newRequiresStage);
+    // Handle role-based actions
+    await handleRoleChange(config.user.roleInTheCall);
 
-    // Handle RTC join/leave
-    if (!prevRequiresRTC && newRequiresRTC && !config.isRTCJoined) {
-      console.log("Joining RTC...");
-      await joinRTC();
-      config.isRTCJoined = true;
-    } else if (prevRequiresRTC && !newRequiresRTC && config.isRTCJoined) {
-      console.log("Leaving RTC...");
-      await leaveRTC();
-      config.isRTCJoined = false;
-    }
+    // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
+    if (config.user.roleInTheCall !== "waiting") {
+      const channelMembers = await config.channelRTM.getMembers();
+      console.log("Current RTM channel members:", channelMembers);
 
-    // Handle video stage join/leave
-    if (!prevRequiresStage && newRequiresStage && !config.isOnStage) {
-      console.log("Joining video stage...");
-      await joinVideoStage();
-      config.isOnStage = true;
-    } else if (prevRequiresStage && !newRequiresStage && config.isOnStage) {
-      console.log("Leaving video stage...");
-      await leaveVideoStage();
-      config.isOnStage = false;
-    }
-  };
-
-  // Main join function
-  const join = async () => {
-    console.warn("join function called");
-    bubble_fn_role(config.user.roleInTheCall);
-
-    try {
-      // Ensure RTM is joined
-      await ensureRTMJoined();
-
-      // Handle role-based actions
-      await handleRoleChange(config.user.roleInTheCall);
-
-      // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
-      if (config.user.roleInTheCall !== "waiting") {
-        const channelMembers = await config.channelRTM.getMembers();
-        console.log("Current RTM channel members:", channelMembers);
-
-        if (channelMembers.includes("2")) {
-          console.log("RTM member 2 detected. Video recording is active.");
-          bubble_fn_isVideoRecording("yes"); // Indicate video recording is active
-        }
-
-        if (channelMembers.includes("3")) {
-          console.log("RTM member 3 detected. Audio recording is active.");
-          bubble_fn_isAudioRecording("yes"); // Indicate audio recording is active
-        }
-
-        if (channelMembers.includes("2") || channelMembers.includes("3")) {
-          console.log("RTM members 2 or 3 detected. Event is being recorded.");
-          bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
-        }
+      if (channelMembers.includes("2")) {
+        console.log("RTM member 2 detected. Video recording is active.");
+        bubble_fn_isVideoRecording("yes"); // Indicate video recording is active
       }
-    } catch (error) {
-      console.error("Error during join:", error);
 
-      // Notify Bubble of error
-      if (typeof bubble_fn_joining === "function") {
-        bubble_fn_joining("Error");
+      if (channelMembers.includes("3")) {
+        console.log("RTM member 3 detected. Audio recording is active.");
+        bubble_fn_isAudioRecording("yes"); // Indicate audio recording is active
+      }
+
+      if (channelMembers.includes("2") || channelMembers.includes("3")) {
+        console.log("RTM members 2 or 3 detected. Event is being recorded.");
+        bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
       }
     }
-  };
+  } catch (error) {
+    console.error("Error during join:", error);
+
+    // Notify Bubble of error
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Error");
+    }
+  }
+};
+
 
   // Function to join RTM
 const joinRTM = async (rtmToken, retryCount = 0) => {
@@ -342,47 +352,9 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     manageParticipants(config, config.uid, attributes, "join");
 
     // Notify Bubble of successful join
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Joined");
       const stage = document.getElementById(`video-stage`);
       stage.classList.remove("hidden");
-    }
-
     // Get the list of RTM channel members
-    const members = await config.channelRTM.getMembers();
-    console.log("RTM channel members:", members);
-
-    // Fetch attributes for each member
-    const attributePromises = members.map((memberId) => {
-      return config.clientRTM
-        .getUserAttributes(memberId)
-        .then((userAttributes) => ({ memberId, userAttributes }))
-        .catch((error) => {
-          console.error(
-            `Failed to get attributes for member ${memberId}:`,
-            error
-          );
-          return null; // Skip this member if we can't get attributes
-        });
-    });
-
-    const attributeResults = await Promise.all(attributePromises);
-
-    // For each member with roleInTheCall === 'waiting', update participantList and call manageParticipants
-    for (const result of attributeResults) {
-      if (
-        result &&
-        result.userAttributes &&
-        result.userAttributes.roleInTheCall === "waiting"
-      ) {
-        const memberUid = parseInt(result.memberId);
-        console.log(
-          `Adding waiting user ${result.memberId} to participant list.`
-        );
-        // Update participantList
-        manageParticipants(config, memberUid, result.userAttributes, "join");
-      }
-    }
   } catch (error) {
     if (error.code === 5 && retryCount < 3) {
       console.log("RTM join failed with code 5, retrying...");
@@ -399,7 +371,6 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
   // Function to join RTC
   const joinRTC = async () => {
     console.warn("joinRTC called");
-    setupEventListeners(config);
 
     // Fetch RTC token
     const tokens = await fetchTokens(config);
