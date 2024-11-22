@@ -388,6 +388,7 @@ const joinToVideoStage = async (config) => {
         await config.userTracks[config.uid].audioTrack.setEnabled(true);
         audioTrackCreated = true;
         console.log("Audio track created and enabled.");
+        console.log(config);
         updateMicStatusElement(config.uid, false);
       } catch (error) {
         if (error.name === "NotAllowedError") {
