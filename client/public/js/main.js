@@ -523,6 +523,7 @@ const leaveVideoStage = async () => {
 
     // Update the user's role in config
     config.user.roleInTheCall = newRoleInTheCall;
+    console.warn(" bubble_fn_role:", config.user.roleInTheCall);
     bubble_fn_role(config.user.roleInTheCall);
 
     // Update the user's attributes in RTM
