@@ -272,14 +272,6 @@ export const newMainApp = function (initConfig) {
       // Handle role-based actions
       await handleRoleChange(config.user.roleInTheCall);
 
-      // Additional host setup
-      if (config.user.role === "host" && config.isOnStage) {
-        console.log("User is host and on stage, performing additional setup");
-        await addUserWrapper(config, config);
-      }
-
-      updateLayout();
-
       // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
       if (config.user.roleInTheCall !== "waiting") {
         const channelMembers = await config.channelRTM.getMembers();
@@ -437,70 +429,74 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
   };
 
   // Function to join the video stage
-  const joinVideoStage = async () => {
-    console.warn("joinVideoStage called");
+const joinVideoStage = async () => {
+  console.warn("joinVideoStage called");
+
+  try {
+    console.log("Creating and enabling audio track...");
 
     try {
-      console.log("Creating and enabling audio track...");
+      // Create and enable a new audio track
+      config.userTracks[config.uid].audioTrack =
+        await AgoraRTC.createMicrophoneAudioTrack();
+      await config.userTracks[config.uid].audioTrack.setEnabled(true);
 
-      try {
-        // Create and enable a new audio track
-        config.userTracks[config.uid].audioTrack =
-          await AgoraRTC.createMicrophoneAudioTrack();
-        await config.userTracks[config.uid].audioTrack.setEnabled(true);
+      console.log("Audio track created and enabled.");
+      updateMicStatusElement(config.uid, false);
 
-        console.log("Audio track created and enabled.");
-        updateMicStatusElement(config.uid, false);
-
-        // Publish the audio track
-        console.log("Publishing audio track...");
-        await config.client.publish([config.userTracks[config.uid].audioTrack]);
-        console.log("Audio track published.");
-      } catch (error) {
-        // Handle specific microphone-related errors
-        if (error.name === "NotAllowedError") {
-          console.warn(
-            "Microphone access denied by the user or browser settings."
-          );
-        } else if (error.name === "NotFoundError") {
-          console.warn("No microphone found on this device.");
-        } else {
-          console.warn("Unexpected error creating microphone track:", error);
-        }
-
-        // Trigger the Bubble function with "yes" to indicate muted status
-        console.log(
-          "Triggering Bubble function: system muted (no audio available)."
+      // Publish the audio track
+      console.log("Publishing audio track...");
+      await config.client.publish([config.userTracks[config.uid].audioTrack]);
+      console.log("Audio track published.");
+    } catch (error) {
+      // Handle specific microphone-related errors
+      if (error.name === "NotAllowedError") {
+        console.warn(
+          "Microphone access denied by the user or browser settings."
         );
-        bubble_fn_systemmuted("yes");
-        updateMicStatusElement(config.uid, true);
+      } else if (error.name === "NotFoundError") {
+        console.warn("No microphone found on this device.");
+      } else {
+        console.warn("Unexpected error creating microphone track:", error);
       }
 
-      console.log("Joined the video stage with audio status updated.");
-    } catch (error) {
-      console.error("Error in joinVideoStage:", error);
+      // Trigger the Bubble function with "yes" to indicate muted status
+      console.log(
+        "Triggering Bubble function: system muted (no audio available)."
+      );
+      bubble_fn_systemmuted("yes");
+      updateMicStatusElement(config.uid, true);
     }
-  };
 
-  // Function to leave the video stage
-  const leaveVideoStage = async () => {
-    console.warn("leaveVideoStage called");
+      console.log("User is host, performing additional setup");
+      await addUserWrapper(config, config);
 
-    try {
-      // Unpublish and close audio track
-      if (config.userTracks[config.uid].audioTrack) {
-        await config.client.unpublish([
-          config.userTracks[config.uid].audioTrack,
-        ]);
-        config.userTracks[config.uid].audioTrack.close();
-        config.userTracks[config.uid].audioTrack = null;
-      }
-      config.isOnStage = false;
-      console.log("Left the video stage successfully");
-    } catch (error) {
-      console.error("Error in leaveVideoStage:", error);
+    updateLayout();
+
+    console.log("Joined the video stage with audio status updated.");
+  } catch (error) {
+    console.error("Error in joinVideoStage:", error);
+  }
+};
+
+// Function to leave the video stage
+const leaveVideoStage = async () => {
+  console.warn("leaveVideoStage called");
+
+  try {
+    // Unpublish and close audio track
+    if (config.userTracks[config.uid].audioTrack) {
+      await config.client.unpublish([config.userTracks[config.uid].audioTrack]);
+      config.userTracks[config.uid].audioTrack.close();
+      config.userTracks[config.uid].audioTrack = null;
     }
-  };
+    config.isOnStage = false;
+    console.log("Left the video stage successfully");
+  } catch (error) {
+    console.error("Error in leaveVideoStage:", error);
+  }
+};
+
 
   // Function to send an RTM message to the channel
   const sendRTMMessage = async (message) => {
