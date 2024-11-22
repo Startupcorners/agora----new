@@ -184,7 +184,7 @@ export const newMainApp = function (initConfig) {
 
   // Function to ensure RTM is joined
   const ensureRTMJoined = async () => {
-    console.log("ensureRTMJoined called");
+    console.warn("ensureRTMJoined called");
     if (config.isRTMJoined) {
       console.log("Already joined RTM");
       return;
@@ -199,7 +199,7 @@ export const newMainApp = function (initConfig) {
 
   // Function to handle role changes
   const handleRoleChange = async (newRoleInTheCall) => {
-    console.log(
+    console.warn(
       "handleRoleChange called with newRoleInTheCall:",
       newRoleInTheCall
     );
@@ -259,7 +259,7 @@ export const newMainApp = function (initConfig) {
 
   // Main join function
   const join = async () => {
-    console.log("join function called");
+    console.warn("join function called");
     bubble_fn_role(config.user.roleInTheCall);
 
     try {
@@ -309,7 +309,7 @@ export const newMainApp = function (initConfig) {
 
   // Function to join RTM
   const joinRTM = async (rtmToken, retryCount = 0) => {
-    console.log(
+    console.warn(
       "joinRTM called with rtmToken:",
       rtmToken,
       "retryCount:",
@@ -365,7 +365,7 @@ export const newMainApp = function (initConfig) {
 
   // Function to join RTC
   const joinRTC = async () => {
-    console.log("joinRTC called");
+    console.warn("joinRTC called");
 
     // Fetch RTC token
     const tokens = await fetchTokens(config);
@@ -389,7 +389,7 @@ export const newMainApp = function (initConfig) {
 
   // Function to leave RTC
   const leaveRTC = async () => {
-    console.log("leaveRTC called");
+    console.warn("leaveRTC called");
     await config.client.leave();
     config.isRTCJoined = false;
     console.log("Successfully left RTC channel");
@@ -397,7 +397,7 @@ export const newMainApp = function (initConfig) {
 
   // Function to join the video stage
   const joinVideoStage = async () => {
-    console.log("joinVideoStage called");
+    console.warn("joinVideoStage called");
 
     try {
       console.log("Creating and enabling audio track...");
@@ -443,7 +443,7 @@ export const newMainApp = function (initConfig) {
 
   // Function to leave the video stage
   const leaveVideoStage = async () => {
-    console.log("leaveVideoStage called");
+    console.warn("leaveVideoStage called");
 
     try {
       // Unpublish and close audio track
@@ -463,7 +463,7 @@ export const newMainApp = function (initConfig) {
 
   // Function to send an RTM message to the channel
   const sendRTMMessage = async (message) => {
-    console.log("sendRTMMessage called with message:", message);
+    console.warn("sendRTMMessage called with message:", message);
 
     try {
       if (config.channelRTM) {
@@ -479,7 +479,10 @@ export const newMainApp = function (initConfig) {
 
   // Function to handle external role changes
   const onRoleChange = async (newRoleInTheCall) => {
-    console.log("onRoleChange called with newRoleInTheCall:", newRoleInTheCall);
+    console.warn(
+      "onRoleChange called with newRoleInTheCall:",
+      newRoleInTheCall
+    );
     await handleRoleChange(newRoleInTheCall);
   };
 
