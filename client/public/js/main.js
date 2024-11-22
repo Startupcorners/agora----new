@@ -95,6 +95,19 @@ const newMainApp = function (initConfig) {
   // Apply initial config
   if (!config.channelRTM) {
     config = { ...config, ...initConfig };
+    if (!config.userTracks[config.uid]) {
+      config.userTracks[config.uid] = {};
+    }
+
+    // Initialize tracks to null if they don't already exist
+    config.userTracks[config.uid].videoTrack =
+      config.userTracks[config.uid].videoTrack || null;
+    config.userTracks[config.uid].audioTrack =
+      config.userTracks[config.uid].audioTrack || null;
+
+      if (!config.lastMutedStatuses[userUID]) {
+        config.lastMutedStatuses[userUID] = "unknown"; // Default to "unknown" for first-time detection
+      }
 
     // Initialize AgoraRTC client
     config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
@@ -363,16 +376,6 @@ const newMainApp = function (initConfig) {
 const joinToVideoStage = async (config) => {
   try {
     // Ensure userTracks has an entry for the user
-    if (!config.userTracks[config.uid]) {
-      config.userTracks[config.uid] = {};
-    }
-
-    // Initialize tracks to null if they don't already exist
-    config.userTracks[config.uid].videoTrack =
-      config.userTracks[config.uid].videoTrack || null;
-    config.userTracks[config.uid].audioTrack =
-      config.userTracks[config.uid].audioTrack || null;
-
     let audioTrackCreated = false;
 
     // Try to create and enable an audio track

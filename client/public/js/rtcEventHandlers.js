@@ -613,10 +613,6 @@ export const handleVolumeIndicator = (() => {
 
       // Only process and send notifications for the local user (currentUserUid)
       if (userUID === currentUserUid) {
-        // Initialize lastMutedStatus for the local user UID if it doesn't exist
-        if (!config.lastMutedStatuses[userUID]) {
-          config.lastMutedStatuses[userUID] = "unknown"; // Default to "unknown" for first-time detection
-        }
 
         // Notify Bubble only when the status changes
         if (currentStatus !== config.lastMutedStatuses[userUID]) {
