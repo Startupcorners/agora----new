@@ -311,7 +311,7 @@ console.log(
 };
 
 
-let lastMicPermissionState = null; // Track the last known microphone permission state
+
 
 export async function checkMicrophonePermissions(config) {
   if (navigator.permissions) {
@@ -321,9 +321,9 @@ export async function checkMicrophonePermissions(config) {
       });
 
       // Notify Bubble on initial state
-      if (micPermission.state !== lastMicPermissionState) {
+      if (micPermission.state !== config.lastMicPermissionState) {
         handleMicPermissionChange(micPermission.state, config);
-        lastMicPermissionState = micPermission.state;
+        config.lastMicPermissionState = micPermission.state;
       }
 
       // Use onchange if supported
@@ -332,9 +332,9 @@ export async function checkMicrophonePermissions(config) {
           console.log(
             `Microphone permission changed to: ${micPermission.state}`
           );
-          if (micPermission.state !== lastMicPermissionState) {
+          if (micPermission.state !== config.lastMicPermissionState) {
             handleMicPermissionChange(micPermission.state, config);
-            lastMicPermissionState = micPermission.state; // Update the tracked state
+            config.lastMicPermissionState = micPermission.state; // Update the tracked state
           }
         };
       } else {
@@ -347,12 +347,12 @@ export async function checkMicrophonePermissions(config) {
           const newPermission = await navigator.permissions.query({
             name: "microphone",
           });
-          if (newPermission.state !== lastMicPermissionState) {
+          if (newPermission.state !== config.lastMicPermissionState) {
             console.log(
               `Detected permission change via polling: ${newPermission.state}`
             );
             handleMicPermissionChange(newPermission.state, config);
-            lastMicPermissionState = newPermission.state; // Update the tracked state
+            config.lastMicPermissionState = newPermission.state; // Update the tracked state
           }
         }, 5000); // Poll every 5 seconds
       }
@@ -401,7 +401,7 @@ function handleMicPermissionChange(state, config) {
 
     // Update lastMutedStatuses for the current user
     if (config && config.uid) {
-      lastMutedStatuses[config.uid] = "no";
+      config.lastMutedStatuses[config.uid] = "no";
       console.log(
         `Updated lastMutedStatuses for UID ${config.uid} to "no" (unmuted).`
       );
