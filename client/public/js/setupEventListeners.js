@@ -292,14 +292,18 @@ export const setupRTMMessageListener = (
   });
 
   // Handle RTM member left event
-  channelRTM.on("MemberLeft", (memberId) => {
-    console.log(`RTM Member left: ${memberId}`);
+channelRTM.on("MemberLeft", (memberId) => {
+  console.log(`RTM Member left: ${memberId}`);
 
-    if (memberId === "3") {
-      console.log("UID 3 left.");
-      bubble_fn_isAudioRecording("no");
-    }
-  });
+  if (memberId === "3") {
+    console.log("UID 3 left.");
+    bubble_fn_isAudioRecording("no");
+  }
+
+  // Call manageParticipants to remove the user from participantList
+  console.log(`Removing user ${memberId} from participant list.`);
+  manageParticipants(config, parseInt(memberId), {}, "leave");
+});
 
   console.log(
     "RTM message listener with member join/leave handlers initialized."
