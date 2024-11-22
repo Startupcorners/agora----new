@@ -399,6 +399,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
   // Function to join RTC
   const joinRTC = async () => {
     console.warn("joinRTC called");
+    setupEventListeners(config);
 
     // Fetch RTC token
     const tokens = await fetchTokens(config);
@@ -412,7 +413,7 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     );
     console.log("Successfully joined RTC channel");
 
-    setupEventListeners(config);
+    
     await fetchAndSendDeviceList(config);
     await updateSelectedDevices(config);
 
