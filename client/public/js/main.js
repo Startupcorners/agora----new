@@ -311,91 +311,98 @@ export const newMainApp = function (initConfig) {
   };
 
   // Function to join RTM
-  const joinRTM = async (rtmToken, retryCount = 0) => {
-    console.log(
-      "joinRTM called with rtmToken:",
-      rtmToken,
-      "retryCount:",
-      retryCount
-    );
+const joinRTM = async (rtmToken, retryCount = 0) => {
+  console.log(
+    "joinRTM called with rtmToken:",
+    rtmToken,
+    "retryCount:",
+    retryCount
+  );
 
-    try {
-      const rtmUid = config.uid.toString();
-      console.log("rtmuid value", rtmUid);
+  try {
+    const rtmUid = config.uid.toString();
+    console.log("rtmuid value", rtmUid);
 
-      // Login to RTM
-      await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
+    // Login to RTM
+    await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
 
-      // Set user attributes, including the role
-      const attributes = {
-        name: config.user.name || "Unknown",
-        avatar: config.user.avatar || "default-avatar-url",
-        company: config.user.company || "Unknown",
-        designation: config.user.designation || "Unknown",
-        role: config.user.role || "audience",
-        rtmUid: rtmUid,
-        bubbleid: config.user.bubbleid,
-        isRaisingHand: config.user.isRaisingHand,
-        sharingScreenUid: "0",
-        roleInTheCall: config.user.roleInTheCall || "audience",
-      };
+    // Set user attributes, including the role
+    const attributes = {
+      name: config.user.name || "Unknown",
+      avatar: config.user.avatar || "default-avatar-url",
+      company: config.user.company || "Unknown",
+      designation: config.user.designation || "Unknown",
+      role: config.user.role || "audience",
+      rtmUid: rtmUid,
+      bubbleid: config.user.bubbleid,
+      isRaisingHand: config.user.isRaisingHand,
+      sharingScreenUid: "0",
+      roleInTheCall: config.user.roleInTheCall || "audience",
+    };
 
-      await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
+    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
-      // Join the RTM channel
-      await config.channelRTM.join();
-      console.log("Successfully joined RTM channel:", config.channelName);
+    // Join the RTM channel
+    await config.channelRTM.join();
+    console.log("Successfully joined RTM channel:", config.channelName);
 
-      // Update participantList and call manageParticipants for the current user
-      manageParticipants(config, config.uid, attributes, "join");
+    // Update participantList and call manageParticipants for the current user
+    manageParticipants(config, config.uid, attributes, "join");
 
-      // Notify Bubble of successful join
-      if (typeof bubble_fn_joining === "function") {
-        bubble_fn_joining("Joined");
-        const stage = document.getElementById(`video-stage`);
-        stage.classList.remove("hidden");
-      }
+    // Notify Bubble of successful join
+    if (typeof bubble_fn_joining === "function") {
+      bubble_fn_joining("Joined");
+      const stage = document.getElementById(`video-stage`);
+      stage.classList.remove("hidden");
+    }
 
-      // Get the list of RTM channel members
-      const members = await config.channelRTM.getMembers();
-      console.log("RTM channel members:", members);
+    // Get the list of RTM channel members
+    const members = await config.channelRTM.getMembers();
+    console.log("RTM channel members:", members);
 
-      // Fetch attributes for each member
-      const attributePromises = members.map((memberId) => {
-        return config.clientRTM
-          .getUserAttributes(memberId)
-          .then((userAttributes) => ({ memberId, userAttributes }))
-          .catch((error) => {
-            console.error(
-              `Failed to get attributes for member ${memberId}:`,
-              error
-            );
-            return null; // Skip this member if we can't get attributes
-          });
-      });
+    // Fetch attributes for each member
+    const attributePromises = members.map((memberId) => {
+      return config.clientRTM
+        .getUserAttributes(memberId)
+        .then((userAttributes) => ({ memberId, userAttributes }))
+        .catch((error) => {
+          console.error(
+            `Failed to get attributes for member ${memberId}:`,
+            error
+          );
+          return null; // Skip this member if we can't get attributes
+        });
+    });
 
-      const attributeResults = await Promise.all(attributePromises);
+    const attributeResults = await Promise.all(attributePromises);
 
-      // For each member, update participantList and call manageParticipants
-      for (const result of attributeResults) {
-        if (result && result.userAttributes) {
-          const memberUid = parseInt(result.memberId);
-          console.log(`Adding user ${result.memberId} to participant list.`);
-          // Update participantList
-          manageParticipants(config, memberUid, result.userAttributes, "join");
-        }
-      }
-    } catch (error) {
-      if (error.code === 5 && retryCount < 3) {
-        console.log("RTM join failed with code 5, retrying...");
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        return joinRTM(rtmToken, retryCount + 1);
-      } else {
-        console.error("Failed to join RTM after multiple attempts:", error);
-        throw error;
+    // For each member with roleInTheCall === 'waiting', update participantList and call manageParticipants
+    for (const result of attributeResults) {
+      if (
+        result &&
+        result.userAttributes &&
+        result.userAttributes.roleInTheCall === "waiting"
+      ) {
+        const memberUid = parseInt(result.memberId);
+        console.log(
+          `Adding waiting user ${result.memberId} to participant list.`
+        );
+        // Update participantList
+        manageParticipants(config, memberUid, result.userAttributes, "join");
       }
     }
-  };
+  } catch (error) {
+    if (error.code === 5 && retryCount < 3) {
+      console.log("RTM join failed with code 5, retrying...");
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      return joinRTM(rtmToken, retryCount + 1);
+    } else {
+      console.error("Failed to join RTM after multiple attempts:", error);
+      throw error;
+    }
+  }
+};
+
 
   // Function to join RTC
   const joinRTC = async () => {
