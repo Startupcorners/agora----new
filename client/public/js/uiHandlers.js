@@ -378,6 +378,28 @@ export const changeUserRole = async (
     roleInTheCall: newRoleInTheCall,
   };
 
+  // Retrieve the user's previous role and roleInTheCall
+  const previousRole = config.user.role;
+  const previousRoleInTheCall = config.user.roleInTheCall;
+
+  // Update RTM attributes for the user
+  if (config.clientRTM && config.clientRTM.addOrUpdateAttributes) {
+    try {
+      console.log(`Updating RTM attributes for user ${userUid}.`);
+      await config.clientRTM.addOrUpdateAttributes(userUid, updatedAttributes);
+      console.log(`RTM attributes updated for user ${userUid}.`);
+    } catch (error) {
+      console.error(
+        `Failed to update RTM attributes for user ${userUid}:`,
+        error
+      );
+    }
+  } else {
+    console.warn(
+      "RTM client or addOrUpdateAttributes method is not available."
+    );
+  }
+
   // Define roles that require a wrapper
   const rolesRequiringWrapper = [
     "master",
@@ -400,6 +422,20 @@ export const changeUserRole = async (
     removeUserWrapper(userUid);
   }
 
+  // Handle leaving the previous role
+  if (previousRoleInTheCall && previousRoleInTheCall !== newRoleInTheCall) {
+    console.log(
+      `Calling manageParticipants to remove user ${userUid} from previous role: ${previousRoleInTheCall}`
+    );
+    await manageParticipants(config, userUid, {}, "leave");
+  }
+
+  // Handle joining the new role
+  console.log(
+    `Calling manageParticipants for user ${userUid} with role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
+  );
+  await manageParticipants(config, userUid, updatedAttributes, "join");
+
   // Broadcast the role change to others in the RTM channel
   if (config.channelRTM) {
     const message = JSON.stringify({
@@ -414,10 +450,16 @@ export const changeUserRole = async (
     console.warn("RTM channel is not initialized.");
   }
 
+  // Update the user's role in config
+  config.user.role = newRole;
+  config.user.roleInTheCall = newRoleInTheCall;
+
   console.log(
     `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
 };
+
+
 
 
 

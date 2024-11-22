@@ -16,7 +16,7 @@ import {
   updateSelectedDevices,
 } from "./helperFunctions.js";
 
-import { addUserWrapper } from "./wrappers.js";
+import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 
 import {
   startCloudRecording,
@@ -487,40 +487,48 @@ const leaveVideoStage = async () => {
   };
 
   // Function to handle external role changes
-  const onRoleChange = async (newRoleInTheCall) => {
-    console.warn(
-      "onRoleChange called with newRoleInTheCall:",
-      newRoleInTheCall
+const onRoleChange = async (newRoleInTheCall) => {
+  console.warn("onRoleChange called with newRoleInTheCall:", newRoleInTheCall);
+
+  // Retrieve the previous role for cleanup
+  const previousRoleInTheCall = config.user.roleInTheCall;
+
+  // Update the user's role in config
+  config.user.roleInTheCall = newRoleInTheCall;
+  console.warn("bubble_fn_role:", config.user.roleInTheCall);
+  bubble_fn_role(config.user.roleInTheCall);
+
+  // Handle role change
+  await handleRoleChange(newRoleInTheCall);
+
+  // Call manageParticipants to remove the user from the previous role
+  if (previousRoleInTheCall && previousRoleInTheCall !== newRoleInTheCall) {
+    console.log(
+      `Calling manageParticipants to remove user ${config.uid} from previous role: ${previousRoleInTheCall}`
     );
+    await manageParticipants(config, config.uid, {}, "leave");
+  }
 
-    // Update the user's role in config
-    config.user.roleInTheCall = newRoleInTheCall;
-    console.warn(" bubble_fn_role:", config.user.roleInTheCall);
-    bubble_fn_role(config.user.roleInTheCall);
-
-    // Update the user's attributes in RTM
-    const attributes = {
-      name: config.user.name || "Unknown",
-      avatar: config.user.avatar || "default-avatar-url",
-      company: config.user.company || "Unknown",
-      designation: config.user.designation || "Unknown",
-      role: config.user.role || "audience",
-      rtmUid: config.uid.toString(),
-      bubbleid: config.user.bubbleid,
-      isRaisingHand: config.user.isRaisingHand,
-      sharingScreenUid: "0",
-      roleInTheCall: newRoleInTheCall || "audience",
-    };
-
-    // Update local user attributes in RTM
-    await config.clientRTM.setLocalUserAttributes(attributes);
-
-    // Handle role change
-    await handleRoleChange(newRoleInTheCall);
-
-    // Update participant list
-    manageParticipants(config, config.uid, attributes, "join");
+  // Update participant list for the new role
+  const attributes = {
+    name: config.user.name || "Unknown",
+    avatar: config.user.avatar || "default-avatar-url",
+    company: config.user.company || "Unknown",
+    designation: config.user.designation || "Unknown",
+    role: config.user.role || "audience",
+    rtmUid: config.uid.toString(),
+    bubbleid: config.user.bubbleid,
+    isRaisingHand: config.user.isRaisingHand,
+    sharingScreenUid: "0",
+    roleInTheCall: newRoleInTheCall || "audience",
   };
+
+  console.log(
+    `Calling manageParticipants for user ${config.uid} with new role: ${newRoleInTheCall}`
+  );
+  await manageParticipants(config, config.uid, attributes, "join");
+};
+
 
   // Expose the onRoleChange function for external calls
   config.onRoleChange = onRoleChange;

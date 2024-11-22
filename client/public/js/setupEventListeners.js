@@ -278,7 +278,29 @@ export const setupRTMMessageListener = (
         "audienceOnStage",
       ];
 
-      // Call addUserWrapper or removeUserWrapper based on the role
+      // Fetch the user's previous attributes
+      let previousAttributes = {};
+      try {
+        previousAttributes = await config.clientRTM.getUserAttributes(userUid);
+        console.log(`Previous attributes for user ${userUid}:`, previousAttributes);
+      } catch (error) {
+        console.error(
+          `Failed to retrieve previous attributes for user ${userUid}:`,
+          error
+        );
+      }
+
+      const previousRoleInTheCall = previousAttributes.roleInTheCall;
+
+      // Call manageParticipants to remove the user from the previous role
+      if (previousRoleInTheCall && previousRoleInTheCall !== newRoleInTheCall) {
+        console.log(
+          `Calling manageParticipants to remove user ${userUid} from previous role: ${previousRoleInTheCall}`
+        );
+        await manageParticipants(config, userUid, {}, "leave");
+      }
+
+      // Call addUserWrapper or removeUserWrapper based on the new role
       if (rolesRequiringWrapper.includes(newRole)) {
         console.log(
           `Role ${newRole} requires a video wrapper. Adding if necessary.`
@@ -293,6 +315,12 @@ export const setupRTMMessageListener = (
         );
         removeUserWrapper(userUid);
       }
+
+      // Call manageParticipants to update the user in their new role
+      console.log(
+        `Calling manageParticipants for user ${userUid} with new role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
+      );
+      await manageParticipants(config, userUid, parsedMessage, "join");
     }
   });
 
@@ -300,15 +328,20 @@ export const setupRTMMessageListener = (
     console.log(`RTM Member joined: ${memberId}`);
   });
 
-  channelRTM.on("MemberLeft", (memberId) => {
+  channelRTM.on("MemberLeft", async (memberId) => {
     console.log(`RTM Member left: ${memberId}`);
-    removeUserWrapper(memberId); // Remove wrapper when a member leaves
+
+    // Remove the wrapper and update participants
+    removeUserWrapper(memberId);
+    await manageParticipants(config, memberId, {}, "leave");
   });
+
 
   console.log(
     "RTM message listener with member join/leave handlers initialized."
   );
 };
+
 
 
 
