@@ -8,7 +8,6 @@ import { updateMicStatusElement } from "./uiHandlers.js";
 import { playStreamInDiv } from "./videoHandlers.js"; 
 const userJoinPromises = {};
 
-let participantList = [];
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config, client) => {
@@ -305,11 +304,19 @@ const handleAudioUnpublished = async (user, userUid, config) => {
 };
 
 
-export const manageParticipants = async (userUid, userAttr, actionType) => {
+export const manageParticipants = async (
+  config,
+  userUid,
+  userAttr,
+  actionType
+) => {
   console.log(
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
   updateLayout();
+
+  // Use config.participantList
+  let participantList = config.participantList;
 
   // Log the participant list before update
   console.log(
@@ -332,7 +339,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
         avatar: userAttr.avatar,
         role: userAttr.role || "audience",
         bubbleid: userAttr.bubbleid,
-        isRaisingHand: userAttr.isRaisingHand || false,
+        isRaisingHand: userAttr.isRaisingHand || "no",
         roleInTheCall: userAttr.roleInTheCall || "audience",
       };
       participantList.push(newParticipant);
@@ -346,6 +353,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
   } else if (actionType === "leave") {
     // Remove the participant if they are leaving
     participantList = participantList.filter((p) => p.uid !== userUid);
+    config.participantList = participantList; // Update the participantList in config
     console.log(`Participant ${userUid} has left.`);
   } else {
     console.warn(`Unknown action type: ${actionType}`);
@@ -431,12 +439,16 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
 
 
 
+
 // Handles user joined event
 export const handleUserJoined = async (user, config, userAttr = {}) => {
   console.log("User info:", user);
   console.log("User attributes:", userAttr);
   const userUid = user.uid.toString();
   console.log("Entering handleUserJoined function for user:", userUid);
+
+  // Initialize userJoinPromises in config if it doesn't exist
+  config.userJoinPromises = config.userJoinPromises || {};
 
   // Handle specific UIDs (2 triggers a special Bubble function)
   if (userUid === "2") {
@@ -445,22 +457,22 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
     bubble_fn_waitingForAcceptance();
   }
 
-  // Skip handling for special UIDs (1 -> replaced with > 999999999, and 2 remains)
-  if (userUid > 999999999 || userUid === "2") {
+  // Skip handling for special UIDs (UIDs > 999999999 or UID 2)
+  if (parseInt(userUid) > 999999999 || userUid === "2") {
     console.log(`Skipping handling for special UID (${userUid}).`);
-    userJoinPromises[userUid] = Promise.resolve(); // Ensure a resolved promise is set
+    config.userJoinPromises[userUid] = Promise.resolve(); // Ensure a resolved promise is set
     console.log(`Promise for UID ${userUid} resolved and skipped.`);
-    return userJoinPromises[userUid];
+    return config.userJoinPromises[userUid];
   }
 
   // If a promise for this user already exists, return it
-  if (userJoinPromises[userUid]) {
+  if (config.userJoinPromises[userUid]) {
     console.log(`User join already in progress for UID: ${userUid}`);
-    return userJoinPromises[userUid];
+    return config.userJoinPromises[userUid];
   }
 
   // Create a new promise for this user
-  userJoinPromises[userUid] = new Promise(async (resolve, reject) => {
+  config.userJoinPromises[userUid] = new Promise(async (resolve, reject) => {
     try {
       console.log(`Starting promise for user ${userUid}.`);
 
@@ -477,7 +489,8 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 
       // Initialize remoteTracks if needed
       config.remoteTracks = config.remoteTracks || {};
-      config.remoteTracks[userUid] = { wrapperReady: false };
+      config.remoteTracks[userUid] = config.remoteTracks[userUid] || {};
+      config.remoteTracks[userUid].wrapperReady = false;
 
       // Only proceed with wrapper if the user is a host
       if (role === "host") {
@@ -507,7 +520,8 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       console.log(
         `Invoking manageParticipants for user ${userUid} with action "join".`
       );
-      manageParticipants(userUid, userAttr, "join");
+      // Ensure userUid is a number when calling manageParticipants
+      manageParticipants(config, parseInt(userUid), userAttr, "join");
 
       console.log(`Promise resolved for user ${userUid}.`);
       resolve();
@@ -517,7 +531,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         console.log(
           `Calling manageParticipants with action "error" for user ${userUid}.`
         );
-        manageParticipants(userUid, userAttr, "error");
+        manageParticipants(config, parseInt(userUid), userAttr, "error");
       } catch (participantError) {
         console.error(
           `Error managing participant state for user ${userUid}:`,
@@ -529,8 +543,9 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   });
 
   console.log(`Returning promise for user ${userUid}.`);
-  return userJoinPromises[userUid];
+  return config.userJoinPromises[userUid];
 };
+
 
 
 
@@ -538,6 +553,10 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
   console.log("Entered handleUserLeft:", user);
+
+  // Initialize userJoinPromises in config if it doesn't exist
+  config.userJoinPromises = config.userJoinPromises || {};
+
   try {
     console.log(`User ${user.uid} left`);
 
@@ -566,10 +585,10 @@ export const handleUserLeft = async (user, config) => {
       console.log(`No tracks found for user ${user.uid}`);
     }
 
-    // Convert user.uid to a string when calling manageParticipants
-    manageParticipants(String(user.uid), {}, "leave");
+    // Call manageParticipants with the user's UID and action "leave"
+    manageParticipants(config, user.uid, {}, "leave");
 
-    // Clear user join promise when the user leaves
+    // Clear userJoinPromises when the user leaves
     if (config.userJoinPromises && config.userJoinPromises[user.uid]) {
       delete config.userJoinPromises[user.uid];
       console.log(`Cleared userJoinPromises for user ${user.uid}`);
@@ -580,6 +599,7 @@ export const handleUserLeft = async (user, config) => {
     console.error(`Error removing user ${user.uid}:`, error);
   }
 };
+
 
 
 
