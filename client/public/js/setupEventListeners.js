@@ -282,48 +282,12 @@ export const setupRTMMessageListener = (
 
   channelRTM.on("MemberJoined", async (memberId) => {
     console.log(`RTM Member joined: ${memberId}`);
-
-    // If the joined member is UID 3, trigger the Bubble function
-    if (memberId === "3") {
-      console.log("UID 3 joined. Triggering bubble_fn_waitingForAcceptance.");
-      bubble_fn_isAudioRecording("yes");
-      bubble_fn_waitingForAcceptance(); // Trigger Bubble function
-    }
-
-    // Fetch user attributes
-    let userAttributes = {};
-    try {
-      userAttributes = await config.clientRTM.getUserAttributes(memberId);
-      console.log(`Attributes for user ${memberId}:`, userAttributes);
-    } catch (error) {
-      console.error(
-        `Failed to retrieve attributes for member ${memberId}:`,
-        error
-      );
-    }
-
-    // If the user's roleInTheCall is 'waiting', call manageParticipants
-    if (userAttributes.roleInTheCall === "waiting") {
-      console.log(
-        `Adding waiting user ${memberId} to participant list via MemberJoined.`
-      );
-      manageParticipants(config, parseInt(memberId), userAttributes, "join");
-    }
   });
 
 
   // Handle RTM member left event
 channelRTM.on("MemberLeft", (memberId) => {
   console.log(`RTM Member left: ${memberId}`);
-
-  if (memberId === "3") {
-    console.log("UID 3 left.");
-    bubble_fn_isAudioRecording("no");
-  }
-
-  // Call manageParticipants to remove the user from participantList
-  console.log(`Removing user ${memberId} from participant list.`);
-  manageParticipants(config, parseInt(memberId), {}, "leave");
 });
 
   console.log(
