@@ -1,4 +1,5 @@
 // Import RTC handlers
+import { newMainApp } from "./main.js";
 import {
   handleUserPublished,
   handleUserUnpublished,
@@ -210,7 +211,6 @@ config.client.on("onCameraChanged", async (info) => {
 
 };
 
-// eventListeners.js
 export const setupRTMMessageListener = (
   channelRTM,
   manageParticipants,
@@ -253,23 +253,20 @@ export const setupRTMMessageListener = (
 
       if (userUid === config.user.rtmUid) {
         console.log(
-          "Role change is for the current user. Logging out of RTM and reinitializing app with new role."
+          "Role change is for the current user. Updating role and calling onRoleChange."
         );
 
+        // Update user's role in config
         config.user.role = newRole;
         config.user.roleInTheCall = newRoleInTheCall;
 
-
-        const newAppInstance = newMainApp(config);
-        window.app = newAppInstance;
-        newAppInstance
-          .join()
-          .then(() => {
-            console.log("Successfully joined with updated role.");
-          })
-          .catch((error) => {
-            console.error("Error joining after role change:", error);
-          });
+        // Call the onRoleChange function
+        try {
+          await config.onRoleChange(newRoleInTheCall);
+          console.log("Successfully handled role change.");
+        } catch (error) {
+          console.error("Error handling role change:", error);
+        }
       }
     } else if (
       parsedMessage.text &&
@@ -283,31 +280,30 @@ export const setupRTMMessageListener = (
     }
   });
 
-channelRTM.on("MemberJoined", async (memberId) => {
-  console.log(`RTM Member joined: ${memberId}`);
+  channelRTM.on("MemberJoined", async (memberId) => {
+    console.log(`RTM Member joined: ${memberId}`);
 
-  // If the joined member is UID 3, trigger the Bubble function
-  if (memberId === "3") {
-    console.log("UID 3 joined. Triggering bubble_fn_waitingForAcceptance.");
-    bubble_fn_isAudioRecording("yes");
-    bubble_fn_waitingForAcceptance(); // Trigger Bubble function
-  }
-});
+    // If the joined member is UID 3, trigger the Bubble function
+    if (memberId === "3") {
+      console.log("UID 3 joined. Triggering bubble_fn_waitingForAcceptance.");
+      bubble_fn_isAudioRecording("yes");
+      bubble_fn_waitingForAcceptance(); // Trigger Bubble function
+    }
+  });
 
-// Handle RTM member left event
-channelRTM.on("MemberLeft", (memberId) => {
-  console.log(`RTM Member left: ${memberId}`);
+  // Handle RTM member left event
+  channelRTM.on("MemberLeft", (memberId) => {
+    console.log(`RTM Member left: ${memberId}`);
 
-  if (memberId === "3") {
-    console.log("UID 3 left.");
-    bubble_fn_isAudioRecording("no");
-  }
+    if (memberId === "3") {
+      console.log("UID 3 left.");
+      bubble_fn_isAudioRecording("no");
+    }
+  });
 
-});
-
-console.log(
-  "RTM message listener with member join/leave handlers initialized."
-);
+  console.log(
+    "RTM message listener with member join/leave handlers initialized."
+  );
 };
 
 
