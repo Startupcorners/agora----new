@@ -190,7 +190,7 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 
     try {
       // Check if the local user is the one sharing
-      if (config.sharingScreenUid === config.uid) {
+      if (config.sharingScreenUid === config.uid.toString()) {
         console.log(
           `Local user (UID: ${config.uid}) was sharing. Stopping local screen share.`
         );
@@ -226,7 +226,7 @@ const handleVideoUnpublished = async (user, userUid, config) => {
       }
 
       // If another user was previously sharing, restore their video
-      if (config.sharingScreenUid !== config.uid) {
+      if (config.sharingScreenUid !== config.uid.toString()) {
         console.log("Restoring previous user's video.");
 
         toggleStages(false); // Hide screen share stage
