@@ -101,10 +101,8 @@ const newMainApp = function (initConfig) {
     }
 
     // Initialize tracks to null if they don't already exist
-    config.userTracks[config.uid].videoTrack =
-      config.userTracks[config.uid].videoTrack || null;
-    config.userTracks[config.uid].audioTrack =
-      config.userTracks[config.uid].audioTrack || null;
+    config.userTracks[config.uid].videoTrack = null;
+    config.userTracks[config.uid].audioTrack =null;
 
       if (!config.lastMutedStatuses[config.uid]) {
         config.lastMutedStatuses[config.uid] = "unknown"; // Default to "unknown" for first-time detection
@@ -179,7 +177,7 @@ const newMainApp = function (initConfig) {
 
     // Initialize event callbacks with clientRTM passed
     const callbacks = eventCallbacks(config, config.clientRTM);
-    config = { ...config, ...callbacks };
+    Object.assign(config, callbacks);
   }
   // Modified join function
   const join = async () => {
@@ -235,7 +233,7 @@ const newMainApp = function (initConfig) {
 
       // Additional host setup
       if (config.user.role === "host") {
-        await joinToVideoStage(config);
+        await joinToVideoStage();
       }
 
       // Track user join and handle token renewal
@@ -374,7 +372,7 @@ const newMainApp = function (initConfig) {
     }
   };
   // Join video stage function
-const joinToVideoStage = async (config) => {
+const joinToVideoStage = async () => {
   try {
     console.log("Creating and enabling audio track...");
 
