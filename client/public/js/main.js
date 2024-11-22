@@ -205,6 +205,7 @@ export const newMainApp = function (initConfig) {
     );
 
     const rolesRequiringRTC = [
+      "master",
       "host",
       "speaker",
       "meetingParticipant",
@@ -212,6 +213,7 @@ export const newMainApp = function (initConfig) {
       "audience",
     ];
     const rolesRequiringStage = [
+      "master",
       "host",
       "speaker",
       "meetingParticipant",
