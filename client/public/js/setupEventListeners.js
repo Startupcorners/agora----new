@@ -373,7 +373,7 @@ function handleMicPermissionChange(state, config) {
   const isMicAvailable = state === "granted";
 
   // Notify Bubble about the microphone permission change
-  if (typeof bubble_fn_micPermissionChanged === "function") {
+  if (typeof bubble_fn_micPermissionIsGranted === "function") {
     bubble_fn_micPermissionIsGranted(isMicAvailable);
     console.log(
       `Bubble notified about microphone permission change: ${
@@ -381,7 +381,7 @@ function handleMicPermissionChange(state, config) {
       }`
     );
   } else {
-    console.warn("bubble_fn_micPermissionChanged is not defined.");
+    console.warn("bubble_fn_micPermissionIsGranted is not defined.");
   }
 
   // If the microphone is not granted, toggle the mic to update the UI
