@@ -81,6 +81,7 @@ const newMainApp = function (initConfig) {
     recordId: null,
     audioResourceId: null,
     userTracks: {},
+    lastMutedStatuses: {},
     audioRecordId: null,
     audioTimestamp: null,
     timestamp: null,
