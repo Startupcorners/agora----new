@@ -1,5 +1,5 @@
 
-export const playStreamInDiv = (
+export const playStreamInDiv = (config,
   userId,
   divId,
   maxRetries = 5,

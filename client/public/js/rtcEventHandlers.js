@@ -93,7 +93,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       toggleStages(true);
 
       // Play screen share track
-      playStreamInDiv(userUid, "#screen-share-content");
+      playStreamInDiv(config, userUid, "#screen-share-content");
     } catch (error) {
       console.error("Error processing screen share:", error);
     }
@@ -114,9 +114,9 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     config.userTracks[userUid].videoTrack = user.videoTrack;
 
     if (config.sharingScreenUid) {
-      playStreamInDiv(userUid, "#pip-video-track");
+      playStreamInDiv(config, userUid, "#pip-video-track");
     } else {
-      playStreamInDiv(userUid, `#stream-${userUid}`);
+      playStreamInDiv(config, userUid, `#stream-${userUid}`);
     }
   } catch (error) {
     console.error(`Error subscribing to video for user ${userUid}:`, error);
@@ -241,6 +241,7 @@ const handleVideoUnpublished = async (user, userUid, config) => {
         }
 
         playStreamInDiv(
+          config,
           config.sharingScreenUid,
           `#stream-${config.sharingScreenUid}`
         );
@@ -268,7 +269,7 @@ const handleVideoUnpublished = async (user, userUid, config) => {
   }
 
   // Stop displaying the user's video in the UI
-  playStreamInDiv(userUid, `#stream-${userUid}`);
+  playStreamInDiv(config, userUid, `#stream-${userUid}`);
 };
 
 

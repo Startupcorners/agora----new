@@ -140,9 +140,9 @@ export const toggleCamera = async (config) => {
 
       // Update UI
       if (config.sharingScreenUid === config.uid.toString()) {
-        playStreamInDiv(config.uid, "#pip-video-track");
+        playStreamInDiv(config, config.uid, "#pip-video-track");
       } else {
-        playStreamInDiv(config.uid, `#stream-${config.uid}`);
+        playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
       }
 
       // Notify Bubble of the camera state
@@ -169,9 +169,9 @@ export const toggleCamera = async (config) => {
 
       // Update UI
       if (config.sharingScreenUid === config.uid.toString()) {
-        playStreamInDiv(config.uid, "#pip-video-track");
+        playStreamInDiv(config, config.uid, "#pip-video-track");
       } else {
-        playStreamInDiv(config.uid, `#stream-${config.uid}`);
+        playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
       }
 
       // Notify Bubble of the camera state
@@ -304,8 +304,8 @@ export const startScreenShare = async (config) => {
 
     // Toggle UI
     toggleStages(true);
-    playStreamInDiv(screenShareUid, "#screen-share-content");
-    playStreamInDiv(uid, "#pip-video-track");
+    playStreamInDiv(config, screenShareUid, "#screen-share-content");
+    playStreamInDiv(config, uid, "#pip-video-track");
 
     // Update PiP avatar
     const avatarElement = document.getElementById("pip-avatar");
