@@ -34,6 +34,27 @@ export const setupEventListeners = (config) => {
     await handleUserUnpublished(user, mediaType, config);
   });
 
+  config.client.on("autoplay-fallback", () => {
+    console.warn("Autoplay was blocked by the browser.");
+
+    // Notify the user with a UI element (e.g., a button)
+    const autoplayButton = document.createElement("button");
+    autoplayButton.textContent = "Start Media";
+    autoplayButton.style.position = "absolute";
+    autoplayButton.style.zIndex = "1000";
+    autoplayButton.style.top = "50%";
+    autoplayButton.style.left = "50%";
+    autoplayButton.style.transform = "translate(-50%, -50%)";
+    document.body.appendChild(autoplayButton);
+
+    autoplayButton.addEventListener("click", () => {
+      config.client.enableLocalAudio(); // Start audio manually
+      config.client.enableLocalVideo(); // Start video manually
+      autoplayButton.remove(); // Remove the button after interaction
+    });
+  });
+
+
 
   // Handle when a user joins the session
 client.on("user-joined", async (user) => {
