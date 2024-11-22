@@ -300,6 +300,7 @@ const join = async () => {
         console.log("RTM members 2 or 3 detected. Event is being recorded.");
         bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
       }
+    bubble_fn_joining("Joined");
     }
   } catch (error) {
     console.error("Error during join:", error);
