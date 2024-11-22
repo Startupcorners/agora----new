@@ -61,7 +61,7 @@ client.on("user-joined", async (user) => {
         rtmUid: fetchedAttributes.rtmUid || user.uid, // Fall back to user UID
         bubbleid: fetchedAttributes.bubbleid || "",
         isRaisingHand: fetchedAttributes.isRaisingHand || false,
-        sharingScreen: fetchedAttributes.sharingScreen || "0",
+        sharingScreenUid: fetchedAttributes.sharingScreenUid || "0",
         roleInTheCall: fetchedAttributes.roleInTheCall || "audience",
       };
     } catch (error) {
@@ -77,7 +77,7 @@ client.on("user-joined", async (user) => {
         rtmUid: user.uid, // Default to user UID
         bubbleid: "",
         isRaisingHand: false,
-        sharingScreen: "0",
+        sharingScreenUid: "0",
         roleInTheCall: "audience",
       };
     }
@@ -96,7 +96,7 @@ client.on("user-joined", async (user) => {
       rtmUid: user.uid,
       bubbleid: "",
       isRaisingHand: false,
-      sharingScreen: "0",
+      sharingScreenUid: "0",
       roleInTheCall: "audience",
     };
   }
