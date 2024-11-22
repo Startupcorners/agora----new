@@ -289,7 +289,28 @@ export const setupRTMMessageListener = (
       bubble_fn_isAudioRecording("yes");
       bubble_fn_waitingForAcceptance(); // Trigger Bubble function
     }
+
+    // Fetch user attributes
+    let userAttributes = {};
+    try {
+      userAttributes = await config.clientRTM.getUserAttributes(memberId);
+      console.log(`Attributes for user ${memberId}:`, userAttributes);
+    } catch (error) {
+      console.error(
+        `Failed to retrieve attributes for member ${memberId}:`,
+        error
+      );
+    }
+
+    // If the user's roleInTheCall is 'waiting', call manageParticipants
+    if (userAttributes.roleInTheCall === "waiting") {
+      console.log(
+        `Adding waiting user ${memberId} to participant list via MemberJoined.`
+      );
+      manageParticipants(config, parseInt(memberId), userAttributes, "join");
+    }
   });
+
 
   // Handle RTM member left event
 channelRTM.on("MemberLeft", (memberId) => {
