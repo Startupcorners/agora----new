@@ -78,6 +78,7 @@ export const newMainApp = function (initConfig) {
     localVideoTrack: null,
     currentVirtualBackground: null,
     extensionVirtualBackground: null,
+    listenersSetUp: false,
     resourceId: null,
     recordId: null,
     audioResourceId: null,
@@ -238,14 +239,12 @@ const handleRoleChange = async (newRoleInTheCall) => {
   console.log("prevRequiresStage:", prevRequiresStage);
   console.log("newRequiresStage:", newRequiresStage);
 
-  // Run setupEventListeners if transitioning from "waiting" to another role
-  if (prevRole === "waiting" && newRoleInTheCall !== "waiting") {
-    console.log(
-      "Role changed from 'waiting' to another role. Setting up event listeners..."
-    );
+  if (newRoleInTheCall !== "waiting" && !config.listenersSetUp) {
+    console.log("Setting up event listeners for the first time...");
     setupEventListeners(config);
+    config.listenersSetUp = true; // Mark listeners as set up
   }
-
+  
   // Handle RTC join/leave
   if (!prevRequiresRTC && newRequiresRTC && !config.isRTCJoined) {
     console.log("Joining RTC...");
