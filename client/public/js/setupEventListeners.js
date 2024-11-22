@@ -401,7 +401,7 @@ function handleMicPermissionChange(state, config) {
 
     // Update lastMutedStatuses for the current user
     if (config && config.uid) {
-      config.lastMutedStatuses[config.uid] = "no";
+      lastMutedStatuses[config.uid] = "no";
       console.log(
         `Updated lastMutedStatuses for UID ${config.uid} to "no" (unmuted).`
       );

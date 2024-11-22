@@ -614,6 +614,7 @@ export const handleVolumeIndicator = (() => {
       // Only process and send notifications for the local user (currentUserUid)
       if (userUID === currentUserUid) {
 
+
         // Notify Bubble only when the status changes
         if (currentStatus !== config.lastMutedStatuses[userUID]) {
           console.log(

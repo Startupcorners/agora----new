@@ -84,7 +84,6 @@ const newMainApp = function (initConfig) {
     audioRecordId: null,
     audioTimestamp: null,
     timestamp: null,
-    lastMutedStatuses: null,
     sid: null,
     audioSid: null,
     audioResourceId: null,
@@ -105,8 +104,8 @@ const newMainApp = function (initConfig) {
     config.userTracks[config.uid].audioTrack =
       config.userTracks[config.uid].audioTrack || null;
 
-      if (!config.lastMutedStatuses[userUID]) {
-        config.lastMutedStatuses[userUID] = "unknown"; // Default to "unknown" for first-time detection
+      if (!config.lastMutedStatuses[config.uid]) {
+        config.lastMutedStatuses[config.uid] = "unknown"; // Default to "unknown" for first-time detection
       }
 
     // Initialize AgoraRTC client
