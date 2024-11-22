@@ -2,6 +2,7 @@
 import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { fetchTokens } from "./helperFunctions.js";
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
+import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 
 
 export const toggleMic = async (config) => {
@@ -386,38 +387,17 @@ export const changeUserRole = async (
     "audienceOnStage",
   ];
 
-  // Check if the new role requires a wrapper
+  // Call addUserWrapper or removeUserWrapper based on the role
   if (rolesRequiringWrapper.includes(newRole)) {
     console.log(
-      `Role ${newRole} requires a video wrapper. Checking and creating if necessary.`
+      `Role ${newRole} requires a video wrapper. Adding if necessary.`
     );
-
-    // Ensure the wrapper is created
-    let participantWrapper = document.querySelector(
-      `#video-wrapper-${userUid}`
-    );
-    if (!participantWrapper) {
-      console.log(`No wrapper found for user ${userUid}. Creating one now.`);
-      await addUserWrapper({ uid: userUid, ...updatedAttributes }, config);
-      console.log(`Wrapper successfully created for user ${userUid}.`);
-    } else {
-      console.log(`Wrapper already exists for user ${userUid}.`);
-    }
+    await addUserWrapper({ uid: userUid, ...updatedAttributes }, config);
   } else {
     console.log(
       `Role ${newRole} does not require a video wrapper. Removing if exists.`
     );
-
-    // Remove the wrapper if it exists
-    let participantWrapper = document.querySelector(
-      `#video-wrapper-${userUid}`
-    );
-    if (participantWrapper) {
-      participantWrapper.remove();
-      console.log(`Wrapper successfully removed for user ${userUid}.`);
-    } else {
-      console.log(`No wrapper found for user ${userUid} to remove.`);
-    }
+    removeUserWrapper(userUid);
   }
 
   // Broadcast the role change to others in the RTM channel
@@ -438,6 +418,7 @@ export const changeUserRole = async (
     `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
 };
+
 
 
 export function updateMicStatusElement(uid, isMuted) {
