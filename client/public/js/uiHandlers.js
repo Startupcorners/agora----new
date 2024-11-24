@@ -373,41 +373,7 @@ export const changeUserRole = async (
     `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
 
-  // Define roles that require a wrapper
-  const rolesRequiringWrapper = [
-    "master",
-    "host",
-    "speaker",
-    "meetingParticipant",
-    "audienceOnStage",
-  ];
-
-  // Call addUserWrapper or removeUserWrapper based on the role
-  if (rolesRequiringWrapper.includes(newRoleInTheCall)) {
-    console.log(
-      `Role ${newRoleInTheCall} requires a video wrapper. Adding if necessary.`
-    );
-    await addUserWrapper(userUid, config);
-  } else {
-    console.log(
-      `Role ${newRole} does not require a video wrapper. Removing if exists.`
-    );
-    removeUserWrapper(userUid);
-  }
-
-  // Handle leaving the previous role
-  if (previousRoleInTheCall && previousRoleInTheCall !== newRoleInTheCall) {
-    console.log(
-      `Calling manageParticipants to remove user ${userUid} from previous role: ${previousRoleInTheCall}`
-    );
-    await manageParticipants(config, userUid, {}, "leave");
-  }
-
-  // Handle joining the new role
-  console.log(
-    `Calling manageParticipants for user ${userUid} with role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
-  );
-  await manageParticipants(config, userUid, updatedAttributes, "join");
+  await manageParticipants(config, userUid, {}, "leave");
 
   // Broadcast the role change to others in the RTM channel
   if (config.channelRTM) {

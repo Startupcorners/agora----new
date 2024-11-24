@@ -337,6 +337,7 @@ export const setupRTMMessageListener = (
       console.log(
         `Calling manageParticipants for user ${userUid} with new role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
       );
+      await manageParticipants(config, userUid, {}, "leave");
       await manageParticipants(config, userUid, parsedMessage, "join");
     }
   });
