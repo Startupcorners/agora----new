@@ -269,6 +269,25 @@ export const setupRTMMessageListener = (
         `Received role change for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
       );
 
+      // Check if the role change is for the current user
+      if (userUid === config.user.rtmUid) {
+        console.log(
+          "Role change is for the current user. Updating role and calling onRoleChange."
+        );
+
+        // Update user's role in config
+        config.user.role = newRole;
+        config.user.roleInTheCall = newRoleInTheCall;
+
+        // Call the onRoleChange function
+        try {
+          await config.onRoleChange(newRoleInTheCall);
+          console.log("Successfully handled role change.");
+        } catch (error) {
+          console.error("Error handling role change:", error);
+        }
+      }
+
       // Define roles that require a wrapper
       const rolesRequiringWrapper = [
         "master",
@@ -282,7 +301,10 @@ export const setupRTMMessageListener = (
       let previousAttributes = {};
       try {
         previousAttributes = await config.clientRTM.getUserAttributes(userUid);
-        console.log(`Previous attributes for user ${userUid}:`, previousAttributes);
+        console.log(
+          `Previous attributes for user ${userUid}:`,
+          previousAttributes
+        );
       } catch (error) {
         console.error(
           `Failed to retrieve previous attributes for user ${userUid}:`,
@@ -335,7 +357,6 @@ export const setupRTMMessageListener = (
     removeUserWrapper(memberId);
     await manageParticipants(config, memberId, {}, "leave");
   });
-
 
   console.log(
     "RTM message listener with member join/leave handlers initialized."
