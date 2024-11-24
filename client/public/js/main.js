@@ -200,175 +200,173 @@ export const newMainApp = function (initConfig) {
   };
 
   // Function to handle role changes
-const handleRoleChange = async (newRoleInTheCall) => {
-  console.warn(
-    "handleRoleChange called with newRoleInTheCall:",
-    newRoleInTheCall
-  );
+  const handleRoleChange = async (newRoleInTheCall) => {
+    console.warn(
+      "handleRoleChange called with newRoleInTheCall:",
+      newRoleInTheCall
+    );
 
-  const rolesRequiringRTC = [
-    "master",
-    "host",
-    "speaker",
-    "meetingParticipant",
-    "audienceOnStage",
-    "audience",
-    "waiting",
-  ];
-  const rolesRequiringStage = [
-    "master",
-    "host",
-    "speaker",
-    "meetingParticipant",
-    "audienceOnStage",
-  ];
+    const rolesRequiringRTC = [
+      "master",
+      "host",
+      "speaker",
+      "meetingParticipant",
+      "audienceOnStage",
+      "audience",
+      "waiting",
+    ];
+    const rolesRequiringStage = [
+      "master",
+      "host",
+      "speaker",
+      "meetingParticipant",
+      "audienceOnStage",
+    ];
 
-  const prevRole = config.previousRoleInTheCall;
-  config.previousRoleInTheCall = newRoleInTheCall;
+    const prevRole = config.previousRoleInTheCall;
+    config.previousRoleInTheCall = newRoleInTheCall;
 
-  const prevRequiresRTC = rolesRequiringRTC.includes(prevRole);
-  const newRequiresRTC = rolesRequiringRTC.includes(newRoleInTheCall);
+    const prevRequiresRTC = rolesRequiringRTC.includes(prevRole);
+    const newRequiresRTC = rolesRequiringRTC.includes(newRoleInTheCall);
 
-  const prevRequiresStage = rolesRequiringStage.includes(prevRole);
-  const newRequiresStage = rolesRequiringStage.includes(newRoleInTheCall);
+    const prevRequiresStage = rolesRequiringStage.includes(prevRole);
+    const newRequiresStage = rolesRequiringStage.includes(newRoleInTheCall);
 
-  console.log("Previous role:", prevRole);
-  console.log("New role:", newRoleInTheCall);
-  console.log("prevRequiresRTC:", prevRequiresRTC);
-  console.log("newRequiresRTC:", newRequiresRTC);
-  console.log("prevRequiresStage:", prevRequiresStage);
-  console.log("newRequiresStage:", newRequiresStage);
+    console.log("Previous role:", prevRole);
+    console.log("New role:", newRoleInTheCall);
+    console.log("prevRequiresRTC:", prevRequiresRTC);
+    console.log("newRequiresRTC:", newRequiresRTC);
+    console.log("prevRequiresStage:", prevRequiresStage);
+    console.log("newRequiresStage:", newRequiresStage);
 
-  if (newRoleInTheCall !== "waiting" && !config.listenersSetUp) {
-    console.log("Setting up event listeners for the first time...");
-    setupEventListeners(config);
-    config.listenersSetUp = true; // Mark listeners as set up
-  }
-  
-  // Handle RTC join/leave
-  if (!prevRequiresRTC && newRequiresRTC && !config.isRTCJoined) {
-    console.log("Joining RTC...");
-    await joinRTC();
-    config.isRTCJoined = true;
-  } else if (prevRequiresRTC && !newRequiresRTC && config.isRTCJoined) {
-    console.log("Leaving RTC...");
-    await leaveRTC();
-    config.isRTCJoined = false;
-  }
+    if (newRoleInTheCall !== "waiting" && !config.listenersSetUp) {
+      console.log("Setting up event listeners for the first time...");
+      setupEventListeners(config);
+      config.listenersSetUp = true; // Mark listeners as set up
+    }
 
-  // Handle video stage join/leave
-  if (!prevRequiresStage && newRequiresStage && !config.isOnStage) {
-    console.log("Joining video stage...");
-    await joinVideoStage();
-    config.isOnStage = true;
-  } else if (prevRequiresStage && !newRequiresStage && config.isOnStage) {
-    console.log("Leaving video stage...");
-    await leaveVideoStage();
-    config.isOnStage = false;
-  }
-};
+    // Handle RTC join/leave
+    if (!prevRequiresRTC && newRequiresRTC && !config.isRTCJoined) {
+      console.log("Joining RTC...");
+      await joinRTC();
+      config.isRTCJoined = true;
+    } else if (prevRequiresRTC && !newRequiresRTC && config.isRTCJoined) {
+      console.log("Leaving RTC...");
+      await leaveRTC();
+      config.isRTCJoined = false;
+    }
 
-// Main join function
-const join = async () => {
-  console.warn("join function called");
-  bubble_fn_role(config.user.roleInTheCall);
+    // Handle video stage join/leave
+    if (!prevRequiresStage && newRequiresStage && !config.isOnStage) {
+      console.log("Joining video stage...");
+      await joinVideoStage();
+      config.isOnStage = true;
+    } else if (prevRequiresStage && !newRequiresStage && config.isOnStage) {
+      console.log("Leaving video stage...");
+      await leaveVideoStage();
+      config.isOnStage = false;
+    }
+  };
 
-  try {
-    // Ensure RTM is joined
-    await ensureRTMJoined();
-    console.warn("ran ensureRTMJoined");
+  // Main join function
+  const join = async () => {
+    console.warn("join function called");
+    bubble_fn_role(config.user.roleInTheCall);
 
-    // Handle role-based actions
-    await handleRoleChange(config.user.roleInTheCall);
-    console.warn("ran handleRoleChange");
+    try {
+      // Ensure RTM is joined
+      await ensureRTMJoined();
+      console.warn("ran ensureRTMJoined");
 
-    // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
-    if (config.user.roleInTheCall !== "waiting") {
-      const channelMembers = await config.channelRTM.getMembers();
-      console.log("Current RTM channel members:", channelMembers);
+      // Handle role-based actions
+      await handleRoleChange(config.user.roleInTheCall);
+      console.warn("ran handleRoleChange");
 
-      if (channelMembers.includes("2")) {
-        console.log("RTM member 2 detected. Video recording is active.");
-        bubble_fn_isVideoRecording("yes"); // Indicate video recording is active
+      // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
+      if (config.user.roleInTheCall !== "waiting") {
+        const channelMembers = await config.channelRTM.getMembers();
+        console.log("Current RTM channel members:", channelMembers);
+
+        if (channelMembers.includes("2")) {
+          console.log("RTM member 2 detected. Video recording is active.");
+          bubble_fn_isVideoRecording("yes"); // Indicate video recording is active
+        }
+
+        if (channelMembers.includes("3")) {
+          console.log("RTM member 3 detected. Audio recording is active.");
+          bubble_fn_isAudioRecording("yes"); // Indicate audio recording is active
+        }
+
+        if (channelMembers.includes("2") || channelMembers.includes("3")) {
+          console.log("RTM members 2 or 3 detected. Event is being recorded.");
+          bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
+        }
       }
+      bubble_fn_joining("Joined");
+    } catch (error) {
+      console.error("Error during join:", error);
 
-      if (channelMembers.includes("3")) {
-        console.log("RTM member 3 detected. Audio recording is active.");
-        bubble_fn_isAudioRecording("yes"); // Indicate audio recording is active
-      }
-
-      if (channelMembers.includes("2") || channelMembers.includes("3")) {
-        console.log("RTM members 2 or 3 detected. Event is being recorded.");
-        bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
+      // Notify Bubble of error
+      if (typeof bubble_fn_joining === "function") {
+        bubble_fn_joining("Error");
       }
     }
-    bubble_fn_joining("Joined");
-  } catch (error) {
-    console.error("Error during join:", error);
-
-    // Notify Bubble of error
-    if (typeof bubble_fn_joining === "function") {
-      bubble_fn_joining("Error");
-    }
-  }
-};
-
+  };
 
   // Function to join RTM
-const joinRTM = async (rtmToken, retryCount = 0) => {
-  console.log(
-    "joinRTM called with rtmToken:",
-    rtmToken,
-    "retryCount:",
-    retryCount
-  );
+  const joinRTM = async (rtmToken, retryCount = 0) => {
+    console.log(
+      "joinRTM called with rtmToken:",
+      rtmToken,
+      "retryCount:",
+      retryCount
+    );
 
-  try {
-    const rtmUid = config.uid.toString();
-    console.log("rtmuid value", rtmUid);
+    try {
+      const rtmUid = config.uid.toString();
+      console.log("rtmuid value", rtmUid);
 
-    // Login to RTM
-    await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
+      // Login to RTM
+      await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
 
-    // Set user attributes, including the role
-    const attributes = {
-      name: config.user.name || "Unknown",
-      avatar: config.user.avatar || "default-avatar-url",
-      company: config.user.company || "Unknown",
-      designation: config.user.designation || "Unknown",
-      role: config.user.role || "audience",
-      rtmUid: rtmUid,
-      bubbleid: config.user.bubbleid,
-      isRaisingHand: config.user.isRaisingHand,
-      sharingScreenUid: "0",
-      roleInTheCall: config.user.roleInTheCall || "audience",
-    };
+      // Set user attributes, including the role
+      const attributes = {
+        name: config.user.name || "Unknown",
+        avatar: config.user.avatar || "default-avatar-url",
+        company: config.user.company || "Unknown",
+        designation: config.user.designation || "Unknown",
+        role: config.user.role || "audience",
+        rtmUid: rtmUid,
+        bubbleid: config.user.bubbleid,
+        isRaisingHand: config.user.isRaisingHand,
+        sharingScreenUid: "0",
+        roleInTheCall: config.user.roleInTheCall || "audience",
+      };
 
-    await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
+      await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
-    // Join the RTM channel
-    await config.channelRTM.join();
-    console.log("Successfully joined RTM channel:", config.channelName);
+      // Join the RTM channel
+      await config.channelRTM.join();
+      console.log("Successfully joined RTM channel:", config.channelName);
 
-    // Update participantList and call manageParticipants for the current user
-    manageParticipants(config, config.uid, attributes, "join");
+      // Update participantList and call manageParticipants for the current user
+      manageParticipants(config, config.uid, attributes, "join");
 
-    // Notify Bubble of successful join
+      // Notify Bubble of successful join
       const stage = document.getElementById(`video-stage`);
       stage.classList.remove("hidden");
-    // Get the list of RTM channel members
-  } catch (error) {
-    if (error.code === 5 && retryCount < 3) {
-      console.log("RTM join failed with code 5, retrying...");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      return joinRTM(rtmToken, retryCount + 1);
-    } else {
-      console.error("Failed to join RTM after multiple attempts:", error);
-      throw error;
+      // Get the list of RTM channel members
+    } catch (error) {
+      if (error.code === 5 && retryCount < 3) {
+        console.log("RTM join failed with code 5, retrying...");
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+        return joinRTM(rtmToken, retryCount + 1);
+      } else {
+        console.error("Failed to join RTM after multiple attempts:", error);
+        throw error;
+      }
     }
-  }
-};
-
+  };
 
   // Function to join RTC
   const joinRTC = async () => {
@@ -386,7 +384,6 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
     );
     console.log("Successfully joined RTC channel");
 
-    
     await fetchAndSendDeviceList(config);
     await updateSelectedDevices(config);
 
@@ -403,74 +400,75 @@ const joinRTM = async (rtmToken, retryCount = 0) => {
   };
 
   // Function to join the video stage
-const joinVideoStage = async () => {
-  console.warn("joinVideoStage called");
-
-  try {
-    console.log("Creating and enabling audio track...");
+  const joinVideoStage = async () => {
+    console.warn("joinVideoStage called");
 
     try {
-      // Create and enable a new audio track
-      config.userTracks[config.uid].audioTrack =
-        await AgoraRTC.createMicrophoneAudioTrack();
-      await config.userTracks[config.uid].audioTrack.setEnabled(true);
+      console.log("Creating and enabling audio track...");
 
-      console.log("Audio track created and enabled.");
-      updateMicStatusElement(config.uid, false);
+      try {
+        // Create and enable a new audio track
+        config.userTracks[config.uid].audioTrack =
+          await AgoraRTC.createMicrophoneAudioTrack();
+        await config.userTracks[config.uid].audioTrack.setEnabled(true);
 
-      // Publish the audio track
-      console.log("Publishing audio track...");
-      await config.client.publish([config.userTracks[config.uid].audioTrack]);
-      console.log("Audio track published.");
-    } catch (error) {
-      // Handle specific microphone-related errors
-      if (error.name === "NotAllowedError") {
-        console.warn(
-          "Microphone access denied by the user or browser settings."
+        console.log("Audio track created and enabled.");
+        updateMicStatusElement(config.uid, false);
+
+        // Publish the audio track
+        console.log("Publishing audio track...");
+        await config.client.publish([config.userTracks[config.uid].audioTrack]);
+        console.log("Audio track published.");
+      } catch (error) {
+        // Handle specific microphone-related errors
+        if (error.name === "NotAllowedError") {
+          console.warn(
+            "Microphone access denied by the user or browser settings."
+          );
+        } else if (error.name === "NotFoundError") {
+          console.warn("No microphone found on this device.");
+        } else {
+          console.warn("Unexpected error creating microphone track:", error);
+        }
+
+        // Trigger the Bubble function with "yes" to indicate muted status
+        console.log(
+          "Triggering Bubble function: system muted (no audio available)."
         );
-      } else if (error.name === "NotFoundError") {
-        console.warn("No microphone found on this device.");
-      } else {
-        console.warn("Unexpected error creating microphone track:", error);
+        bubble_fn_systemmuted("yes");
+        updateMicStatusElement(config.uid, true);
       }
-
-      // Trigger the Bubble function with "yes" to indicate muted status
-      console.log(
-        "Triggering Bubble function: system muted (no audio available)."
-      );
-      bubble_fn_systemmuted("yes");
-      updateMicStatusElement(config.uid, true);
-    }
 
       console.log("User is host, performing additional setup");
       await addUserWrapper(config.uid, config);
 
-    updateLayout();
+      updateLayout();
 
-    console.log("Joined the video stage with audio status updated.");
-  } catch (error) {
-    console.error("Error in joinVideoStage:", error);
-  }
-};
-
-// Function to leave the video stage
-const leaveVideoStage = async () => {
-  console.warn("leaveVideoStage called");
-
-  try {
-    // Unpublish and close audio track
-    if (config.userTracks[config.uid].audioTrack) {
-      await config.client.unpublish([config.userTracks[config.uid].audioTrack]);
-      config.userTracks[config.uid].audioTrack.close();
-      config.userTracks[config.uid].audioTrack = null;
+      console.log("Joined the video stage with audio status updated.");
+    } catch (error) {
+      console.error("Error in joinVideoStage:", error);
     }
-    config.isOnStage = false;
-    console.log("Left the video stage successfully");
-  } catch (error) {
-    console.error("Error in leaveVideoStage:", error);
-  }
-};
+  };
 
+  // Function to leave the video stage
+  const leaveVideoStage = async () => {
+    console.warn("leaveVideoStage called");
+
+    try {
+      // Unpublish and close audio track
+      if (config.userTracks[config.uid].audioTrack) {
+        await config.client.unpublish([
+          config.userTracks[config.uid].audioTrack,
+        ]);
+        config.userTracks[config.uid].audioTrack.close();
+        config.userTracks[config.uid].audioTrack = null;
+      }
+      config.isOnStage = false;
+      console.log("Left the video stage successfully");
+    } catch (error) {
+      console.error("Error in leaveVideoStage:", error);
+    }
+  };
 
   // Function to send an RTM message to the channel
   const sendRTMMessage = async (message) => {
@@ -488,6 +486,7 @@ const leaveVideoStage = async () => {
     }
   };
 
+  // Function to handle external role changes
   // Function to handle external role changes
   const onRoleChange = async (newRoleInTheCall) => {
     console.warn(
@@ -528,6 +527,13 @@ const leaveVideoStage = async () => {
       console.warn(
         "RTM client or setLocalUserAttributes method is not available."
       );
+    }
+
+    // Set up event listeners if the new role is not "waiting" and listeners haven't been set up yet
+    if (newRoleInTheCall !== "waiting" && !config.listenersSetUp) {
+      console.log("Setting up event listeners in onRoleChange...");
+      setupEventListeners(config);
+      config.listenersSetUp = true; // Mark listeners as set up
     }
 
     // Handle role change (e.g., join/leave RTC, update UI)
@@ -571,8 +577,6 @@ const leaveVideoStage = async () => {
       );
     }
   };
-
-
 
   // Expose the onRoleChange function for external calls
   config.onRoleChange = onRoleChange;
