@@ -3,6 +3,7 @@ import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging an
 import { fetchTokens } from "./helperFunctions.js";
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
+import { manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
 
 
 export const toggleMic = async (config) => {
