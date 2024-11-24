@@ -310,7 +310,7 @@ export const manageParticipants = async (
   userAttr,
   actionType
 ) => {
-  console.log(
+  console.warn(
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
   updateLayout();
@@ -324,35 +324,42 @@ export const manageParticipants = async (
     JSON.stringify(participantList, null, 2)
   );
 
+  // Ensure consistent UID type
+  const userUidNumber = Number(userUid); // Convert userUid to a number for consistent comparisons
+
   if (actionType === "join") {
     // Find the participant in the list
-    let participantIndex = participantList.findIndex((p) => p.uid === userUid);
+    let participantIndex = participantList.findIndex(
+      (p) => p.uid === userUidNumber
+    );
 
     if (participantIndex === -1) {
       // Add new participant if they don't exist in the list
       const newParticipant = {
-        uid: userUid,
+        uid: userUidNumber, // Store uid as a number
         rtmUid: userAttr.rtmUid || "",
         name: userAttr.name || "Unknown",
         company: userAttr.company || "",
         designation: userAttr.designation || "",
-        avatar: userAttr.avatar,
+        avatar: userAttr.avatar || "https://ui-avatars.com/api/?name=Unknown",
         role: userAttr.role || "audience",
-        bubbleid: userAttr.bubbleid,
+        bubbleid: userAttr.bubbleid || "",
         isRaisingHand: userAttr.isRaisingHand || "no",
         roleInTheCall: userAttr.roleInTheCall || "audience",
       };
       participantList.push(newParticipant);
+      console.log(`Participant ${userUid} has joined.`);
     } else {
       // Update existing participant details if they exist
       participantList[participantIndex] = {
         ...participantList[participantIndex],
         ...userAttr,
       };
+      console.log(`Participant ${userUid} details updated.`);
     }
   } else if (actionType === "leave") {
     // Remove the participant if they are leaving
-    participantList = participantList.filter((p) => p.uid !== userUid);
+    participantList = participantList.filter((p) => p.uid !== userUidNumber);
     config.participantList = participantList; // Update the participantList in config
     console.log(`Participant ${userUid} has left.`);
   } else {
