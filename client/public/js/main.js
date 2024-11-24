@@ -302,7 +302,7 @@ const join = async () => {
         bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
       }
     bubble_fn_joining("Joined");
-    console.warn("ran bubble_fn_joining("Joined")");
+    console.warn("ran bubble_fn_joining");
     }
   } catch (error) {
     console.error("Error during join:", error);
