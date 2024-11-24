@@ -262,7 +262,8 @@ export const setupRTMMessageListener = (
       return;
     }
 
-    const { type, userUid, newRole, newRoleInTheCall } = parsedMessage;
+    const { type, userUid, newRole, newRoleInTheCall, userAttr } =
+      parsedMessage;
 
     // Handle role change messages
     if (type === "roleChange") {
@@ -286,6 +287,21 @@ export const setupRTMMessageListener = (
         `Received userRoleUpdated for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
       );
 
+      // Use the userAttr provided in the message
+      if (!userAttr) {
+        console.warn(
+          `No userAttr provided in userRoleUpdated message for user ${userUid}.`
+        );
+        return;
+      }
+
+      // Remove the user from the participant list
+      await manageParticipants(config, userUid, {}, "leave");
+
+      // Add the user back with updated attributes
+      await manageParticipants(config, userUid, userAttr, "join");
+
+      // Update the UI based on the new role
       // Define roles that require a wrapper
       const rolesRequiringWrapper = [
         "master",
@@ -295,50 +311,19 @@ export const setupRTMMessageListener = (
         "audienceOnStage",
       ];
 
-      // Fetch the user's previous attributes
-      let previousAttributes = {};
-      try {
-        previousAttributes = await config.clientRTM.getUserAttributes(userUid);
+      if (rolesRequiringWrapper.includes(newRoleInTheCall)) {
         console.log(
-          `Previous attributes for user ${userUid}:`,
-          previousAttributes
-        );
-      } catch (error) {
-        console.error(
-          `Failed to retrieve previous attributes for user ${userUid}:`,
-          error
-        );
-      }
-
-      const previousRoleInTheCall = previousAttributes.roleInTheCall;
-
-      // Call manageParticipants to remove the user from the previous role
-      if (previousRoleInTheCall && previousRoleInTheCall !== newRoleInTheCall) {
-        console.log(
-          `Calling manageParticipants to remove user ${userUid} from previous role: ${previousRoleInTheCall}`
-        );
-        await manageParticipants(config, userUid, {}, "leave");
-      }
-
-      // Call addUserWrapper or removeUserWrapper based on the new role
-      if (rolesRequiringWrapper.includes(newRole)) {
-        console.log(
-          `Role ${newRole} requires a video wrapper. Adding if necessary.`
+          `Role ${newRoleInTheCall} requires a video wrapper. Adding if necessary.`
         );
         await addUserWrapper(userUid, config);
       } else {
         console.log(
-          `Role ${newRole} does not require a video wrapper. Removing if exists.`
+          `Role ${newRoleInTheCall} does not require a video wrapper. Removing if exists.`
         );
         removeUserWrapper(userUid);
       }
 
-      // Call manageParticipants to update the user in their new role
-      console.log(
-        `Calling manageParticipants for user ${userUid} with new role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
-      );
-      await manageParticipants(config, userUid, {}, "leave");
-      await manageParticipants(config, userUid, parsedMessage, "join");
+      // Optionally, update other aspects of the UI or state
     }
   });
 
@@ -358,7 +343,6 @@ export const setupRTMMessageListener = (
     "RTM message listener with member join/leave handlers initialized."
   );
 };
-
 
 
 

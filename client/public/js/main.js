@@ -551,6 +551,7 @@ const leaveVideoStage = async () => {
       userUid: config.uid.toString(),
       newRole: config.user.role,
       newRoleInTheCall: newRoleInTheCall,
+      userAttr: attributes, // Include the user attributes
     };
 
     if (config.channelRTM) {

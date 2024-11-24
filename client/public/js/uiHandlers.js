@@ -389,9 +389,6 @@ export const changeUserRole = async (
     console.warn("RTM channel is not initialized.");
   }
 
-  // Update the user's role in config
-  config.user.role = newRole;
-  config.user.roleInTheCall = newRoleInTheCall;
 
   console.log(
     `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
