@@ -276,9 +276,11 @@ const join = async () => {
   try {
     // Ensure RTM is joined
     await ensureRTMJoined();
+    console.warn("ran ensureRTMJoined");
 
     // Handle role-based actions
     await handleRoleChange(config.user.roleInTheCall);
+    console.warn("ran handleRoleChange");
 
     // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
     if (config.user.roleInTheCall !== "waiting") {
@@ -300,6 +302,7 @@ const join = async () => {
         bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
       }
     bubble_fn_joining("Joined");
+    console.warn("ran bubble_fn_joining("Joined")");
     }
   } catch (error) {
     console.error("Error during join:", error);
