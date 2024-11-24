@@ -373,34 +373,6 @@ export const changeUserRole = async (
     `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
 
-  // Prepare the updated attributes
-  const updatedAttributes = {
-    role: newRole,
-    roleInTheCall: newRoleInTheCall,
-  };
-
-  // Retrieve the user's previous role and roleInTheCall
-  const previousRole = config.user.role;
-  const previousRoleInTheCall = config.user.roleInTheCall;
-
-  // Update RTM attributes for the user
-  if (config.clientRTM && config.clientRTM.addOrUpdateAttributes) {
-    try {
-      console.log(`Updating RTM attributes for user ${userUid}.`);
-      await config.clientRTM.addOrUpdateAttributes(userUid, updatedAttributes);
-      console.log(`RTM attributes updated for user ${userUid}.`);
-    } catch (error) {
-      console.error(
-        `Failed to update RTM attributes for user ${userUid}:`,
-        error
-      );
-    }
-  } else {
-    console.warn(
-      "RTM client or addOrUpdateAttributes method is not available."
-    );
-  }
-
   // Define roles that require a wrapper
   const rolesRequiringWrapper = [
     "master",
@@ -411,11 +383,11 @@ export const changeUserRole = async (
   ];
 
   // Call addUserWrapper or removeUserWrapper based on the role
-  if (rolesRequiringWrapper.includes(newRole)) {
+  if (rolesRequiringWrapper.includes(newRoleInTheCall)) {
     console.log(
-      `Role ${newRole} requires a video wrapper. Adding if necessary.`
+      `Role ${newRoleInTheCall} requires a video wrapper. Adding if necessary.`
     );
-    await addUserWrapper({ uid: userUid, ...updatedAttributes }, config);
+    await addUserWrapper(userUid, config);
   } else {
     console.log(
       `Role ${newRole} does not require a video wrapper. Removing if exists.`

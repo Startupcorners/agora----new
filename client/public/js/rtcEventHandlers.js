@@ -506,7 +506,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
           console.log(
             `No wrapper found for user ${userUid}, creating a new one.`
           );
-          await addUserWrapper({ uid: userUid, ...userAttr }, config);
+          await addUserWrapper(userUid, config);
           console.log(`Wrapper successfully created for user ${userUid}.`);
         } else {
           console.log(`Wrapper already exists for user ${userUid}.`);

@@ -2,10 +2,10 @@ import { updateMicStatusElement } from "./uiHandlers.js";
 
 let addUserWrapperRunning = false;
 
-export const addUserWrapper = async (user, config) => {
+export const addUserWrapper = async (uid, config,) => {
   // If already running, skip this execution
   if (addUserWrapperRunning) {
-    console.log(`addUserWrapper is already running for user: ${user.uid}`);
+    console.log(`addUserWrapper is already running for user: ${uid}`);
     return;
   }
 
@@ -13,11 +13,11 @@ export const addUserWrapper = async (user, config) => {
   addUserWrapperRunning = true;
 
   try {
-    const rtmUid = user.uid.toString();
+    const rtmUid = uid.toString();
 
     // Check if the wrapper already exists
-    if (document.querySelector(`#video-wrapper-${user.uid}`)) {
-      console.log(`Wrapper already exists for user: ${user.uid}`);
+    if (document.querySelector(`#video-wrapper-${uid}`)) {
+      console.log(`Wrapper already exists for user: ${uid}`);
       return;
     }
 
@@ -28,7 +28,7 @@ export const addUserWrapper = async (user, config) => {
         userAttr = await config.clientRTM.getUserAttributes(rtmUid);
       } catch (error) {
         console.error(
-          `Failed to fetch user attributes for ${user.uid}:`,
+          `Failed to fetch user attributes for ${uid}:`,
           error
         );
         userAttr = {
@@ -40,7 +40,7 @@ export const addUserWrapper = async (user, config) => {
 
     // Create player HTML with user attributes (name, avatar)
     let playerHTML = config.participantPlayerContainer
-      .replace(/{{uid}}/g, user.uid)
+      .replace(/{{uid}}/g, uid)
       .replace(/{{name}}/g, userAttr.name || "Unknown")
       .replace(/{{avatar}}/g, userAttr.avatar || "default-avatar-url");
 
@@ -49,14 +49,14 @@ export const addUserWrapper = async (user, config) => {
       .querySelector(config.callContainerSelector)
       .insertAdjacentHTML("beforeend", playerHTML);
 
-    console.log(`Added wrapper for user: ${user.uid}`);
+    console.log(`Added wrapper for user: ${uid}`);
 
     // Set audio track and update mic status
     // Check if there is an audio track for the given UID and update mic status
-    if (config.userTracks[user.uid]?.audioTrack) {
-      updateMicStatusElement(user.uid, false); // Mic is active
+    if (config.userTracks[uid]?.audioTrack) {
+      updateMicStatusElement(uid, false); // Mic is active
     } else {
-      updateMicStatusElement(user.uid, true); // Mic is inactive
+      updateMicStatusElement(uid, false); // Mic is inactive
     }
 
     updateLayout();

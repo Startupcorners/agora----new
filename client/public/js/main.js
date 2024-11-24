@@ -441,7 +441,7 @@ const joinVideoStage = async () => {
     }
 
       console.log("User is host, performing additional setup");
-      await addUserWrapper(config, config);
+      await addUserWrapper(config.uid, config);
 
     updateLayout();
 
@@ -487,47 +487,88 @@ const leaveVideoStage = async () => {
   };
 
   // Function to handle external role changes
-const onRoleChange = async (newRoleInTheCall) => {
-  console.warn("onRoleChange called with newRoleInTheCall:", newRoleInTheCall);
-
-  // Retrieve the previous role for cleanup
-  const previousRoleInTheCall = config.user.roleInTheCall;
-
-  // Update the user's role in config
-  config.user.roleInTheCall = newRoleInTheCall;
-  console.warn("bubble_fn_role:", config.user.roleInTheCall);
-  bubble_fn_role(config.user.roleInTheCall);
-
-  // Handle role change
-  await handleRoleChange(newRoleInTheCall);
-
-  // Call manageParticipants to remove the user from the previous role
-  if (previousRoleInTheCall && previousRoleInTheCall !== newRoleInTheCall) {
-    console.log(
-      `Calling manageParticipants to remove user ${config.uid} from previous role: ${previousRoleInTheCall}`
+  const onRoleChange = async (newRoleInTheCall) => {
+    console.warn(
+      "onRoleChange called with newRoleInTheCall:",
+      newRoleInTheCall
     );
-    await manageParticipants(config, config.uid, {}, "leave");
-  }
 
-  // Update participant list for the new role
-  const attributes = {
-    name: config.user.name || "Unknown",
-    avatar: config.user.avatar || "default-avatar-url",
-    company: config.user.company || "Unknown",
-    designation: config.user.designation || "Unknown",
-    role: config.user.role || "audience",
-    rtmUid: config.uid.toString(),
-    bubbleid: config.user.bubbleid,
-    isRaisingHand: config.user.isRaisingHand,
-    sharingScreenUid: "0",
-    roleInTheCall: newRoleInTheCall || "audience",
+    // Retrieve the previous role for cleanup
+    const previousRoleInTheCall = config.user.roleInTheCall;
+
+    // Update the user's role in config
+    config.user.roleInTheCall = newRoleInTheCall;
+    console.warn("bubble_fn_role:", config.user.roleInTheCall);
+    bubble_fn_role(config.user.roleInTheCall);
+
+    // Update the user's attributes in RTM
+    const attributes = {
+      name: config.user.name || "Unknown",
+      avatar: config.user.avatar || "default-avatar-url",
+      company: config.user.company || "Unknown",
+      designation: config.user.designation || "Unknown",
+      role: config.user.role || "audience",
+      rtmUid: config.uid.toString(),
+      bubbleid: config.user.bubbleid,
+      isRaisingHand: config.user.isRaisingHand,
+      sharingScreenUid: "0",
+      roleInTheCall: newRoleInTheCall || "audience",
+    };
+
+    // Update local user attributes in RTM
+    if (
+      config.clientRTM &&
+      typeof config.clientRTM.setLocalUserAttributes === "function"
+    ) {
+      await config.clientRTM.setLocalUserAttributes(attributes);
+      console.log("Local RTM user attributes updated:", attributes);
+    } else {
+      console.warn(
+        "RTM client or setLocalUserAttributes method is not available."
+      );
+    }
+
+    // Handle role change (e.g., join/leave RTC, update UI)
+    await handleRoleChange(newRoleInTheCall);
+
+    // Call manageParticipants to remove the user from the previous role
+    if (previousRoleInTheCall && previousRoleInTheCall !== newRoleInTheCall) {
+      console.log(
+        `Calling manageParticipants to remove user ${config.uid} from previous role: ${previousRoleInTheCall}`
+      );
+      await manageParticipants(config, config.uid, {}, "leave");
+    }
+
+    // Update participant list for the new role
+    console.log(
+      `Calling manageParticipants for user ${config.uid} with new role: ${newRoleInTheCall}`
+    );
+    await manageParticipants(config, config.uid, attributes, "join");
+
+    // Send a message to inform other users about the role change
+    const roleUpdateMessage = {
+      type: "userRoleUpdated",
+      userUid: config.uid.toString(),
+      newRole: config.user.role,
+      newRoleInTheCall: newRoleInTheCall,
+    };
+
+    if (config.channelRTM) {
+      try {
+        await config.channelRTM.sendMessage({
+          text: JSON.stringify(roleUpdateMessage),
+        });
+        console.log("Sent userRoleUpdated message to RTM channel.");
+      } catch (error) {
+        console.error("Failed to send userRoleUpdated message:", error);
+      }
+    } else {
+      console.warn(
+        "RTM channel is not initialized. Cannot send role update message."
+      );
+    }
   };
 
-  console.log(
-    `Calling manageParticipants for user ${config.uid} with new role: ${newRoleInTheCall}`
-  );
-  await manageParticipants(config, config.uid, attributes, "join");
-};
 
 
   // Expose the onRoleChange function for external calls

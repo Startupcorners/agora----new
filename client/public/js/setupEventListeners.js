@@ -245,7 +245,7 @@ export const setupRTMMessageListener = (
   console.log("Current user's rtmUid:", config.user.rtmUid);
 
   // Listen for messages on the RTM channel
-  channelRTM.on("ChannelMessage", async (message, memberId, messagePros) => {
+  channelRTM.on("ChannelMessage", async (message, memberId) => {
     console.log("Received RTM message:", message.text);
 
     // Ignore messages sent by yourself
@@ -262,31 +262,29 @@ export const setupRTMMessageListener = (
       return;
     }
 
-    // Handle role change messages
-    if (parsedMessage.type === "roleChange") {
-      const { userUid, newRole, newRoleInTheCall } = parsedMessage;
-      console.log(
-        `Received role change for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
-      );
+    const { type, userUid, newRole, newRoleInTheCall } = parsedMessage;
 
-      // Check if the role change is for the current user
+    // Handle role change messages
+    if (type === "roleChange") {
       if (userUid === config.user.rtmUid) {
         console.log(
-          "Role change is for the current user. Updating role and calling onRoleChange."
+          "Role change is for the current user. Calling onRoleChange."
         );
-
-        // Update user's role in config
-        config.user.role = newRole;
-        config.user.roleInTheCall = newRoleInTheCall;
-
-        // Call the onRoleChange function
         try {
           await config.onRoleChange(newRoleInTheCall);
           console.log("Successfully handled role change.");
         } catch (error) {
           console.error("Error handling role change:", error);
         }
+      } else {
+        console.log(
+          `Role change message for user ${userUid}, but not current user. Ignoring.`
+        );
       }
+    } else if (type === "userRoleUpdated") {
+      console.log(
+        `Received userRoleUpdated for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
+      );
 
       // Define roles that require a wrapper
       const rolesRequiringWrapper = [
@@ -327,10 +325,7 @@ export const setupRTMMessageListener = (
         console.log(
           `Role ${newRole} requires a video wrapper. Adding if necessary.`
         );
-        await addUserWrapper(
-          { uid: userUid, role: newRole, roleInTheCall: newRoleInTheCall },
-          config
-        );
+        await addUserWrapper(userUid, config);
       } else {
         console.log(
           `Role ${newRole} does not require a video wrapper. Removing if exists.`
@@ -362,6 +357,7 @@ export const setupRTMMessageListener = (
     "RTM message listener with member join/leave handlers initialized."
   );
 };
+
 
 
 
