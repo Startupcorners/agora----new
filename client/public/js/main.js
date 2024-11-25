@@ -117,9 +117,6 @@ export const newMainApp = function (initConfig) {
 
   // Initialize AgoraRTC client
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-  if (config.newRoleInTheCall === "waiting") {
-  client.setClientRole("audience");
-  }
 
   // Initialize the Virtual Background extension
   (async () => {
@@ -242,11 +239,8 @@ export const newMainApp = function (initConfig) {
     console.log("prevRequiresStage:", prevRequiresStage);
     console.log("newRequiresStage:", newRequiresStage);
 
-    if (newRoleInTheCall !== "waiting" && !config.listenersSetUp) {
-      console.log("Setting up event listeners for the first time...");
-      setupEventListeners(config);
-      config.listenersSetUp = true; // Mark listeners as set up
-    }
+    setupEventListeners(config);
+    
 
     // Handle RTC join/leave
     if (!prevRequiresRTC && newRequiresRTC && !config.isRTCJoined) {
@@ -389,6 +383,12 @@ export const newMainApp = function (initConfig) {
 
     await fetchAndSendDeviceList(config);
     await updateSelectedDevices(config);
+    config.userTracks[config.uid].audioTrack =
+    await AgoraRTC.createMicrophoneAudioTrack();
+    await config.userTracks[config.uid].audioTrack.setEnabled(false);
+    config.userTracks[config.uid].audioTrack =
+    await AgoraRTC.createCameraVideoTrack();
+    await config.userTracks[config.uid].videoTrack.setEnabled(false);
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
@@ -412,7 +412,7 @@ export const newMainApp = function (initConfig) {
       try {
         // Create and enable a new audio track
         config.userTracks[config.uid].audioTrack =
-          await AgoraRTC.createMicrophoneAudioTrack();
+        await AgoraRTC.createMicrophoneAudioTrack();
         await config.userTracks[config.uid].audioTrack.setEnabled(true);
 
         console.log("Audio track created and enabled.");
