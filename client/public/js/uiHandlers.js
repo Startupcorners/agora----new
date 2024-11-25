@@ -293,6 +293,7 @@ export const startScreenShare = async (config) => {
     console.log("Publishing screen share video track...");
     await rtcClient.publish(screenShareTrack);
     console.log("Screen share video track published successfully.");
+    bubble_fn_isScreenOn(true);
 
     // Update userTracks
     config.userTracks[screenShareUid] = { videoTrack: screenShareTrack };
@@ -348,6 +349,7 @@ export const stopScreenShare = async (config) => {
     config.userTracks[screenShareUid].videoTrack = null;
 
     console.log("Screen share stopped successfully.");
+    bubble_fn_isScreenOn(false);
   } else {
     console.warn("No screen share track found in userTracks.");
   }
