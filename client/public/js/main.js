@@ -117,6 +117,9 @@ export const newMainApp = function (initConfig) {
 
   // Initialize AgoraRTC client
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+  if (newRoleInTheCall !== "waiting") {
+  client.setClientRole("audience");
+  }
 
   // Initialize the Virtual Background extension
   (async () => {
