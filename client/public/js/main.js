@@ -383,12 +383,6 @@ export const newMainApp = function (initConfig) {
 
     await fetchAndSendDeviceList(config);
     await updateSelectedDevices(config);
-    config.userTracks[config.uid].audioTrack =
-    await AgoraRTC.createMicrophoneAudioTrack();
-    await config.userTracks[config.uid].audioTrack.setEnabled(false);
-    config.userTracks[config.uid].audioTrack =
-    await AgoraRTC.createCameraVideoTrack();
-    await config.userTracks[config.uid].videoTrack.setEnabled(false);
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
