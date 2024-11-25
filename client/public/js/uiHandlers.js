@@ -354,6 +354,7 @@ export const stopScreenShare = async (config) => {
 
   // Toggle UI
   toggleStages(false);
+  playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
 
   // Clear the screen share UID from config
   config.sharingScreenUid = null;
