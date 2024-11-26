@@ -202,21 +202,17 @@
     /* Center bars vertically */
     justify-content: center;
     /* Center bars horizontally */
-    gap: 5px;
+    gap: 3px;
     /* Space between bars */
 }
 
 .bar {
     width: 5px;
-    /* Width of each bar */
     height: 5px;
-    /* Default minimum height for bar 1 & 3 */
     background-color: #ffffff;
-    /* Bars are always white */
     border-radius: 2px;
-    /* Rounded edges */
     transition: height 0.1s ease;
-    /* Faster transition */
+    /* Smooth height changes */
 }
 
 @keyframes animated-bars {
