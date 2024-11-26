@@ -388,16 +388,9 @@ const joinRTC = async () => {
       config.uid
     );
     console.log("Successfully joined RTC channel");
+    console.log(config.client)
 
-    // Unpublish any automatically published tracks
-    if (config.client.localTracks?.length) {
-      console.log("Unpublishing automatically published tracks...");
-      for (const track of config.client.localTracks) {
-        await config.client.unpublish(track);
-        track.close();
-        console.log(`Unpublished and closed track of type: ${track.getType()}`);
-      }
-    }
+    
 
     console.log("All auto-published tracks have been unpublished.");
   } catch (error) {
