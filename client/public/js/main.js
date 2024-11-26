@@ -37,6 +37,7 @@ import {
   stopUserCamera,
   updatePublishingList,
   leave,
+  denyAccess,
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
 export const newMainApp = function (initConfig) {
@@ -584,6 +585,7 @@ const joinRTC = async () => {
     leave,
     toggleVirtualBackground,
     toggleCamera,
+    denyAccess,
     switchCam,
     switchMic,
     switchSpeaker,
