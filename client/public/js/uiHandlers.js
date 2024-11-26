@@ -658,19 +658,19 @@ export const updatePublishingList = (uid, type, action, config) => {
 
 
   // Add the general leave function
-export const leave = async (reason) => {
+export const leave = async (reason, config) => {
   console.warn("leave function called with reason:", reason);
 
   try {
     // Leave RTC if joined
     if (config.isRTCJoined) {
-      await leaveRTC();
+      await leaveRTC(config);
       console.log("Left RTC channel successfully");
     }
 
     // Leave RTM if joined
     if (config.isRTMJoined) {
-      await leaveRTM();
+      await leaveRTM(config);
       console.log("Left RTM channel successfully");
     }
 
@@ -690,7 +690,7 @@ export const leave = async (reason) => {
 };
 
   // Function to leave RTC
-  export const leaveRTC = async () => {
+  export const leaveRTC = async (config) => {
     console.warn("leaveRTC called");
     await config.client.leave();
     config.isRTCJoined = false;
@@ -698,7 +698,7 @@ export const leave = async (reason) => {
   };
 
   // Add the leaveRTM function
-  export const leaveRTM = async () => {
+  export const leaveRTM = async (config) => {
     console.warn("leaveRTM called");
 
     try {
