@@ -671,7 +671,7 @@ export const handleVolumeIndicator = (() => {
           if (audioLevel > 50) {
             audioBars.forEach((bar, index) => {
               // Define height ranges
-              const minHeight = index === 0 || index === 2 ? 5 : 15; // Bar 1 & 3: min 5px, others min 15px
+              const minHeight = 5; // Bar 1 & 3: min 5px, others min 15px
               const maxHeight = index === 0 || index === 2 ? 15 : 25; // Bar 1 & 3: max 15px, others max 25px
 
               // Generate random height within the range
