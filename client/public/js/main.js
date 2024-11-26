@@ -448,24 +448,35 @@ const joinRTC = async () => {
   };
 
   // Function to leave the video stage
-  const leaveVideoStage = async () => {
-    console.warn("leaveVideoStage called");
+const leaveVideoStage = async () => {
+  console.warn("leaveVideoStage called");
 
-    try {
-      // Unpublish and close audio track
-      if (config.userTracks[config.uid].audioTrack) {
-        await config.client.unpublish([
-          config.userTracks[config.uid].audioTrack,
-        ]);
-        config.userTracks[config.uid].audioTrack.close();
-        config.userTracks[config.uid].audioTrack = null;
-      }
-      config.isOnStage = false;
-      console.log("Left the video stage successfully");
-    } catch (error) {
-      console.error("Error in leaveVideoStage:", error);
+  try {
+    // Unpublish and close audio track
+    if (config.userTracks[config.uid]?.audioTrack) {
+      console.log("Unpublishing audio track...");
+      await config.client.unpublish([config.userTracks[config.uid].audioTrack]);
+      config.userTracks[config.uid].audioTrack.close();
+      config.userTracks[config.uid].audioTrack = null;
+      console.log("Audio track unpublished and closed");
     }
-  };
+
+    // Unpublish and close video track
+    if (config.userTracks[config.uid]?.videoTrack) {
+      console.log("Unpublishing video track...");
+      await config.client.unpublish([config.userTracks[config.uid].videoTrack]);
+      config.userTracks[config.uid].videoTrack.close();
+      config.userTracks[config.uid].videoTrack = null;
+      console.log("Video track unpublished and closed");
+    }
+
+    // Update stage status
+    config.isOnStage = false;
+    console.log("Left the video stage successfully");
+  } catch (error) {
+    console.error("Error in leaveVideoStage:", error);
+  }
+};
 
   // Function to send an RTM message to the channel
   const sendRTMMessage = async (message) => {

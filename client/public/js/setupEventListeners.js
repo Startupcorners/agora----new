@@ -299,6 +299,10 @@ export const setupRTMMessageListener = (
       parsedMessage;
 
     if (type === "roleChange") {
+      if (newRoleInTheCall === "audience"){
+        await removeUserWrapper(userUid);
+      }
+      
       if (userUid === config.user.rtmUid) {
         console.log(
           "Role change is for the current user. Calling onRoleChange."
