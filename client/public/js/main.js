@@ -372,13 +372,15 @@ export const newMainApp = function (initConfig) {
   };
 
   // Function to join RTC
-  const joinRTC = async () => {
-    console.warn("joinRTC called");
+const joinRTC = async () => {
+  console.warn("joinRTC called");
 
+  try {
     // Fetch RTC token
     const tokens = await fetchTokens(config);
     if (!tokens) throw new Error("Failed to fetch RTC token");
 
+    // Join the RTC channel
     await config.client.join(
       config.appId,
       config.channelName,
@@ -386,14 +388,22 @@ export const newMainApp = function (initConfig) {
       config.uid
     );
     console.log("Successfully joined RTC channel");
-    console.log(config.client);
-    await fetchAndSendDeviceList(config);
-    await updateSelectedDevices(config);
 
+    // Unpublish any automatically published tracks
+    if (config.client.localTracks?.length) {
+      console.log("Unpublishing automatically published tracks...");
+      for (const track of config.client.localTracks) {
+        await config.client.unpublish(track);
+        track.close();
+        console.log(`Unpublished and closed track of type: ${track.getType()}`);
+      }
+    }
 
-    // Handle token renewal
-    config.client.on("token-privilege-will-expire", handleRenewToken);
-  };
+    console.log("All auto-published tracks have been unpublished.");
+  } catch (error) {
+    console.error("Error during joinRTC:", error);
+  }
+};
 
   // Function to join the video stage
   const joinVideoStage = async () => {
