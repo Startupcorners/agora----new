@@ -385,13 +385,8 @@ export const setupRTMMessageListener = (
   console.log(`Access denied message received for user ${userUid}`);
   if (userUid.toString() === config.user.rtmUid) {
     console.log("Access denied is for the current user. Checking role...");
-    if (config.user.roleInTheCall !== "waiting") {
-      console.log("User is not in 'waiting' role. Triggering leave with 'deniedAccess'.");
-      await leave("deniedAccess", config);
-    } else {
       console.log("User is in 'waiting' role. Triggering leave with 'removed'.");
       await leave("removed", config);
-    }
   }
     } else {
       console.warn("Unhandled RTM message type:", type);
