@@ -213,8 +213,12 @@
     /* Default height (minimum) */
     background-color: #ffffff;
     /* Bars are always white */
+    border-radius: 2px;
+    /* Rounded edges */
     transition: height 0.2s ease;
     /* Smooth transition for height changes */
+    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+        /* Optional shadow */
 }
 
 @keyframes animated-bars {
