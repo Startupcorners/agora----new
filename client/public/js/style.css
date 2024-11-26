@@ -202,13 +202,13 @@
     /* Center bars vertically */
     justify-content: center;
     /* Center bars horizontally */
-    gap: 3px;
+    gap: 2px;
     /* Space between bars */
 }
 
 .bar {
-    width: 5px;
-    height: 5px;
+    width: 3px;
+    height: 3px;
     background-color: #ffffff;
     border-radius: 2px;
     transition: height 0.1s ease;
