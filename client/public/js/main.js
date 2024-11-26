@@ -34,7 +34,8 @@ import {
   updateMicStatusElement,
   stopUserScreenshare,
   stopUserMic,
-  stopUserCamera
+  stopUserCamera,
+  updatePublishingList,
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
 export const newMainApp = function (initConfig) {
