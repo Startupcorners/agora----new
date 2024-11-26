@@ -394,46 +394,36 @@ export const newMainApp = function (initConfig) {
   };
 
   // Add the general leave function
-  const leave = async (reason) => {
-    console.warn("leave function called with reason:", reason);
+const leave = async (reason) => {
+  console.warn("leave function called with reason:", reason);
 
-    try {
-      // Leave RTC if joined
-      if (config.isRTCJoined) {
-        await leaveRTC();
-        console.log("Left RTC channel successfully");
-      }
-
-      // Leave RTM if joined
-      if (config.isRTMJoined) {
-        await leaveRTM();
-        console.log("Left RTM channel successfully");
-      }
-
-      // Call the appropriate Bubble function based on reason
-      if (reason === "left") {
-        if (typeof bubble_fn_left === "function") {
-          bubble_fn_left();
-        }
-      } else if (reason === "removed") {
-        if (typeof bubble_fn_removed === "function") {
-          bubble_fn_removed();
-        }
-      } else if (reason === "deniedAccess") {
-        if (typeof bubble_fn_deniedAccess === "function") {
-          bubble_fn_deniedAccess();
-        };
-        } else if (reason === "connectionIssue") {
-        if (typeof bubble_fn_deniedAccess === "function") {
-          bubble_fn_connectionIssue();
-        }
-      } else {
-        console.warn("Unknown reason for leave, no Bubble function called");
-      }
-    } catch (error) {
-      console.error("Error during leave:", error);
+  try {
+    // Leave RTC if joined
+    if (config.isRTCJoined) {
+      await leaveRTC();
+      console.log("Left RTC channel successfully");
     }
-  };
+
+    // Leave RTM if joined
+    if (config.isRTMJoined) {
+      await leaveRTM();
+      console.log("Left RTM channel successfully");
+    }
+
+    // Determine the appropriate reason
+    const validReasons = ["left", "removed", "deniedAccess", "connectionIssue"];
+    const finalReason = validReasons.includes(reason) ? reason : "other";
+
+    // Call the Bubble function with the final reason
+    if (typeof bubble_fn_leave === "function") {
+      bubble_fn_leave(finalReason);
+    } else {
+      console.warn("bubble_fn_leave is not defined or not a function");
+    }
+  } catch (error) {
+    console.error("Error during leave:", error);
+  }
+};
 
   // Function to leave RTC
   const leaveRTC = async () => {

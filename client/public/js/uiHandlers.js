@@ -116,6 +116,23 @@ const endMic = async (config) => {
       console.log(`Set border to transparent for user ${config.uid}`);
     }
 
+    // Remove the 'animated' class from all bars
+    const waveElement = document.querySelector(`#wave-${config.uid}`);
+    if (waveElement) {
+      const audioBars = waveElement.querySelectorAll(".bar");
+      if (audioBars.length > 0) {
+        audioBars.forEach((bar) => bar.classList.remove("animated"));
+        console.log(
+          `Removed 'animated' class from bars for user ${config.uid}`
+        );
+      } else {
+        console.warn(`No bars found in wave-${config.uid}`);
+      }
+    } else {
+      console.warn(`Wave element not found for user ${config.uid}`);
+    }
+
+    // Notify Bubble that the microphone is off
     bubble_fn_isMicOff(true);
   } catch (error) {
     console.error("Error in endMic for user:", config.uid, error);

@@ -110,11 +110,6 @@ const handleVideoPublished = async (user, userUid, config, client) => {
 
     updatePublishingList(userUid.toString(), "video", "add", config);
     
-    if (!config.userTracks[userUid]) {
-      config.userTracks[userUid] = {};
-    }
-    config.userTracks[userUid].videoTrack = user.videoTrack;
-    console.log("Video tracks: ", config.userTracks);
 
     if (config.sharingScreenUid) {
       playStreamInDiv(config, userUid, "#pip-video-track");
@@ -313,6 +308,21 @@ const handleAudioUnpublished = async (user, userUid, config) => {
     console.log(`Set border to transparent for user ${userUid}`);
   }
 
+  // Remove the 'animated' class from all bars
+  const waveElement = document.querySelector(`#wave-${userUid}`);
+  if (waveElement) {
+    const audioBars = waveElement.querySelectorAll(".bar");
+    if (audioBars.length > 0) {
+      audioBars.forEach((bar) => bar.classList.remove("animated"));
+      console.log(`Removed 'animated' class from bars for user ${userUid}`);
+    } else {
+      console.warn(`No bars found in wave-${userUid}`);
+    }
+  } else {
+    console.warn(`Wave element not found for user ${userUid}`);
+  }
+
+  // Update the publishing list
   updatePublishingList(userUid.toString(), "audio", "remove", config);
 };
 
@@ -639,11 +649,11 @@ export const handleVolumeIndicator = (() => {
 
       const audioLevel = volume.level; // The audio level, used to determine when the user is speaking
       let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
+      let waveElement = document.querySelector(`#wave-${userUID}`);
       console.log(`UID: ${userUID}, Audio Level: ${audioLevel}`);
 
       // Determine the current status based on audio level
       const currentStatus = audioLevel < 3 ? "yes" : "no";
-   
 
       // Apply audio level indicator styles if the wrapper is available
       if (wrapper) {
@@ -654,10 +664,22 @@ export const handleVolumeIndicator = (() => {
         }
       }
 
+      // Add or remove 'animated' class from bars based on audio level
+      if (waveElement) {
+        const audioBars = waveElement.querySelectorAll(".bar");
+        if (audioBars.length > 0) {
+          if (audioLevel > 60) {
+            // Add the animated class to each bar
+            audioBars.forEach((bar) => bar.classList.add("animated"));
+          } else {
+            // Remove the animated class when the user is not speaking
+            audioBars.forEach((bar) => bar.classList.remove("animated"));
+          }
+        }
+      }
+
       // Only process and send notifications for the local user (currentUserUid)
       if (userUID === currentUserUid) {
-
-
         // Notify Bubble only when the status changes
         if (currentStatus !== config.lastMutedStatuses[userUID]) {
           console.log(

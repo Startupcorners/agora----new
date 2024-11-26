@@ -219,11 +219,12 @@ client.on("connection-state-change", async (curState, revState, reason) => {
       }
     } else if (reason === "LEAVE_CHANNEL") {
       console.log("User has left the channel voluntarily.");
+      await leave("left");
       // No action needed; this is a normal leave
     } else {
       console.warn("User has been disconnected for an unknown reason.");
       if (leave && typeof leave === "function") {
-        await leave("leftVoluntarily");
+        await leave("other");
       }
     }
   }

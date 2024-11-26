@@ -183,3 +183,40 @@
     left: 50%;
     transform: translate(-50%, -50%);
 }
+
+.audio-bars {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    /* Space between bars */
+}
+
+.bar {
+    width: 5px;
+    /* Width of each bar */
+    height: 20px;
+    /* Default height */
+    background-color: #ffffff;
+    /* Always white */
+    transition: height 0.2s ease;
+}
+
+@keyframes animated-bars {
+    0% {
+        height: 20px;
+    }
+
+    50% {
+        height: 50px;
+    }
+
+    100% {
+        height: 20px;
+    }
+}
+
+.bar.animated {
+    animation: animated-bars 0.5s infinite;
+    /* Animation only when class is added */
+}
