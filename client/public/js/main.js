@@ -390,8 +390,14 @@ const joinRTC = async () => {
     console.log("Successfully joined RTC channel");
     console.log(config.client)
 
-    
+    const userTrack = config.client.localTracks[0];
 
+    // Check if audioTrack exists before attempting to stop/unpublish
+    if (userTrack.audioTrack) {
+      await config.client.unpublish(userTrack);
+      userTrack.audioTrack.stop();
+      userTrack.audioTrack.close();
+    }
     console.log("All auto-published tracks have been unpublished.");
   } catch (error) {
     console.error("Error during joinRTC:", error);
