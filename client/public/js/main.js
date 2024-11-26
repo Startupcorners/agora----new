@@ -386,9 +386,10 @@ export const newMainApp = function (initConfig) {
       config.uid
     );
     console.log("Successfully joined RTC channel");
-
+    console.log(client);
     await fetchAndSendDeviceList(config);
     await updateSelectedDevices(config);
+
 
     // Handle token renewal
     config.client.on("token-privilege-will-expire", handleRenewToken);
