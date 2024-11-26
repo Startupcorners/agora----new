@@ -393,7 +393,7 @@ const joinRTC = async () => {
     const userTrack = config.client.localTracks[0];
 
     // Check if audioTrack exists before attempting to stop/unpublish
-    if (userTrack.audioTrack) {
+    if (userTrack) {
       await config.client.unpublish(userTrack);
       userTrack.audioTrack.stop();
       userTrack.audioTrack.close();
