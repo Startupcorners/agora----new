@@ -656,19 +656,32 @@ export const updatePublishingList = (uid, type, action, config) => {
   }
 };
 
+let triggeredReason = null;
 
-  // Add the general leave function
-export const leave = async (reason) => {
-  let config = window["newMainApp"].config;
+// Add the general leave function
+export const leave = async (reason, config) => {
+  // Check if leave function has already been triggered
+  if (triggeredReason) {
+    console.warn(
+      `Leave function already triggered with reason: ${triggeredReason}. Ignoring subsequent call.`
+    );
+    return; // Exit if already triggered
+  }
+
   console.warn("leave function called with reason:", reason);
-  config.leaveReason = reason;
+  triggeredReason = reason; // Set the triggered reason to prevent re-entry
 
   try {
-      await leaveRTC(config);
-      console.log("Left RTC channel successfully");
+    // Set the leave reason in the config
+    config.leaveReason = reason;
+
+    // Leave RTC
+    await leaveRTC(config);
+    console.log("Left RTC channel successfully");
+
     // Leave RTM if joined
-      await leaveRTM(config);
-      console.log("Left RTM channel successfully");
+    await leaveRTM(config);
+    console.log("Left RTM channel successfully");
 
     // Determine the appropriate reason
     const validReasons = ["left", "removed", "deniedAccess", "connectionIssue"];
@@ -682,6 +695,9 @@ export const leave = async (reason) => {
     }
   } catch (error) {
     console.error("Error during leave:", error);
+  } finally {
+    // Reset the triggeredReason after the function completes
+    triggeredReason = null;
   }
 };
 
