@@ -657,8 +657,8 @@ export const handleVolumeIndicator = (() => {
 
       // Apply audio level indicator styles if the wrapper is available
       if (wrapper) {
-        if (audioLevel > 60) {
-          wrapper.style.borderColor = "#00ff00"; // Green when the user is speaking
+        if (audioLevel > 50) {
+          wrapper.style.borderColor = "#1a73e8"; // Blue when the user is speaking
         } else {
           wrapper.style.borderColor = "transparent"; // Transparent when not speaking
         }
@@ -668,14 +668,23 @@ export const handleVolumeIndicator = (() => {
       if (waveElement) {
         const audioBars = waveElement.querySelectorAll(".bar");
         if (audioBars.length > 0) {
-          if (audioLevel > 60) {
-            audioBars.forEach((bar) => {
-              const randomHeight = Math.floor(Math.random() * 11) + 15; // Random height between 15px and 25px
+          if (audioLevel > 50) {
+            audioBars.forEach((bar, index) => {
+              // Define height ranges
+              const minHeight = index === 0 || index === 2 ? 5 : 15; // Bar 1 & 3: min 5px, others min 15px
+              const maxHeight = index === 0 || index === 2 ? 15 : 25; // Bar 1 & 3: max 15px, others max 25px
+
+              // Generate random height within the range
+              const randomHeight =
+                Math.floor(Math.random() * (maxHeight - minHeight + 1)) +
+                minHeight;
+
               bar.style.height = `${randomHeight}px`;
             });
           } else {
-            audioBars.forEach((bar) => {
-              bar.style.height = "15px"; // Set to minimum height when not speaking
+            // Reset all bars to their minimum height when not speaking
+            audioBars.forEach((bar, index) => {
+              bar.style.height = `${index === 0 || index === 2 ? 5 : 15}px`; // Bar 1 & 3: min 5px, others min 15px
             });
           }
         }
@@ -699,6 +708,7 @@ export const handleVolumeIndicator = (() => {
     }
   };
 })();
+
 
 
 
