@@ -659,7 +659,7 @@ export const updatePublishingList = (uid, type, action, config) => {
 
   // Add the general leave function
 export const leave = async (reason) => {
-  config = window["newMainApp"].config;
+  let config = window["newMainApp"].config;
   console.warn("leave function called with reason:", reason);
   config.leaveReason = reason;
 
