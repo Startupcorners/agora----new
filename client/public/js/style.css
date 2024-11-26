@@ -184,10 +184,24 @@
     transform: translate(-50%, -50%);
 }
 
+.wave {
+    display: flex;
+    align-items: center;
+    /* Center vertically */
+    justify-content: center;
+    /* Center horizontally */
+    height: 100%;
+    /* Ensure it fills the parent's height */
+    width: 100%;
+    /* Ensure it fills the parent's width */
+}
+
 .audio-bars {
     display: flex;
     align-items: center;
+    /* Center bars vertically */
     justify-content: center;
+    /* Center bars horizontally */
     gap: 5px;
     /* Space between bars */
 }
@@ -196,9 +210,9 @@
     width: 5px;
     /* Width of each bar */
     height: 15px;
-    /* Default height */
+    /* Default height (minimum) */
     background-color: #ffffff;
-    /* Always white */
+    /* Bars are always white */
     transition: height 0.2s ease;
     /* Smooth transition for height changes */
 }
