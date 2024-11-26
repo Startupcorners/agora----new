@@ -326,7 +326,7 @@ export const setupRTMMessageListener = (
     } else if (type === "stopCamera") {
       // Handle "stopCamera" message
       console.log(`Stop camera message received for user ${userUid}`);
-      if (userUid === config.user.rtmUid) {
+      if (userUid.toString() === config.user.rtmUid) {
         console.log(
           "stopCamera if for the current user. Calling toggleCamera."
         );
@@ -335,16 +335,14 @@ export const setupRTMMessageListener = (
     } else if (type === "stopMic") {
       // Handle "stopMic" message
       console.log(`Stop mic message received for user ${userUid}`);
-      if (userUid === config.user.rtmUid) {
-        console.log(
-          "stopMic if for the current user. Calling toggleMic."
-        );
+      if (userUid.toString() === config.user.rtmUid) {
+        console.log("stopMic if for the current user. Calling toggleMic.");
         toggleMic(config);
       }
     } else if (type === "stopScreenshare") {
       // Handle "stopScreenshare" message
       console.log(`Stop screenshare message received for user ${userUid}`);
-      if (userUid === config.user.rtmUid) {
+      if (userUid.toString() === config.user.rtmUid) {
         console.log(
           "stopScreenshare if for the current user. Calling toggleScreenShare."
         );
