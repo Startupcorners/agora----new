@@ -7,6 +7,7 @@ import {
   handleVolumeIndicator,
 } from "./rtcEventHandlers.js";
 import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js";
+import { leave } from "./main.js";
 import {
   fetchTokens,
   switchCam,
@@ -203,6 +204,31 @@ config.client.on("onMicrophoneChanged", async (info) => {
   }
 });
 
+client.on("connection-state-change", async (curState, revState, reason) => {
+  console.log(
+    `Connection state changed from ${revState} to ${curState} due to ${reason}`
+  );
+
+  if (curState === "DISCONNECTED") {
+    if (reason === "NETWORK_ERROR" || reason === "FAILURE") {
+      console.warn("User has been disconnected due to network issues.");
+      if (leave && typeof leave === "function") {
+        await leave("connectionIssue");
+      } else {
+        console.warn("Leave function is not available");
+      }
+    } else if (reason === "LEAVE_CHANNEL") {
+      console.log("User has left the channel voluntarily.");
+      // No action needed; this is a normal leave
+    } else {
+      console.warn("User has been disconnected for an unknown reason.");
+      if (leave && typeof leave === "function") {
+        await leave("leftVoluntarily");
+      }
+    }
+  }
+});
+
 config.client.on("onCameraChanged", async (info) => {
   console.log("Camera device change detected:", info);
   await fetchAndSendDeviceList();
@@ -265,7 +291,6 @@ export const setupRTMMessageListener = (
     const { type, userUid, newRole, newRoleInTheCall, userAttr } =
       parsedMessage;
 
-    // Handle role change messages
     if (type === "roleChange") {
       if (userUid === config.user.rtmUid) {
         console.log(
@@ -348,6 +373,20 @@ export const setupRTMMessageListener = (
         );
         toggleScreenShare(config);
       }
+    } else if (type === "accessDenied") {
+      // Handle "accessDenied" message
+      console.log(`Access denied message received for user ${userUid}`);
+      if (userUid.toString() === config.user.rtmUid) {
+        console.log("accessDenied is for the current user. Triggering leave.");
+        await config.leave("deniedAccess");
+      }
+    } else if (type === "userRemoved") {
+      // Handle "userRemoved" message
+      console.log(`User removed message received for user ${userUid}`);
+      if (userUid.toString() === config.user.rtmUid) {
+        console.log("userRemoved is for the current user. Triggering leave.");
+        await config.leave("removed");
+      }
     } else {
       console.warn("Unhandled RTM message type:", type);
     }
@@ -371,6 +410,7 @@ export const setupRTMMessageListener = (
     "RTM message listener with member join/leave handlers initialized."
   );
 };
+
 
 
 

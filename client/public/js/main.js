@@ -246,7 +246,6 @@ export const newMainApp = function (initConfig) {
     console.log("newRequiresStage:", newRequiresStage);
 
     setupEventListeners(config);
-    
 
     // Handle RTC join/leave
     if (!prevRequiresRTC && newRequiresRTC && !config.isRTCJoined) {
@@ -394,12 +393,75 @@ export const newMainApp = function (initConfig) {
     config.client.on("token-privilege-will-expire", handleRenewToken);
   };
 
+  // Add the general leave function
+  const leave = async (reason) => {
+    console.warn("leave function called with reason:", reason);
+
+    try {
+      // Leave RTC if joined
+      if (config.isRTCJoined) {
+        await leaveRTC();
+        console.log("Left RTC channel successfully");
+      }
+
+      // Leave RTM if joined
+      if (config.isRTMJoined) {
+        await leaveRTM();
+        console.log("Left RTM channel successfully");
+      }
+
+      // Call the appropriate Bubble function based on reason
+      if (reason === "left") {
+        if (typeof bubble_fn_left === "function") {
+          bubble_fn_left();
+        }
+      } else if (reason === "removed") {
+        if (typeof bubble_fn_removed === "function") {
+          bubble_fn_removed();
+        }
+      } else if (reason === "deniedAccess") {
+        if (typeof bubble_fn_deniedAccess === "function") {
+          bubble_fn_deniedAccess();
+        };
+        } else if (reason === "connectionIssue") {
+        if (typeof bubble_fn_deniedAccess === "function") {
+          bubble_fn_connectionIssue();
+        }
+      } else {
+        console.warn("Unknown reason for leave, no Bubble function called");
+      }
+    } catch (error) {
+      console.error("Error during leave:", error);
+    }
+  };
+
   // Function to leave RTC
   const leaveRTC = async () => {
     console.warn("leaveRTC called");
     await config.client.leave();
     config.isRTCJoined = false;
     console.log("Successfully left RTC channel");
+  };
+
+  // Add the leaveRTM function
+  const leaveRTM = async () => {
+    console.warn("leaveRTM called");
+
+    try {
+      if (config.channelRTM) {
+        await config.channelRTM.leave();
+        console.log("Left the RTM channel successfully");
+        config.channelRTM = null;
+      }
+      if (config.clientRTM) {
+        await config.clientRTM.logout();
+        console.log("Logged out from RTM client successfully");
+        config.clientRTM = null;
+      }
+      config.isRTMJoined = false;
+    } catch (error) {
+      console.error("Error in leaveRTM:", error);
+    }
   };
 
   // Function to join the video stage
@@ -412,7 +474,7 @@ export const newMainApp = function (initConfig) {
       try {
         // Create and enable a new audio track
         config.userTracks[config.uid].audioTrack =
-        await AgoraRTC.createMicrophoneAudioTrack();
+          await AgoraRTC.createMicrophoneAudioTrack();
         await config.userTracks[config.uid].audioTrack.setEnabled(true);
 
         console.log("Audio track created and enabled.");
@@ -589,9 +651,9 @@ export const newMainApp = function (initConfig) {
   return {
     config,
     join,
-    joinToVideoStage: joinVideoStage,
     toggleMic,
     toggleVirtualBackground,
+    leave,
     toggleCamera,
     switchCam,
     switchMic,

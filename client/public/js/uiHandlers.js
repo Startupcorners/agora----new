@@ -537,6 +537,55 @@ export const stopUserMic = async (userUid, config) => {
   console.log(`Stop mic request for user ${userUid} completed.`);
 };
 
+export const denyAccess = async (userUid, config) => {
+  console.log(`Denying access for user ${userUid}`);
+
+  // Check if the RTM channel is initialized
+  if (config.channelRTM) {
+    const message = JSON.stringify({
+      type: "accessDenied",
+      userUid: userUid,
+    });
+
+    // Send the message to the RTM channel
+    try {
+      await config.channelRTM.sendMessage({ text: message });
+      console.log(`Access denied message sent to RTM channel: ${message}`);
+    } catch (error) {
+      console.error(`Failed to send access denied message: ${error}`);
+    }
+  } else {
+    console.warn("RTM channel is not initialized.");
+  }
+
+  console.log(`Deny access request for user ${userUid} completed.`);
+};
+
+
+export const removeFromCall = async (userUid, config) => {
+  console.log(`Removing user ${userUid} from the call`);
+
+  // Check if the RTM channel is initialized
+  if (config.channelRTM) {
+    const message = JSON.stringify({
+      type: "userRemoved",
+      userUid: userUid,
+    });
+
+    // Send the message to the RTM channel
+    try {
+      await config.channelRTM.sendMessage({ text: message });
+      console.log(`User removal message sent to RTM channel: ${message}`);
+    } catch (error) {
+      console.error(`Failed to send user removal message: ${error}`);
+    }
+  } else {
+    console.warn("RTM channel is not initialized.");
+  }
+
+  console.log(`Remove from call request for user ${userUid} completed.`);
+};
+
 
 export const stopUserScreenshare = async (userUid, config) => {
   console.log(`Sending stop screenshare message for user ${userUid}`);
