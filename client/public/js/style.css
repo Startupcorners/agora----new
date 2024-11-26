@@ -195,11 +195,12 @@
 .bar {
     width: 5px;
     /* Width of each bar */
-    height: 20px;
+    height: 15px;
     /* Default height */
     background-color: #ffffff;
     /* Always white */
     transition: height 0.2s ease;
+    /* Smooth transition for height changes */
 }
 
 @keyframes animated-bars {

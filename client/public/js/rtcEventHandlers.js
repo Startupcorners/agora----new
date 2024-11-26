@@ -664,16 +664,19 @@ export const handleVolumeIndicator = (() => {
         }
       }
 
-      // Add or remove 'animated' class from bars based on audio level
+      // Update the height of the bars dynamically
       if (waveElement) {
         const audioBars = waveElement.querySelectorAll(".bar");
         if (audioBars.length > 0) {
           if (audioLevel > 60) {
-            // Add the animated class to each bar
-            audioBars.forEach((bar) => bar.classList.add("animated"));
+            audioBars.forEach((bar) => {
+              const randomHeight = Math.floor(Math.random() * 11) + 15; // Random height between 15px and 25px
+              bar.style.height = `${randomHeight}px`;
+            });
           } else {
-            // Remove the animated class when the user is not speaking
-            audioBars.forEach((bar) => bar.classList.remove("animated"));
+            audioBars.forEach((bar) => {
+              bar.style.height = "15px"; // Set to minimum height when not speaking
+            });
           }
         }
       }
@@ -696,6 +699,7 @@ export const handleVolumeIndicator = (() => {
     }
   };
 })();
+
 
 
 
