@@ -660,19 +660,14 @@ export const updatePublishingList = (uid, type, action, config) => {
   // Add the general leave function
 export const leave = async (reason, config) => {
   console.warn("leave function called with reason:", reason);
+  config.leaveReason = reason;
 
   try {
-    // Leave RTC if joined
-    if (config.isRTCJoined) {
       await leaveRTC(config);
       console.log("Left RTC channel successfully");
-    }
-
     // Leave RTM if joined
-    if (config.isRTMJoined) {
       await leaveRTM(config);
       console.log("Left RTM channel successfully");
-    }
 
     // Determine the appropriate reason
     const validReasons = ["left", "removed", "deniedAccess", "connectionIssue"];
