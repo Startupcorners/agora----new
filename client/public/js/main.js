@@ -386,7 +386,7 @@ export const newMainApp = function (initConfig) {
       config.uid
     );
     console.log("Successfully joined RTC channel");
-    console.log(client);
+    console.log(config.client);
     await fetchAndSendDeviceList(config);
     await updateSelectedDevices(config);
 
