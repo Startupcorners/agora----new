@@ -430,6 +430,7 @@ export const stopScreenShare = async (config) => {
 
   // Clear the screen share UID from config
   config.sharingScreenUid = null;
+  bubble_fn_userSharingScreen(config.sharingScreenUid);
 };
 
 
