@@ -103,16 +103,18 @@ const handleVideoPublished = async (user, userUid, config, client) => {
 
   // General video handling for other users
   try {
-    if (!config.userTracks[userUid]) {
-      config.userTracks[userUid] = {};
-    }
-    console.log("Video tracks: ", config.userTracks);
+    
 
     await client.subscribe(user, "video");
     console.log(`Subscribed to video track for user ${userUid}`);
 
     updatePublishingList(userUid.toString(), "video", "add", config);
     
+    if (!config.userTracks[userUid]) {
+      config.userTracks[userUid] = {};
+    }
+    config.userTracks[userUid].videoTrack = user.videoTrack;
+    console.log("Video tracks: ", config.userTracks);
 
     if (config.sharingScreenUid) {
       playStreamInDiv(config, userUid, "#pip-video-track");
