@@ -4,7 +4,7 @@ import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import {
   toggleStages,
 } from "./videoHandlers.js";
-import { updateMicStatusElement } from "./uiHandlers.js"; 
+import { updatePublishingList} from "./uiHandlers.js"; 
 import { playStreamInDiv } from "./videoHandlers.js"; 
 const userJoinPromises = {};
 
