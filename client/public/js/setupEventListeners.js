@@ -214,18 +214,18 @@ client.on("connection-state-change", async (curState, revState, reason) => {
     if (reason === "NETWORK_ERROR" || reason === "FAILURE") {
       console.warn("User has been disconnected due to network issues.");
       if (leave && typeof leave === "function") {
-        await leave("connectionIssue", config);
+        await leave("connectionIssue", window["newMainApp"].config);
       } else {
         console.warn("Leave function is not available");
       }
     } else if (reason === "LEAVE_CHANNEL") {
       console.log("User has left the channel voluntarily.");
-      await leave("left", config);
+      await leave("left", window["newMainApp"].config);
       // No action needed; this is a normal leave
     } else {
       console.warn("User has been disconnected for an unknown reason.");
       if (leave && typeof leave === "function") {
-        await leave("other", config);
+        await leave("other", window["newMainApp"].config);
       }
     }
   } else if (config.leaveReason) {
@@ -387,10 +387,10 @@ export const setupRTMMessageListener = (
     console.log("Access denied is for the current user. Checking role...");
     if (config.user.roleInTheCall !== "waiting") {
       console.log("User is not in 'waiting' role. Triggering leave with 'deniedAccess'.");
-      await leave("deniedAccess", config);
+      await leave("deniedAccess", window["newMainApp"].config);
     } else {
       console.log("User is in 'waiting' role. Triggering leave with 'removed'.");
-      await leave("removed", config);
+      await leave("removed", window["newMainApp"].config);
     }
   }
     } else {

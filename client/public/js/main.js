@@ -526,13 +526,6 @@ const joinRTC = async () => {
       );
     }
 
-    // Set up event listeners if the new role is not "waiting" and listeners haven't been set up yet
-    if (newRoleInTheCall !== "waiting" && !config.listenersSetUp) {
-      console.log("Setting up event listeners in onRoleChange...");
-      setupEventListeners(config);
-      config.listenersSetUp = true; // Mark listeners as set up
-    }
-
     // Handle role change (e.g., join/leave RTC, update UI)
     await handleRoleChange(newRoleInTheCall);
 
