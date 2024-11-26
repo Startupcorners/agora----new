@@ -679,3 +679,65 @@ export const updatePublishingList = (uid, type, action, config) => {
     console.warn(`Bubble function for ${type} publishing is not defined.`);
   }
 };
+
+
+  // Add the general leave function
+export const leave = async (reason) => {
+  console.warn("leave function called with reason:", reason);
+
+  try {
+    // Leave RTC if joined
+    if (config.isRTCJoined) {
+      await leaveRTC();
+      console.log("Left RTC channel successfully");
+    }
+
+    // Leave RTM if joined
+    if (config.isRTMJoined) {
+      await leaveRTM();
+      console.log("Left RTM channel successfully");
+    }
+
+    // Determine the appropriate reason
+    const validReasons = ["left", "removed", "deniedAccess", "connectionIssue", "left"];
+    const finalReason = validReasons.includes(reason) ? reason : "other";
+
+    // Call the Bubble function with the final reason
+    if (typeof bubble_fn_leave === "function") {
+      bubble_fn_leave(finalReason);
+    } else {
+      console.warn("bubble_fn_leave is not defined or not a function");
+    }
+  } catch (error) {
+    console.error("Error during leave:", error);
+  }
+};
+
+  // Function to leave RTC
+  export const leaveRTC = async () => {
+    console.warn("leaveRTC called");
+    await config.client.leave();
+    config.isRTCJoined = false;
+    console.log("Successfully left RTC channel");
+  };
+
+  // Add the leaveRTM function
+  export const leaveRTM = async () => {
+    console.warn("leaveRTM called");
+
+    try {
+      if (config.channelRTM) {
+        await config.channelRTM.leave();
+        console.log("Left the RTM channel successfully");
+        config.channelRTM = null;
+      }
+      if (config.clientRTM) {
+        await config.clientRTM.logout();
+        console.log("Logged out from RTM client successfully");
+        config.clientRTM = null;
+      }
+      config.isRTMJoined = false;
+    } catch (error) {
+      console.error("Error in leaveRTM:", error);
+    }
+  };
