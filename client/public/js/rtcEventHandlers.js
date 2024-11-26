@@ -681,8 +681,8 @@ export const handleVolumeIndicator = (() => {
               config.speakingIntervals[userUID] = setInterval(() => {
                 audioBars.forEach((bar, index) => {
                   // Define height ranges
-                  const minHeight = 5; // Minimum height
-                  const maxHeight = 15; // Maximum height
+                  const minHeight = 3; // Minimum height
+                  const maxHeight = 12; // Maximum height
 
                   // Generate random height within the range
                   const randomHeight =
