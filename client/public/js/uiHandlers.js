@@ -579,30 +579,6 @@ export const denyAccess = async (userUid, config) => {
 };
 
 
-export const removeFromCall = async (userUid, config) => {
-  console.log(`Removing user ${userUid} from the call`);
-
-  // Check if the RTM channel is initialized
-  if (config.channelRTM) {
-    const message = JSON.stringify({
-      type: "userRemoved",
-      userUid: userUid,
-    });
-
-    // Send the message to the RTM channel
-    try {
-      await config.channelRTM.sendMessage({ text: message });
-      console.log(`User removal message sent to RTM channel: ${message}`);
-    } catch (error) {
-      console.error(`Failed to send user removal message: ${error}`);
-    }
-  } else {
-    console.warn("RTM channel is not initialized.");
-  }
-
-  console.log(`Remove from call request for user ${userUid} completed.`);
-};
-
 
 export const stopUserScreenshare = async (userUid, config) => {
   console.log(`Sending stop screenshare message for user ${userUid}`);
@@ -699,7 +675,7 @@ export const leave = async (reason) => {
     }
 
     // Determine the appropriate reason
-    const validReasons = ["left", "removed", "deniedAccess", "connectionIssue", "left"];
+    const validReasons = ["left", "removed", "deniedAccess", "connectionIssue"];
     const finalReason = validReasons.includes(reason) ? reason : "other";
 
     // Call the Bubble function with the final reason

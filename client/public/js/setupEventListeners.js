@@ -374,19 +374,18 @@ export const setupRTMMessageListener = (
         toggleScreenShare(config);
       }
     } else if (type === "accessDenied") {
-      // Handle "accessDenied" message
-      console.log(`Access denied message received for user ${userUid}`);
-      if (userUid.toString() === config.user.rtmUid) {
-        console.log("accessDenied is for the current user. Triggering leave.");
-        await config.leave("deniedAccess");
-      }
-    } else if (type === "userRemoved") {
-      // Handle "userRemoved" message
-      console.log(`User removed message received for user ${userUid}`);
-      if (userUid.toString() === config.user.rtmUid) {
-        console.log("userRemoved is for the current user. Triggering leave.");
-        await config.leave("removed");
-      }
+  // Handle "accessDenied" message
+  console.log(`Access denied message received for user ${userUid}`);
+  if (userUid.toString() === config.user.rtmUid) {
+    console.log("Access denied is for the current user. Checking role...");
+    if (config.user.roleInTheCall !== "waiting") {
+      console.log("User is not in 'waiting' role. Triggering leave with 'deniedAccess'.");
+      await leave("deniedAccess");
+    } else {
+      console.log("User is in 'waiting' role. Triggering leave with 'removed'.");
+      await leave("removed");
+    }
+  }
     } else {
       console.warn("Unhandled RTM message type:", type);
     }
