@@ -6,7 +6,7 @@ import {
   handleUserLeft,
   handleVolumeIndicator,
 } from "./rtcEventHandlers.js";
-import { toggleMic, updateMicStatusElement } from "./uiHandlers.js";
+import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js";
 import {
   fetchTokens,
   switchCam,
@@ -327,49 +327,28 @@ export const setupRTMMessageListener = (
       // Handle "stopCamera" message
       console.log(`Stop camera message received for user ${userUid}`);
       if (userUid === config.user.rtmUid) {
-        const videoTrack = config.userTracks[config.user.rtmUid]?.videoTrack;
-        if (videoTrack) {
-          videoTrack.stop();
-          videoTrack.close();
-          config.userTracks[config.user.rtmUid].videoTrack = null;
-          console.log("Camera turned off for user:", config.user.rtmUid);
-        } else {
-          console.warn("Camera is already off for user:", config.user.rtmUid);
-        }
+        console.log(
+          "stopCamera if for the current user. Calling toggleCamera."
+        );
+        toggleCamera(config);
       }
     } else if (type === "stopMic") {
       // Handle "stopMic" message
       console.log(`Stop mic message received for user ${userUid}`);
       if (userUid === config.user.rtmUid) {
-        const audioTrack = config.userTracks[config.user.rtmUid]?.audioTrack;
-        if (audioTrack) {
-          audioTrack.stop();
-          audioTrack.close();
-          config.userTracks[config.user.rtmUid].audioTrack = null;
-          console.log("Microphone turned off for user:", config.user.rtmUid);
-        } else {
-          console.warn(
-            "Microphone is already off for user:",
-            config.user.rtmUid
-          );
-        }
+        console.log(
+          "stopMic if for the current user. Calling toggleMic."
+        );
+        toggleMic(config);
       }
     } else if (type === "stopScreenshare") {
       // Handle "stopScreenshare" message
       console.log(`Stop screenshare message received for user ${userUid}`);
       if (userUid === config.user.rtmUid) {
-        const screenTrack = config.userTracks[config.user.rtmUid]?.screenTrack;
-        if (screenTrack) {
-          screenTrack.stop();
-          screenTrack.close();
-          config.userTracks[config.user.rtmUid].screenTrack = null;
-          console.log("Screenshare stopped for user:", config.user.rtmUid);
-        } else {
-          console.warn(
-            "Screenshare is already off for user:",
-            config.user.rtmUid
-          );
-        }
+        console.log(
+          "stopScreenshare if for the current user. Calling toggleScreenShare."
+        );
+        toggleScreenShare(config);
       }
     } else {
       console.warn("Unhandled RTM message type:", type);
