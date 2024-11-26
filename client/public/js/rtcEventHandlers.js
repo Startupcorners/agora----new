@@ -639,6 +639,11 @@ export const handleVolumeIndicator = (() => {
   return async (result, config) => {
     const currentUserUid = config.uid; // Extract the current user's UID from the config
 
+    // Initialize the speakingIntervals object if it doesn't exist
+    if (!config.speakingIntervals) {
+      config.speakingIntervals = {};
+    }
+
     for (const volume of result) {
       const userUID = volume.uid;
 
@@ -664,34 +669,54 @@ export const handleVolumeIndicator = (() => {
         }
       }
 
-      // Update the height of the bars dynamically
       if (waveElement) {
         const audioBars = waveElement.querySelectorAll(".bar");
         if (audioBars.length > 0) {
           if (audioLevel > 50) {
-            audioBars.forEach((bar, index) => {
-              // Define height ranges
-              const minHeight = 5; // Bar 1 & 3: min 5px, others min 15px
-              const maxHeight = index === 0 || index === 2 ? 15 : 25; // Bar 1 & 3: max 15px, others max 25px
+            // User is speaking
 
-              // Generate random height within the range
-              const randomHeight =
-                Math.floor(Math.random() * (maxHeight - minHeight + 1)) +
-                minHeight;
+            // If we don't already have an interval for this user, create one
+            if (!config.speakingIntervals[userUID]) {
+              // Start interval to update bars
+              config.speakingIntervals[userUID] = setInterval(() => {
+                audioBars.forEach((bar, index) => {
+                  // Define height ranges
+                  const minHeight = 5; // Minimum height
+                  const maxHeight = 25; // Maximum height
 
-              bar.style.height = `${randomHeight}px`;
-            });
+                  // Generate random height within the range
+                  const randomHeight =
+                    Math.floor(Math.random() * (maxHeight - minHeight + 1)) +
+                    minHeight;
+
+                  bar.style.height = `${randomHeight}px`;
+                });
+              }, 100); // Update every 100ms
+            }
           } else {
-            // Reset all bars to their minimum height when not speaking
-            audioBars.forEach((bar, index) => {
-              bar.style.height = `${index === 0 || index === 2 ? 5 : 15}px`; // Bar 1 & 3: min 5px, others min 15px
-            });
+            // User is not speaking
+
+            // If we have an interval for this user, clear it
+            if (config.speakingIntervals[userUID]) {
+              clearInterval(config.speakingIntervals[userUID]);
+              delete config.speakingIntervals[userUID];
+
+              // Reset bars to minimum height
+              audioBars.forEach((bar) => {
+                bar.style.height = `5px`; // Reset to minimum height
+              });
+            }
           }
         }
       }
 
       // Only process and send notifications for the local user (currentUserUid)
       if (userUID === currentUserUid) {
+        // Initialize lastMutedStatuses if it doesn't exist
+        if (!config.lastMutedStatuses) {
+          config.lastMutedStatuses = {};
+        }
+
         // Notify Bubble only when the status changes
         if (currentStatus !== config.lastMutedStatuses[userUID]) {
           console.log(
@@ -708,6 +733,7 @@ export const handleVolumeIndicator = (() => {
     }
   };
 })();
+
 
 
 
