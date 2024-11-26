@@ -6,8 +6,7 @@ import {
   handleUserLeft,
   handleVolumeIndicator,
 } from "./rtcEventHandlers.js";
-import { toggleMic, toggleCamera, toggleScreenShare } from "./uiHandlers.js";
-import { leave } from "./main.js";
+import { toggleMic, toggleCamera, toggleScreenShare, leave } from "./uiHandlers.js";
 import {
   fetchTokens,
   switchCam,

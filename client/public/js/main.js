@@ -36,6 +36,7 @@ import {
   stopUserMic,
   stopUserCamera,
   updatePublishingList,
+  leave,
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
 export const newMainApp = function (initConfig) {
@@ -393,67 +394,6 @@ export const newMainApp = function (initConfig) {
     config.client.on("token-privilege-will-expire", handleRenewToken);
   };
 
-  // Add the general leave function
-const leave = async (reason) => {
-  console.warn("leave function called with reason:", reason);
-
-  try {
-    // Leave RTC if joined
-    if (config.isRTCJoined) {
-      await leaveRTC();
-      console.log("Left RTC channel successfully");
-    }
-
-    // Leave RTM if joined
-    if (config.isRTMJoined) {
-      await leaveRTM();
-      console.log("Left RTM channel successfully");
-    }
-
-    // Determine the appropriate reason
-    const validReasons = ["left", "removed", "deniedAccess", "connectionIssue"];
-    const finalReason = validReasons.includes(reason) ? reason : "other";
-
-    // Call the Bubble function with the final reason
-    if (typeof bubble_fn_leave === "function") {
-      bubble_fn_leave(finalReason);
-    } else {
-      console.warn("bubble_fn_leave is not defined or not a function");
-    }
-  } catch (error) {
-    console.error("Error during leave:", error);
-  }
-};
-
-  // Function to leave RTC
-  const leaveRTC = async () => {
-    console.warn("leaveRTC called");
-    await config.client.leave();
-    config.isRTCJoined = false;
-    console.log("Successfully left RTC channel");
-  };
-
-  // Add the leaveRTM function
-  const leaveRTM = async () => {
-    console.warn("leaveRTM called");
-
-    try {
-      if (config.channelRTM) {
-        await config.channelRTM.leave();
-        console.log("Left the RTM channel successfully");
-        config.channelRTM = null;
-      }
-      if (config.clientRTM) {
-        await config.clientRTM.logout();
-        console.log("Logged out from RTM client successfully");
-        config.clientRTM = null;
-      }
-      config.isRTMJoined = false;
-    } catch (error) {
-      console.error("Error in leaveRTM:", error);
-    }
-  };
-
   // Function to join the video stage
   const joinVideoStage = async () => {
     console.warn("joinVideoStage called");
@@ -642,8 +582,8 @@ const leave = async (reason) => {
     config,
     join,
     toggleMic,
-    toggleVirtualBackground,
     leave,
+    toggleVirtualBackground,
     toggleCamera,
     switchCam,
     switchMic,
