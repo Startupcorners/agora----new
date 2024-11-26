@@ -474,19 +474,18 @@ export async function checkMicrophonePermissions(config) {
 
 // Handle microphone permission changes
 function handleMicPermissionChange(state, config) {
-  const isMicAvailable = state === "granted";
+const isMicAvailable = state === "granted";
 
-  // Notify Bubble about the microphone permission change
-  if (typeof bubble_fn_micPermissionIsGranted === "function") {
-    bubble_fn_micPermissionIsGranted(isMicAvailable);
-    console.log(
-      `Bubble notified about microphone permission change: ${
-        isMicAvailable ? "granted" : "not granted"
-      }`
-    );
-  } else {
-    console.warn("bubble_fn_micPermissionIsGranted is not defined.");
-  }
+// Notify Bubble about the microphone permission change
+if (typeof bubble_fn_micPermissionIsGranted === "function") {
+  const bubbleMessage = isMicAvailable ? "yes" : "no";
+  bubble_fn_micPermissionIsGranted(bubbleMessage);
+  console.log(
+    `Bubble notified about microphone permission change: ${bubbleMessage}`
+  );
+} else {
+  console.warn("bubble_fn_micPermissionIsGranted is not defined.");
+}
 
   // If the microphone is not granted, toggle the mic to update the UI
   if (!isMicAvailable) {
