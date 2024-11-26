@@ -253,6 +253,7 @@ const handleVideoUnpublished = async (user, userUid, config) => {
         config.screenShareRTCClient = null;
         config.sharingScreenUid = null;
         config.generatedScreenShareId = null;
+        bubble_fn_userSharingScreen(config.sharingScreenUid);
       }
     } catch (error) {
       console.error("Error handling screen share unpublishing:", error);
