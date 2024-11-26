@@ -208,7 +208,9 @@ client.on("connection-state-change", async (curState, revState, reason) => {
     `Connection state changed from ${revState} to ${curState} due to ${reason}`
   );
 
-  if (curState === "DISCONNECTED") {
+  if (curState === "DISCONNECTED" && !config.leaveReason) {
+    console.log("Processing disconnection because leaveReason is empty.");
+
     if (reason === "NETWORK_ERROR" || reason === "FAILURE") {
       console.warn("User has been disconnected due to network issues.");
       if (leave && typeof leave === "function") {
@@ -226,8 +228,13 @@ client.on("connection-state-change", async (curState, revState, reason) => {
         await leave("other", config);
       }
     }
+  } else if (config.leaveReason) {
+    console.log(
+      `Disconnection handling skipped because leaveReason is set to: ${config.leaveReason}`
+    );
   }
 });
+
 
 config.client.on("onCameraChanged", async (info) => {
   console.log("Camera device change detected:", info);

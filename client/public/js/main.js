@@ -96,6 +96,7 @@ export const newMainApp = function (initConfig) {
     participantList: [],
     timestamp: null,
     sid: null,
+    leaveReason: null,
     audioSid: null,
     usersPublishingVideo: [],
     usersPublishingAudio: [],
