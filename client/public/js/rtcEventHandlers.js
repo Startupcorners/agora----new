@@ -69,6 +69,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
 
       // Set screenShareRTMClient to the sharing user's UID
       config.sharingScreenUid = sharingUserUid;
+      bubble_fn_userSharingScreen(config.sharingScreenUid);
 
       // Update the PiP avatar
       const avatarElement = document.getElementById("pip-avatar");
@@ -110,7 +111,8 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     await client.subscribe(user, "video");
     console.log(`Subscribed to video track for user ${userUid}`);
 
-    config.userTracks[userUid].videoTrack = user.videoTrack;
+    updatePublishingList(userUid.toString(), "video", "add", config);
+    
 
     if (config.sharingScreenUid) {
       playStreamInDiv(config, userUid, "#pip-video-track");
@@ -151,6 +153,9 @@ const handleAudioPublished = async (user, userUid, config, client) => {
     } else {
       console.warn(`Mic status element not found for user ${userUid}`);
     }
+
+    updatePublishingList(userUid.toString(), "audio", "add", config);
+
   } catch (error) {
     console.error(`Error subscribing to audio for user ${userUid}:`, error);
   }
@@ -267,6 +272,8 @@ const handleVideoUnpublished = async (user, userUid, config) => {
     console.log(`Removed video track for user ${userUid}`);
   }
 
+  updatePublishingList(userUid.toString(), "video", "remove", config);
+
   // Stop displaying the user's video in the UI
   playStreamInDiv(config, userUid, `#stream-${userUid}`);
 };
@@ -278,6 +285,7 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 const handleAudioUnpublished = async (user, userUid, config) => {
   console.log(`Handling audio unpublishing for user: ${userUid}`);
 
+  // Stop and remove the audio track
   if (config.userTracks[userUid] && config.userTracks[userUid].audioTrack) {
     config.userTracks[userUid].audioTrack.stop();
     config.userTracks[userUid].audioTrack = null;
@@ -301,7 +309,10 @@ const handleAudioUnpublished = async (user, userUid, config) => {
     wrapper.style.borderColor = "transparent"; // Transparent when audio is unpublished
     console.log(`Set border to transparent for user ${userUid}`);
   }
+
+  updatePublishingList(userUid.toString(), "audio", "remove", config);
 };
+
 
 
 export const manageParticipants = async (

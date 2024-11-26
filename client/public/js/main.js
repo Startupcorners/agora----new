@@ -32,6 +32,9 @@ import {
   toggleScreenShare,
   changeUserRole,
   updateMicStatusElement,
+  stopUserScreenshare,
+  stopUserMic,
+  stopUserCamera
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
 export const newMainApp = function (initConfig) {
@@ -91,6 +94,8 @@ export const newMainApp = function (initConfig) {
     timestamp: null,
     sid: null,
     audioSid: null,
+    usersPublishingVideo: [],
+    usersPublishingAudio: [],
     audioResourceId: null,
     audioRecordId: null,
     audioTimestamp: null,
@@ -416,6 +421,7 @@ export const newMainApp = function (initConfig) {
         console.log("Publishing audio track...");
         await config.client.publish([config.userTracks[config.uid].audioTrack]);
         console.log("Audio track published.");
+        updatePublishingList(config.uid.toString(), "audio", "add", config);
       } catch (error) {
         // Handle specific microphone-related errors
         if (error.name === "NotAllowedError") {
@@ -597,6 +603,9 @@ export const newMainApp = function (initConfig) {
     startAudioRecording,
     stopAudioRecording,
     sendRTMMessage,
+    stopUserCamera, // Add stop camera function
+    stopUserMic, // Add stop mic function
+    stopUserScreenshare,
   };
 };
 

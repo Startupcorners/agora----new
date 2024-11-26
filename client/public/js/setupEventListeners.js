@@ -302,7 +302,6 @@ export const setupRTMMessageListener = (
       await manageParticipants(config, userUid, userAttr, "join");
 
       // Update the UI based on the new role
-      // Define roles that require a wrapper
       const rolesRequiringWrapper = [
         "master",
         "host",
@@ -324,13 +323,65 @@ export const setupRTMMessageListener = (
       }
 
       // Optionally, update other aspects of the UI or state
+    } else if (type === "stopCamera") {
+      // Handle "stopCamera" message
+      console.log(`Stop camera message received for user ${userUid}`);
+      if (userUid === config.user.rtmUid) {
+        const videoTrack = config.userTracks[config.user.rtmUid]?.videoTrack;
+        if (videoTrack) {
+          videoTrack.stop();
+          videoTrack.close();
+          config.userTracks[config.user.rtmUid].videoTrack = null;
+          console.log("Camera turned off for user:", config.user.rtmUid);
+        } else {
+          console.warn("Camera is already off for user:", config.user.rtmUid);
+        }
+      }
+    } else if (type === "stopMic") {
+      // Handle "stopMic" message
+      console.log(`Stop mic message received for user ${userUid}`);
+      if (userUid === config.user.rtmUid) {
+        const audioTrack = config.userTracks[config.user.rtmUid]?.audioTrack;
+        if (audioTrack) {
+          audioTrack.stop();
+          audioTrack.close();
+          config.userTracks[config.user.rtmUid].audioTrack = null;
+          console.log("Microphone turned off for user:", config.user.rtmUid);
+        } else {
+          console.warn(
+            "Microphone is already off for user:",
+            config.user.rtmUid
+          );
+        }
+      }
+    } else if (type === "stopScreenshare") {
+      // Handle "stopScreenshare" message
+      console.log(`Stop screenshare message received for user ${userUid}`);
+      if (userUid === config.user.rtmUid) {
+        const screenTrack = config.userTracks[config.user.rtmUid]?.screenTrack;
+        if (screenTrack) {
+          screenTrack.stop();
+          screenTrack.close();
+          config.userTracks[config.user.rtmUid].screenTrack = null;
+          console.log("Screenshare stopped for user:", config.user.rtmUid);
+        } else {
+          console.warn(
+            "Screenshare is already off for user:",
+            config.user.rtmUid
+          );
+        }
+      }
+    } else {
+      console.warn("Unhandled RTM message type:", type);
     }
   });
 
+  // Handle member join
   channelRTM.on("MemberJoined", async (memberId) => {
     console.log(`RTM Member joined: ${memberId}`);
   });
 
+  // Handle member leave
   channelRTM.on("MemberLeft", async (memberId) => {
     console.log(`RTM Member left: ${memberId}`);
 

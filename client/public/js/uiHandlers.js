@@ -46,10 +46,31 @@ const startMic = async (config) => {
     // Publish the audio track
     await config.client.publish([audioTrack]);
     console.log("Microphone started and published");
+    updatePublishingList(config.uid.toString(), "audio", "add", config);
 
     // Update UI to indicate the microphone is active
     updateMicStatusElement(config.uid, false); // Mic is unmuted
     bubble_fn_isMicOff(false);
+
+    if (!config.usersPublishingAudio) {
+      config.usersPublishingAudio = [];
+    }
+
+    if (!config.usersPublishingAudio.includes(config.uid.toString())) {
+      config.usersPublishingAudio.push(config.uid.toString());
+    }
+
+    console.log(
+      "Updated usersPublishingAudio list:",
+      config.usersPublishingAudio
+    );
+
+    // Notify Bubble with the updated list
+    if (typeof bubble_fn_usersPublishingAudio === "function") {
+      bubble_fn_usersPublishingAudio(config.usersPublishingAudio);
+    } else {
+      console.warn("bubble_fn_usersPublishingAudio is not defined.");
+    }
   } catch (error) {
     console.warn(
       "Error accessing or creating microphone track, setting mic to off.",
@@ -82,6 +103,7 @@ const endMic = async (config) => {
       userTrack.audioTrack = null; // Set to null to indicate mic is muted
 
       console.log("Microphone ended and unpublished");
+      updatePublishingList(config.uid.toString(), "audio", "remove", config);
     }
 
     // Update UI to indicate the microphone is muted
@@ -130,8 +152,81 @@ export const toggleCamera = async (config) => {
 
     if (userTrack.videoTrack) {
       // User is trying to turn off the camera
-      console.log("Turning off the camera for user:", config.uid);
+      await stopCamera(config);
+    } else {
+      // User is trying to turn on the camera
+      await startCamera(config);
+    }
+  } catch (error) {
+    console.error("Error toggling the camera for user:", config.uid, error);
+  } finally {
+    config.cameraToggleInProgress = false; // Reset toggle state
+    console.log("Camera toggle progress reset for user:", config.uid);
+  }
+};
 
+
+export const startCamera = async (config) => {
+  try {
+    if (!config || !config.uid) {
+      throw new Error("Config object or UID is missing.");
+    }
+
+    console.log("Turning on the camera for user:", config.uid);
+
+    // Ensure userTracks has an entry for the user
+    if (!config.userTracks[config.uid]) {
+      config.userTracks[config.uid] = {
+        videoTrack: null,
+        audioTrack: null,
+      };
+    }
+
+    const userTrack = config.userTracks[config.uid];
+
+    // Create a new video track
+    userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
+
+    if (!userTrack.videoTrack) {
+      console.error("Failed to create a new video track!");
+      return;
+    }
+
+    // Enable and publish the video track
+    await userTrack.videoTrack.setEnabled(true);
+    await config.client.publish([userTrack.videoTrack]);
+
+    console.log("Camera turned on and published");
+    updatePublishingList(config.uid.toString(), "video", "add", config);
+
+    // Update UI
+    if (config.sharingScreenUid === config.uid.toString()) {
+      playStreamInDiv(config, config.uid, "#pip-video-track");
+    } else {
+      playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
+    }
+
+    // Notify Bubble of the camera state
+    if (typeof bubble_fn_isCamOn === "function") {
+      bubble_fn_isCamOn(true); // Camera is on
+    }
+  } catch (error) {
+    console.error("Error starting the camera for user:", config.uid, error);
+  }
+};
+
+
+export const stopCamera = async (config) => {
+  try {
+    if (!config || !config.uid) {
+      throw new Error("Config object or UID is missing.");
+    }
+
+    console.log("Turning off the camera for user:", config.uid);
+
+    const userTrack = config.userTracks[config.uid];
+
+    if (userTrack && userTrack.videoTrack) {
       // Unpublish and stop the video track
       await config.client.unpublish([userTrack.videoTrack]);
       userTrack.videoTrack.stop();
@@ -139,6 +234,8 @@ export const toggleCamera = async (config) => {
       userTrack.videoTrack = null; // Remove the video track reference
 
       console.log("Camera turned off and unpublished");
+      updatePublishingList(config.uid.toString(), "video", "remove", config);
+
 
       // Update UI
       if (config.sharingScreenUid === config.uid.toString()) {
@@ -152,42 +249,13 @@ export const toggleCamera = async (config) => {
         bubble_fn_isCamOn(false); // Camera is off
       }
     } else {
-      // User is trying to turn on the camera
-      console.log("Turning on the camera for user:", config.uid);
-
-      // Create a new video track
-      userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
-
-      if (!userTrack.videoTrack) {
-        console.error("Failed to create a new video track!");
-        return;
-      }
-
-      // Enable and publish the video track
-      await userTrack.videoTrack.setEnabled(true);
-      await config.client.publish([userTrack.videoTrack]);
-
-      console.log("Camera turned on and published");
-
-      // Update UI
-      if (config.sharingScreenUid === config.uid.toString()) {
-        playStreamInDiv(config, config.uid, "#pip-video-track");
-      } else {
-        playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
-      }
-
-      // Notify Bubble of the camera state
-      if (typeof bubble_fn_isCamOn === "function") {
-        bubble_fn_isCamOn(true); // Camera is on
-      }
+      console.warn("No active video track to stop for user:", config.uid);
     }
   } catch (error) {
-    console.error("Error in toggleCamera for user:", config.uid, error);
-  } finally {
-    config.cameraToggleInProgress = false; // Reset toggle state
-    console.log("Camera toggle progress reset for user:", config.uid);
+    console.error("Error stopping the camera for user:", config.uid, error);
   }
 };
+
 
 
 
@@ -322,6 +390,8 @@ export const startScreenShare = async (config) => {
     config.sharingScreenUid = config.uid.toString();
     config.generatedScreenShareId = screenShareUid;
 
+    bubble_fn_userSharingScreen(config.sharingScreenUid);
+
     console.log("Screen sharing started successfully.");
   } catch (error) {
     console.error(
@@ -416,3 +486,129 @@ export function updateMicStatusElement(uid, isMuted) {
     console.warn(`Mic status element not found for UID ${uid}.`);
   }
 }
+
+export const stopUserCamera = async (userUid, config) => {
+  console.log(`Sending stop camera message for user ${userUid}`);
+
+  // Check if the RTM channel is initialized
+  if (config.channelRTM) {
+    const message = JSON.stringify({
+      type: "stopCamera",
+      userUid: userUid,
+    });
+
+    // Send the message to the RTM channel
+    try {
+      await config.channelRTM.sendMessage({ text: message });
+      console.log(`Stop camera message sent to RTM channel: ${message}`);
+    } catch (error) {
+      console.error(`Failed to send stop camera message: ${error}`);
+    }
+  } else {
+    console.warn("RTM channel is not initialized.");
+  }
+
+  console.log(`Stop camera request for user ${userUid} completed.`);
+};
+
+
+export const stopUserMic = async (userUid, config) => {
+  console.log(`Sending stop mic message for user ${userUid}`);
+
+  // Check if the RTM channel is initialized
+  if (config.channelRTM) {
+    const message = JSON.stringify({
+      type: "stopMic",
+      userUid: userUid,
+    });
+
+    // Send the message to the RTM channel
+    try {
+      await config.channelRTM.sendMessage({ text: message });
+      console.log(`Stop mic message sent to RTM channel: ${message}`);
+    } catch (error) {
+      console.error(`Failed to send stop mic message: ${error}`);
+    }
+  } else {
+    console.warn("RTM channel is not initialized.");
+  }
+
+  console.log(`Stop mic request for user ${userUid} completed.`);
+};
+
+
+export const stopUserScreenshare = async (userUid, config) => {
+  console.log(`Sending stop screenshare message for user ${userUid}`);
+
+  // Check if the RTM channel is initialized
+  if (config.channelRTM) {
+    const message = JSON.stringify({
+      type: "stopScreenshare",
+      userUid: userUid,
+    });
+
+    // Send the message to the RTM channel
+    try {
+      await config.channelRTM.sendMessage({ text: message });
+      console.log(`Stop screenshare message sent to RTM channel: ${message}`);
+    } catch (error) {
+      console.error(`Failed to send stop screenshare message: ${error}`);
+    }
+  } else {
+    console.warn("RTM channel is not initialized.");
+  }
+
+  console.log(`Stop screenshare request for user ${userUid} completed.`);
+};
+
+
+export const updatePublishingList = (uid, type, action, config) => {
+  if (!uid || !type || !action || !config) {
+    console.error("Invalid arguments provided to updatePublishingList.");
+    return;
+  }
+
+  // Determine which list to update
+  let publishingList, bubbleFunction;
+  if (type === "audio") {
+    publishingList = config.usersPublishingAudio || [];
+    bubbleFunction = bubble_fn_usersPublishingAudio;
+  } else if (type === "video") {
+    publishingList = config.usersPublishingVideo || [];
+    bubbleFunction = bubble_fn_usersPublishingVideo;
+  } else {
+    console.error("Invalid type specified. Must be 'audio' or 'video'.");
+    return;
+  }
+
+  if (action === "add") {
+    if (!publishingList.includes(uid)) {
+      publishingList.push(uid);
+      console.log(`Added UID ${uid} to ${type} publishing list.`);
+    }
+  } else if (action === "remove") {
+    const index = publishingList.indexOf(uid);
+    if (index !== -1) {
+      publishingList.splice(index, 1);
+      console.log(`Removed UID ${uid} from ${type} publishing list.`);
+    }
+  } else {
+    console.error("Invalid action specified. Must be 'add' or 'remove'.");
+    return;
+  }
+
+  // Update the config with the new list
+  if (type === "audio") {
+    config.usersPublishingAudio = publishingList;
+  } else if (type === "video") {
+    config.usersPublishingVideo = publishingList;
+  }
+
+  // Notify Bubble with the updated list
+  if (typeof bubbleFunction === "function") {
+    bubbleFunction(publishingList);
+    console.log(`Notified Bubble with updated ${type} publishing list.`);
+  } else {
+    console.warn(`Bubble function for ${type} publishing is not defined.`);
+  }
+};
