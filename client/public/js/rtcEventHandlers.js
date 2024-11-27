@@ -145,10 +145,13 @@ const handleAudioPublished = async (user, userUid, config, client) => {
     if (config.clientRTM && config.clientRTM.getUserAttributes) {
       try {
         const attributes = await config.clientRTM.getUserAttributes(
-          userUid.toString()
+        config.user.rtmUid.toString()
         );
         userRole = attributes.roleInTheCall || null;
-        console.log(`Fetched roleInTheCall for user ${userUid}:`, userRole);
+        console.log(
+          `Fetched roleInTheCall for user ${config.user.rtmUid}:`,
+          userRole
+        );
       } catch (error) {
         console.error(
           `Failed to fetch roleInTheCall for user ${userUid}:`,
@@ -320,10 +323,13 @@ const handleAudioUnpublished = async (user, userUid, config) => {
     if (config.clientRTM && config.clientRTM.getUserAttributes) {
       try {
         const attributes = await config.clientRTM.getUserAttributes(
-          userUid.toString()
+          config.user.rtmUid.toString()
         );
         userRole = attributes.roleInTheCall || null;
-        console.log(`Fetched roleInTheCall for user ${userUid}:`, userRole);
+        console.log(
+          `Fetched roleInTheCall for user ${config.user.rtmUid}:`,
+          userRole
+        );
       } catch (error) {
         console.error(
           `Failed to fetch roleInTheCall for user ${userUid}:`,
