@@ -236,6 +236,7 @@
 
 
 /* Scrollbar styling for #specialBar */
+/* Scrollbar styling for #specialBar */
 #specialBar {
     overflow: auto;
     /* Enable scrolling when content overflows */
@@ -249,10 +250,18 @@
     /* Thin horizontal scrollbar height */
 }
 
+/* Remove scrollbar arrows */
+#specialBar::-webkit-scrollbar-button {
+    display: none;
+    /* Hides the up/down or left/right arrows */
+}
+
 /* Track styling */
 #specialBar::-webkit-scrollbar-track {
     background: transparent;
     /* Transparent track for a clean look */
+    border-radius: 50px;
+    /* Rounded track for consistency */
 }
 
 /* Thumb styling */
@@ -281,4 +290,6 @@
 #specialBar::-ms-scrollbar {
     width: 6px;
     /* Thin scrollbar for Edge */
+    border-radius: 50px;
+    /* Fully rounded scrollbar thumb */
 }
