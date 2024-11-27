@@ -1,4 +1,5 @@
 /* Video stage layout and responsiveness */
+/* Scrollbar styling for WebKit browsers */
 .video-stage {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -10,8 +11,52 @@
     height: 100%;
     padding: 10px;
     box-sizing: border-box;
+    overflow: auto;
+    /* Enable scrolling when content overflows */
+
+    /* Scrollbar styles */
+    scrollbar-width: thin;
+    /* For Firefox: use a thin scrollbar */
+    scrollbar-color: #1a73e8 #f0f0f0;
+    /* For Firefox: scrollbar thumb and track colors */
 }
 
+/* WebKit browsers: scrollbar track */
+.video-stage::-webkit-scrollbar {
+    width: 10px;
+    /* Scrollbar width */
+    height: 10px;
+    /* Scrollbar height for horizontal scrolling */
+}
+
+/* WebKit browsers: scrollbar track */
+.video-stage::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    /* Light gray background for track */
+    border-radius: 10px;
+    /* Rounded corners for the track */
+}
+
+/* WebKit browsers: scrollbar thumb */
+.video-stage::-webkit-scrollbar-thumb {
+    background: #1a73e8;
+    /* Thumb color */
+    border-radius: 10px;
+    /* Rounded edges for the thumb */
+    border: 2px solid #f0f0f0;
+    /* Adds a border for contrast with the track */
+}
+
+/* WebKit browsers: scrollbar thumb on hover */
+.video-stage::-webkit-scrollbar-thumb:hover {
+    background: #1558c1;
+    /* Darker blue on hover */
+}
+
+.video-stage>div {
+    min-height: 280px;
+    /* Ensures all video elements have a minimum height of 280px */
+}
 /* When there's only 1 participant, center and limit max width */
 .video-stage.child-count-1 {
     max-width: 800px;
