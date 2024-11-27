@@ -52,16 +52,19 @@
     /* Slightly darker blue on hover */
 }
 
-
-
 /* When there's only 1 participant, center and limit max width */
 .video-stage.child-count-1 {
-        grid-template-columns: 1fr; /* Full width grid */
-        grid-template-rows: 1fr; /* Full height grid */
-        justify-content: center; /* Center the child horizontally */
-        max-width: 800px; /* Limit the width */
-        margin: 0 auto; /* Center video stage horizontally */
-    }
+    grid-template-columns: 1fr;
+    /* Full width grid */
+    grid-template-rows: 1fr;
+    /* Full height grid */
+    justify-content: center;
+    /* Center the child horizontally */
+    max-width: 800px;
+    /* Limit the width */
+    margin: 0 auto;
+    /* Center video stage horizontally */
+}
 
 .video-stage.child-count-1>div {
     max-width: 100%;
@@ -100,31 +103,30 @@
 }
 
 /* Responsive behavior for different screen sizes */
-
 /* Default media queries when #right is NOT visible */
 @media (max-width: 600px) {
-
     .video-stage[class*="child-count-"] {
         grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
+        grid-template-rows: repeat(2, minmax(280px, auto));
+        /* Set minimum height for rows */
         max-width: 800px;
         /* Maintain max width */
         margin: 0 auto;
         /* Center video stage */
     }
 
-                .video-stage.child-count-1 {
-                    grid-template-columns: 1fr;
-                    /* Full width grid */
-                    grid-template-rows: 1fr;
-                    /* Full height grid */
-                    justify-content: center;
-                    /* Center the child horizontally */
-                    max-width: 800px;
-                    /* Limit the width */
-                    margin: 0 auto;
-                    /* Center video stage horizontally */
-                }
+    .video-stage.child-count-1 {
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-width: 800px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
 
     /* 1 child: Full width and height */
     .video-stage.child-count-1>div {
@@ -142,24 +144,24 @@
 }
 
 @media (min-width: 601px) and (max-width: 900px) {
-
     .video-stage[class*="child-count-"] {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         /* Min width adjusted to 280px */
+        grid-auto-rows: minmax(280px, auto);
     }
 
-                .video-stage.child-count-1 {
-                    grid-template-columns: 1fr;
-                    /* Full width grid */
-                    grid-template-rows: 1fr;
-                    /* Full height grid */
-                    justify-content: center;
-                    /* Center the child horizontally */
-                    max-width: 800px;
-                    /* Limit the width */
-                    margin: 0 auto;
-                    /* Center video stage horizontally */
-                }
+    .video-stage.child-count-1 {
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-width: 800px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
 
     .video-stage.child-count-1>div {
         width: 100%;
@@ -168,7 +170,7 @@
 
     /* 2 children: 1 column, 2 rows */
     .video-stage.child-count-2 {
-     grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
     }
 
     .video-stage.child-count-3,
@@ -193,24 +195,24 @@
 }
 
 @media (min-width: 901px) {
-
     .video-stage[class*="child-count-"] {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         /* Min width adjusted to 280px */
+        grid-auto-rows: minmax(280px, auto);
     }
 
-                .video-stage.child-count-1 {
-                    grid-template-columns: 1fr;
-                    /* Full width grid */
-                    grid-template-rows: 1fr;
-                    /* Full height grid */
-                    justify-content: center;
-                    /* Center the child horizontally */
-                    max-width: 800px;
-                    /* Limit the width */
-                    margin: 0 auto;
-                    /* Center video stage horizontally */
-                }
+    .video-stage.child-count-1 {
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-width: 800px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
 
     .video-stage.child-count-1>div {
         width: 100%;
@@ -245,28 +247,28 @@
 
 /* Adjusted media queries when #right IS visible, adding 350px to each breakpoint */
 @media (max-width: 950px) {
-
     .right-visible .video-stage[class*="child-count-"] {
         grid-template-columns: 1fr 1fr;
-        grid-template-rows: 1fr 1fr;
+        grid-template-rows: repeat(2, minmax(280px, auto));
+        /* Set minimum height for rows */
         max-width: 800px;
         /* Maintain max width */
         margin: 0 auto;
         /* Center video stage */
     }
 
-                           .right-visible .video-stage.child-count-1 {
-                    grid-template-columns: 1fr;
-                    /* Full width grid */
-                    grid-template-rows: 1fr;
-                    /* Full height grid */
-                    justify-content: center;
-                    /* Center the child horizontally */
-                    max-width: 800px;
-                    /* Limit the width */
-                    margin: 0 auto;
-                    /* Center video stage horizontally */
-                }
+    .right-visible .video-stage.child-count-1 {
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-width: 800px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
 
     /* 1 child: Full width and height */
     .right-visible .video-stage.child-count-1>div {
@@ -282,24 +284,24 @@
 }
 
 @media (min-width: 951px) and (max-width: 1250px) {
-
     .right-visible .video-stage[class*="child-count-"] {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         /* Min width adjusted to 280px */
+        grid-auto-rows: minmax(280px, auto);
     }
 
-                           .right-visible .video-stage.child-count-1 {
-                    grid-template-columns: 1fr;
-                    /* Full width grid */
-                    grid-template-rows: 1fr;
-                    /* Full height grid */
-                    justify-content: center;
-                    /* Center the child horizontally */
-                    max-width: 800px;
-                    /* Limit the width */
-                    margin: 0 auto;
-                    /* Center video stage horizontally */
-                }
+    .right-visible .video-stage.child-count-1 {
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-width: 800px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
 
     .right-visible .video-stage.child-count-1>div {
         width: 100%;
@@ -337,20 +339,22 @@
     /* General rule for all other child-count-X classes */
     .right-visible .video-stage[class*="child-count-"] {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        /* Min width adjusted to 280px */
+        grid-auto-rows: minmax(280px, auto);
     }
 
-                          .right-visible  .video-stage.child-count-1 {
-                    grid-template-columns: 1fr;
-                    /* Full width grid */
-                    grid-template-rows: 1fr;
-                    /* Full height grid */
-                    justify-content: center;
-                    /* Center the child horizontally */
-                    max-width: 800px;
-                    /* Limit the width */
-                    margin: 0 auto;
-                    /* Center video stage horizontally */
-                }
+    .right-visible .video-stage.child-count-1 {
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-width: 800px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
 
     .right-visible .video-stage.child-count-1>div {
         width: 100%;
