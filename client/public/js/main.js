@@ -602,7 +602,7 @@ const leaveVideoStage = async () => {
 
   // Expose the onRoleChange function for external calls
   config.onRoleChange = onRoleChange;
-  config.raisingHand = handleRaisingHand;
+  config.handleRaisingHand = handleRaisingHand;
 
   // Return the API
   return {

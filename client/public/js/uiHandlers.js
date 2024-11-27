@@ -765,6 +765,7 @@ export const leave = async (reason, config) => {
      try {
        await config.channelRTM.sendMessage({ text: message });
        console.log(`Raise hand message sent to RTM channel: ${message}`);
+       bubble_fn_usersRaisingHand(config.usersRaisingHand)
      } catch (error) {
        console.error(`Failed to send raise hand message: ${error}`);
      }
