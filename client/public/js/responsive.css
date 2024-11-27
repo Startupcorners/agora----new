@@ -1,4 +1,3 @@
-/* Video stage layout and responsiveness */
 /* Scrollbar styling for WebKit browsers */
 .video-stage {
     display: grid;
@@ -16,47 +15,46 @@
 
     /* Scrollbar styles */
     scrollbar-width: thin;
-    /* For Firefox: use a thin scrollbar */
-    scrollbar-color: #1a73e8 #f0f0f0;
-    /* For Firefox: scrollbar thumb and track colors */
+    /* For Firefox: thin scrollbar */
+    scrollbar-color: #1a73e8 transparent;
+    /* Thumb color and transparent track */
 }
 
 /* WebKit browsers: scrollbar track */
 .video-stage::-webkit-scrollbar {
-    width: 10px;
-    /* Scrollbar width */
-    height: 10px;
-    /* Scrollbar height for horizontal scrolling */
+    width: 8px;
+    /* Narrow scrollbar width */
+    height: 8px;
+    /* Narrow scrollbar height for horizontal scrolling */
 }
 
 /* WebKit browsers: scrollbar track */
 .video-stage::-webkit-scrollbar-track {
-    background: #f0f0f0;
-    /* Light gray background for track */
-    border-radius: 10px;
-    /* Rounded corners for the track */
+    background: transparent;
+    /* Transparent track for a cleaner look */
 }
 
 /* WebKit browsers: scrollbar thumb */
 .video-stage::-webkit-scrollbar-thumb {
     background: #1a73e8;
     /* Thumb color */
-    border-radius: 10px;
-    /* Rounded edges for the thumb */
-    border: 2px solid #f0f0f0;
-    /* Adds a border for contrast with the track */
+    border-radius: 50px;
+    /* Fully rounded thumb for a pill-like shape */
+    border: 2px solid transparent;
+    /* Add spacing around the thumb */
 }
 
 /* WebKit browsers: scrollbar thumb on hover */
 .video-stage::-webkit-scrollbar-thumb:hover {
     background: #1558c1;
-    /* Darker blue on hover */
+    /* Slightly darker blue on hover */
 }
 
 .video-stage>div {
     min-height: 280px;
-    /* Ensures all video elements have a minimum height of 280px */
 }
+
+
 /* When there's only 1 participant, center and limit max width */
 .video-stage.child-count-1 {
     max-width: 800px;
