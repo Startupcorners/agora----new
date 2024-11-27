@@ -202,7 +202,7 @@
     /* Center bars vertically */
     justify-content: center;
     /* Center bars horizontally */
-    gap: 2px;
+    gap: px;
     /* Space between bars */
 }
 
@@ -233,3 +233,4 @@
     animation: animated-bars 0.5s infinite;
     /* Animation only when class is added */
 }
+

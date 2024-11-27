@@ -108,11 +108,10 @@
     .video-stage[class*="child-count-"] {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: repeat(2, minmax(240px, auto));
-        /* Set minimum height for rows */
+        grid-auto-rows: minmax(240px, auto);
+        /* Ensure all rows have min height */
         max-width: 800px;
-        /* Maintain max width */
         margin: 0 auto;
-        /* Center video stage */
     }
 
     .video-stage.child-count-1 {
@@ -250,11 +249,10 @@
     .right-visible .video-stage[class*="child-count-"] {
         grid-template-columns: 1fr 1fr;
         grid-template-rows: repeat(2, minmax(240px, auto));
-        /* Set minimum height for rows */
+        grid-auto-rows: minmax(240px, auto);
+        /* Ensure all rows have min height */
         max-width: 800px;
-        /* Maintain max width */
         margin: 0 auto;
-        /* Center video stage */
     }
 
     .right-visible .video-stage.child-count-1 {
@@ -387,7 +385,7 @@
 
 
 @media (max-width: 600px) {
-    .video-stage:not(.right-visible) .user-avatar {
+    .video-stage .user-avatar {
         width: 50px;
         height: 50px;
     }
@@ -395,7 +393,7 @@
 
 /* If width is under 950px and #right is visible */
 @media (max-width: 950px) {
-    .video-stage.right-visible .user-avatar {
+    .right-visible .video-stage .user-avatar {
         width: 50px;
         height: 50px;
     }
