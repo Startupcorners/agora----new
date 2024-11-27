@@ -128,7 +128,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
 
 const handleAudioPublished = async (user, userUid, config, client) => {
   console.log(`Handling audio published for user: ${userUid}`);
-  console.log(config)
+  console.log("config",config)
 
   try {
     // Ensure the userTracks object exists
