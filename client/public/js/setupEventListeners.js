@@ -301,7 +301,7 @@ export const setupRTMMessageListener = (
     if (type === "roleChange") {
       if (newRoleInTheCall === "audience"){
         await removeUserWrapper(userUid);
-        manageParticipants(config, user.uid, {}, "leave");
+      }
       }
       
       if (userUid === config.user.rtmUid) {
