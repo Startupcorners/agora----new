@@ -510,6 +510,8 @@ const leaveVideoStage = async () => {
       console.log(`User ${userUid} added to raising hand list.`);
     }
 
+    console.log("config.usersRaisingHand", config.usersRaisingHand);
+
     // Update Bubble with the new list of users raising their hand
     bubble_fn_usersRaisingHand(config.usersRaisingHand);
   };
