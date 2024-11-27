@@ -1,20 +1,21 @@
 import { updateMicStatusElement } from "./uiHandlers.js";
 
-let addUserWrapperRunning = false;
+// Track running state for each user
+let addUserWrapperRunning = {};
 
-export const addUserWrapper = async (uid, config,) => {
-  // If already running, skip this execution
-  if (addUserWrapperRunning) {
+export const addUserWrapper = async (uid, config) => {
+  const rtmUid = uid.toString();
+
+  // Check if the function is already running for the same user
+  if (addUserWrapperRunning[rtmUid]) {
     console.log(`addUserWrapper is already running for user: ${uid}`);
     return;
   }
 
-  // Set running state to true
-  addUserWrapperRunning = true;
+  // Set running state for the user
+  addUserWrapperRunning[rtmUid] = true;
 
   try {
-    const rtmUid = uid.toString();
-
     // Check if the wrapper already exists
     if (document.querySelector(`#video-wrapper-${uid}`)) {
       console.log(`Wrapper already exists for user: ${uid}`);
@@ -52,7 +53,6 @@ export const addUserWrapper = async (uid, config,) => {
     console.log(`Added wrapper for user: ${uid}`);
 
     // Set audio track and update mic status
-    // Check if there is an audio track for the given UID and update mic status
     if (config.userTracks[uid]?.audioTrack) {
       updateMicStatusElement(uid, false); // Mic is active
     } else {
@@ -63,10 +63,11 @@ export const addUserWrapper = async (uid, config,) => {
   } catch (error) {
     console.error("Error in addUserWrapper:", error);
   } finally {
-    // Set running state to false after completion
-    addUserWrapperRunning = false;
+    // Reset running state for the user
+    addUserWrapperRunning[rtmUid] = false;
   }
 };
+
 
 // Wrapper for removing users from the video stage
 export const removeUserWrapper = (uid) => {
