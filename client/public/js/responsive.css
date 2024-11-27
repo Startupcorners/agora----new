@@ -1,13 +1,12 @@
-/* Video stage layout and responsiveness */
 .video-stage {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); /* Responsive columns */
-  justify-content: center;
-  gap: 10px; /* Space between each participant */
-  width: 100%;
-  height: 100%;
-  padding: 10px;
-  box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    box-sizing: border-box;
 }
 
 /* When there's only 1 participant, center and limit max width */

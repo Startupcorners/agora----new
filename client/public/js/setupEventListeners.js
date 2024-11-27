@@ -301,6 +301,7 @@ export const setupRTMMessageListener = (
     if (type === "roleChange") {
       if (newRoleInTheCall === "audience"){
         await removeUserWrapper(userUid);
+        manageParticipants(config, user.uid, {}, "leave");
       }
       
       if (userUid === config.user.rtmUid) {
@@ -311,7 +312,6 @@ export const setupRTMMessageListener = (
           await config.onRoleChange(newRoleInTheCall);
           console.log("Successfully handled role change.");
         } catch (error) {
-          console.error("Error handling role change:", error);
         }
       } else {
         console.log(
