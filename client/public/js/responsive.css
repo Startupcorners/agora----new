@@ -107,7 +107,7 @@
 @media (max-width: 600px) {
     .video-stage[class*="child-count-"] {
         grid-template-columns: 1fr 1fr;
-        grid-template-rows: repeat(2, minmax(280px, auto));
+        grid-template-rows: repeat(2, minmax(240px, auto));
         /* Set minimum height for rows */
         max-width: 800px;
         /* Maintain max width */
@@ -147,7 +147,7 @@
     .video-stage[class*="child-count-"] {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         /* Min width adjusted to 280px */
-        grid-auto-rows: minmax(280px, auto);
+        grid-auto-rows: minmax(240px, auto);
     }
 
     .video-stage.child-count-1 {
@@ -198,7 +198,7 @@
     .video-stage[class*="child-count-"] {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         /* Min width adjusted to 280px */
-        grid-auto-rows: minmax(280px, auto);
+        grid-auto-rows: minmax(240px, auto);
     }
 
     .video-stage.child-count-1 {
@@ -249,7 +249,7 @@
 @media (max-width: 950px) {
     .right-visible .video-stage[class*="child-count-"] {
         grid-template-columns: 1fr 1fr;
-        grid-template-rows: repeat(2, minmax(280px, auto));
+        grid-template-rows: repeat(2, minmax(240px, auto));
         /* Set minimum height for rows */
         max-width: 800px;
         /* Maintain max width */
@@ -287,7 +287,7 @@
     .right-visible .video-stage[class*="child-count-"] {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         /* Min width adjusted to 280px */
-        grid-auto-rows: minmax(280px, auto);
+        grid-auto-rows: minmax(240px, auto);
     }
 
     .right-visible .video-stage.child-count-1 {
@@ -340,7 +340,7 @@
     .right-visible .video-stage[class*="child-count-"] {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         /* Min width adjusted to 280px */
-        grid-auto-rows: minmax(280px, auto);
+        grid-auto-rows: minmax(240px, auto);
     }
 
     .right-visible .video-stage.child-count-1 {
@@ -382,5 +382,21 @@
         grid-template-rows: 1fr 1fr;
         max-width: 800px;
         margin: 0 auto;
+    }
+}
+
+
+@media (max-width: 600px) {
+    .video-stage:not(.right-visible) .user-avatar {
+        width: 50px;
+        height: 50px;
+    }
+}
+
+/* If width is under 950px and #right is visible */
+@media (max-width: 950px) {
+    .video-stage.right-visible .user-avatar {
+        width: 50px;
+        height: 50px;
     }
 }
