@@ -78,6 +78,7 @@ export const removeUserWrapper = (uid) => {
     } else {
       console.log(`Player not found for user: ${uid}`);
     }
+    updateLayout();
   } catch (error) {
     console.log("Failed to remove user wrapper:", error);
   }
@@ -182,6 +183,7 @@ export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
       config.screenShareClient = null;
       console.log("Screen share client left and removed.");
     }
+    updateLayout();
   } catch (error) {
     console.error("Error in removeScreenShareWrapper:", error);
   }
