@@ -299,22 +299,21 @@ export const setupRTMMessageListener = (
     const { type, userUid, newRole, newRoleInTheCall, userAttr } =
       parsedMessage;
 
-      if (type === "raiseHand") {
+    if (type === "raiseHand") {
       // Handle "raiseHand" message
       console.log(`Raise hand message received for user ${userUid}`);
-      // Here you can update the UI or state to reflect the "raised hand"
       if (userUid) {
         console.log(`User ${userUid} has raised their hand.`);
-        await config.handleRaisingHand(userUid)
+        await config.handleRaisingHand(userUid);
       }
-
-    if (type === "roleChange") {
-      if (newRoleInTheCall === "audience"){
+    } else if (type === "roleChange") {
+      // Handle "roleChange" message
+      if (newRoleInTheCall === "audience") {
         await removeUserWrapper(userUid);
       }
 
-      console.log(config.user.rtmUid)
-      
+      console.log(config.user.rtmUid);
+
       if (userUid.toString() === config.user.rtmUid) {
         console.log(
           "Role change is for the current user. Calling onRoleChange."
@@ -323,6 +322,7 @@ export const setupRTMMessageListener = (
           await config.onRoleChange(newRoleInTheCall);
           console.log("Successfully handled role change.");
         } catch (error) {
+          console.error("Error handling role change:", error);
         }
       } else {
         console.log(
@@ -330,11 +330,11 @@ export const setupRTMMessageListener = (
         );
       }
     } else if (type === "userRoleUpdated") {
+      // Handle "userRoleUpdated" message
       console.log(
         `Received userRoleUpdated for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
       );
 
-      // Use the userAttr provided in the message
       if (!userAttr) {
         console.warn(
           `No userAttr provided in userRoleUpdated message for user ${userUid}.`
@@ -342,13 +342,11 @@ export const setupRTMMessageListener = (
         return;
       }
 
-      // Remove the user from the participant list
+      // Update participant list
       await manageParticipants(config, userUid, {}, "leave");
-
-      // Add the user back with updated attributes
       await manageParticipants(config, userUid, userAttr, "join");
 
-      // Update the UI based on the new role
+      // Handle video wrapper logic
       const rolesRequiringWrapper = [
         "master",
         "host",
@@ -368,14 +366,12 @@ export const setupRTMMessageListener = (
         );
         removeUserWrapper(userUid);
       }
-
-      // Optionally, update other aspects of the UI or state
     } else if (type === "stopCamera") {
       // Handle "stopCamera" message
       console.log(`Stop camera message received for user ${userUid}`);
       if (userUid.toString() === config.user.rtmUid) {
         console.log(
-          "stopCamera if for the current user. Calling toggleCamera."
+          "stopCamera is for the current user. Calling toggleCamera."
         );
         toggleCamera(config);
       }
@@ -383,7 +379,7 @@ export const setupRTMMessageListener = (
       // Handle "stopMic" message
       console.log(`Stop mic message received for user ${userUid}`);
       if (userUid.toString() === config.user.rtmUid) {
-        console.log("stopMic if for the current user. Calling toggleMic.");
+        console.log("stopMic is for the current user. Calling toggleMic.");
         toggleMic(config);
       }
     } else if (type === "stopScreenshare") {
@@ -391,22 +387,22 @@ export const setupRTMMessageListener = (
       console.log(`Stop screenshare message received for user ${userUid}`);
       if (userUid.toString() === config.user.rtmUid) {
         console.log(
-          "stopScreenshare if for the current user. Calling toggleScreenShare."
+          "stopScreenshare is for the current user. Calling toggleScreenShare."
         );
         toggleScreenShare(config);
       }
     } else if (type === "accessDenied") {
-  // Handle "accessDenied" message
-  console.log(`Access denied message received for user ${userUid}`);
-  if (userUid.toString() === config.user.rtmUid) {
-    console.log("Access denied is for the current user. Checking role...");
-      console.log("User is in 'waiting' role. Triggering leave with 'removed'.");
-      await leave("removed", config);
-  }
+      // Handle "accessDenied" message
+      console.log(`Access denied message received for user ${userUid}`);
+      if (userUid.toString() === config.user.rtmUid) {
+        console.log(
+          "Access denied is for the current user. Triggering leave with 'removed'."
+        );
+        await leave("removed", config);
+      }
     } else {
       console.warn("Unhandled RTM message type:", type);
     }
-  }
   });
 
   // Handle member join
@@ -427,6 +423,7 @@ export const setupRTMMessageListener = (
     "RTM message listener with member join/leave handlers initialized."
   );
 };
+
 
 
 
