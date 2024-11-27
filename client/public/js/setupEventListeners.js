@@ -302,7 +302,6 @@ export const setupRTMMessageListener = (
       if (newRoleInTheCall === "audience"){
         await removeUserWrapper(userUid);
       }
-      }
       
       if (userUid === config.user.rtmUid) {
         console.log(
