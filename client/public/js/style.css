@@ -234,3 +234,51 @@
     /* Animation only when class is added */
 }
 
+
+/* Scrollbar styling for #specialBar */
+#specialBar {
+    overflow: auto;
+    /* Enable scrolling when content overflows */
+}
+
+/* Styling the scrollbar for WebKit browsers */
+#specialBar::-webkit-scrollbar {
+    width: 6px;
+    /* Thin vertical scrollbar width */
+    height: 6px;
+    /* Thin horizontal scrollbar height */
+}
+
+/* Track styling */
+#specialBar::-webkit-scrollbar-track {
+    background: transparent;
+    /* Transparent track for a clean look */
+}
+
+/* Thumb styling */
+#specialBar::-webkit-scrollbar-thumb {
+    background: #dadce0;
+    /* Thumb color */
+    border-radius: 50px;
+    /* Fully rounded scrollbar thumb */
+}
+
+/* Thumb styling on hover */
+#specialBar::-webkit-scrollbar-thumb:hover {
+    background: #c2c4c7;
+    /* Slightly darker thumb color on hover */
+}
+
+/* Firefox scrollbar styling */
+#specialBar {
+    scrollbar-width: thin;
+    /* Thin scrollbar */
+    scrollbar-color: #dadce0 transparent;
+    /* Thumb and track colors */
+}
+
+/* Edge and other browsers fallback */
+#specialBar::-ms-scrollbar {
+    width: 6px;
+    /* Thin scrollbar for Edge */
+}
