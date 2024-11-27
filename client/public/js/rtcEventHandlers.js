@@ -130,14 +130,43 @@ const handleAudioPublished = async (user, userUid, config, client) => {
   console.log(`Handling audio published for user: ${userUid}`);
 
   try {
+    // Ensure the userTracks object exists
     if (!config.userTracks[userUid]) {
       config.userTracks[userUid] = {};
     }
 
+    // Always update the audio track, regardless of role
+    config.userTracks[userUid].audioTrack = user.audioTrack;
+    console.log(`Updated audio track for user ${userUid}`);
+
+    // Fetch roleInTheCall attribute dynamically
+    let userRole = null;
+    if (config.clientRTM && config.clientRTM.getUserAttributes) {
+      try {
+        const attributes = await config.clientRTM.getUserAttributes(
+          userUid.toString()
+        );
+        userRole = attributes.roleInTheCall || null;
+        console.log(`Fetched roleInTheCall for user ${userUid}:`, userRole);
+      } catch (error) {
+        console.error(
+          `Failed to fetch roleInTheCall for user ${userUid}:`,
+          error
+        );
+      }
+    }
+
+    // Check if the user's role is "waiting" before subscribing
+    if (userRole === "waiting") {
+      console.warn(
+        `User ${userUid} is in 'waiting' role. Skipping subscription.`
+      );
+      return;
+    }
+
+    // Subscribe to the audio track
     await client.subscribe(user, "audio");
     console.log(`Subscribed to audio track for user ${userUid}`);
-
-    config.userTracks[userUid].audioTrack = user.audioTrack;
 
     // Play audio track directly
     user.audioTrack.play();
@@ -154,15 +183,12 @@ const handleAudioPublished = async (user, userUid, config, client) => {
       console.warn(`Mic status element not found for user ${userUid}`);
     }
 
+    // Update the publishing list
     updatePublishingList(userUid.toString(), "audio", "add", config);
-
   } catch (error) {
     console.error(`Error subscribing to audio for user ${userUid}:`, error);
   }
 };
-
-
-
 
 
 
@@ -287,48 +313,82 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 const handleAudioUnpublished = async (user, userUid, config) => {
   console.log(`Handling audio unpublishing for user: ${userUid}`);
 
-  // Stop and remove the audio track
-  if (config.userTracks[userUid] && config.userTracks[userUid].audioTrack) {
-    config.userTracks[userUid].audioTrack.stop();
-    config.userTracks[userUid].audioTrack = null;
-    console.log(`Removed audio track for user ${userUid}`);
-  }
-
-  // Update the mic status element to show muted state
-  const micStatusElement = document.getElementById(`mic-status-${userUid}`);
-  if (micStatusElement) {
-    micStatusElement.classList.remove("hidden"); // Show the muted icon
-    console.log(
-      `Removed 'hidden' class from mic-status-${userUid} to indicate muted status`
-    );
-  } else {
-    console.warn(`Mic status element not found for user ${userUid}`);
-  }
-
-  // Update the wrapper's border style to indicate no active audio
-  const wrapper = document.querySelector(`#video-wrapper-${userUid}`);
-  if (wrapper) {
-    wrapper.style.borderColor = "transparent"; // Transparent when audio is unpublished
-    console.log(`Set border to transparent for user ${userUid}`);
-  }
-
-  // Remove the 'animated' class from all bars
-  const waveElement = document.querySelector(`#wave-${userUid}`);
-  if (waveElement) {
-    const audioBars = waveElement.querySelectorAll(".bar");
-    if (audioBars.length > 0) {
-      audioBars.forEach((bar) => bar.classList.remove("animated"));
-      console.log(`Removed 'animated' class from bars for user ${userUid}`);
-    } else {
-      console.warn(`No bars found in wave-${userUid}`);
+  try {
+    // Fetch roleInTheCall attribute dynamically
+    let userRole = null;
+    if (config.clientRTM && config.clientRTM.getUserAttributes) {
+      try {
+        const attributes = await config.clientRTM.getUserAttributes(
+          userUid.toString()
+        );
+        userRole = attributes.roleInTheCall || null;
+        console.log(`Fetched roleInTheCall for user ${userUid}:`, userRole);
+      } catch (error) {
+        console.error(
+          `Failed to fetch roleInTheCall for user ${userUid}:`,
+          error
+        );
+      }
     }
-  } else {
-    console.warn(`Wave element not found for user ${userUid}`);
-  }
 
-  // Update the publishing list
-  updatePublishingList(userUid.toString(), "audio", "remove", config);
+    // Stop and remove the audio track
+    if (config.userTracks[userUid] && config.userTracks[userUid].audioTrack) {
+      config.userTracks[userUid].audioTrack.stop();
+      config.userTracks[userUid].audioTrack = null;
+      console.log(`Removed audio track for user ${userUid}`);
+    }
+
+    // Update the mic status element to show muted state
+    const micStatusElement = document.getElementById(`mic-status-${userUid}`);
+    if (micStatusElement) {
+      micStatusElement.classList.remove("hidden"); // Show the muted icon
+      console.log(
+        `Removed 'hidden' class from mic-status-${userUid} to indicate muted status`
+      );
+    } else {
+      console.warn(`Mic status element not found for user ${userUid}`);
+    }
+
+    // Update the wrapper's border style to indicate no active audio
+    const wrapper = document.querySelector(`#video-wrapper-${userUid}`);
+    if (wrapper) {
+      wrapper.style.borderColor = "transparent"; // Transparent when audio is unpublished
+      console.log(`Set border to transparent for user ${userUid}`);
+    }
+
+    // Remove the 'animated' class from all bars
+    const waveElement = document.querySelector(`#wave-${userUid}`);
+    if (waveElement) {
+      const audioBars = waveElement.querySelectorAll(".bar");
+      if (audioBars.length > 0) {
+        audioBars.forEach((bar) => bar.classList.remove("animated"));
+        console.log(`Removed 'animated' class from bars for user ${userUid}`);
+      } else {
+        console.warn(`No bars found in wave-${userUid}`);
+      }
+    } else {
+      console.warn(`Wave element not found for user ${userUid}`);
+    }
+
+    // Log role-specific behavior
+    if (userRole === "waiting") {
+      console.log(`User ${userUid} is in 'waiting' role. Audio unpublished.`);
+    } else {
+      console.log(
+        `User ${userUid} role: ${userRole}. Proceeding with normal flow.`
+      );
+    }
+
+    // Update the publishing list
+    updatePublishingList(userUid.toString(), "audio", "remove", config);
+  } catch (error) {
+    console.error(
+      `Error handling audio unpublishing for user ${userUid}:`,
+      error
+    );
+  }
 };
+
 
 
 

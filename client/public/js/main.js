@@ -189,6 +189,7 @@ export const newMainApp = function (initConfig) {
   // Initialize RTM Channel
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
   setupRTMMessageListener(config.channelRTM, manageParticipants, config);
+  setupEventListeners(config);
   checkMicrophonePermissions(config);
 
   // Initialize event callbacks with clientRTM passed
@@ -250,13 +251,42 @@ export const newMainApp = function (initConfig) {
     console.log("prevRequiresStage:", prevRequiresStage);
     console.log("newRequiresStage:", newRequiresStage);
 
-    setupEventListeners(config);
-
     // Handle RTC join/leave
     if (!prevRequiresRTC && newRequiresRTC && !config.isRTCJoined) {
       console.log("Joining RTC...");
       await joinRTC();
       config.isRTCJoined = true;
+
+      // Subscribe to audio tracks for existing users if transitioning from waiting
+      if (prevRole === "waiting") {
+        console.log("Subscribing to audio tracks for existing users...");
+        for (const userUid in config.userTracks) {
+          const user = config.userTracks[userUid];
+          if (user && user.audioTrack && !user.audioTrack.isPlaying) {
+            try {
+              await config.client.subscribe(user, "audio");
+              user.audioTrack.play();
+
+              // Update mic status dynamically
+              const micStatusElement = document.getElementById(
+                `mic-status-${userUid}`
+              );
+              if (micStatusElement) {
+                micStatusElement.classList.add("hidden"); // Show unmuted icon
+                console.log(`Updated mic status for user ${userUid}`);
+              }
+
+              // Update publishing list
+              updatePublishingList(userUid.toString(), "audio", "add", config);
+            } catch (error) {
+              console.error(
+                `Error subscribing to audio for user ${userUid}:`,
+                error
+              );
+            }
+          }
+        }
+      }
     } else if (prevRequiresRTC && !newRequiresRTC && config.isRTCJoined) {
       console.log("Leaving RTC...");
       await leaveRTC();
@@ -274,6 +304,7 @@ export const newMainApp = function (initConfig) {
       config.isOnStage = false;
     }
   };
+
 
   // Main join function
   const join = async () => {
