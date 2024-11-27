@@ -527,7 +527,11 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       config.remoteTracks[userUid].wrapperReady = false;
 
       // Only proceed with wrapper if the user is a host and not in the "waiting" state
-      if (role === "host" && roleInTheCall !== "waiting") {
+      if (
+        role === "host" &&
+        roleInTheCall !== "waiting" &&
+        roleInTheCall !== "audience"
+      ) {
         console.log(
           `User ${userUid} is a host and not waiting. Checking video wrapper.`
         );
@@ -611,8 +615,8 @@ export const handleUserLeft = async (user, config) => {
     await removeUserWrapper(user.uid);
 
     // Remove the user's tracks from the config
-    if (config.remoteTracks && config.remoteTracks[user.uid]) {
-      delete config.remoteTracks[user.uid];
+    if (config.userTracks && config.userTracks[user.uid]) {
+      delete config.userTracks[user.uid];
       console.log(`Removed tracks for user ${user.uid}`);
     } else {
       console.log(`No tracks found for user ${user.uid}`);
