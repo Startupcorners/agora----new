@@ -38,6 +38,7 @@ import {
   updatePublishingList,
   leave,
   denyAccess,
+  raiseHand,
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
 export const newMainApp = function (initConfig) {
@@ -621,6 +622,7 @@ const leaveVideoStage = async () => {
     startCloudRecording,
     stopCloudRecording,
     startAudioRecording,
+    raiseHand,
     stopAudioRecording,
     sendRTMMessage,
     stopUserCamera, // Add stop camera function
