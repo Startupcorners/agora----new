@@ -265,6 +265,7 @@ config.client.on("onCameraChanged", async (info) => {
 
 };
 
+
 export const setupRTMMessageListener = (
   channelRTM,
   manageParticipants,
@@ -297,6 +298,15 @@ export const setupRTMMessageListener = (
 
     const { type, userUid, newRole, newRoleInTheCall, userAttr } =
       parsedMessage;
+
+      if (type === "raiseHand") {
+      // Handle "raiseHand" message
+      console.log(`Raise hand message received for user ${userUid}`);
+      // Here you can update the UI or state to reflect the "raised hand"
+      if (userUid) {
+        console.log(`User ${userUid} has raised their hand.`);
+        await config.handleRaisingHand(userUid)
+      }
 
     if (type === "roleChange") {
       if (newRoleInTheCall === "audience"){
@@ -394,6 +404,7 @@ export const setupRTMMessageListener = (
     } else {
       console.warn("Unhandled RTM message type:", type);
     }
+  }
   });
 
   // Handle member join

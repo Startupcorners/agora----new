@@ -729,3 +729,49 @@ export const leave = async (reason, config) => {
       console.error("Error in leaveRTM:", error);
     }
   };
+
+
+ export const raiseHand = async (userUid, config) => {
+   console.log(`Processing raise hand action for user ${userUid}`);
+
+   // Ensure `usersRaisingHand` is initialized as an array
+   config.usersRaisingHand = config.usersRaisingHand || [];
+
+   // Check if the user is already in the list
+   const isRaisingHand = config.usersRaisingHand.includes(userUid);
+
+   // Update the `usersRaisingHand` list
+   if (!isRaisingHand) {
+     // Add the user to the list if not present
+     config.usersRaisingHand.push(userUid);
+     console.log(`User ${userUid} added to raising hand list.`);
+   } else {
+     // Remove the user from the list if already present
+     config.usersRaisingHand = config.usersRaisingHand.filter(
+       (uid) => uid !== userUid
+     );
+     console.log(`User ${userUid} removed from raising hand list.`);
+   }
+
+   // Check if the RTM channel is initialized
+   if (config.channelRTM) {
+     // Prepare the message payload
+     const message = JSON.stringify({
+       type: "raiseHand",
+       userUid: userUid,
+     });
+
+     // Send the message to the RTM channel
+     try {
+       await config.channelRTM.sendMessage({ text: message });
+       console.log(`Raise hand message sent to RTM channel: ${message}`);
+     } catch (error) {
+       console.error(`Failed to send raise hand message: ${error}`);
+     }
+   } else {
+     console.warn("RTM channel is not initialized.");
+   }
+
+   console.log(`Raise hand action for user ${userUid} completed.`);
+ };
+

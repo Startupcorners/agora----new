@@ -88,6 +88,7 @@ export const newMainApp = function (initConfig) {
     resourceId: null,
     recordId: null,
     audioResourceId: null,
+    usersRaisingHand: [],
     userTracks: {},
     lastMutedStatuses: {},
     lastMicPermissionState: null,
@@ -494,7 +495,26 @@ const leaveVideoStage = async () => {
     }
   };
 
-  // Function to handle external role changes
+  const handleRaisingHand = async (userUid) => {
+    // Check if the user is already in the list
+    if (config.usersRaisingHand.includes(userUid)) {
+      // Remove the user if they are already in the list
+      config.usersRaisingHand = config.usersRaisingHand.filter(
+        (uid) => uid !== userUid
+      );
+      console.log(`User ${userUid} removed from raising hand list.`);
+    } else {
+      // Add the user if they are not in the list
+      config.usersRaisingHand.push(userUid);
+      console.log(`User ${userUid} added to raising hand list.`);
+    }
+
+    // Update Bubble with the new list of users raising their hand
+    bubble_fn_usersRaisingHand(config.usersRaisingHand);
+  };
+
+
+
   // Function to handle external role changes
   const onRoleChange = async (newRoleInTheCall) => {
     console.warn(
@@ -581,6 +601,7 @@ const leaveVideoStage = async () => {
 
   // Expose the onRoleChange function for external calls
   config.onRoleChange = onRoleChange;
+  config.raisingHand = handleRaisingHand;
 
   // Return the API
   return {
