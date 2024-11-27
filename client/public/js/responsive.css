@@ -14,18 +14,22 @@
     /* Enable scrolling when content overflows */
 
     /* Scrollbar styles */
-    scrollbar-width: thin;
-    /* For Firefox: thin scrollbar */
-    scrollbar-color: #1a73e8 transparent;
-    /* Thumb color and transparent track */
+    scrollbar-width: none;
+    /* For Firefox: hides arrows and creates a minimalist scrollbar */
 }
 
-/* WebKit browsers: scrollbar track */
+/* Hide scrollbar arrows for WebKit browsers */
 .video-stage::-webkit-scrollbar {
     width: 8px;
     /* Narrow scrollbar width */
     height: 8px;
     /* Narrow scrollbar height for horizontal scrolling */
+}
+
+/* Remove scrollbar arrows */
+.video-stage::-webkit-scrollbar-button {
+    display: none;
+    /* Hides the up/down or left/right arrows */
 }
 
 /* WebKit browsers: scrollbar track */
@@ -39,9 +43,7 @@
     background: #1a73e8;
     /* Thumb color */
     border-radius: 50px;
-    /* Fully rounded thumb for a pill-like shape */
-    border: 2px solid transparent;
-    /* Add spacing around the thumb */
+    /* Fully rounded thumb */
 }
 
 /* WebKit browsers: scrollbar thumb on hover */
@@ -50,9 +52,6 @@
     /* Slightly darker blue on hover */
 }
 
-.video-stage>div {
-    min-height: 280px;
-}
 
 
 /* When there's only 1 participant, center and limit max width */
