@@ -168,8 +168,7 @@
 
     /* 2 children: 1 column, 2 rows */
     .video-stage.child-count-2 {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
+     grid-template-columns: 1fr 1fr;
     }
 
     .video-stage.child-count-3,
@@ -220,8 +219,7 @@
 
     /* 2 children: 1 column, 2 rows */
     .video-stage.child-count-2 {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
     }
 
     .video-stage.child-count-3,
@@ -310,8 +308,7 @@
 
     /* 2 children: 1 column, 2 rows */
     .right-visible .video-stage.child-count-2 {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
     }
 
     .right-visible .video-stage.child-count-3,
@@ -362,8 +359,7 @@
 
     /* 2 children: 1 column, 2 rows */
     .right-visible .video-stage.child-count-2 {
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr 1fr;
+        grid-template-columns: 1fr 1fr;
     }
 
     /* 3–4 children: Two columns */
