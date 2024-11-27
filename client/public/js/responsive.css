@@ -112,6 +112,17 @@
         /* Center video stage */
     }
 
+        .video-stage.child-count-1 {
+            grid-template-columns: 1fr;
+            /* Full width */
+            grid-template-rows: 1fr;
+            /* Full height */
+            max-width: 100%;
+            /* Use full available width */
+            margin: 0;
+            /* No margin for centering */
+        }
+
     /* 1 child: Full width and height */
     .video-stage.child-count-1>div {
         width: 100%;
@@ -133,6 +144,17 @@
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         /* Min width adjusted to 280px */
     }
+
+        .video-stage.child-count-1 {
+            grid-template-columns: 1fr;
+            /* Full width */
+            grid-template-rows: 1fr;
+            /* Full height */
+            max-width: 100%;
+            /* Use full available width */
+            margin: 0;
+            /* No margin for centering */
+        }
 
     .video-stage.child-count-1>div {
         width: 100%;
@@ -172,6 +194,17 @@
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         /* Min width adjusted to 280px */
     }
+
+        .video-stage.child-count-1 {
+            grid-template-columns: 1fr;
+            /* Full width */
+            grid-template-rows: 1fr;
+            /* Full height */
+            max-width: 100%;
+            /* Use full available width */
+            margin: 0;
+            /* No margin for centering */
+        }
 
     .video-stage.child-count-1>div {
         width: 100%;
@@ -217,6 +250,17 @@
         /* Center video stage */
     }
 
+        .video-stage.child-count-1 {
+            grid-template-columns: 1fr;
+            /* Full width */
+            grid-template-rows: 1fr;
+            /* Full height */
+            max-width: 100%;
+            /* Use full available width */
+            margin: 0;
+            /* No margin for centering */
+        }
+
     /* 1 child: Full width and height */
     .right-visible .video-stage.child-count-1>div {
         width: 100%;
@@ -236,6 +280,17 @@
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
         /* Min width adjusted to 280px */
     }
+
+        .video-stage.child-count-1 {
+            grid-template-columns: 1fr;
+            /* Full width */
+            grid-template-rows: 1fr;
+            /* Full height */
+            max-width: 100%;
+            /* Use full available width */
+            margin: 0;
+            /* No margin for centering */
+        }
 
     .right-visible .video-stage.child-count-1>div {
         width: 100%;
@@ -275,6 +330,17 @@
     .right-visible .video-stage[class*="child-count-"] {
         grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     }
+
+        .video-stage.child-count-1 {
+            grid-template-columns: 1fr;
+            /* Full width */
+            grid-template-rows: 1fr;
+            /* Full height */
+            max-width: 100%;
+            /* Use full available width */
+            margin: 0;
+            /* No margin for centering */
+        }
 
     .right-visible .video-stage.child-count-1>div {
         width: 100%;
