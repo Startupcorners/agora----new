@@ -42,12 +42,11 @@ import {
 
 import { getConfig, updateConfig } from "./config.js";
 
-export const newMainApp = function (initConfig) {
+export const newMainApp = async function (initConfig) {
   console.log("newMainApp called with initConfig:", initConfig);
 
-  updateConfig(initConfig, "newMainApp");
-  let config = getConfig() 
-
+  await updateConfig(initConfig, "newMainApp");
+  let config = getConfig();
 
   // Initialize AgoraRTC client
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
@@ -85,7 +84,7 @@ export const newMainApp = function (initConfig) {
   })();
 
   // Ensure required config parameters are present
-  console.log(config)
+  console.log(config);
   if (
     !config.appId ||
     !config.callContainerSelector ||
