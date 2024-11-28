@@ -5,8 +5,8 @@ import {
   handleUserJoined,
   handleUserLeft,
   handleVolumeIndicator,
-  handleRaisingHand,
   manageParticipants,
+  handleRaisingHand,
 } from "./rtcEventHandlers.js";
 import {
   toggleMic,
