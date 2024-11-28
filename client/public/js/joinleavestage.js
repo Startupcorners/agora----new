@@ -1,4 +1,4 @@
-import { getConfig, updateConfig } from "./config";
+import { getConfig, updateConfig } from "./config.js";
 import {updateMicStatusElement, updatePublishingList} from "./uiHandlers.js";
 
 export const joinVideoStage = async (config) => {
