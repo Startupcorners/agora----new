@@ -1,4 +1,8 @@
-export const toggleVirtualBackground = async (config, imageSrc = "") => {
+import { newMainApp } from "./main.js";
+const app = newMainApp();
+
+export const toggleVirtualBackground = async (imageSrc = "") => {
+  const config = app.getConfig();
   console.log("toggleVirtualBackground called with imageSrc:", imageSrc);
 
   // Check if the virtual background is already enabled with the same image
@@ -27,13 +31,19 @@ export const enableVirtualBackgroundBlur = async (config) => {
   await processor.enable();
 
   bubble_fn_background("blur");
-  config.isVirtualBackGroundEnabled = true;
-  config.currentVirtualBackground = "blur";
+
+  // Update the config using app.updateConfig
+  app.updateConfig({
+    isVirtualBackGroundEnabled: true,
+    currentVirtualBackground: "blur",
+  });
 };
+
 
 export const enableVirtualBackgroundImage = async (config, imageSrc) => {
   console.log("Enabling virtual background with image source:", imageSrc);
   const imgElement = document.createElement("img");
+
   imgElement.onload = async () => {
     console.log("Image loaded for virtual background.");
 
@@ -50,17 +60,23 @@ export const enableVirtualBackgroundImage = async (config, imageSrc) => {
     await processor.enable();
 
     bubble_fn_background(imageSrc);
-    config.isVirtualBackGroundEnabled = true;
-    config.currentVirtualBackground = imageSrc;
+
+    // Update the config using app.updateConfig
+    app.updateConfig({
+      isVirtualBackGroundEnabled: true,
+      currentVirtualBackground: imageSrc,
+    });
   };
 
   const base64 = await imageUrlToBase64(imageSrc);
   imgElement.src = base64;
 };
 
+
 export const disableVirtualBackground = async (config) => {
   console.log("Disabling virtual background...");
   const processor = config.processor;
+
   if (!processor) {
     console.error("Processor is not initialized.");
     return;
@@ -70,9 +86,13 @@ export const disableVirtualBackground = async (config) => {
   console.log("Virtual background disabled successfully.");
   bubble_fn_background("none");
 
-  config.isVirtualBackGroundEnabled = false;
-  config.currentVirtualBackground = null;
+  // Update the config using app.updateConfig
+  app.updateConfig({
+    isVirtualBackGroundEnabled: false,
+    currentVirtualBackground: null,
+  });
 };
+
 
 export const getProcessorInstance = async (config) => {
   if (config.processor) {
@@ -94,19 +114,22 @@ export const getProcessorInstance = async (config) => {
     }
 
     // Create and initialize a new processor
-    config.processor = config.extensionVirtualBackground.createProcessor();
-    await config.processor.init();
+    const newProcessor = config.extensionVirtualBackground.createProcessor();
+    await newProcessor.init();
 
     // Pipe the processor to the video track
     config.localVideoTrack
-      .pipe(config.processor)
+      .pipe(newProcessor)
       .pipe(config.localVideoTrack.processorDestination);
     console.log("Processor created and piped to video track.");
 
-    return config.processor;
+    // Update config with the new processor
+    app.updateConfig({ processor: newProcessor });
+
+    return newProcessor;
   } catch (error) {
     console.error("Failed to initialize processor:", error);
-    config.processor = null;
+    app.updateConfig({ processor: null }); // Ensure processor is cleared on failure
     return null;
   }
 };

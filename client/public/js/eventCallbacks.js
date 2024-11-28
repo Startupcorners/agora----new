@@ -1,4 +1,4 @@
-export const eventCallbacks = (config, clientRTM) => ({
+export const eventCallbacks = () => ({
    onVolumeIndicatorChanged: (volume) => {
     console.log("onVolumeIndicatorChanged", volume);
   },

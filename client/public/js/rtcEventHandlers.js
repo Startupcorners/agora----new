@@ -1,16 +1,19 @@
 // rtcEventHandlers.js
-import { log, fetchTokens } from "./helperFunctions.js";
+import { newMainApp } from "./main.js";
+import { fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import {
   toggleStages,
 } from "./videoHandlers.js";
 import { updatePublishingList} from "./uiHandlers.js"; 
 import { playStreamInDiv } from "./videoHandlers.js"; 
+const app = newMainApp();
 const userJoinPromises = {};
 
 
 // Handles user published event
-export const handleUserPublished = async (user, mediaType, config, client) => {
+export const handleUserPublished = async (user, mediaType, client) => {
+  const config = app.getConfig();
   const userUid = user.uid.toString();
   console.log(
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
@@ -29,15 +32,17 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
   }
 
   if (mediaType === "video") {
-    await handleVideoPublished(user, userUid, config, client);
+    await handleVideoPublished(user, userUid, client);
   } else if (mediaType === "audio") {
-    await handleAudioPublished(user, userUid, config, client);
+    await handleAudioPublished(user, userUid, client);
   } else {
     console.warn(`Unsupported mediaType: ${mediaType}`);
   }
 };
 
-const handleVideoPublished = async (user, userUid, config, client) => {
+const handleVideoPublished = async (user, userUid, client) => {
+  const config = app.getConfig(); // Retrieve the current config
+
   console.log(`Handling video published for user: ${userUid}`);
 
   // Special case: Handle screen share (userUid > 999999999)
@@ -58,7 +63,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
 
       console.log(`Screen share is from remote user: ${sharingUserUid}`);
       console.log(
-        `current user config.sharingScreenUid: ${config.sharingScreenUid}`
+        `Current user config.sharingScreenUid: ${config.sharingScreenUid}`
       );
 
       // Skip if the current screen share is from the local user
@@ -67,9 +72,9 @@ const handleVideoPublished = async (user, userUid, config, client) => {
         return;
       }
 
-      // Set screenShareRTMClient to the sharing user's UID
-      config.sharingScreenUid = sharingUserUid;
-      bubble_fn_userSharingScreen(config.sharingScreenUid);
+      // Update sharingScreenUid using updateConfig
+      app.updateConfig({ sharingScreenUid: sharingUserUid });
+      bubble_fn_userSharingScreen(sharingUserUid);
 
       // Update the PiP avatar
       const avatarElement = document.getElementById("pip-avatar");
@@ -83,17 +88,19 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       // Subscribe to the screen share track
       await client.subscribe(user, "video");
 
-      // Store the screen share track
-      if (!config.userTracks[userUid]) {
-        config.userTracks[userUid] = {};
-      }
-      config.userTracks[userUid].videoTrack = user.videoTrack;
-      
+      // Update userTracks using updateConfig
+      app.updateConfig({
+        userTracks: {
+          ...config.userTracks,
+          [userUid]: { videoTrack: user.videoTrack },
+        },
+      });
+
       // Toggle stage to screen share
       toggleStages(true);
 
       // Play screen share track
-      playStreamInDiv(config, userUid, "#screen-share-content");
+      playStreamInDiv(userUid, "#screen-share-content");
     } catch (error) {
       console.error("Error processing screen share:", error);
     }
@@ -105,19 +112,21 @@ const handleVideoPublished = async (user, userUid, config, client) => {
   try {
     await client.subscribe(user, "video");
 
-    // Store the screen share track
-    if (!config.userTracks[userUid]) {
-      config.userTracks[userUid] = {};
-    }
-    config.userTracks[userUid].videoTrack = user.videoTrack;
-    console.log(`Subscribed to video track for user ${userUid}`);
+    // Update userTracks using updateConfig
+    app.updateConfig({
+      userTracks: {
+        ...config.userTracks,
+        [userUid]: { videoTrack: user.videoTrack },
+      },
+    });
+    console.log(`Subscribed to video track for user: ${userUid}`);
 
-    updatePublishingList(userUid.toString(), "video", "add", config);
+    updatePublishingList(userUid.toString(), "video", "add");
 
     if (config.sharingScreenUid) {
-      playStreamInDiv(config, userUid, "#pip-video-track");
+      playStreamInDiv(userUid, "#pip-video-track");
     } else {
-      playStreamInDiv(config, userUid, `#stream-${userUid}`);
+      playStreamInDiv(userUid, `#stream-${userUid}`);
     }
   } catch (error) {
     console.error(`Error subscribing to video for user ${userUid}:`, error);
@@ -126,18 +135,21 @@ const handleVideoPublished = async (user, userUid, config, client) => {
 
 
 
-const handleAudioPublished = async (user, userUid, config, client) => {
+const handleAudioPublished = async (user, userUid, client) => {
+  const config = app.getConfig(); // Use the shared singleton instance's config
   console.log(`Handling audio published for user: ${userUid}`);
-  console.log("config",config)
 
   try {
-    // Ensure the userTracks object exists
-    if (!config.userTracks[userUid]) {
-      config.userTracks[userUid] = {};
-    }
-
-    // Always update the audio track, regardless of role
-    config.userTracks[userUid].audioTrack = user.audioTrack;
+    // Ensure the userTracks object exists and update the audio track
+    app.updateConfig({
+      userTracks: {
+        ...config.userTracks,
+        [userUid]: {
+          ...config.userTracks[userUid],
+          audioTrack: user.audioTrack, // Always update the audio track
+        },
+      },
+    });
     console.log(`Updated audio track for user ${userUid}`);
 
     // Fetch roleInTheCall attribute dynamically
@@ -145,7 +157,7 @@ const handleAudioPublished = async (user, userUid, config, client) => {
     if (config.clientRTM && config.clientRTM.getUserAttributes) {
       try {
         const attributes = await config.clientRTM.getUserAttributes(
-        config.user.rtmUid.toString()
+          config.user.rtmUid.toString()
         );
         userRole = attributes.roleInTheCall || null;
         console.log(
@@ -188,7 +200,7 @@ const handleAudioPublished = async (user, userUid, config, client) => {
     }
 
     // Update the publishing list
-    updatePublishingList(userUid.toString(), "audio", "add", config);
+    updatePublishingList(userUid.toString(), "audio", "add");
   } catch (error) {
     console.error(`Error subscribing to audio for user ${userUid}:`, error);
   }
@@ -197,7 +209,9 @@ const handleAudioPublished = async (user, userUid, config, client) => {
 
 
 
-export const handleUserUnpublished = async (user, mediaType, config) => {
+
+export const handleUserUnpublished = async (user, mediaType) => {
+  const config = app.getConfig();
   console.log("Entered handleuserUnpublished:", user);
   console.log("User :",user);
   const userUid = user.uid.toString();
@@ -206,16 +220,17 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
   );
 
   if (mediaType === "video") {
-    await handleVideoUnpublished(user, userUid, config);
+    await handleVideoUnpublished(user, userUid);
   } else if (mediaType === "audio") {
-    await handleAudioUnpublished(user, userUid, config);
+    await handleAudioUnpublished(user, userUid);
   } else {
     console.warn(`Unsupported mediaType: ${mediaType}`);
   }
 };
 
 
-const handleVideoUnpublished = async (user, userUid, config) => {
+const handleVideoUnpublished = async (user, userUid) => {
+  const config = app.getConfig();
   console.log(`Handling video unpublishing for user: ${userUid}`);
 
   // Special case: Handle screen share (UID > 999999999)
@@ -229,33 +244,36 @@ const handleVideoUnpublished = async (user, userUid, config) => {
           `Local user (UID: ${config.uid}) was sharing. Stopping local screen share.`
         );
 
-        // Log the UID of the screenShareRTCClient
         console.log(
-          `UID of the screenShareRTCClient being logged out: ${config.screenShareRTCClient.uid}`
+          `UID of the screenShareRTCClient being logged out: ${config.screenShareRTCClient?.uid}`
         );
 
         // Log and logout from screenShareRTMClient
         console.log(
-          `Attempting to log out from screenShareRTMClient for UID: ${config.screenShareRTCClient.uid}...`
+          `Attempting to log out from screenShareRTMClient for UID: ${config.screenShareRTCClient?.uid}...`
         );
-        await config.screenShareRTMClient.logout();
+        await config.screenShareRTMClient?.logout();
         console.log(
-          `Successfully logged out from screenShareRTMClient for UID: ${config.screenShareRTCClient.uid}.`
+          `Successfully logged out from screenShareRTMClient for UID: ${config.screenShareRTCClient?.uid}.`
         );
 
         // Log and leave screenShareRTCClient
         console.log(
-          `Attempting to leave screenShareRTCClient for UID: ${config.screenShareRTCClient.uid}...`
+          `Attempting to leave screenShareRTCClient for UID: ${config.screenShareRTCClient?.uid}...`
         );
-        await config.screenShareRTCClient.leave();
+        await config.screenShareRTCClient?.leave();
         console.log(
-          `Successfully left screenShareRTCClient for UID: ${config.screenShareRTCClient.uid}.`
+          `Successfully left screenShareRTCClient for UID: ${config.screenShareRTCClient?.uid}.`
         );
-        config.screenShareRTMClient = null;
-        config.screenShareRTCClient = null;
-        config.sharingScreenUid = null;
-        config.generatedScreenShareId = null;
-        bubble_fn_userSharingScreen(config.sharingScreenUid);
+
+        // Update config using updateConfig
+        app.updateConfig({
+          screenShareRTMClient: null,
+          screenShareRTCClient: null,
+          sharingScreenUid: null,
+          generatedScreenShareId: null,
+        });
+        bubble_fn_userSharingScreen(null);
 
         return; // Exit as local user cleanup is already handled elsewhere
       }
@@ -271,22 +289,33 @@ const handleVideoUnpublished = async (user, userUid, config) => {
           config.userTracks[userUid].videoTrack
         ) {
           config.userTracks[userUid].videoTrack.stop();
-          config.userTracks[userUid].videoTrack = null;
+
+          app.updateConfig({
+            userTracks: {
+              ...config.userTracks,
+              [userUid]: {
+                ...config.userTracks[userUid],
+                videoTrack: null,
+              },
+            },
+          });
+
           console.log(`Removed video track for user ${userUid}`);
         }
 
         playStreamInDiv(
-          config,
           config.sharingScreenUid,
           `#stream-${config.sharingScreenUid}`
         );
 
         // Reset screen share tracking
-        config.screenShareRTMClient = null;
-        config.screenShareRTCClient = null;
-        config.sharingScreenUid = null;
-        config.generatedScreenShareId = null;
-        bubble_fn_userSharingScreen(config.sharingScreenUid);
+        app.updateConfig({
+          screenShareRTMClient: null,
+          screenShareRTCClient: null,
+          sharingScreenUid: null,
+          generatedScreenShareId: null,
+        });
+        bubble_fn_userSharingScreen(null);
       }
     } catch (error) {
       console.error("Error handling screen share unpublishing:", error);
@@ -300,21 +329,33 @@ const handleVideoUnpublished = async (user, userUid, config) => {
 
   if (config.userTracks[userUid] && config.userTracks[userUid].videoTrack) {
     config.userTracks[userUid].videoTrack.stop();
-    config.userTracks[userUid].videoTrack = null;
+
+    app.updateConfig({
+      userTracks: {
+        ...config.userTracks,
+        [userUid]: {
+          ...config.userTracks[userUid],
+          videoTrack: null,
+        },
+      },
+    });
+
     console.log(`Removed video track for user ${userUid}`);
   }
 
-  updatePublishingList(userUid.toString(), "video", "remove", config);
+  updatePublishingList(userUid.toString(), "video", "remove");
 
   // Stop displaying the user's video in the UI
-  playStreamInDiv(config, userUid, `#stream-${userUid}`);
+  playStreamInDiv(userUid, `#stream-${userUid}`);
 };
 
 
 
 
 
-const handleAudioUnpublished = async (user, userUid, config) => {
+
+const handleAudioUnpublished = async (user, userUid) => {
+  const config = app.getConfig();
   console.log(`Handling audio unpublishing for user: ${userUid}`);
 
   try {
@@ -341,7 +382,16 @@ const handleAudioUnpublished = async (user, userUid, config) => {
     // Stop and remove the audio track
     if (config.userTracks[userUid] && config.userTracks[userUid].audioTrack) {
       config.userTracks[userUid].audioTrack.stop();
-      config.userTracks[userUid].audioTrack = null;
+
+      app.updateConfig({
+        userTracks: {
+          ...config.userTracks,
+          [userUid]: {
+            ...config.userTracks[userUid],
+            audioTrack: null, // Set audioTrack to null
+          },
+        },
+      });
       console.log(`Removed audio track for user ${userUid}`);
     }
 
@@ -387,7 +437,7 @@ const handleAudioUnpublished = async (user, userUid, config) => {
     }
 
     // Update the publishing list
-    updatePublishingList(userUid.toString(), "audio", "remove", config);
+    updatePublishingList(userUid.toString(), "audio", "remove");
   } catch (error) {
     console.error(
       `Error handling audio unpublishing for user ${userUid}:`,
@@ -399,12 +449,9 @@ const handleAudioUnpublished = async (user, userUid, config) => {
 
 
 
-export const manageParticipants = async (
-  config,
-  userUid,
-  userAttr,
-  actionType
-) => {
+
+export const manageParticipants = async (userUid, userAttr, actionType) => {
+  const config = app.getConfig();
   console.warn(
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
@@ -455,12 +502,14 @@ export const manageParticipants = async (
   } else if (actionType === "leave") {
     // Remove the participant if they are leaving
     participantList = participantList.filter((p) => p.uid !== userUidNumber);
-    config.participantList = participantList; // Update the participantList in config
     console.log(`Participant ${userUid} has left.`);
   } else {
     console.warn(`Unknown action type: ${actionType}`);
     return;
   }
+
+  // Use app.updateConfig to update the participant list in the config
+  app.updateConfig({ participantList });
 
   // Log the participant list after update
   console.log(
@@ -542,15 +591,19 @@ export const manageParticipants = async (
 
 
 
+
 // Handles user joined event
-export const handleUserJoined = async (user, config, userAttr = {}) => {
+export const handleUserJoined = async (user, userAttr = {}) => {
+  const config = app.getConfig();
   console.log("User info:", user);
   console.log("User attributes:", userAttr);
   const userUid = user.uid.toString();
   console.log("Entering handleUserJoined function for user:", userUid);
 
   // Initialize userJoinPromises in config if it doesn't exist
-  config.userJoinPromises = config.userJoinPromises || {};
+  if (!config.userJoinPromises) {
+    app.updateConfig({ userJoinPromises: {} });
+  }
 
   // Handle specific UIDs (2 triggers a special Bubble function)
   if (userUid === "2") {
@@ -562,7 +615,12 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   // Skip handling for special UIDs (UIDs > 999999999 or UID 2)
   if (parseInt(userUid) > 999999999 || userUid === "2") {
     console.log(`Skipping handling for special UID (${userUid}).`);
-    config.userJoinPromises[userUid] = Promise.resolve(); // Ensure a resolved promise is set
+    app.updateConfig({
+      userJoinPromises: {
+        ...config.userJoinPromises,
+        [userUid]: Promise.resolve(),
+      },
+    });
     console.log(`Promise for UID ${userUid} resolved and skipped.`);
     return config.userJoinPromises[userUid];
   }
@@ -574,7 +632,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   }
 
   // Create a new promise for this user
-  config.userJoinPromises[userUid] = new Promise(async (resolve, reject) => {
+  const newPromise = new Promise(async (resolve, reject) => {
     try {
       console.log(`Starting promise for user ${userUid}.`);
 
@@ -592,9 +650,14 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       console.log(`RoleInTheCall for user ${userUid}: ${roleInTheCall}`);
 
       // Initialize remoteTracks if needed
-      config.remoteTracks = config.remoteTracks || {};
-      config.remoteTracks[userUid] = config.remoteTracks[userUid] || {};
-      config.remoteTracks[userUid].wrapperReady = false;
+      const updatedRemoteTracks = {
+        ...config.remoteTracks,
+        [userUid]: {
+          ...(config.remoteTracks ? config.remoteTracks[userUid] : {}),
+          wrapperReady: false,
+        },
+      };
+      app.updateConfig({ remoteTracks: updatedRemoteTracks });
 
       // Only proceed with wrapper if the user is a host and not in the "waiting" state
       if (
@@ -612,14 +675,21 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
           console.log(
             `No wrapper found for user ${userUid}, creating a new one.`
           );
-          await addUserWrapper(userUid, config);
+          await addUserWrapper(userUid);
           console.log(`Wrapper successfully created for user ${userUid}.`);
         } else {
           console.log(`Wrapper already exists for user ${userUid}.`);
         }
 
         // Mark the wrapper as ready
-        config.remoteTracks[userUid].wrapperReady = true;
+        const updatedRemoteTracksReady = {
+          ...updatedRemoteTracks,
+          [userUid]: {
+            ...updatedRemoteTracks[userUid],
+            wrapperReady: true,
+          },
+        };
+        app.updateConfig({ remoteTracks: updatedRemoteTracksReady });
         console.log(`Wrapper marked as ready for user ${userUid}.`);
       } else {
         console.log(
@@ -631,7 +701,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         `Invoking manageParticipants for user ${userUid} with action "join".`
       );
       // Ensure userUid is a number when calling manageParticipants
-      manageParticipants(config, parseInt(userUid), userAttr, "join");
+      manageParticipants(parseInt(userUid), userAttr, "join");
 
       console.log(`Promise resolved for user ${userUid}.`);
       resolve();
@@ -641,7 +711,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         console.log(
           `Calling manageParticipants with action "error" for user ${userUid}.`
         );
-        manageParticipants(config, parseInt(userUid), userAttr, "error");
+        manageParticipants(parseInt(userUid), userAttr, "error");
       } catch (participantError) {
         console.error(
           `Error managing participant state for user ${userUid}:`,
@@ -652,17 +722,29 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
     }
   });
 
+  // Update config with the new promise
+  app.updateConfig({
+    userJoinPromises: {
+      ...config.userJoinPromises,
+      [userUid]: newPromise,
+    },
+  });
+
   console.log(`Returning promise for user ${userUid}.`);
-  return config.userJoinPromises[userUid];
+  return newPromise;
 };
 
 
+
 // Handles user left event
-export const handleUserLeft = async (user, config) => {
+export const handleUserLeft = async (user) => {
+  const config = app.getConfig();
   console.log("Entered handleUserLeft:", user);
 
   // Initialize userJoinPromises in config if it doesn't exist
-  config.userJoinPromises = config.userJoinPromises || {};
+  if (!config.userJoinPromises) {
+    app.updateConfig({ userJoinPromises: {} });
+  }
 
   try {
     console.log(`User ${user.uid} left`);
@@ -686,18 +768,22 @@ export const handleUserLeft = async (user, config) => {
 
     // Remove the user's tracks from the config
     if (config.userTracks && config.userTracks[user.uid]) {
-      delete config.userTracks[user.uid];
+      const updatedUserTracks = { ...config.userTracks };
+      delete updatedUserTracks[user.uid];
+      app.updateConfig({ userTracks: updatedUserTracks });
       console.log(`Removed tracks for user ${user.uid}`);
     } else {
       console.log(`No tracks found for user ${user.uid}`);
     }
 
     // Call manageParticipants with the user's UID and action "leave"
-    manageParticipants(config, user.uid, {}, "leave");
+    manageParticipants(user.uid, {}, "leave");
 
     // Clear userJoinPromises when the user leaves
     if (config.userJoinPromises && config.userJoinPromises[user.uid]) {
-      delete config.userJoinPromises[user.uid];
+      const updatedUserJoinPromises = { ...config.userJoinPromises };
+      delete updatedUserJoinPromises[user.uid];
+      app.updateConfig({ userJoinPromises: updatedUserJoinPromises });
       console.log(`Cleared userJoinPromises for user ${user.uid}`);
     }
 
@@ -710,13 +796,15 @@ export const handleUserLeft = async (user, config) => {
 
 
 
+
 export const handleVolumeIndicator = (() => {
-  return async (result, config) => {
+  return async (result) => {
+    const config = app.getConfig();
     const currentUserUid = config.uid; // Extract the current user's UID from the config
 
-    // Initialize the speakingIntervals object if it doesn't exist
+    // Initialize speakingIntervals in config if it doesn't exist
     if (!config.speakingIntervals) {
-      config.speakingIntervals = {};
+      app.updateConfig({ speakingIntervals: {} });
     }
 
     for (const volume of result) {
@@ -752,9 +840,11 @@ export const handleVolumeIndicator = (() => {
 
             // If we don't already have an interval for this user, create one
             if (!config.speakingIntervals[userUID]) {
+              const updatedIntervals = { ...config.speakingIntervals };
+
               // Start interval to update bars
-              config.speakingIntervals[userUID] = setInterval(() => {
-                audioBars.forEach((bar, index) => {
+              updatedIntervals[userUID] = setInterval(() => {
+                audioBars.forEach((bar) => {
                   // Define height ranges
                   const minHeight = 3; // Minimum height
                   const maxHeight = 12; // Maximum height
@@ -767,19 +857,24 @@ export const handleVolumeIndicator = (() => {
                   bar.style.height = `${randomHeight}px`;
                 });
               }, 100); // Update every 100ms
+
+              app.updateConfig({ speakingIntervals: updatedIntervals });
             }
           } else {
             // User is not speaking
 
             // If we have an interval for this user, clear it
             if (config.speakingIntervals[userUID]) {
-              clearInterval(config.speakingIntervals[userUID]);
-              delete config.speakingIntervals[userUID];
+              const updatedIntervals = { ...config.speakingIntervals };
+              clearInterval(updatedIntervals[userUID]);
+              delete updatedIntervals[userUID];
 
               // Reset bars to minimum height
               audioBars.forEach((bar) => {
                 bar.style.height = `5px`; // Reset to minimum height
               });
+
+              app.updateConfig({ speakingIntervals: updatedIntervals });
             }
           }
         }
@@ -787,18 +882,20 @@ export const handleVolumeIndicator = (() => {
 
       // Only process and send notifications for the local user (currentUserUid)
       if (userUID === currentUserUid) {
-        // Initialize lastMutedStatuses if it doesn't exist
+        // Initialize lastMutedStatuses in config if it doesn't exist
         if (!config.lastMutedStatuses) {
-          config.lastMutedStatuses = {};
+          app.updateConfig({ lastMutedStatuses: {} });
         }
 
         // Notify Bubble only when the status changes
-        if (currentStatus !== config.lastMutedStatuses[userUID]) {
+        const updatedMutedStatuses = { ...config.lastMutedStatuses };
+        if (currentStatus !== updatedMutedStatuses[userUID]) {
           console.log(
             `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for UID ${userUID}`
           );
           bubble_fn_systemmuted(currentStatus);
-          config.lastMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
+          updatedMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
+          app.updateConfig({ lastMutedStatuses: updatedMutedStatuses });
         } else {
           console.log(
             `Status for UID ${userUID} remains unchanged (${currentStatus}), no notification sent.`
@@ -818,8 +915,10 @@ export const handleVolumeIndicator = (() => {
 
 
 
+
 // Handles token renewal
-export const handleRenewToken = async (config, client) => {
+export const handleRenewToken = async (client) => {
+  const config = app.getConfig();
   config.token = await fetchTokens();
   await client.renewToken(config.token);
 };

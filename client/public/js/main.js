@@ -41,9 +41,15 @@ import {
   raiseHand,
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
-export const newMainApp = function (initConfig) {
-  console.log("newMainApp called with initConfig:", initConfig);
+let instance = null; // Store the single instance
 
+export const newMainApp = function (initConfig) {
+  if (instance) {
+    // Return the existing instance if already initialized
+    return instance;
+  }
+
+  console.log("Initializing newMainApp...");
   let config = {
     debugEnabled: true,
     callContainerSelector: "#video-stage",
@@ -114,6 +120,9 @@ export const newMainApp = function (initConfig) {
 
   // Apply initial config
   config = { ...config, ...initConfig };
+
+  const getConfig = () => config;
+
   if (!config.userTracks[config.uid]) {
     config.userTracks[config.uid] = {};
   }
@@ -188,12 +197,12 @@ export const newMainApp = function (initConfig) {
 
   // Initialize RTM Channel
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
-  setupRTMMessageListener(config.channelRTM, manageParticipants, config);
-  setupEventListeners(config);
-  checkMicrophonePermissions(config);
+  setupRTMMessageListener(config.channelRTM, manageParticipants);
+  setupEventListeners();
+  checkMicrophonePermissions();
 
   // Initialize event callbacks with clientRTM passed
-  const callbacks = eventCallbacks(config, config.clientRTM);
+  const callbacks = eventCallbacks();
   Object.assign(config, callbacks);
 
   // Function to ensure RTM is joined
@@ -204,7 +213,7 @@ export const newMainApp = function (initConfig) {
       return;
     }
 
-    const tokens = await fetchTokens(config);
+    const tokens = await fetchTokens();
     if (!tokens) throw new Error("Failed to fetch RTM token");
 
     await joinRTM(tokens.rtmToken);
@@ -254,30 +263,60 @@ export const newMainApp = function (initConfig) {
     // Subscribe to audio tracks for existing users if transitioning from waiting
     if (prevRole === "waiting" && newRoleInTheCall !== "waiting") {
       console.log("Subscribing to audio tracks for existing users...");
+      console.log("Current config.userTracks:", config.userTracks);
+
+      // Iterate over all userTracks
       for (const userUid in config.userTracks) {
         const user = config.userTracks[userUid];
-        if (user && user.audioTrack && !user.audioTrack.isPlaying) {
-          try {
-            await config.client.subscribe(user, "audio");
-            user.audioTrack.play();
 
-            // Update mic status dynamically
-            const micStatusElement = document.getElementById(
-              `mic-status-${userUid}`
-            );
-            if (micStatusElement) {
-              micStatusElement.classList.add("hidden"); // Show unmuted icon
-              console.log(`Updated mic status for user ${userUid}`);
+        if (user && user.audioTrack) {
+          console.log(
+            `Found audio track for user ${userUid}:`,
+            user.audioTrack
+          );
+
+          if (!user.audioTrack.isPlaying) {
+            try {
+              console.log(
+                `Attempting to subscribe to audio track for user ${userUid}...`
+              );
+              await config.client.subscribe(user, "audio");
+              user.audioTrack.play();
+
+              console.log(
+                `Successfully subscribed and playing audio for user ${userUid}.`
+              );
+
+              // Update mic status dynamically
+              const micStatusElement = document.getElementById(
+                `mic-status-${userUid}`
+              );
+              if (micStatusElement) {
+                micStatusElement.classList.add("hidden"); // Show unmuted icon
+                console.log(`Updated mic status for user ${userUid}`);
+              } else {
+                console.warn(
+                  `Mic status element not found for user ${userUid}`
+                );
+              }
+
+              // Update publishing list
+              updatePublishingList(userUid.toString(), "audio", "add");
+            } catch (error) {
+              console.error(
+                `Error subscribing to audio for user ${userUid}:`,
+                error
+              );
             }
-
-            // Update publishing list
-            updatePublishingList(userUid.toString(), "audio", "add", config);
-          } catch (error) {
-            console.error(
-              `Error subscribing to audio for user ${userUid}:`,
-              error
+          } else {
+            console.log(
+              `User ${userUid}'s audio track is already playing. Skipping subscription.`
             );
           }
+        } else {
+          console.log(
+            `User ${userUid} does not have a valid audio track. Skipping.`
+          );
         }
       }
     }
@@ -304,8 +343,6 @@ export const newMainApp = function (initConfig) {
       config.isOnStage = false;
     }
   };
-
-
 
   // Main join function
   const join = async () => {
@@ -389,7 +426,7 @@ export const newMainApp = function (initConfig) {
       console.log("Successfully joined RTM channel:", config.channelName);
 
       // Update participantList and call manageParticipants for the current user
-      manageParticipants(config, config.uid, attributes, "join");
+      manageParticipants(config.uid, attributes, "join");
 
       // Notify Bubble of successful join
       const stage = document.getElementById(`video-stage`);
@@ -408,26 +445,26 @@ export const newMainApp = function (initConfig) {
   };
 
   // Function to join RTC
-const joinRTC = async () => {
-  console.warn("joinRTC called");
+  const joinRTC = async () => {
+    console.warn("joinRTC called");
 
-  try {
-    // Fetch RTC token
-    const tokens = await fetchTokens(config);
-    if (!tokens) throw new Error("Failed to fetch RTC token");
+    try {
+      // Fetch RTC token
+      const tokens = await fetchTokens();
+      if (!tokens) throw new Error("Failed to fetch RTC token");
 
-    // Join the RTC channel
-    await config.client.join(
-      config.appId,
-      config.channelName,
-      tokens.rtcToken,
-      config.uid
-    );
-    console.log("Successfully joined RTC channel");
-  } catch (error) {
-    console.error("Error during joinRTC:", error);
-  }
-};
+      // Join the RTC channel
+      await config.client.join(
+        config.appId,
+        config.channelName,
+        tokens.rtcToken,
+        config.uid
+      );
+      console.log("Successfully joined RTC channel");
+    } catch (error) {
+      console.error("Error during joinRTC:", error);
+    }
+  };
 
   // Function to join the video stage
   const joinVideoStage = async () => {
@@ -449,7 +486,7 @@ const joinRTC = async () => {
         console.log("Publishing audio track...");
         await config.client.publish([config.userTracks[config.uid].audioTrack]);
         console.log("Audio track published.");
-        updatePublishingList(config.uid.toString(), "audio", "add", config);
+        updatePublishingList(config.uid.toString(), "audio", "add");
       } catch (error) {
         // Handle specific microphone-related errors
         if (error.name === "NotAllowedError") {
@@ -471,7 +508,7 @@ const joinRTC = async () => {
       }
 
       console.log("User is host, performing additional setup");
-      await addUserWrapper(config.uid, config);
+      await addUserWrapper(config.uid);
 
       updateLayout();
 
@@ -482,35 +519,39 @@ const joinRTC = async () => {
   };
 
   // Function to leave the video stage
-const leaveVideoStage = async () => {
-  console.warn("leaveVideoStage called");
+  const leaveVideoStage = async () => {
+    console.warn("leaveVideoStage called");
 
-  try {
-    // Unpublish and close audio track
-    if (config.userTracks[config.uid]?.audioTrack) {
-      console.log("Unpublishing audio track...");
-      await config.client.unpublish([config.userTracks[config.uid].audioTrack]);
-      config.userTracks[config.uid].audioTrack.close();
-      config.userTracks[config.uid].audioTrack = null;
-      console.log("Audio track unpublished and closed");
+    try {
+      // Unpublish and close audio track
+      if (config.userTracks[config.uid]?.audioTrack) {
+        console.log("Unpublishing audio track...");
+        await config.client.unpublish([
+          config.userTracks[config.uid].audioTrack,
+        ]);
+        config.userTracks[config.uid].audioTrack.close();
+        config.userTracks[config.uid].audioTrack = null;
+        console.log("Audio track unpublished and closed");
+      }
+
+      // Unpublish and close video track
+      if (config.userTracks[config.uid]?.videoTrack) {
+        console.log("Unpublishing video track...");
+        await config.client.unpublish([
+          config.userTracks[config.uid].videoTrack,
+        ]);
+        config.userTracks[config.uid].videoTrack.close();
+        config.userTracks[config.uid].videoTrack = null;
+        console.log("Video track unpublished and closed");
+      }
+
+      // Update stage status
+      config.isOnStage = false;
+      console.log("Left the video stage successfully");
+    } catch (error) {
+      console.error("Error in leaveVideoStage:", error);
     }
-
-    // Unpublish and close video track
-    if (config.userTracks[config.uid]?.videoTrack) {
-      console.log("Unpublishing video track...");
-      await config.client.unpublish([config.userTracks[config.uid].videoTrack]);
-      config.userTracks[config.uid].videoTrack.close();
-      config.userTracks[config.uid].videoTrack = null;
-      console.log("Video track unpublished and closed");
-    }
-
-    // Update stage status
-    config.isOnStage = false;
-    console.log("Left the video stage successfully");
-  } catch (error) {
-    console.error("Error in leaveVideoStage:", error);
-  }
-};
+  };
 
   // Function to send an RTM message to the channel
   const sendRTMMessage = async (message) => {
@@ -548,6 +589,11 @@ const leaveVideoStage = async () => {
     bubble_fn_usersRaisingHand(config.usersRaisingHand);
   };
 
+  const updateConfig = (newConfig) => {
+    // Merge newConfig into the existing config object
+    Object.assign(config, newConfig);
+    console.log("Config updated:", config);
+  };
 
 
   // Function to handle external role changes
@@ -600,14 +646,14 @@ const leaveVideoStage = async () => {
       console.log(
         `Calling manageParticipants to remove user ${config.uid} from previous role: ${previousRoleInTheCall}`
       );
-      await manageParticipants(config, config.uid, {}, "leave");
+      await manageParticipants(config.uid, {}, "leave");
     }
 
     // Update participant list for the new role
     console.log(
       `Calling manageParticipants for user ${config.uid} with new role: ${newRoleInTheCall}`
     );
-    await manageParticipants(config, config.uid, attributes, "join");
+    await manageParticipants(config.uid, attributes, "join");
 
     // Send a message to inform other users about the role change
     const roleUpdateMessage = {
@@ -634,13 +680,12 @@ const leaveVideoStage = async () => {
     }
   };
 
-  // Expose the onRoleChange function for external calls
-  config.onRoleChange = onRoleChange;
-  config.handleRaisingHand = handleRaisingHand;
-
   // Return the API
-  return {
-    config,
+  instance = {
+    getConfig,
+    updateConfig,
+    onRoleChange,
+    handleRaisingHand,
     join,
     toggleMic,
     leave,
@@ -659,10 +704,14 @@ const leaveVideoStage = async () => {
     raiseHand,
     stopAudioRecording,
     sendRTMMessage,
-    stopUserCamera, // Add stop camera function
-    stopUserMic, // Add stop mic function
+    stopUserCamera,
+    stopUserMic,
     stopUserScreenshare,
   };
+
+  // Return the created instance
+  return instance;
 };
 
+// Attach the singleton to the global `window` object for global access
 window["newMainApp"] = newMainApp;
