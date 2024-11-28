@@ -78,7 +78,7 @@ setInterval(processBatch, BATCH_INTERVAL);
 
 // Add an update to the batch queue
 function updateConfig(newConfig, origin) {
-  console.log("Config update queued from", origin);
+  console.warn("Config update queued from", origin);
   pendingUpdates.push(newConfig); // Add the new update to the queue
 }
 
