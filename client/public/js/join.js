@@ -54,6 +54,18 @@ export const join = async (config) => {
         console.log("RTM members 2 or 3 detected. Event is being recorded.");
         bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
       }
+      const attributes = {
+        name: config.user.name, // Pull name from config.user
+        avatar: config.user.avatar, // Pull avatar from config.user
+        company: config.user.company || "", // Default to empty string if not set in config.user
+        designation: config.user.designation || "", // Default to empty string if not set in config.user
+        role: config.user.role || "audience", // Default to "audience" if not set in config.user
+        rtmUid: config.uid, // Use config.uid for RTM UID
+        bubbleid: config.user.bubbleid || "", // Default to empty if not set in config.user
+        isRaisingHand: config.user.isRaisingHand || false, // Default to false if not set in config.user
+        sharingScreenUid: config.sharingScreenUid || "0", // Default to "0" if no screen sharing user ID
+        roleInTheCall: config.user.roleInTheCall || "audience", // Default to "audience" if not set in config.user
+      };
     manageParticipants(config, config.uid, attributes, "join");
     bubble_fn_joining("Joined");
     updateConfig(config, "join")
