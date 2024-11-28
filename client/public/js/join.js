@@ -1,6 +1,7 @@
 import { getConfig, updateConfig } from "./config.js";
 import { joinVideoStage} from "./joinleavestage.js";
 import { fetchTokens} from "./helperFunctions.js";
+import { manageParticipants } from "./rtcEventHandlers.js";
 
 export const join = async (config) => {
 
