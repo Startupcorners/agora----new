@@ -111,9 +111,9 @@ export const newMainApp = async function (initConfig) {
 
   // Initialize RTM Channel
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
-  setupRTMMessageListener(config.channelRTM, manageParticipants, config);
-  setupEventListeners(config);
-  checkMicrophonePermissions(config);
+  setupRTMMessageListener();
+  setupEventListeners();
+  checkMicrophonePermissions();
 
   // Update the config again with the new properties
   updateConfig(config, "newMainApp");

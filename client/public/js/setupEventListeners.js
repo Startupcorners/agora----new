@@ -5,6 +5,9 @@ import {
   handleUserJoined,
   handleUserLeft,
   handleVolumeIndicator,
+  handleRaisingHand,
+  onRoleChange,
+  manageParticipants,
 } from "./rtcEventHandlers.js";
 import {
   toggleMic,
@@ -22,7 +25,8 @@ import {
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { getConfig, updateConfig } from "./config.js";
 
-export const setupEventListeners = (config) => {
+export const setupEventListeners = () => {
+let config = getConfig();
 const client = config.client;
 
   // Handle when a user publishes their media (audio/video)
@@ -281,11 +285,9 @@ const client = config.client;
   });
 };
 
-export const setupRTMMessageListener = (
-  channelRTM,
-  manageParticipants,
-  config
-) => {
+export const setupRTMMessageListener = () => {
+  let config = getConfig();
+  const channelRTM = config.channelRTM
   if (!channelRTM) {
     console.warn("RTM channel is not initialized.");
     return;
@@ -319,7 +321,7 @@ export const setupRTMMessageListener = (
       console.log(`Raise hand message received for user ${userUid}`);
       if (userUid) {
         console.log(`User ${userUid} has raised their hand.`);
-        await config.handleRaisingHand(userUid);
+        await handleRaisingHand(userUid);
       }
     } else if (type === "roleChange") {
       // Handle "roleChange" message
@@ -334,7 +336,7 @@ export const setupRTMMessageListener = (
           "Role change is for the current user. Calling onRoleChange."
         );
         try {
-          await config.onRoleChange(newRoleInTheCall);
+          await onRoleChange(newRoleInTheCall);
           console.log("Successfully handled role change.");
         } catch (error) {
           console.error("Error handling role change:", error);
@@ -428,10 +430,6 @@ export const setupRTMMessageListener = (
   // Handle member leave
   channelRTM.on("MemberLeft", async (memberId) => {
     console.log(`RTM Member left: ${memberId}`);
-
-    // Remove the wrapper and update participants
-    removeUserWrapper(memberId);
-    await manageParticipants(config, memberId, {}, "leave");
   });
 
   console.log(
@@ -439,7 +437,8 @@ export const setupRTMMessageListener = (
   );
 };
 
-export async function checkMicrophonePermissions(config) {
+export async function checkMicrophonePermissions() {
+  let config = getConfig();
   if (navigator.permissions) {
     try {
       const micPermission = await navigator.permissions.query({
@@ -486,6 +485,7 @@ export async function checkMicrophonePermissions(config) {
       console.log(
         `Initial microphone permission state: ${micPermission.state}`
       );
+      updateConfig(config); 
     } catch (error) {
       console.error("Error checking microphone permissions:", error);
     }
@@ -519,7 +519,7 @@ function handleMicPermissionChange(state, config) {
   // If the microphone is not granted, toggle the mic to update the UI
   if (!isMicAvailable) {
     console.log("Microphone permission not granted. Updating UI...");
-    toggleMic(config); // Call toggleMic to handle the UI and notify the user
+    toggleMic(); // Call toggleMic to handle the UI and notify the user
   } else {
     // If microphone is granted, notify Bubble using bubble_fn_systemmuted(false)
     if (typeof bubble_fn_systemmuted === "function") {
@@ -543,4 +543,5 @@ function handleMicPermissionChange(state, config) {
       );
     }
   }
+  updateConfig(config); 
 }

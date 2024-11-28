@@ -1,4 +1,4 @@
-import { fetchTokens } from "./helperFunctions.js";
+import { fetchTokens, sendRTMMessage } from "./helperFunctions.js";
 import { getConfig, updateConfig } from "./config.js";
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
@@ -454,36 +454,30 @@ export const stopScreenShare = async (config) => {
 };
 
 
-export const changeUserRole = async (
-  userUid,
-  newRole,
-  newRoleInTheCall,
-  config
-) => {
+export const changeUserRole = async (userUid, newRole, newRoleInTheCall) => {
+  let config = getConfig();
   console.log(
     `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
 
   await manageParticipants(config, userUid, {}, "leave");
 
-  // Broadcast the role change to others in the RTM channel
-  if (config.channelRTM) {
-    const message = JSON.stringify({
-      type: "roleChange",
-      userUid: userUid,
-      newRole: newRole,
-      newRoleInTheCall: newRoleInTheCall,
-    });
-    await config.channelRTM.sendMessage({ text: message });
-    console.log(`Role change message sent to RTM channel: ${message}`);
-  } else {
-    console.warn("RTM channel is not initialized.");
-  }
+  // Prepare the message for the role change
+  const message = JSON.stringify({
+    type: "roleChange",
+    userUid: userUid,
+    newRole: newRole,
+    newRoleInTheCall: newRoleInTheCall,
+  });
+
+  // Use the helper function to send the RTM message
+  await sendRTMMessage(message);
 
   console.log(
     `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
 };
+
 
 export function updateMicStatusElement(uid, isMuted) {
   const micStatusElement = document.getElementById(`mic-status-${uid}`);
@@ -504,101 +498,69 @@ export function updateMicStatusElement(uid, isMuted) {
   }
 }
 
-export const stopUserCamera = async (userUid, config) => {
+export const stopUserCamera = async (userUid) => {
   console.log(`Sending stop camera message for user ${userUid}`);
 
-  // Check if the RTM channel is initialized
-  if (config.channelRTM) {
-    const message = JSON.stringify({
-      type: "stopCamera",
-      userUid: userUid,
-    });
+  // Prepare the stop camera message
+  const message = JSON.stringify({
+    type: "stopCamera",
+    userUid: userUid,
+  });
 
-    // Send the message to the RTM channel
-    try {
-      await config.channelRTM.sendMessage({ text: message });
-      console.log(`Stop camera message sent to RTM channel: ${message}`);
-    } catch (error) {
-      console.error(`Failed to send stop camera message: ${error}`);
-    }
-  } else {
-    console.warn("RTM channel is not initialized.");
-  }
+  // Use the helper function to send the RTM message
+  await sendRTMMessage(message);
 
   console.log(`Stop camera request for user ${userUid} completed.`);
 };
 
-export const stopUserMic = async (userUid, config) => {
+
+export const stopUserMic = async (userUid) => {
   console.log(`Sending stop mic message for user ${userUid}`);
 
-  // Check if the RTM channel is initialized
-  if (config.channelRTM) {
-    const message = JSON.stringify({
-      type: "stopMic",
-      userUid: userUid,
-    });
+  // Prepare the stop mic message
+  const message = JSON.stringify({
+    type: "stopMic",
+    userUid: userUid,
+  });
 
-    // Send the message to the RTM channel
-    try {
-      await config.channelRTM.sendMessage({ text: message });
-      console.log(`Stop mic message sent to RTM channel: ${message}`);
-    } catch (error) {
-      console.error(`Failed to send stop mic message: ${error}`);
-    }
-  } else {
-    console.warn("RTM channel is not initialized.");
-  }
+  // Use the helper function to send the RTM message
+  await sendRTMMessage(message);
 
   console.log(`Stop mic request for user ${userUid} completed.`);
 };
 
+
 export const denyAccess = async (userUid, config) => {
   console.log(`Denying access for user ${userUid}`);
 
-  // Check if the RTM channel is initialized
-  if (config.channelRTM) {
-    const message = JSON.stringify({
-      type: "accessDenied",
-      userUid: userUid,
-    });
+  // Prepare the access denied message
+  const message = JSON.stringify({
+    type: "accessDenied",
+    userUid: userUid,
+  });
 
-    // Send the message to the RTM channel
-    try {
-      await config.channelRTM.sendMessage({ text: message });
-      console.log(`Access denied message sent to RTM channel: ${message}`);
-    } catch (error) {
-      console.error(`Failed to send access denied message: ${error}`);
-    }
-  } else {
-    console.warn("RTM channel is not initialized.");
-  }
+  // Use the helper function to send the RTM message
+  await sendRTMMessage(message);
 
   console.log(`Deny access request for user ${userUid} completed.`);
 };
 
+
 export const stopUserScreenshare = async (userUid, config) => {
   console.log(`Sending stop screenshare message for user ${userUid}`);
 
-  // Check if the RTM channel is initialized
-  if (config.channelRTM) {
-    const message = JSON.stringify({
-      type: "stopScreenshare",
-      userUid: userUid,
-    });
+  // Prepare the stop screenshare message
+  const message = JSON.stringify({
+    type: "stopScreenshare",
+    userUid: userUid,
+  });
 
-    // Send the message to the RTM channel
-    try {
-      await config.channelRTM.sendMessage({ text: message });
-      console.log(`Stop screenshare message sent to RTM channel: ${message}`);
-    } catch (error) {
-      console.error(`Failed to send stop screenshare message: ${error}`);
-    }
-  } else {
-    console.warn("RTM channel is not initialized.");
-  }
+  // Use the helper function to send the RTM message
+  await sendRTMMessage(message);
 
   console.log(`Stop screenshare request for user ${userUid} completed.`);
 };
+
 
 export const updatePublishingList = (uid, type, action, config) => {
   if (!uid || !type || !action || !config) {
@@ -655,7 +617,8 @@ export const updatePublishingList = (uid, type, action, config) => {
 let triggeredReason = null;
 
 // Add the general leave function
-export const leave = async (reason, config) => {
+export const leave = async (reason) => {
+  let config = getConfig();
   // Check if leave function has already been triggered
   if (triggeredReason) {
     console.warn(
@@ -689,6 +652,7 @@ export const leave = async (reason, config) => {
     } else {
       console.warn("bubble_fn_leave is not defined or not a function");
     }
+    updateConfig(config);
   } catch (error) {
     console.error("Error during leave:", error);
   } finally {
@@ -702,6 +666,7 @@ export const leaveRTC = async (config) => {
   console.warn("leaveRTC called");
   await config.client.leave();
   config.isRTCJoined = false;
+  updateConfig(config);
   console.log("Successfully left RTC channel");
 };
 
@@ -721,12 +686,14 @@ export const leaveRTM = async (config) => {
       config.clientRTM = null;
     }
     config.isRTMJoined = false;
+    updateConfig(config);
   } catch (error) {
     console.error("Error in leaveRTM:", error);
   }
 };
 
-export const raiseHand = async (userUid, config) => {
+export const raiseHand = async (userUid) => {
+  let config = getConfig();
   console.log(`Processing raise hand action for user ${userUid}`);
 
   // Ensure `usersRaisingHand` is initialized as an array
@@ -748,25 +715,21 @@ export const raiseHand = async (userUid, config) => {
     console.log(`User ${userUid} removed from raising hand list.`);
   }
 
-  // Check if the RTM channel is initialized
-  if (config.channelRTM) {
-    // Prepare the message payload
-    const message = JSON.stringify({
-      type: "raiseHand",
-      userUid: userUid,
-    });
+  // Prepare the message payload for raising hand
+  const message = JSON.stringify({
+    type: "raiseHand",
+    userUid: userUid,
+  });
 
-    // Send the message to the RTM channel
-    try {
-      await config.channelRTM.sendMessage({ text: message });
-      console.log(`Raise hand message sent to RTM channel: ${message}`);
-      bubble_fn_usersRaisingHand(config.usersRaisingHand);
-    } catch (error) {
-      console.error(`Failed to send raise hand message: ${error}`);
-    }
-  } else {
-    console.warn("RTM channel is not initialized.");
-  }
+  // Use the helper function to send the RTM message
+  await sendRTMMessage(message);
+
+  // Update the list of users raising hands in the UI
+  bubble_fn_usersRaisingHand(config.usersRaisingHand);
+
+  // Update the config after all changes
+  updateConfig(config);
 
   console.log(`Raise hand action for user ${userUid} completed.`);
 };
+

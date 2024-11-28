@@ -18,6 +18,7 @@ export const debounce = (fn, delay) => {
 };
 
 export const sendRTMMessage = async (message) => {
+  let config = getConfig()
   console.warn("sendRTMMessage called with message:", message);
 
   try {
