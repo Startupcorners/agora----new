@@ -92,6 +92,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
 
       // Play screen share track
       playStreamInDiv(config, userUid, "#screen-share-content");
+      playStreamInDiv(config, sharingUserUid, "pip-video-track");
     } catch (error) {
       console.error("Error processing screen share:", error);
     }
