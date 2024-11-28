@@ -1,6 +1,6 @@
 import { getConfig, updateConfig } from "./config.js";
 import {updateMicStatusElement, updatePublishingList} from "./uiHandlers.js";
-
+import { addUserWrapper } from "./wrappers.js";
 export const joinVideoStage = async (config) => {
   console.warn("joinVideoStage called");
 
