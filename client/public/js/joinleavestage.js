@@ -1,6 +1,7 @@
 import { getConfig, updateConfig } from "./config.js";
 import {updateMicStatusElement, updatePublishingList} from "./uiHandlers.js";
 import { addUserWrapper } from "./wrappers.js";
+
 export const joinVideoStage = async (config) => {
   console.warn("joinVideoStage called");
 
@@ -46,13 +47,19 @@ export const joinVideoStage = async (config) => {
 
     updateLayout();
 
+    // Successfully joined the video stage, update the config state
     console.log("Joined the video stage with audio status updated.");
-    updateConfig(config, "joinVideoStage");
 
+    // Mark user as on stage in the config
+    config.isOnStage = true;
+
+    // Update the config with the new state
+    updateConfig(config, "joinVideoStage");
   } catch (error) {
     console.error("Error in joinVideoStage:", error);
   }
 };
+
 
 // Function to leave the video stage
 export const leaveVideoStage = async () => {
@@ -77,9 +84,12 @@ export const leaveVideoStage = async () => {
       console.log("Video track unpublished and closed");
     }
 
-    // Update stage status
+    // Update stage status to false, as the user has left the stage
     config.isOnStage = false;
     console.log("Left the video stage successfully");
+
+    // Update the config state
+    updateConfig(config, "leaveVideoStage");
   } catch (error) {
     console.error("Error in leaveVideoStage:", error);
   }

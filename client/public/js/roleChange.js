@@ -1,18 +1,15 @@
-const handleRoleChange = async (newRoleInTheCall) => {
+import { getConfig, updateConfig } from "./config.js";
+import {sendRTMMessage } from "./helperFunctions.js";
+import { manageParticipants } from "./rtcEventHandlers.js";
+import { joinVideoStage, leaveVideoStage } from "./joinleavestage.js";
+
+
+const handleRoleChange = async (newRoleInTheCall, config) => {
   console.warn(
     "handleRoleChange called with newRoleInTheCall:",
     newRoleInTheCall
   );
 
-  const rolesRequiringRTC = [
-    "master",
-    "host",
-    "speaker",
-    "meetingParticipant",
-    "audienceOnStage",
-    "audience",
-    "waiting",
-  ];
   const rolesRequiringStage = [
     "master",
     "host",
@@ -21,19 +18,14 @@ const handleRoleChange = async (newRoleInTheCall) => {
     "audienceOnStage",
   ];
 
+  // Store previous role and check if it requires stage
   const prevRole = config.previousRoleInTheCall;
-  config.previousRoleInTheCall = newRoleInTheCall;
-
-  const prevRequiresRTC = rolesRequiringRTC.includes(prevRole);
-  const newRequiresRTC = rolesRequiringRTC.includes(newRoleInTheCall);
-
+  config.previousRoleInTheCall = newRoleInTheCall; // Update previous role
   const prevRequiresStage = rolesRequiringStage.includes(prevRole);
   const newRequiresStage = rolesRequiringStage.includes(newRoleInTheCall);
 
   console.log("Previous role:", prevRole);
   console.log("New role:", newRoleInTheCall);
-  console.log("prevRequiresRTC:", prevRequiresRTC);
-  console.log("newRequiresRTC:", newRequiresRTC);
   console.log("prevRequiresStage:", prevRequiresStage);
   console.log("newRequiresStage:", newRequiresStage);
 
@@ -44,6 +36,12 @@ const handleRoleChange = async (newRoleInTheCall) => {
 
     // Iterate over all userTracks
     for (const userUid in config.userTracks) {
+      // Skip if the user is subscribing to their own track
+      if (userUid === config.uid) {
+        console.log(`Skipping subscription for user ${userUid} (own track).`);
+        continue;
+      }
+
       const user = config.userTracks[userUid];
 
       if (user && user.audioTrack) {
@@ -93,32 +91,23 @@ const handleRoleChange = async (newRoleInTheCall) => {
     }
   }
 
-  // Handle RTC join/leave
-  if (!prevRequiresRTC && newRequiresRTC && !config.isRTCJoined) {
-    console.log("Joining RTC...");
-    await joinRTC();
-    config.isRTCJoined = true;
-  } else if (prevRequiresRTC && !newRequiresRTC && config.isRTCJoined) {
-    console.log("Leaving RTC...");
-    await leaveRTC();
-    config.isRTCJoined = false;
-  }
-
   // Handle video stage join/leave
   if (!prevRequiresStage && newRequiresStage && !config.isOnStage) {
     console.log("Joining video stage...");
     await joinVideoStage();
-    config.isOnStage = true;
   } else if (prevRequiresStage && !newRequiresStage && config.isOnStage) {
     console.log("Leaving video stage...");
     await leaveVideoStage();
-    config.isOnStage = false;
   }
+
+  // Update the config after role change
+  updateConfig(config); // Ensure the updated config is saved
 };
 
 
 
 export const onRoleChange = async (newRoleInTheCall) => {
+  let config = getConfig();
   console.warn("onRoleChange called with newRoleInTheCall:", newRoleInTheCall);
 
   // Retrieve the previous role for cleanup
@@ -157,7 +146,7 @@ export const onRoleChange = async (newRoleInTheCall) => {
   }
 
   // Handle role change (e.g., join/leave RTC, update UI)
-  await handleRoleChange(newRoleInTheCall);
+  await handleRoleChange(newRoleInTheCall, config);
 
   // Call manageParticipants to remove the user from the previous role
   if (previousRoleInTheCall && previousRoleInTheCall !== newRoleInTheCall) {
@@ -182,18 +171,12 @@ export const onRoleChange = async (newRoleInTheCall) => {
     userAttr: attributes, // Include the user attributes
   };
 
-  if (config.channelRTM) {
-    try {
-      await config.channelRTM.sendMessage({
-        text: JSON.stringify(roleUpdateMessage),
-      });
-      console.log("Sent userRoleUpdated message to RTM channel.");
-    } catch (error) {
-      console.error("Failed to send userRoleUpdated message:", error);
-    }
-  } else {
-    console.warn(
-      "RTM channel is not initialized. Cannot send role update message."
-    );
-  }
+  // Use sendRTMMessage helper to send the message
+  await sendRTMMessage(JSON.stringify(roleUpdateMessage));
+
+  console.log("Sent userRoleUpdated message to RTM channel.");
+
+  // Update the config to reflect the new role changes
+  updateConfig(config);
 };
+
