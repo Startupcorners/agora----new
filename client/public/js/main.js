@@ -85,6 +85,7 @@ export const newMainApp = function (initConfig) {
   })();
 
   // Ensure required config parameters are present
+  console.log(config)
   if (
     !config.appId ||
     !config.callContainerSelector ||
