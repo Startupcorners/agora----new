@@ -1,5 +1,5 @@
-import { getConfig, updateConfig } from "./config";
-import { joinVideoStage} from "./joinleavestage";
+import { getConfig, updateConfig } from "./config.js";
+import { joinVideoStage} from "./joinleavestage.js";
 import { fetchTokens} from "./helperFunctions.js";
 
 export const join = async () => {
