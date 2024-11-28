@@ -76,7 +76,7 @@ const startMic = async (config) => {
     }
 
     // If you modify the config and need to update it globally, call updateConfig here
-    updateConfig(config);
+    updateConfig(config, "startMic");
   } catch (error) {
     console.warn(
       "Error accessing or creating microphone track, setting mic to off.",
@@ -141,7 +141,7 @@ const endMic = async (config) => {
 
     // Notify Bubble that the microphone is off
     bubble_fn_isMicOff(true);
-    updateConfig(config);
+    updateConfig(config, "endMic");
   } catch (error) {
     console.error("Error in endMic for user:", config.uid, error);
   }
@@ -229,7 +229,7 @@ export const startCamera = async (config) => {
       bubble_fn_isCamOn(true); // Camera is on
     }
     // Update the global config if it was modified
-    updateConfig(config);
+    updateConfig(config, "startCamera");
   } catch (error) {
     console.error("Error starting the camera for user:", config.uid, error);
   }
@@ -269,7 +269,7 @@ export const stopCamera = async (config) => {
     } else {
       console.warn("No active video track to stop for user:", config.uid);
     }
-    updateConfig(config)
+    updateConfig(config, "stopCamera")
   } catch (error) {
     console.error("Error stopping the camera for user:", config.uid, error);
   }
@@ -405,7 +405,7 @@ export const startScreenShare = async (config) => {
     config.generatedScreenShareId = screenShareUid;
 
     // **Call updateConfig only once at the end**
-    updateConfig(config);
+    updateConfig(config, "startScreenShare");
 
     bubble_fn_userSharingScreen(config.sharingScreenUid);
 
@@ -448,7 +448,7 @@ export const stopScreenShare = async (config) => {
   bubble_fn_userSharingScreen(config.sharingScreenUid);
 
   // Update the config after all changes
-  updateConfig(config);
+  updateConfig(config, "stopScreenShare");
 
   console.log("Screen share stopped and config updated.");
 };
@@ -649,7 +649,7 @@ export const updatePublishingList = (uid, type, action, config) => {
   } else {
     console.warn(`Bubble function for ${type} publishing is not defined.`);
   }
-  updateConfig(config)
+  updateConfig(config, "updatePublishingList")
 };
 
 let triggeredReason = null;
