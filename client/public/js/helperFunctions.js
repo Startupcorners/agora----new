@@ -1,10 +1,6 @@
 import { enableVirtualBackgroundBlur, enableVirtualBackgroundImage } from "./virtualBackgroundHandlers.js";
 import { newMainApp } from "./main.js";
 
-const app = newMainApp();
-
-
-
 export const debounce = (fn, delay) => {
   let timer;
   return (...args) => {
@@ -30,7 +26,9 @@ export const sendMessageToPeer = (clientRTM, data, uid) => {
 };
 
 export const fetchTokens = async (uidToFetch) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   try {
     const uid = uidToFetch || config.uid; // Use screenShareUid if provided, otherwise default to main UID
 
@@ -151,7 +149,9 @@ export const fetchAndSendDeviceList = async () => {
 
 // Function to update selected devices in the config and notify Bubble when user joins
 export const updateSelectedDevices = async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   try {
     // Fetch devices using Agora's getDevices
     const devices = await AgoraRTC.getDevices();
@@ -211,7 +211,9 @@ export const updateSelectedDevices = async () => {
 
 
 export const switchMic = async (micInfo) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   try {
     // Check if micInfo is a string and try to parse it as JSON
     if (typeof micInfo === "string") {
@@ -299,7 +301,9 @@ export const switchSpeaker = async (speakerInfo) => {
 
 
 export const switchCam = async (camInfo) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   try {
     // Check if camInfo is a string and try to parse it as JSON
     if (typeof camInfo === "string") {

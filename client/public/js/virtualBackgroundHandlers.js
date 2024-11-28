@@ -1,8 +1,9 @@
 import { newMainApp } from "./main.js";
-const app = newMainApp();
 
 export const toggleVirtualBackground = async (imageSrc = "") => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log("toggleVirtualBackground called with imageSrc:", imageSrc);
 
   // Check if the virtual background is already enabled with the same image

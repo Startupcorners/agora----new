@@ -1,11 +1,6 @@
 import { newMainApp } from "./main.js";
 import { fetchTokens } from "./helperFunctions.js";
 
-let app;
-document.addEventListener("DOMContentLoaded", () => {
-  app = newMainApp();
-  console.log("App initialized after DOMContentLoaded:", app);
-});
 
 const debounce = (func, delay) => {
   let inProgress = false;
@@ -85,7 +80,9 @@ const acquireResource = async (config, scene) => {
 
 // Debounced Start Cloud Recording
 export const startCloudRecording = debounce(async (url) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   const recordId = Math.floor(100000 + Math.random() * 900000).toString();
 
   // Update recordId
@@ -173,7 +170,9 @@ export const startCloudRecording = debounce(async (url) => {
 
 // Debounced Stop Cloud Recording
 export const stopCloudRecording = debounce(async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   try {
     const response = await fetch(`${config.serverUrl}/stopCloudRecording`, {
       method: "POST",
@@ -213,7 +212,9 @@ export const stopCloudRecording = debounce(async () => {
 
 // Debounced Start Audio Recording
 export const startAudioRecording = debounce(async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   const audioRecordId = Math.floor(100000 + Math.random() * 900000).toString();
 
   // Update audioRecordId in config
@@ -327,7 +328,9 @@ export const startAudioRecording = debounce(async () => {
 
 // Debounced Stop Audio Recording
 export const stopAudioRecording = debounce(async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   const requestId = Math.random().toString(36).substring(2); // Unique ID for this attempt
   console.log(`stopAudioRecording attempt started. Request ID: ${requestId}`);
 

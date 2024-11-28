@@ -7,17 +7,15 @@ import {
 } from "./videoHandlers.js";
 import { updatePublishingList} from "./uiHandlers.js"; 
 import { playStreamInDiv } from "./videoHandlers.js"; 
-let app;
-document.addEventListener("DOMContentLoaded", () => {
-  app = newMainApp();
-  console.log("App initialized after DOMContentLoaded:", app);
-});
+
 const userJoinPromises = {};
 
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, client) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   const userUid = user.uid.toString();
   console.log(
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
@@ -45,7 +43,9 @@ export const handleUserPublished = async (user, mediaType, client) => {
 };
 
 const handleVideoPublished = async (user, userUid, client) => {
-  const config = app.getConfig(); // Retrieve the current config
+  const app = newMainApp();
+const config = app.getConfig();
+ // Retrieve the current config
 
   console.log(`Handling video published for user: ${userUid}`);
 
@@ -140,7 +140,9 @@ const handleVideoPublished = async (user, userUid, client) => {
 
 
 const handleAudioPublished = async (user, userUid, client) => {
-  const config = app.getConfig(); // Use the shared singleton instance's config
+  const app = newMainApp();
+const config = app.getConfig();
+ // Use the shared singleton instance's config
   console.log(`Handling audio published for user: ${userUid}`);
 
   try {
@@ -215,7 +217,9 @@ const handleAudioPublished = async (user, userUid, client) => {
 
 
 export const handleUserUnpublished = async (user, mediaType) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log("Entered handleuserUnpublished:", user);
   console.log("User :",user);
   const userUid = user.uid.toString();
@@ -234,7 +238,9 @@ export const handleUserUnpublished = async (user, mediaType) => {
 
 
 const handleVideoUnpublished = async (user, userUid) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log(`Handling video unpublishing for user: ${userUid}`);
 
   // Special case: Handle screen share (UID > 999999999)
@@ -359,7 +365,9 @@ const handleVideoUnpublished = async (user, userUid) => {
 
 
 const handleAudioUnpublished = async (user, userUid) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log(`Handling audio unpublishing for user: ${userUid}`);
 
   try {
@@ -455,7 +463,9 @@ const handleAudioUnpublished = async (user, userUid) => {
 
 
 export const manageParticipants = async (userUid, userAttr, actionType) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.warn(
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
@@ -598,7 +608,9 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
 
 // Handles user joined event
 export const handleUserJoined = async (user, userAttr = {}) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log("User info:", user);
   console.log("User attributes:", userAttr);
   const userUid = user.uid.toString();
@@ -742,7 +754,9 @@ export const handleUserJoined = async (user, userAttr = {}) => {
 
 // Handles user left event
 export const handleUserLeft = async (user) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log("Entered handleUserLeft:", user);
 
   // Initialize userJoinPromises in config if it doesn't exist
@@ -803,7 +817,9 @@ export const handleUserLeft = async (user) => {
 
 export const handleVolumeIndicator = (() => {
   return async (result) => {
-    const config = app.getConfig();
+    const app = newMainApp();
+const config = app.getConfig();
+
     const currentUserUid = config.uid; // Extract the current user's UID from the config
 
     // Initialize speakingIntervals in config if it doesn't exist
@@ -922,7 +938,9 @@ export const handleVolumeIndicator = (() => {
 
 // Handles token renewal
 export const handleRenewToken = async (client) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   config.token = await fetchTokens();
   await client.renewToken(config.token);
 };

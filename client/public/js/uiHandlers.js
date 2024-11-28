@@ -5,10 +5,10 @@ import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
 
-const app = newMainApp();
-
 export const toggleMic = async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   try {
     console.log("configs:", config);
     console.log(`UserTracks:`, config.userTracks);
@@ -29,7 +29,9 @@ export const toggleMic = async () => {
 };
 
 const startMic = async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   try {
     console.log("Starting microphone for user:", config.uid);
 
@@ -87,7 +89,9 @@ const startMic = async () => {
 
 
 const endMic = async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   try {
     console.log("Ending microphone for user:", config.uid);
 
@@ -154,7 +158,9 @@ const endMic = async () => {
 
 
 export const toggleCamera = async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
@@ -313,7 +319,9 @@ export const stopCamera = async (config) => {
 
 
 export const toggleScreenShare = async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log("config.sharingScreenUid", config.sharingScreenUid);
 
   try {
@@ -500,7 +508,9 @@ export const stopScreenShare = async (config) => {
 
 
 export const changeUserRole = async (userUid, newRole, newRoleInTheCall) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log(
     `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
@@ -551,7 +561,9 @@ export function updateMicStatusElement(uid, isMuted) {
 }
 
 export const stopUserCamera = async (userUid) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log(`Sending stop camera message for user ${userUid}`);
 
   // Check if the RTM channel is initialized
@@ -576,7 +588,9 @@ export const stopUserCamera = async (userUid) => {
 };
 
 export const stopUserMic = async (userUid) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log(`Sending stop mic message for user ${userUid}`);
 
   // Check if the RTM channel is initialized
@@ -601,7 +615,9 @@ export const stopUserMic = async (userUid) => {
 };
 
 export const denyAccess = async (userUid) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log(`Denying access for user ${userUid}`);
 
   // Check if the RTM channel is initialized
@@ -626,7 +642,9 @@ export const denyAccess = async (userUid) => {
 };
 
 export const stopUserScreenshare = async (userUid) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log(`Sending stop screenshare message for user ${userUid}`);
 
   // Check if the RTM channel is initialized
@@ -651,7 +669,9 @@ export const stopUserScreenshare = async (userUid) => {
 };
 
 export const updatePublishingList = (uid, type, action) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   if (!uid || !type || !action || !config) {
     console.error("Invalid arguments provided to updatePublishingList.");
     return;
@@ -707,7 +727,9 @@ let triggeredReason = null;
 
 // Add the general leave function
 export const leave = async (reason) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   // Check if leave function has already been triggered
   if (triggeredReason) {
     console.warn(
@@ -752,7 +774,9 @@ export const leave = async (reason) => {
 
 // Function to leave RTC
 export const leaveRTC = async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.warn("leaveRTC called");
 
   try {
@@ -767,7 +791,9 @@ export const leaveRTC = async () => {
 
 // Add the leaveRTM function
 export const leaveRTM = async () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.warn("leaveRTM called");
 
   try {
@@ -793,7 +819,9 @@ export const leaveRTM = async () => {
 
 
 export const raiseHand = async (userUid) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   console.log(`Processing raise hand action for user ${userUid}`);
 
   // Ensure `usersRaisingHand` is initialized as an array

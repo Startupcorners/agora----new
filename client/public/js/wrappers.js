@@ -1,11 +1,13 @@
 import { updateMicStatusElement } from "./uiHandlers.js";
 import { newMainApp } from "./main.js";
-const app = newMainApp();
 // Track running state for each user
 let addUserWrapperRunning = {};
 
 export const addUserWrapper = async (uid) => {
-  const config = app.getConfig();
+const app = newMainApp();
+const config = app.getConfig();
+
+
   const rtmUid = uid.toString();
 
   // Check if the function is already running for the same user
@@ -84,7 +86,10 @@ export const removeUserWrapper = (uid) => {
 };
 
 export const addScreenShareWrapper = (screenShareUid, uid) => {
-  const config = app.getConfig();
+const app = newMainApp();
+const config = app.getConfig();
+
+
   try {
     // Hide all other video wrappers
     const allWrappers = document.querySelectorAll(
@@ -148,7 +153,10 @@ export const addScreenShareWrapper = (screenShareUid, uid) => {
 };
 
 export const removeScreenShareWrapper = (screenShareUid, uid) => {
-  const config = app.getConfig();
+const app = newMainApp();
+const config = app.getConfig();
+
+
   try {
     // Show all user video wrappers again after screen sharing ends
     const allWrappers = document.querySelectorAll(

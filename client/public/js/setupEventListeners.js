@@ -16,15 +16,13 @@ import {
   fetchAndSendDeviceList,
 } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
-let app;
-document.addEventListener("DOMContentLoaded", () => {
-  app = newMainApp();
-  console.log("App initialized after DOMContentLoaded:", app);
-});
+
 
 
 export const setupEventListeners = () => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   const client = config.client;
 
   // Handle when a user publishes their media (audio/video)
@@ -274,7 +272,9 @@ export const setupEventListeners = () => {
 
 
 export const setupRTMMessageListener = (channelRTM, manageParticipants) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   if (!channelRTM) {
     console.warn("RTM channel is not initialized.");
     return;
@@ -412,7 +412,9 @@ export const setupRTMMessageListener = (channelRTM, manageParticipants) => {
 
 
 export async function checkMicrophonePermissions() {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   if (navigator.permissions) {
     try {
       const micPermission = await navigator.permissions.query({
@@ -470,7 +472,9 @@ export async function checkMicrophonePermissions() {
 
 // Handle microphone permission changes
 function handleMicPermissionChange(state) {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   if (!config || config.user.roleInTheCall === "waiting" || !config.client) {
     console.log(
       "Microphone permission change ignored: user in 'waiting' role or client not initialized."

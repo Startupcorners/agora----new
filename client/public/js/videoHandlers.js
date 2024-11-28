@@ -1,11 +1,9 @@
 import { newMainApp } from "./main.js";
-let app;
-document.addEventListener("DOMContentLoaded", () => {
-  app = newMainApp();
-  console.log("App initialized after DOMContentLoaded:", app);
-});
+
 export const playStreamInDiv = (userId, divId) => {
-  const config = app.getConfig();
+  const app = newMainApp();
+const config = app.getConfig();
+
   try {
     const element = document.querySelector(divId);
     if (!element) {
