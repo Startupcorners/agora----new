@@ -1,5 +1,7 @@
-
-export const playStreamInDiv = (config, userId, divId) => {
+import { newMainApp } from "./main.js";
+const app = newMainApp();
+export const playStreamInDiv = (userId, divId) => {
+  const config = app.getConfig();
   try {
     const element = document.querySelector(divId);
     if (!element) {
@@ -26,12 +28,9 @@ export const playStreamInDiv = (config, userId, divId) => {
   }
 };
 
-
-
 export const toggleStages = (isScreenSharing) => {
   const videoStage = document.getElementById("video-stage");
   const screenShareStage = document.getElementById("screen-share-stage");
-
 
   if (!videoStage || !screenShareStage) {
     console.error(
