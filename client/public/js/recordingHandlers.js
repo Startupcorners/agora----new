@@ -1,7 +1,11 @@
 import { newMainApp } from "./main.js";
 import { fetchTokens } from "./helperFunctions.js";
 
-const app = newMainApp();
+let app;
+document.addEventListener("DOMContentLoaded", () => {
+  app = newMainApp();
+  console.log("App initialized after DOMContentLoaded:", app);
+});
 
 const debounce = (func, delay) => {
   let inProgress = false;

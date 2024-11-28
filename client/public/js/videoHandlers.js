@@ -1,5 +1,9 @@
 import { newMainApp } from "./main.js";
-const app = newMainApp();
+let app;
+document.addEventListener("DOMContentLoaded", () => {
+  app = newMainApp();
+  console.log("App initialized after DOMContentLoaded:", app);
+});
 export const playStreamInDiv = (userId, divId) => {
   const config = app.getConfig();
   try {

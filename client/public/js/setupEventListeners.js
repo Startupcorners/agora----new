@@ -16,7 +16,11 @@ import {
   fetchAndSendDeviceList,
 } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
-const app = newMainApp();
+let app;
+document.addEventListener("DOMContentLoaded", () => {
+  app = newMainApp();
+  console.log("App initialized after DOMContentLoaded:", app);
+});
 
 
 export const setupEventListeners = () => {

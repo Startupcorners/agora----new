@@ -7,7 +7,11 @@ import {
 } from "./videoHandlers.js";
 import { updatePublishingList} from "./uiHandlers.js"; 
 import { playStreamInDiv } from "./videoHandlers.js"; 
-const app = newMainApp();
+let app;
+document.addEventListener("DOMContentLoaded", () => {
+  app = newMainApp();
+  console.log("App initialized after DOMContentLoaded:", app);
+});
 const userJoinPromises = {};
 
 
