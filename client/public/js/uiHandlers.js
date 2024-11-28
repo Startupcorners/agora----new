@@ -1,9 +1,8 @@
 import { fetchTokens } from "./helperFunctions.js";
-import { getConfig, updateConfig } from "./config";
+import { getConfig, updateConfig } from "./config.js";
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
-import { updateConfig } from "./config.js";
 
 export const toggleMic = async (config) => {
   try {
