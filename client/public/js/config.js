@@ -78,7 +78,7 @@ setInterval(processBatch, BATCH_INTERVAL);
 
 // Add an update to the batch queue
 function updateConfig(newConfig, origin) {
-  console.log("Config has been updated from", origin)
+  console.log("Config update queued from", origin);
   pendingUpdates.push(newConfig); // Add the new update to the queue
 }
 
@@ -99,7 +99,7 @@ function processBatch() {
     // Apply the merged updates to the config
     config = { ...config, ...combinedUpdates };
 
-    console.log("Batch processed:", combinedUpdates); // Optional: Debug log
+    console.log("Batch processed:", combinedUpdates);
 
     // Clear the queue
     pendingUpdates = [];
@@ -115,4 +115,24 @@ function getConfig() {
   return config;
 }
 
-export { updateConfig, getConfig };
+// Add updateAndGet function
+async function updateAndGet(newConfig, origin) {
+  // Queue the update
+  updateConfig(newConfig, origin);
+
+  // Wait for the current batch to process
+  await new Promise((resolve) => {
+    const checkBatch = setInterval(() => {
+      if (!isProcessingBatch && pendingUpdates.length === 0) {
+        clearInterval(checkBatch);
+        resolve(); // Resolve once the batch has been processed
+      }
+    }, 10); // Check every 10ms
+  });
+
+  // Return the updated config
+  return getConfig();
+}
+
+// Export functions
+export { updateConfig, getConfig, updateAndGet };

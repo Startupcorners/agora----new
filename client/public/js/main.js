@@ -40,14 +40,13 @@ import {
   raiseHand,
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
-import { getConfig, updateConfig } from "./config.js";
+import { getConfig, updateAndGet, updateConfig } from "./config.js";
 
 export const newMainApp = async function (initConfig) {
   console.log("newMainApp called with initConfig:", initConfig);
 
   // Update the configuration
-  await updateConfig(initConfig, "newMainApp");
-  let config = getConfig();
+  let config = await updateAndGet(initConfig, "newMainApp");
   console.log(config);
 
   // Initialize AgoraRTC client
