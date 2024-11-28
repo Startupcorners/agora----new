@@ -38,6 +38,7 @@ import {
   leave,
   denyAccess,
   raiseHand,
+  handleRaisingHand,
 } from "./uiHandlers.js"; // Import toggle functions from uiHandlers
 
 import { getConfig, updateAndGet, updateConfig } from "./config.js";
@@ -133,6 +134,7 @@ export const newMainApp = async function (initConfig) {
     leave,
     toggleVirtualBackground,
     toggleCamera,
+    handleRaisingHand,
     denyAccess,
     switchCam,
     switchMic,
