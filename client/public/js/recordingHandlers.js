@@ -1,6 +1,6 @@
-import { newMainApp } from "./main.js";
-import { fetchTokens } from "./helperFunctions.js";
-
+import {
+  fetchTokens,
+} from "./helperFunctions.js";
 
 const debounce = (func, delay) => {
   let inProgress = false;
@@ -20,7 +20,7 @@ const debounce = (func, delay) => {
   };
 };
 
-const acquireResource = async (config, scene) => {
+export const acquireResource = async (config, scene) => {
   // Ensure scene is provided and valid
   const validScenes = ["composite", "web"];
   if (!scene || !validScenes.includes(scene)) {
@@ -78,33 +78,25 @@ const acquireResource = async (config, scene) => {
   }
 };
 
+
 // Debounced Start Cloud Recording
-export const startCloudRecording = debounce(async (url) => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+export const startCloudRecording = debounce(async (config, url) => {
   const recordId = Math.floor(100000 + Math.random() * 900000).toString();
-
-  // Update recordId
-  app.updateConfig({ recordId });
-
+  config.recordId = recordId;
   try {
     const resourceId = await acquireResource(config, "web");
     console.log("Resource acquired:", resourceId);
 
-    // Update resourceId
-    app.updateConfig({ resourceId });
+    config.resourceId = resourceId;
 
     const timestamp = Date.now().toString();
-
-    // Update timestamp
-    app.updateConfig({ timestamp });
+    config.timestamp = timestamp;
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
     console.log("Waited 2 seconds after acquiring resource");
 
     const recordingTokenResponse = await fetch(
-      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${recordId}`,
+      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.recordId}`,
       { method: "GET" }
     );
 
@@ -122,13 +114,13 @@ const config = app.getConfig();
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        resourceId,
+        resourceId: config.resourceId,
         channelName: config.channelName,
-        uid: recordId,
+        uid: config.recordId,
         token: recordingToken,
-        timestamp,
+        timestamp: config.timestamp,
         serviceUrl: recordingServiceUrl,
-        serverUrl: config.serverUrl,
+        serverUrl: config.serverUrl, // Pass the `url` to the backend
       }),
     });
 
@@ -142,21 +134,18 @@ const config = app.getConfig();
 
     if (startData.sid) {
       console.log("SID received successfully:", startData.sid);
-
-      // Update sid
-      app.updateConfig({ sid: startData.sid });
+      config.sid = startData.sid;
     } else {
       console.log("SID not received in the response");
     }
-
     bubble_fn_isVideoRecording("yes");
 
     if (typeof bubble_fn_record === "function") {
       bubble_fn_videoRecord({
         output1: resourceId,
         output2: config.sid,
-        output3: recordId,
-        output4: timestamp,
+        output3: config.recordId,
+        output4: config.timestamp,
       });
     }
 
@@ -167,12 +156,8 @@ const config = app.getConfig();
   }
 }, 3000); // 3-second debounce
 
-
 // Debounced Stop Cloud Recording
-export const stopCloudRecording = debounce(async () => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+export const stopCloudRecording = debounce(async (config) => {
   try {
     const response = await fetch(`${config.serverUrl}/stopCloudRecording`, {
       method: "POST",
@@ -193,144 +178,124 @@ const config = app.getConfig();
     if (response.ok) {
       console.log("Recording stopped successfully:", JSON.stringify(stopData));
       bubble_fn_isVideoRecording("no");
-
-      // Update recording-related fields in config
-      app.updateConfig({
-        resourceId: null,
-        sid: null,
-        recordId: null,
-        timestamp: null,
-      });
+      // MP4 file handling and other tasks are now done in the backend
     } else {
-      console.log("Error stopping recording:", stopData.error);
-    }
+      console.log("Error stopping recording:", stopData.error);    }
   } catch (error) {
     console.log("Error stopping recording:", error.message);
   }
 }, 3000); // 3-second debounce
 
-
 // Debounced Start Audio Recording
-export const startAudioRecording = debounce(async () => {
-  const app = newMainApp();
-const config = app.getConfig();
+export const startAudioRecording = debounce(async (config) => {
+ const recordId = Math.floor(100000 + Math.random() * 900000).toString();
+ config.audioRecordId = recordId;
+ try {
+   const resourceId = await acquireResource(config, "composite");
+   console.log("Resource acquired:", resourceId);
 
-  const audioRecordId = Math.floor(100000 + Math.random() * 900000).toString();
+   config.audioResourceId = resourceId;
 
-  // Update audioRecordId in config
-  app.updateConfig({ audioRecordId });
+   const timestamp = Date.now().toString();
+   config.audioTimestamp = timestamp;
 
-  try {
-    const resourceId = await acquireResource(config, "composite");
-    console.log("Resource acquired:", resourceId);
+   await new Promise((resolve) => setTimeout(resolve, 2000));
+   console.log("Waited 2 seconds after acquiring resource");
 
-    const audioTimestamp = Date.now().toString();
+   const recordingTokenResponse = await fetch(
+     `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.audioRecordId}`,
+     { method: "GET" }
+   );
 
-    // Update resourceId and timestamp in config
-    app.updateConfig({
-      audioResourceId: resourceId,
-      audioTimestamp,
-    });
+   const tokenData = await recordingTokenResponse.json();
+   const recordingToken = tokenData.token;
 
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    console.log("Waited 2 seconds after acquiring resource");
+   console.log("Recording token received:", recordingToken);
 
-    const recordingTokenResponse = await fetch(
-      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${audioRecordId}`,
-      { method: "GET" }
-    );
+   const response = await fetch(config.serverUrl + "/startAudioRecording", {
+     method: "POST",
+     headers: {
+       "Content-Type": "application/json",
+     },
+     body: JSON.stringify({
+       resourceId: config.audioResourceId,
+       channelName: config.channelName,
+       uid: config.audioRecordId,
+       token: recordingToken,
+       timestamp: config.audioTimestamp,
+     }),
+   });
 
-    const tokenData = await recordingTokenResponse.json();
-    const recordingToken = tokenData.token;
+   const startData = await response.json();
+   console.log(
+     "Response from start audio recording:",
+     JSON.stringify(startData)
+   );
 
-    console.log("Recording token received:", recordingToken);
+   if (!response.ok) {
+     console.log("Error starting audio recording:", startData.error);
+     throw new Error(`Failed to start audio recording: ${startData.error}`);
+   }
 
-    const response = await fetch(config.serverUrl + "/startAudioRecording", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resourceId,
-        channelName: config.channelName,
-        uid: audioRecordId,
-        token: recordingToken,
-        timestamp: audioTimestamp,
-      }),
-    });
+   if (startData.sid) {
+     console.log("SID received successfully:", startData.sid);
+     config.audioSid = startData.sid;
+   } else {
+     console.log("SID not received in the response");
+   }
 
-    const startData = await response.json();
-    console.log(
-      "Response from start audio recording:",
-      JSON.stringify(startData)
-    );
+   config.audioRecordingRTMClient = AgoraRTM.createInstance(config.appId, {
+     enableLogUpload: false,
+     logFilter: config.debugEnabled
+       ? AgoraRTM.LOG_FILTER_INFO
+       : AgoraRTM.LOG_FILTER_OFF,
+   });
 
-    if (!response.ok) {
-      console.log("Error starting audio recording:", startData.error);
-      throw new Error(`Failed to start audio recording: ${startData.error}`);
-    }
+   const audioRtmUid = "3";
+   const tokens = await fetchTokens(config, audioRtmUid);
+   if (!tokens) throw new Error("Failed to fetch token");
 
-    if (startData.sid) {
-      console.log("SID received successfully:", startData.sid);
+   // Ensure the user has a role assigned
+   if (!config.user.role) {
+     throw new Error("User does not have a role assigned.");
+   }
 
-      // Update audioSid in config
-      app.updateConfig({ audioSid: startData.sid });
-    } else {
-      console.log("SID not received in the response");
-    }
+   const audioRtmToken = tokens.rtmToken;
 
-    // Initialize and configure audio recording RTM client
-    const audioRecordingRTMClient = AgoraRTM.createInstance(config.appId, {
-      enableLogUpload: false,
-      logFilter: config.debugEnabled
-        ? AgoraRTM.LOG_FILTER_INFO
-        : AgoraRTM.LOG_FILTER_OFF,
-    });
+   await config.audioRecordingRTMClient.login({
+     uid: audioRtmUid,
+     token: audioRtmToken,
+   });
+   console.log("Audio recording RTM client logged in with UID:", audioRtmUid);
 
-    const audioRtmUid = "3";
-    const tokens = await fetchTokens(audioRtmUid);
-    if (!tokens) throw new Error("Failed to fetch token");
+   config.audioRecordingChannelRTM =
+     config.audioRecordingRTMClient.createChannel(config.channelName);
+   await config.audioRecordingChannelRTM.join();
+   console.log(
+     "Audio recording RTM client joined channel:",
+     config.channelName
+   );
+   bubble_fn_isAudioRecording("yes");
 
-    await audioRecordingRTMClient.login({
-      uid: audioRtmUid,
-      token: tokens.rtmToken,
-    });
+   if (typeof bubble_fn_audioRecord === "function") {
+    console.log("Running bubble_fn_audioRecord");
+     bubble_fn_audioRecord({
+       output1: resourceId,
+       output2: config.audioSid,
+       output3: config.audioRecordId,
+       output4: config.audioTimestamp,
+     });
+   }
 
-    const audioRecordingChannelRTM =
-      audioRecordingRTMClient.createChannel(config.channelName);
-    await audioRecordingChannelRTM.join();
-
-    // Update RTM client and channel in config
-    app.updateConfig({
-      audioRecordingRTMClient,
-      audioRecordingChannelRTM,
-    });
-
-    bubble_fn_isAudioRecording("yes");
-
-    if (typeof bubble_fn_audioRecord === "function") {
-      console.log("Running bubble_fn_audioRecord");
-      bubble_fn_audioRecord({
-        output1: resourceId,
-        output2: config.audioSid,
-        output3: audioRecordId,
-        output4: audioTimestamp,
-      });
-    }
-
-    return startData;
-  } catch (error) {
-    console.log("Error starting audio recording:", error.message);
-    throw error;
-  }
+   return startData;
+ } catch (error) {
+   console.log("Error starting audio recording:", error.message);
+   throw error;
+ }
 }, 3000); // 3-second debounce
 
-
 // Debounced Stop Audio Recording
-export const stopAudioRecording = debounce(async () => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+export const stopAudioRecording = debounce(async (config) => {
   const requestId = Math.random().toString(36).substring(2); // Unique ID for this attempt
   console.log(`stopAudioRecording attempt started. Request ID: ${requestId}`);
 
@@ -383,39 +348,33 @@ const config = app.getConfig();
       `Finalizing stopAudioRecording for Request ID: ${requestId}. Cleaning up RTM clients.`
     );
 
-    // Leave the RTM channel and nullify it
     if (config.audioRecordingChannelRTM) {
       try {
         await config.audioRecordingChannelRTM.leave();
         console.log("Audio recording RTM client left the channel");
+        config.audioRecordingChannelRTM = null;
       } catch (error) {
         console.error(
           "Failed to leave RTM channel for audio recording client:",
           error
         );
-      } finally {
-        app.updateConfig({ audioRecordingChannelRTM: null });
       }
     } else {
       console.log("No RTM channel to leave.");
     }
 
-    // Logout the RTM client and nullify it
     if (config.audioRecordingRTMClient) {
       try {
         await config.audioRecordingRTMClient.logout();
         console.log("Audio recording RTM client logged out");
+        config.audioRecordingRTMClient = null;
       } catch (error) {
         console.error("Failed to logout audio recording RTM client:", error);
-      } finally {
-        app.updateConfig({ audioRecordingRTMClient: null });
       }
     } else {
       console.log("No RTM client to logout.");
     }
 
-    console.log(
-      `stopAudioRecording cleanup completed for Request ID: ${requestId}`
-    );
+    console.log(`stopAudioRecording cleanup completed for Request ID: ${requestId}`);
   }
 }, 3000); // 3-second debounce

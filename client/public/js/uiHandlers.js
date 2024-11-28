@@ -1,16 +1,14 @@
-import { newMainApp } from "./main.js";
 // uiHandlers.js
+import { log, sendMessageToPeer } from "./helperFunctions.js"; // For logging and sending peer messages
 import { fetchTokens } from "./helperFunctions.js";
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
 
-export const toggleMic = async () => {
-  const app = newMainApp();
-const config = app.getConfig();
 
+export const toggleMic = async (config) => {
   try {
-    console.log("configs:", config);
+    console.log("configs:",config);
     console.log(`UserTracks:`, config.userTracks);
     console.log(`UserTracks:`, config.userTracks[config.uid]);
 
@@ -28,20 +26,22 @@ const config = app.getConfig();
   }
 };
 
-const startMic = async () => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+const startMic = async (config) => {
   try {
     console.log("Starting microphone for user:", config.uid);
 
     // Ensure userTracks is initialized
-    const userTracks = config.userTracks || {};
-    const userTrack = userTracks[config.uid] || {};
+    if (!config.userTracks[config.uid]) {
+      config.userTracks[config.uid] = {};
+    }
+
+    // Initialize audioTrack to null if it doesn't exist
+    config.userTracks[config.uid].audioTrack =
+      config.userTracks[config.uid].audioTrack || null;
 
     // Create and assign a new microphone audio track
     const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-    userTrack.audioTrack = audioTrack;
+    config.userTracks[config.uid].audioTrack = audioTrack;
 
     // Publish the audio track
     await config.client.publish([audioTrack]);
@@ -52,26 +52,22 @@ const config = app.getConfig();
     updateMicStatusElement(config.uid, false); // Mic is unmuted
     bubble_fn_isMicOff(false);
 
-    // Update usersPublishingAudio list
-    const usersPublishingAudio = config.usersPublishingAudio || [];
-    if (!usersPublishingAudio.includes(config.uid.toString())) {
-      usersPublishingAudio.push(config.uid.toString());
+    if (!config.usersPublishingAudio) {
+      config.usersPublishingAudio = [];
     }
 
-    // Update config using app.updateConfig
-    app.updateConfig({
-      userTracks: {
-        ...userTracks,
-        [config.uid]: userTrack,
-      },
-      usersPublishingAudio,
-    });
+    if (!config.usersPublishingAudio.includes(config.uid.toString())) {
+      config.usersPublishingAudio.push(config.uid.toString());
+    }
 
-    console.log("Updated usersPublishingAudio list:", usersPublishingAudio);
+    console.log(
+      "Updated usersPublishingAudio list:",
+      config.usersPublishingAudio
+    );
 
     // Notify Bubble with the updated list
     if (typeof bubble_fn_usersPublishingAudio === "function") {
-      bubble_fn_usersPublishingAudio(usersPublishingAudio);
+      bubble_fn_usersPublishingAudio(config.usersPublishingAudio);
     } else {
       console.warn("bubble_fn_usersPublishingAudio is not defined.");
     }
@@ -87,22 +83,17 @@ const config = app.getConfig();
   }
 };
 
-
-const endMic = async () => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+const endMic = async (config) => {
   try {
     console.log("Ending microphone for user:", config.uid);
 
     // Ensure userTracks is initialized
-    const userTracks = config.userTracks || {};
-    const userTrack = userTracks[config.uid];
-
-    if (!userTrack) {
+    if (!config.userTracks[config.uid]) {
       console.error(`User track for UID ${config.uid} is not initialized.`);
       return;
     }
+
+    const userTrack = config.userTracks[config.uid];
 
     // Check if audioTrack exists before attempting to stop/unpublish
     if (userTrack.audioTrack) {
@@ -143,24 +134,15 @@ const config = app.getConfig();
 
     // Notify Bubble that the microphone is off
     bubble_fn_isMicOff(true);
-
-    // Update config using app.updateConfig
-    app.updateConfig({
-      userTracks: {
-        ...userTracks,
-        [config.uid]: userTrack,
-      },
-    });
   } catch (error) {
     console.error("Error in endMic for user:", config.uid, error);
   }
 };
 
 
-export const toggleCamera = async () => {
-  const app = newMainApp();
-const config = app.getConfig();
 
+
+export const toggleCamera = async (config) => {
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
@@ -173,17 +155,18 @@ const config = app.getConfig();
       return;
     }
 
-    // Prevent simultaneous toggles by setting cameraToggleInProgress
-    app.updateConfig({ cameraToggleInProgress: true });
+    config.cameraToggleInProgress = true; // Prevent simultaneous toggles
 
     // Ensure userTracks has an entry for the user
-    const userTracks = config.userTracks || {};
-    const userTrack = userTracks[config.uid] || {
-      videoTrack: null,
-      audioTrack: null,
-    };
+    if (!config.userTracks[config.uid]) {
+      config.userTracks[config.uid] = {
+        videoTrack: null,
+        audioTrack: null,
+      };
+    }
 
-    // Toggle camera based on the current videoTrack state
+    const userTrack = config.userTracks[config.uid];
+
     if (userTrack.videoTrack) {
       // User is trying to turn off the camera
       await stopCamera(config);
@@ -191,19 +174,10 @@ const config = app.getConfig();
       // User is trying to turn on the camera
       await startCamera(config);
     }
-
-    // Update userTracks in the config
-    app.updateConfig({
-      userTracks: {
-        ...userTracks,
-        [config.uid]: userTrack,
-      },
-    });
   } catch (error) {
     console.error("Error toggling the camera for user:", config.uid, error);
   } finally {
-    // Reset cameraToggleInProgress
-    app.updateConfig({ cameraToggleInProgress: false });
+    config.cameraToggleInProgress = false; // Reset toggle state
     console.log("Camera toggle progress reset for user:", config.uid);
   }
 };
@@ -217,24 +191,27 @@ export const startCamera = async (config) => {
 
     console.log("Turning on the camera for user:", config.uid);
 
-    // Get or initialize userTracks for the current user
-    const userTracks = config.userTracks || {};
-    const userTrack = userTracks[config.uid] || {
-      videoTrack: null,
-      audioTrack: null,
-    };
+    // Ensure userTracks has an entry for the user
+    if (!config.userTracks[config.uid]) {
+      config.userTracks[config.uid] = {
+        videoTrack: null,
+        audioTrack: null,
+      };
+    }
+
+    const userTrack = config.userTracks[config.uid];
 
     // Create a new video track
-    const videoTrack = await AgoraRTC.createCameraVideoTrack();
+    userTrack.videoTrack = await AgoraRTC.createCameraVideoTrack();
 
-    if (!videoTrack) {
+    if (!userTrack.videoTrack) {
       console.error("Failed to create a new video track!");
       return;
     }
 
     // Enable and publish the video track
-    await videoTrack.setEnabled(true);
-    await config.client.publish([videoTrack]);
+    await userTrack.videoTrack.setEnabled(true);
+    await config.client.publish([userTrack.videoTrack]);
 
     console.log("Camera turned on and published");
     updatePublishingList(config.uid.toString(), "video", "add", config);
@@ -245,17 +222,6 @@ export const startCamera = async (config) => {
     } else {
       playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
     }
-
-    // Update config using app.updateConfig
-    app.updateConfig({
-      userTracks: {
-        ...userTracks,
-        [config.uid]: {
-          ...userTrack,
-          videoTrack,
-        },
-      },
-    });
 
     // Notify Bubble of the camera state
     if (typeof bubble_fn_isCamOn === "function") {
@@ -275,17 +241,18 @@ export const stopCamera = async (config) => {
 
     console.log("Turning off the camera for user:", config.uid);
 
-    const userTracks = config.userTracks || {};
-    const userTrack = userTracks[config.uid];
+    const userTrack = config.userTracks[config.uid];
 
     if (userTrack && userTrack.videoTrack) {
       // Unpublish and stop the video track
       await config.client.unpublish([userTrack.videoTrack]);
       userTrack.videoTrack.stop();
       userTrack.videoTrack.close();
+      userTrack.videoTrack = null; // Remove the video track reference
 
       console.log("Camera turned off and unpublished");
       updatePublishingList(config.uid.toString(), "video", "remove", config);
+
 
       // Update UI
       if (config.sharingScreenUid === config.uid.toString()) {
@@ -293,17 +260,6 @@ export const stopCamera = async (config) => {
       } else {
         playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
       }
-
-      // Update config using app.updateConfig
-      app.updateConfig({
-        userTracks: {
-          ...userTracks,
-          [config.uid]: {
-            ...userTrack,
-            videoTrack: null, // Remove the video track reference
-          },
-        },
-      });
 
       // Notify Bubble of the camera state
       if (typeof bubble_fn_isCamOn === "function") {
@@ -318,10 +274,10 @@ export const stopCamera = async (config) => {
 };
 
 
-export const toggleScreenShare = async () => {
-  const app = newMainApp();
-const config = app.getConfig();
 
+
+
+export const toggleScreenShare = async (config) => {
   console.log("config.sharingScreenUid", config.sharingScreenUid);
 
   try {
@@ -335,10 +291,12 @@ const config = app.getConfig();
   }
 };
 
-
 const generateRandomScreenShareUid = () => {
   return Math.floor(Math.random() * (4294967295 - 1000000000 + 1)) + 1000000000;
 };
+
+
+
 
 export const startScreenShare = async (config) => {
   const screenShareUid = generateRandomScreenShareUid();
@@ -423,11 +381,8 @@ export const startScreenShare = async (config) => {
     bubble_fn_isScreenOn(true);
 
     // Update userTracks
-    const updatedUserTracks = {
-      ...config.userTracks,
-      [screenShareUid]: { videoTrack: screenShareTrack },
-    };
-    console.log("Updated userTracks:", updatedUserTracks);
+    config.userTracks[screenShareUid] = { videoTrack: screenShareTrack };
+    console.log("Updated userTracks:", config.userTracks);
 
     // Listen for the browser's stop screen sharing event
     screenShareTrack.on("track-ended", async () => {
@@ -446,16 +401,13 @@ export const startScreenShare = async (config) => {
       avatarElement.src = user.avatar || "default-avatar.png";
     }
 
-    // Update config using app.updateConfig
-    app.updateConfig({
-      userTracks: updatedUserTracks,
-      screenShareRTMClient: rtmClient,
-      screenShareRTCClient: rtcClient,
-      sharingScreenUid: config.uid.toString(),
-      generatedScreenShareId: screenShareUid,
-    });
+    // Update config
+    config.screenShareRTMClient = rtmClient;
+    config.screenShareRTCClient = rtcClient;
+    config.sharingScreenUid = config.uid.toString();
+    config.generatedScreenShareId = screenShareUid;
 
-    bubble_fn_userSharingScreen(config.uid.toString());
+    bubble_fn_userSharingScreen(config.sharingScreenUid);
 
     console.log("Screen sharing started successfully.");
   } catch (error) {
@@ -468,6 +420,9 @@ export const startScreenShare = async (config) => {
 };
 
 
+
+
+
 export const stopScreenShare = async (config) => {
   const screenShareUid = config.generatedScreenShareId; // Use the dynamic UID
 
@@ -478,18 +433,10 @@ export const stopScreenShare = async (config) => {
     await config.screenShareRTCClient.unpublish([screenShareTrack]);
     screenShareTrack.stop();
     screenShareTrack.close();
-
-    // Update userTracks to remove the screen share track
-    const updatedUserTracks = { ...config.userTracks };
-    updatedUserTracks[screenShareUid].videoTrack = null;
+    config.userTracks[screenShareUid].videoTrack = null;
 
     console.log("Screen share stopped successfully.");
     bubble_fn_isScreenOn(false);
-
-    // Update config to reflect the removal of the screen share track
-    app.updateConfig({
-      userTracks: updatedUserTracks,
-    });
   } else {
     console.warn("No screen share track found in userTracks.");
   }
@@ -498,25 +445,26 @@ export const stopScreenShare = async (config) => {
   toggleStages(false);
   playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
 
-  // Update config to clear the screen share UID and notify Bubble
-  app.updateConfig({
-    sharingScreenUid: null,
-  });
-
-  bubble_fn_userSharingScreen(null);
+  // Clear the screen share UID from config
+  config.sharingScreenUid = null;
+  bubble_fn_userSharingScreen(config.sharingScreenUid);
 };
 
 
-export const changeUserRole = async (userUid, newRole, newRoleInTheCall) => {
-  const app = newMainApp();
-const config = app.getConfig();
 
+
+
+export const changeUserRole = async (
+  userUid,
+  newRole,
+  newRoleInTheCall,
+  config
+) => {
   console.log(
     `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
 
-  // Update participant list by removing the user
-  await manageParticipants(userUid, {}, "leave");
+  await manageParticipants(config, userUid, {}, "leave");
 
   // Broadcast the role change to others in the RTM channel
   if (config.channelRTM) {
@@ -532,8 +480,6 @@ const config = app.getConfig();
     console.warn("RTM channel is not initialized.");
   }
 
-  // Update the user's role in the participant list and config
-  await manageParticipants(userUid, { role: newRole, roleInTheCall }, "join");
 
   console.log(
     `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
@@ -541,29 +487,25 @@ const config = app.getConfig();
 };
 
 
+
+
+
 export function updateMicStatusElement(uid, isMuted) {
   const micStatusElement = document.getElementById(`mic-status-${uid}`);
   if (micStatusElement) {
     if (isMuted) {
       micStatusElement.classList.remove("hidden");
-      console.log(
-        `Removed 'hidden' class from mic-status-${uid} to indicate muted status.`
-      );
+      console.log(`Removed 'hidden' class from mic-status-${uid} to indicate muted status.`);
     } else {
       micStatusElement.classList.add("hidden");
-      console.log(
-        `Added 'hidden' class to mic-status-${uid} to indicate unmuted status.`
-      );
+      console.log(`Added 'hidden' class to mic-status-${uid} to indicate unmuted status.`);
     }
   } else {
     console.warn(`Mic status element not found for UID ${uid}.`);
   }
 }
 
-export const stopUserCamera = async (userUid) => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+export const stopUserCamera = async (userUid, config) => {
   console.log(`Sending stop camera message for user ${userUid}`);
 
   // Check if the RTM channel is initialized
@@ -587,10 +529,8 @@ const config = app.getConfig();
   console.log(`Stop camera request for user ${userUid} completed.`);
 };
 
-export const stopUserMic = async (userUid) => {
-  const app = newMainApp();
-const config = app.getConfig();
 
+export const stopUserMic = async (userUid, config) => {
   console.log(`Sending stop mic message for user ${userUid}`);
 
   // Check if the RTM channel is initialized
@@ -614,10 +554,7 @@ const config = app.getConfig();
   console.log(`Stop mic request for user ${userUid} completed.`);
 };
 
-export const denyAccess = async (userUid) => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+export const denyAccess = async (userUid, config) => {
   console.log(`Denying access for user ${userUid}`);
 
   // Check if the RTM channel is initialized
@@ -641,10 +578,9 @@ const config = app.getConfig();
   console.log(`Deny access request for user ${userUid} completed.`);
 };
 
-export const stopUserScreenshare = async (userUid) => {
-  const app = newMainApp();
-const config = app.getConfig();
 
+
+export const stopUserScreenshare = async (userUid, config) => {
   console.log(`Sending stop screenshare message for user ${userUid}`);
 
   // Check if the RTM channel is initialized
@@ -668,10 +604,8 @@ const config = app.getConfig();
   console.log(`Stop screenshare request for user ${userUid} completed.`);
 };
 
-export const updatePublishingList = (uid, type, action) => {
-  const app = newMainApp();
-const config = app.getConfig();
 
+export const updatePublishingList = (uid, type, action, config) => {
   if (!uid || !type || !action || !config) {
     console.error("Invalid arguments provided to updatePublishingList.");
     return;
@@ -706,12 +640,12 @@ const config = app.getConfig();
     return;
   }
 
-  // Update the config with app.updateConfig
-  const update =
-    type === "audio"
-      ? { usersPublishingAudio: publishingList }
-      : { usersPublishingVideo: publishingList };
-  app.updateConfig(update);
+  // Update the config with the new list
+  if (type === "audio") {
+    config.usersPublishingAudio = publishingList;
+  } else if (type === "video") {
+    config.usersPublishingVideo = publishingList;
+  }
 
   // Notify Bubble with the updated list
   if (typeof bubbleFunction === "function") {
@@ -722,14 +656,10 @@ const config = app.getConfig();
   }
 };
 
-
 let triggeredReason = null;
 
 // Add the general leave function
-export const leave = async (reason) => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+export const leave = async (reason, config) => {
   // Check if leave function has already been triggered
   if (triggeredReason) {
     console.warn(
@@ -743,7 +673,7 @@ const config = app.getConfig();
 
   try {
     // Set the leave reason in the config
-    app.updateConfig({ leaveReason: reason });
+    config.leaveReason = reason;
 
     // Leave RTC
     await leaveRTC(config);
@@ -771,99 +701,78 @@ const config = app.getConfig();
   }
 };
 
-
-// Function to leave RTC
-export const leaveRTC = async () => {
-  const app = newMainApp();
-const config = app.getConfig();
-
-  console.warn("leaveRTC called");
-
-  try {
+  // Function to leave RTC
+  export const leaveRTC = async (config) => {
+    console.warn("leaveRTC called");
     await config.client.leave();
-    app.updateConfig({ isRTCJoined: false }); // Update config through app.updateConfig
+    config.isRTCJoined = false;
     console.log("Successfully left RTC channel");
-  } catch (error) {
-    console.error("Error leaving RTC channel:", error);
-  }
-};
+  };
 
+  // Add the leaveRTM function
+  export const leaveRTM = async (config) => {
+    console.warn("leaveRTM called");
 
-// Add the leaveRTM function
-export const leaveRTM = async () => {
-  const app = newMainApp();
-const config = app.getConfig();
-
-  console.warn("leaveRTM called");
-
-  try {
-    if (config.channelRTM) {
-      await config.channelRTM.leave();
-      console.log("Left the RTM channel successfully");
-    }
-
-    if (config.clientRTM) {
-      await config.clientRTM.logout();
-      console.log("Logged out from RTM client successfully");
-    }
-
-    app.updateConfig({
-      channelRTM: null,
-      clientRTM: null,
-      isRTMJoined: false,
-    }); // Update all RTM-related config properties through app.updateConfig
-  } catch (error) {
-    console.error("Error in leaveRTM:", error);
-  }
-};
-
-
-export const raiseHand = async (userUid) => {
-  const app = newMainApp();
-const config = app.getConfig();
-
-  console.log(`Processing raise hand action for user ${userUid}`);
-
-  // Ensure `usersRaisingHand` is initialized as an array
-  const usersRaisingHand = config.usersRaisingHand || [];
-
-  // Check if the user is already in the list
-  const isRaisingHand = usersRaisingHand.includes(userUid);
-
-  // Update the `usersRaisingHand` list
-  const updatedUsersRaisingHand = isRaisingHand
-    ? usersRaisingHand.filter((uid) => uid !== userUid) // Remove the user
-    : [...usersRaisingHand, userUid]; // Add the user
-
-  app.updateConfig({ usersRaisingHand: updatedUsersRaisingHand }); // Update config using app.updateConfig
-
-  console.log(
-    `User ${userUid} ${
-      isRaisingHand ? "removed from" : "added to"
-    } raising hand list.`
-  );
-
-  // Check if the RTM channel is initialized
-  if (config.channelRTM) {
-    // Prepare the message payload
-    const message = JSON.stringify({
-      type: "raiseHand",
-      userUid: userUid,
-    });
-
-    // Send the message to the RTM channel
     try {
-      await config.channelRTM.sendMessage({ text: message });
-      console.log(`Raise hand message sent to RTM channel: ${message}`);
-      if (typeof bubble_fn_usersRaisingHand === "function") {
-        bubble_fn_usersRaisingHand(updatedUsersRaisingHand);
+      if (config.channelRTM) {
+        await config.channelRTM.leave();
+        console.log("Left the RTM channel successfully");
+        config.channelRTM = null;
       }
+      if (config.clientRTM) {
+        await config.clientRTM.logout();
+        console.log("Logged out from RTM client successfully");
+        config.clientRTM = null;
+      }
+      config.isRTMJoined = false;
     } catch (error) {
-      console.error(`Failed to send raise hand message: ${error}`);
+      console.error("Error in leaveRTM:", error);
     }
-  } else {
-    console.warn("RTM channel is not initialized.");
-  }
+  };
 
-  console.log(`Raise hand action for user ${userUid} completed.`);
-};
+
+ export const raiseHand = async (userUid, config) => {
+   console.log(`Processing raise hand action for user ${userUid}`);
+
+   // Ensure `usersRaisingHand` is initialized as an array
+   config.usersRaisingHand = config.usersRaisingHand || [];
+
+   // Check if the user is already in the list
+   const isRaisingHand = config.usersRaisingHand.includes(userUid);
+
+   // Update the `usersRaisingHand` list
+   if (!isRaisingHand) {
+     // Add the user to the list if not present
+     config.usersRaisingHand.push(userUid);
+     console.log(`User ${userUid} added to raising hand list.`);
+   } else {
+     // Remove the user from the list if already present
+     config.usersRaisingHand = config.usersRaisingHand.filter(
+       (uid) => uid !== userUid
+     );
+     console.log(`User ${userUid} removed from raising hand list.`);
+   }
+
+   // Check if the RTM channel is initialized
+   if (config.channelRTM) {
+     // Prepare the message payload
+     const message = JSON.stringify({
+       type: "raiseHand",
+       userUid: userUid,
+     });
+
+     // Send the message to the RTM channel
+     try {
+       await config.channelRTM.sendMessage({ text: message });
+       console.log(`Raise hand message sent to RTM channel: ${message}`);
+       bubble_fn_usersRaisingHand(config.usersRaisingHand)
+     } catch (error) {
+       console.error(`Failed to send raise hand message: ${error}`);
+     }
+   } else {
+     console.warn("RTM channel is not initialized.");
+   }
+
+   console.log(`Raise hand action for user ${userUid} completed.`);
+ };
+

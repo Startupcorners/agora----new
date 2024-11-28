@@ -1,13 +1,9 @@
 import { updateMicStatusElement } from "./uiHandlers.js";
-import { newMainApp } from "./main.js";
+
 // Track running state for each user
 let addUserWrapperRunning = {};
 
-export const addUserWrapper = async (uid) => {
-const app = newMainApp();
-const config = app.getConfig();
-
-
+export const addUserWrapper = async (uid, config) => {
   const rtmUid = uid.toString();
 
   // Check if the function is already running for the same user
@@ -32,7 +28,10 @@ const config = app.getConfig();
       try {
         userAttr = await config.clientRTM.getUserAttributes(rtmUid);
       } catch (error) {
-        console.error(`Failed to fetch user attributes for ${uid}:`, error);
+        console.error(
+          `Failed to fetch user attributes for ${uid}:`,
+          error
+        );
         userAttr = {
           name: "Unknown",
           avatar: "default-avatar-url",
@@ -69,6 +68,7 @@ const config = app.getConfig();
   }
 };
 
+
 // Wrapper for removing users from the video stage
 export const removeUserWrapper = (uid) => {
   try {
@@ -85,11 +85,7 @@ export const removeUserWrapper = (uid) => {
   }
 };
 
-export const addScreenShareWrapper = (screenShareUid, uid) => {
-const app = newMainApp();
-const config = app.getConfig();
-
-
+export const addScreenShareWrapper = (screenShareUid, uid, config) => {
   try {
     // Hide all other video wrappers
     const allWrappers = document.querySelectorAll(
@@ -152,11 +148,7 @@ const config = app.getConfig();
   }
 };
 
-export const removeScreenShareWrapper = (screenShareUid, uid) => {
-const app = newMainApp();
-const config = app.getConfig();
-
-
+export const removeScreenShareWrapper = (screenShareUid, uid, config) => {
   try {
     // Show all user video wrappers again after screen sharing ends
     const allWrappers = document.querySelectorAll(
@@ -189,7 +181,7 @@ const config = app.getConfig();
     // Optional: remove the screen share track from Agora client
     if (config.screenShareClient) {
       config.screenShareClient.leave();
-      app.updateConfig({ screenShareClient: null }); // Use updateConfig to set to null
+      config.screenShareClient = null;
       console.log("Screen share client left and removed.");
     }
     updateLayout();

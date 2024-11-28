@@ -1,5 +1,10 @@
 import { enableVirtualBackgroundBlur, enableVirtualBackgroundImage } from "./virtualBackgroundHandlers.js";
-import { newMainApp } from "./main.js";
+
+export const log = (config, arg) => {
+  if (config.debugEnabled) {
+    console.log(arg);
+  }
+};
 
 export const debounce = (fn, delay) => {
   let timer;
@@ -25,10 +30,7 @@ export const sendMessageToPeer = (clientRTM, data, uid) => {
     });
 };
 
-export const fetchTokens = async (uidToFetch) => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+export const fetchTokens = async (config, uidToFetch) => {
   try {
     const uid = uidToFetch || config.uid; // Use screenShareUid if provided, otherwise default to main UID
 
@@ -59,7 +61,7 @@ const config = app.getConfig();
   }
 };
 
-export const sendBroadcast = ( data) => {
+export const sendBroadcast = (config, data) => {
   const messageObj = {
     ...data,
     type: "broadcast",
@@ -148,10 +150,7 @@ export const fetchAndSendDeviceList = async () => {
 };
 
 // Function to update selected devices in the config and notify Bubble when user joins
-export const updateSelectedDevices = async () => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+export const updateSelectedDevices = async (config) => {
   try {
     // Fetch devices using Agora's getDevices
     const devices = await AgoraRTC.getDevices();
@@ -163,45 +162,37 @@ const config = app.getConfig();
     const cameras = devices.filter((device) => device.kind === "videoinput");
     const speakers = devices.filter((device) => device.kind === "audiooutput");
 
-    // Prepare updated device selections
-    const updates = {};
-
     // Set selected microphone if not already set
     if (!config.selectedMic && microphones.length > 0) {
-      updates.selectedMic = microphones[0];
-      console.log("Selected microphone set to:", updates.selectedMic.label);
+      config.selectedMic = microphones[0];
+      console.log("Selected microphone set to:", config.selectedMic.label);
 
       // Notify Bubble of the selected microphone
       if (typeof bubble_fn_selectedMic === "function") {
-        bubble_fn_selectedMic(updates.selectedMic.label);
+        bubble_fn_selectedMic(config.selectedMic.label);
       }
     }
 
     // Set selected camera if not already set
     if (!config.selectedCam && cameras.length > 0) {
-      updates.selectedCam = cameras[0];
-      console.log("Selected camera set to:", updates.selectedCam.label);
+      config.selectedCam = cameras[0];
+      console.log("Selected camera set to:", config.selectedCam.label);
 
       // Notify Bubble of the selected camera
       if (typeof bubble_fn_selectedCam === "function") {
-        bubble_fn_selectedCam(updates.selectedCam.label);
+        bubble_fn_selectedCam(config.selectedCam.label);
       }
     }
 
     // Set selected speaker if not already set
     if (!config.selectedSpeaker && speakers.length > 0) {
-      updates.selectedSpeaker = speakers[0];
-      console.log("Selected speaker set to:", updates.selectedSpeaker.label);
+      config.selectedSpeaker = speakers[0];
+      console.log("Selected speaker set to:", config.selectedSpeaker.label);
 
       // Notify Bubble of the selected speaker
       if (typeof bubble_fn_selectedSpeaker === "function") {
-        bubble_fn_selectedSpeaker(updates.selectedSpeaker.label);
+        bubble_fn_selectedSpeaker(config.selectedSpeaker.label);
       }
-    }
-
-    // Apply updates to config
-    if (Object.keys(updates).length > 0) {
-      app.updateConfig(updates);
     }
   } catch (error) {
     console.error("Error fetching and updating selected devices:", error);
@@ -210,10 +201,7 @@ const config = app.getConfig();
 
 
 
-export const switchMic = async (micInfo) => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+export const switchMic = async (config, micInfo) => {
   try {
     // Check if micInfo is a string and try to parse it as JSON
     if (typeof micInfo === "string") {
@@ -247,33 +235,27 @@ const config = app.getConfig();
     }
 
     // Create a new audio track with the selected microphone device
-    const newAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+    config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
       microphoneId: micInfo.deviceId,
     });
-
-    // Prepare updates for the config
-    const updates = {
-      localAudioTrack: newAudioTrack,
-      selectedMic: micInfo,
-    };
+    config.selectedMic = micInfo;
 
     // Send the updated microphone to Bubble with deviceId and label
     if (typeof bubble_fn_selectedMic === "function") {
-      bubble_fn_selectedMic(newAudioTrack.getTrackLabel() || "No label");
+      bubble_fn_selectedMic(
+        config.localAudioTrack.getTrackLabel() || "No label"
+      );
     }
 
     // Republish the new audio track if it was publishing before the switch
     if (wasPublishing) {
-      await client.publish(newAudioTrack);
+      await client.publish(config.localAudioTrack);
       console.log("New audio track published successfully.");
     } else {
       // Mute and keep the new track unpublished if it was muted
-      await newAudioTrack.setEnabled(false);
+      await config.localAudioTrack.setEnabled(false);
       console.log("New audio track created but kept muted and unpublished.");
     }
-
-    // Apply updates to the config
-    app.updateConfig(updates);
 
     console.log(`Switched to new microphone: ${micInfo.deviceId}`);
   } catch (error) {
@@ -283,11 +265,10 @@ const config = app.getConfig();
 
 
 
-
-export const switchSpeaker = async (speakerInfo) => {
+export const switchSpeaker = async (config, speakerInfo) => {
   try {
-    // Update the selected speaker in config using app.updateConfig
-    app.updateConfig({ selectedSpeaker: speakerInfo });
+    // Set the selected speaker in config
+    config.selectedSpeaker = speakerInfo;
     console.log("Switched to new speaker:", speakerInfo.label);
 
     // Notify Bubble of the new selected speaker
@@ -300,10 +281,7 @@ export const switchSpeaker = async (speakerInfo) => {
 };
 
 
-export const switchCam = async (camInfo) => {
-  const app = newMainApp();
-const config = app.getConfig();
-
+export const switchCam = async (config, camInfo) => {
   try {
     // Check if camInfo is a string and try to parse it as JSON
     if (typeof camInfo === "string") {
@@ -322,40 +300,32 @@ const config = app.getConfig();
 
     // Check if the video track was actively publishing before switching
     const wasPublishing =
-      config.userTracks[uid]?.videoTrack &&
-      !config.userTracks[uid].videoTrack.muted;
+      config.userTracks[config.uid].videoTrack &&
+      !config.config.userTracks[config.uid].videoTrack.muted;
 
     // If there's an existing video track, unpublish, stop, and close it
-    if (config.userTracks[uid]?.videoTrack) {
+    if (config.userTracks[config.uid].videoTrack) {
       if (wasPublishing) {
-        await client.unpublish(config.userTracks[uid].videoTrack);
+        await client.unpublish(config.userTracks[config.uid].videoTrack);
         console.log("Previous video track unpublished.");
       }
-      config.userTracks[uid].videoTrack.stop();
-      config.userTracks[uid].videoTrack.close();
+      config.userTracks[config.uid].videoTrack.stop();
+      config.userTracks[config.uid].videoTrack.close();
       console.log("Previous video track stopped and closed.");
     }
 
     // Create a new video track with the selected camera device
-    const newVideoTrack = await AgoraRTC.createCameraVideoTrack({
-      cameraId: camInfo.deviceId,
-    });
-
-    // Prepare updates for the config
-    const updates = {
-      selectedCam: camInfo,
-      userTracks: {
-        ...config.userTracks,
-        [uid]: {
-          ...userTrack,
-          videoTrack: newVideoTrack,
-        },
-      },
-    };
+    config.userTracks[config.uid].videoTrack =
+      await AgoraRTC.createCameraVideoTrack({
+        cameraId: camInfo.deviceId,
+      });
+    config.selectedCam = camInfo;
 
     // Notify Bubble of the new selected camera with deviceId and label
     if (typeof bubble_fn_selectedCam === "function") {
-      bubble_fn_selectedCam(newVideoTrack.getTrackLabel() || "No label");
+      bubble_fn_selectedCam(
+        config.userTracks[config.uid].videoTrack.getTrackLabel() || "No label"
+      );
     }
 
     // Re-enable virtual background if it was enabled
@@ -372,30 +342,35 @@ const config = app.getConfig();
 
     // Republish the new video track if it was publishing before the switch
     if (wasPublishing) {
-      await client.publish(newVideoTrack);
+      await client.publish(config.userTracks[config.uid].videoTrack);
       console.log("New video track published successfully.");
+
+      config.userTracks[uid] = {
+        ...userTrack,
+        videoTrack: config.userTracks[config.uid].videoTrack,
+      };
 
       // Update the video player element with the new video feed
       const videoPlayer = document.querySelector(`#stream-${uid}`);
       if (videoPlayer) {
-        newVideoTrack.play(videoPlayer);
+        config.userTracks[config.uid].videoTrack.play(videoPlayer);
         console.log("Video player updated with new camera feed.");
       }
     } else {
       // If the track was muted, keep the new track muted and unpublished
-      await newVideoTrack.setEnabled(false);
+      config.userTracks[uid] = {
+        ...userTrack,
+        videoTrack: null,
+      };
+      await config.userTracks[config.uid].videoTrack.setEnabled(false);
       console.log("New video track created but kept muted and unpublished.");
     }
-
-    // Apply updates to the config
-    app.updateConfig(updates);
 
     console.log(`Switched to new camera: ${camInfo.deviceId}`);
   } catch (error) {
     console.error("Error switching camera:", error);
   }
 };
-
 
 
 
