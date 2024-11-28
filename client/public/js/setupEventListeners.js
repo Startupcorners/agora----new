@@ -6,7 +6,6 @@ import {
   handleUserLeft,
   handleVolumeIndicator,
   handleRaisingHand,
-  onRoleChange,
   manageParticipants,
 } from "./rtcEventHandlers.js";
 import {
@@ -15,6 +14,8 @@ import {
   toggleScreenShare,
   leave,
 } from "./uiHandlers.js";
+
+import { onRoleChange} from "./roleChange.js";
 import {
   fetchTokens,
   switchCam,
