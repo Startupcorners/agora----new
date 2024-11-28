@@ -94,10 +94,10 @@ const handleRoleChange = async (newRoleInTheCall, config) => {
   // Handle video stage join/leave
   if (!prevRequiresStage && newRequiresStage && !config.isOnStage) {
     console.log("Joining video stage...");
-    await joinVideoStage();
+    await joinVideoStage(config);
   } else if (prevRequiresStage && !newRequiresStage && config.isOnStage) {
     console.log("Leaving video stage...");
-    await leaveVideoStage();
+    await leaveVideoStage(config);
   }
 
   // Update the config after role change
