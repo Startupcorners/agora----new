@@ -60,7 +60,7 @@ export const join = async (config) => {
         company: config.user.company || "", // Default to empty string if not set in config.user
         designation: config.user.designation || "", // Default to empty string if not set in config.user
         role: config.user.role || "audience", // Default to "audience" if not set in config.user
-        rtmUid: config.uid, // Use config.uid for RTM UID
+        rtmUid: config.uid.toString(), // Use config.uid for RTM UID
         bubbleid: config.user.bubbleid || "", // Default to empty if not set in config.user
         isRaisingHand: config.user.isRaisingHand || false, // Default to false if not set in config.user
         sharingScreenUid: config.sharingScreenUid || "0", // Default to "0" if no screen sharing user ID

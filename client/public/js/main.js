@@ -12,7 +12,7 @@ import {
   switchMic,
   switchSpeaker,
   fetchAndSendDeviceList,
-  updateSelectedDevices,
+  sendRTMMessage,
 } from "./helperFunctions.js";
 
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
