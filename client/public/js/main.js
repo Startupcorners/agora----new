@@ -45,43 +45,43 @@ import { getConfig, updateConfig } from "./config.js";
 export const newMainApp = async function (initConfig) {
   console.log("newMainApp called with initConfig:", initConfig);
 
+  // Update the configuration
   await updateConfig(initConfig, "newMainApp");
   let config = getConfig();
+  console.log(config);
 
   // Initialize AgoraRTC client
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
 
   // Initialize the Virtual Background extension
-  (async () => {
-    try {
-      console.log("Initializing Virtual Background Extension...");
+  try {
+    console.log("Initializing Virtual Background Extension...");
 
-      let extension = new VirtualBackgroundExtension();
+    let extension = new VirtualBackgroundExtension();
 
-      // Check for compatibility before proceeding
-      console.log("Checking for compatibility...");
-      if (!extension.checkCompatibility()) {
-        console.error("Browser does not support Virtual Background.");
-        return;
-      }
-      console.log("Browser is compatible with Virtual Background.");
-
-      // Register the extension
-      console.log("Registering Virtual Background extension...");
-      AgoraRTC.registerExtensions([extension]);
-      console.log("Virtual Background extension registered successfully.");
-
-      // Attach the extension to the config
-      console.log("Attaching extension and processor to config...");
-      config.extensionVirtualBackground = extension;
-      console.log("Extension and processor attached to config.");
-    } catch (error) {
-      console.error(
-        "Failed to initialize the Virtual Background extension:",
-        error
-      );
+    // Check for compatibility before proceeding
+    console.log("Checking for compatibility...");
+    if (!extension.checkCompatibility()) {
+      console.error("Browser does not support Virtual Background.");
+      return;
     }
-  })();
+    console.log("Browser is compatible with Virtual Background.");
+
+    // Register the extension
+    console.log("Registering Virtual Background extension...");
+    AgoraRTC.registerExtensions([extension]);
+    console.log("Virtual Background extension registered successfully.");
+
+    // Attach the extension to the config
+    console.log("Attaching extension and processor to config...");
+    config.extensionVirtualBackground = extension;
+    console.log("Extension and processor attached to config.");
+  } catch (error) {
+    console.error(
+      "Failed to initialize the Virtual Background extension:",
+      error
+    );
+  }
 
   // Ensure required config parameters are present
   console.log(config);
@@ -115,11 +115,21 @@ export const newMainApp = async function (initConfig) {
   setupEventListeners(config);
   checkMicrophonePermissions(config);
 
+  // Update the config again with the new properties
   updateConfig(config, "newMainApp");
+
+  // Call the join function at the end
+  try {
+    console.log("Attempting to join...");
+    await join(config); // Ensure `join` is properly imported and is asynchronous
+    console.log("Join successful.");
+  } catch (error) {
+    console.error("Failed to join:", error);
+    throw error; // Re-throw the error if join fails
+  }
 
   // Return the API
   return {
-    join,
     toggleMic,
     leave,
     toggleVirtualBackground,
@@ -142,5 +152,6 @@ export const newMainApp = async function (initConfig) {
     stopUserScreenshare,
   };
 };
+
 
 window["newMainApp"] = newMainApp;

@@ -2,8 +2,7 @@ import { getConfig, updateConfig } from "./config.js";
 import { joinVideoStage} from "./joinleavestage.js";
 import { fetchTokens} from "./helperFunctions.js";
 
-export const join = async () => {
-  let config = getConfig()
+export const join = async (config) => {
 
   console.warn("join function called");
 
