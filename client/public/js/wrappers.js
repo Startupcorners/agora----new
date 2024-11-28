@@ -28,10 +28,7 @@ export const addUserWrapper = async (uid, config) => {
       try {
         userAttr = await config.clientRTM.getUserAttributes(rtmUid);
       } catch (error) {
-        console.error(
-          `Failed to fetch user attributes for ${uid}:`,
-          error
-        );
+        console.error(`Failed to fetch user attributes for ${uid}:`, error);
         userAttr = {
           name: "Unknown",
           avatar: "default-avatar-url",
@@ -67,7 +64,6 @@ export const addUserWrapper = async (uid, config) => {
     addUserWrapperRunning[rtmUid] = false;
   }
 };
-
 
 // Wrapper for removing users from the video stage
 export const removeUserWrapper = (uid) => {

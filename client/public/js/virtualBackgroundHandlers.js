@@ -111,7 +111,6 @@ export const getProcessorInstance = async (config) => {
   }
 };
 
-
 export const imageUrlToBase64 = async (url) => {
   try {
     const data = await fetch(url);

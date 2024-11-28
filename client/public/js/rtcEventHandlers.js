@@ -1,13 +1,11 @@
 // rtcEventHandlers.js
 import { log, fetchTokens } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
-import {
-  toggleStages,
-} from "./videoHandlers.js";
-import { updatePublishingList} from "./uiHandlers.js"; 
-import { playStreamInDiv } from "./videoHandlers.js"; 
+import { toggleStages } from "./videoHandlers.js";
+import { updatePublishingList } from "./uiHandlers.js";
+import { playStreamInDiv } from "./videoHandlers.js";
+import { updateConfig } from "./config.js";
 const userJoinPromises = {};
-
 
 // Handles user published event
 export const handleUserPublished = async (user, mediaType, config, client) => {
@@ -88,7 +86,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
         config.userTracks[userUid] = {};
       }
       config.userTracks[userUid].videoTrack = user.videoTrack;
-      
+
       // Toggle stage to screen share
       toggleStages(true);
 
@@ -119,16 +117,15 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     } else {
       playStreamInDiv(config, userUid, `#stream-${userUid}`);
     }
+    updateConfig(config);
   } catch (error) {
     console.error(`Error subscribing to video for user ${userUid}:`, error);
   }
 };
 
-
-
 const handleAudioPublished = async (user, userUid, config, client) => {
   console.log(`Handling audio published for user: ${userUid}`);
-  console.log("config",config)
+  console.log("config", config);
 
   try {
     // Ensure the userTracks object exists
@@ -145,7 +142,7 @@ const handleAudioPublished = async (user, userUid, config, client) => {
     if (config.clientRTM && config.clientRTM.getUserAttributes) {
       try {
         const attributes = await config.clientRTM.getUserAttributes(
-        config.user.rtmUid.toString()
+          config.user.rtmUid.toString()
         );
         userRole = attributes.roleInTheCall || null;
         console.log(
@@ -189,17 +186,15 @@ const handleAudioPublished = async (user, userUid, config, client) => {
 
     // Update the publishing list
     updatePublishingList(userUid.toString(), "audio", "add", config);
+    updateConfig(config);
   } catch (error) {
     console.error(`Error subscribing to audio for user ${userUid}:`, error);
   }
 };
 
-
-
-
 export const handleUserUnpublished = async (user, mediaType, config) => {
   console.log("Entered handleuserUnpublished:", user);
-  console.log("User :",user);
+  console.log("User :", user);
   const userUid = user.uid.toString();
   console.log(
     `handleUserUnpublished called for user: ${userUid}, mediaType: ${mediaType}`
@@ -213,7 +208,6 @@ export const handleUserUnpublished = async (user, mediaType, config) => {
     console.warn(`Unsupported mediaType: ${mediaType}`);
   }
 };
-
 
 const handleVideoUnpublished = async (user, userUid, config) => {
   console.log(`Handling video unpublishing for user: ${userUid}`);
@@ -310,10 +304,6 @@ const handleVideoUnpublished = async (user, userUid, config) => {
   playStreamInDiv(config, userUid, `#stream-${userUid}`);
 };
 
-
-
-
-
 const handleAudioUnpublished = async (user, userUid, config) => {
   console.log(`Handling audio unpublishing for user: ${userUid}`);
 
@@ -326,7 +316,10 @@ const handleAudioUnpublished = async (user, userUid, config) => {
           config.user.rtmUid.toString()
         );
         userRole = attributes.roleInTheCall || null;
-        console.log(`Fetched roleInTheCall for user ${config.user.rtmUid}:`, userRole);
+        console.log(
+          `Fetched roleInTheCall for user ${config.user.rtmUid}:`,
+          userRole
+        );
       } catch (error) {
         console.error(
           `Failed to fetch roleInTheCall for user ${userUid}:`,
@@ -392,9 +385,6 @@ const handleAudioUnpublished = async (user, userUid, config) => {
     );
   }
 };
-
-
-
 
 export const manageParticipants = async (
   config,
@@ -534,10 +524,8 @@ export const manageParticipants = async (
   }
 
   console.log("Participant list updated.");
+  updateConfig(config)
 };
-
-
-
 
 // Handles user joined event
 export const handleUserJoined = async (user, config, userAttr = {}) => {
@@ -653,7 +641,6 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   return config.userJoinPromises[userUid];
 };
 
-
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
   console.log("Entered handleUserLeft:", user);
@@ -703,9 +690,6 @@ export const handleUserLeft = async (user, config) => {
     console.error(`Error removing user ${user.uid}:`, error);
   }
 };
-
-
-
 
 export const handleVolumeIndicator = (() => {
   return async (result, config) => {
@@ -806,19 +790,28 @@ export const handleVolumeIndicator = (() => {
   };
 })();
 
-
-
-
-
-
-
-
-
-
 // Handles token renewal
 export const handleRenewToken = async (config, client) => {
   config.token = await fetchTokens();
   await client.renewToken(config.token);
 };
 
+export const handleRaisingHand = async (userUid) => {
+  // Check if the user is already in the list
+  if (config.usersRaisingHand.includes(userUid)) {
+    // Remove the user if they are already in the list
+    config.usersRaisingHand = config.usersRaisingHand.filter(
+      (uid) => uid !== userUid
+    );
+    console.log(`User ${userUid} removed from raising hand list.`);
+  } else {
+    // Add the user if they are not in the list
+    config.usersRaisingHand.push(userUid);
+    console.log(`User ${userUid} added to raising hand list.`);
+  }
 
+  console.log("config.usersRaisingHand", config.usersRaisingHand);
+
+  // Update Bubble with the new list of users raising their hand
+  bubble_fn_usersRaisingHand(config.usersRaisingHand);
+};

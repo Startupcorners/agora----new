@@ -6,7 +6,12 @@ import {
   handleUserLeft,
   handleVolumeIndicator,
 } from "./rtcEventHandlers.js";
-import { toggleMic, toggleCamera, toggleScreenShare, leave } from "./uiHandlers.js";
+import {
+  toggleMic,
+  toggleCamera,
+  toggleScreenShare,
+  leave,
+} from "./uiHandlers.js";
 import {
   fetchTokens,
   switchCam,
@@ -15,10 +20,10 @@ import {
   fetchAndSendDeviceList,
 } from "./helperFunctions.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
-
+import { getConfig, updateConfig } from "./config.js";
 
 export const setupEventListeners = (config) => {
-  const client = config.client;
+const client = config.client;
 
   // Handle when a user publishes their media (audio/video)
   client.on("user-published", async (user, mediaType) => {
@@ -54,84 +59,84 @@ export const setupEventListeners = (config) => {
     });
   });
 
-
-
   // Handle when a user joins the session
-client.on("user-joined", async (user) => {
-  console.log(`User joined: ${user.uid}`);
+  client.on("user-joined", async (user) => {
+    console.log(`User joined: ${user.uid}`);
 
-  let userAttr = {}; // Initialize an empty object for user attributes
+    let userAttr = {}; // Initialize an empty object for user attributes
 
-  if (config.clientRTM) {
-    try {
-      // Fetch attributes for the joining user
-      const fetchedAttributes = await config.clientRTM.getUserAttributes(
-        user.uid.toString()
+    if (config.clientRTM) {
+      try {
+        // Fetch attributes for the joining user
+        const fetchedAttributes = await config.clientRTM.getUserAttributes(
+          user.uid.toString()
+        );
+        console.log(
+          `Fetched attributes for user ${user.uid}:`,
+          fetchedAttributes
+        );
+
+        // Merge fetched attributes with defaults to ensure all fields are covered
+        userAttr = {
+          name: fetchedAttributes.name || "Unknown",
+          avatar: fetchedAttributes.avatar || "default-avatar-url",
+          company: fetchedAttributes.company || "Unknown",
+          designation: fetchedAttributes.designation || "Unknown",
+          role: fetchedAttributes.role || "audience",
+          rtmUid: fetchedAttributes.rtmUid || user.uid, // Fall back to user UID
+          bubbleid: fetchedAttributes.bubbleid || "",
+          isRaisingHand: fetchedAttributes.isRaisingHand || false,
+          sharingScreenUid: fetchedAttributes.sharingScreenUid || "0",
+          roleInTheCall: fetchedAttributes.roleInTheCall || "audience",
+        };
+      } catch (error) {
+        console.error(
+          `Failed to fetch attributes for user ${user.uid}:`,
+          error
+        );
+
+        // Default attributes if fetching fails
+        userAttr = {
+          name: "Unknown",
+          avatar: "default-avatar-url",
+          company: "Unknown",
+          designation: "Unknown",
+          role: "audience",
+          rtmUid: user.uid, // Default to user UID
+          bubbleid: "",
+          isRaisingHand: false,
+          sharingScreenUid: "0",
+          roleInTheCall: "audience",
+        };
+      }
+    } else {
+      console.warn(
+        `RTM client not initialized. Skipping attribute fetch for user ${user.uid}.`
       );
-      console.log(
-        `Fetched attributes for user ${user.uid}:`,
-        fetchedAttributes
-      );
 
-      // Merge fetched attributes with defaults to ensure all fields are covered
-      userAttr = {
-        name: fetchedAttributes.name || "Unknown",
-        avatar: fetchedAttributes.avatar || "default-avatar-url",
-        company: fetchedAttributes.company || "Unknown",
-        designation: fetchedAttributes.designation || "Unknown",
-        role: fetchedAttributes.role || "audience",
-        rtmUid: fetchedAttributes.rtmUid || user.uid, // Fall back to user UID
-        bubbleid: fetchedAttributes.bubbleid || "",
-        isRaisingHand: fetchedAttributes.isRaisingHand || false,
-        sharingScreenUid: fetchedAttributes.sharingScreenUid || "0",
-        roleInTheCall: fetchedAttributes.roleInTheCall || "audience",
-      };
-    } catch (error) {
-      console.error(`Failed to fetch attributes for user ${user.uid}:`, error);
-
-      // Default attributes if fetching fails
+      // Default attributes if RTM is unavailable
       userAttr = {
         name: "Unknown",
         avatar: "default-avatar-url",
         company: "Unknown",
         designation: "Unknown",
         role: "audience",
-        rtmUid: user.uid, // Default to user UID
+        rtmUid: user.uid,
         bubbleid: "",
         isRaisingHand: false,
         sharingScreenUid: "0",
         roleInTheCall: "audience",
       };
     }
-  } else {
-    console.warn(
-      `RTM client not initialized. Skipping attribute fetch for user ${user.uid}.`
-    );
 
-    // Default attributes if RTM is unavailable
-    userAttr = {
-      name: "Unknown",
-      avatar: "default-avatar-url",
-      company: "Unknown",
-      designation: "Unknown",
-      role: "audience",
-      rtmUid: user.uid,
-      bubbleid: "",
-      isRaisingHand: false,
-      sharingScreenUid: "0",
-      roleInTheCall: "audience",
-    };
-  }
-
-  try {
-    // Pass the user attributes along with the user and config
-    await handleUserJoined(user, config, userAttr);
-    console.log(`User ${user.uid} handled successfully.`);
-  } catch (error) {
-    console.error(`Error handling user ${user.uid}:`, error);
-  }
-});
-
+    try {
+      // Pass the user attributes along with the user and config
+      await handleUserJoined(user, config, userAttr);
+      console.log(`User ${user.uid} handled successfully.`);
+    } catch (error) {
+      console.error(`Error handling user ${user.uid}:`, error);
+    }
+  });
 
   // Handle when a user leaves the session
   client.on("user-left", async (user) => {
@@ -147,124 +152,129 @@ client.on("user-joined", async (user) => {
     await handleVolumeIndicator(volumes, config);
   });
 
-config.client.on("onMicrophoneChanged", async (info) => {
-  console.log("Microphone device change detected:", info);
-  await fetchAndSendDeviceList();
+  config.client.on("onMicrophoneChanged", async (info) => {
+    config = getConfig()
+    console.log("Microphone device change detected:", info);
+    await fetchAndSendDeviceList();
 
-  const action = info.state === "ADDED" ? "added" : "removed";
+    const action = info.state === "ADDED" ? "added" : "removed";
 
-  if (action === "added") {
-    if (info.kind === "audiooutput") {
-      // If a speaker is added, switch to the new speaker
-      await switchSpeaker(config, info);
-    } else if (info.kind === "audioinput") {
-      // If a microphone is added, set it as the selected mic
-      await switchMic(config, info);
-    }
-  } else if (action === "removed") {
-    if (info.kind === "audiooutput") {
-      // If the selected speaker is removed, set it to null
-      if (
-        config.selectedSpeaker &&
-        config.selectedSpeaker.deviceId === info.deviceId
-      ) {
-        config.selectedSpeaker = null;
+    if (action === "added") {
+      if (info.kind === "audiooutput") {
+        // If a speaker is added, switch to the new speaker
+        await switchSpeaker(config, info);
+      } else if (info.kind === "audioinput") {
+        // If a microphone is added, set it as the selected mic
+        await switchMic(config, info);
+      }
+    } else if (action === "removed") {
+      if (info.kind === "audiooutput") {
+        // If the selected speaker is removed, set it to null
+        if (
+          config.selectedSpeaker &&
+          config.selectedSpeaker.deviceId === info.deviceId
+        ) {
+          config.selectedSpeaker = null;
 
-        // Get the updated list of devices and select the first available speaker if any
-        const devices = await AgoraRTC.getDevices();
-        const speakers = devices.filter(
-          (device) => device.kind === "audiooutput"
-        );
+          // Get the updated list of devices and select the first available speaker if any
+          const devices = await AgoraRTC.getDevices();
+          const speakers = devices.filter(
+            (device) => device.kind === "audiooutput"
+          );
 
-        if (speakers.length > 0) {
-          await switchSpeaker(config, speakers[0]);
-        } else {
-          console.log("No speakers available to switch to after removal.");
+          if (speakers.length > 0) {
+            await switchSpeaker(config, speakers[0]);
+          } else {
+            console.log("No speakers available to switch to after removal.");
+          }
+        }
+      } else if (info.kind === "audioinput") {
+        // If the selected mic is removed, set it to null if it was the selected mic
+        if (
+          config.selectedMic &&
+          config.selectedMic.deviceId === info.deviceId
+        ) {
+          config.selectedMic = null;
+
+          // Get the updated list of devices and select the first available microphone if any
+          const devices = await AgoraRTC.getDevices();
+          const microphones = devices.filter(
+            (device) => device.kind === "audioinput"
+          );
+
+          if (microphones.length > 0) {
+            await switchMic(config, microphones[0]);
+          } else {
+            console.log("No microphones available to switch to after removal.");
+          }
         }
       }
-    } else if (info.kind === "audioinput") {
-      // If the selected mic is removed, set it to null if it was the selected mic
-      if (config.selectedMic && config.selectedMic.deviceId === info.deviceId) {
-        config.selectedMic = null;
-
-        // Get the updated list of devices and select the first available microphone if any
-        const devices = await AgoraRTC.getDevices();
-        const microphones = devices.filter(
-          (device) => device.kind === "audioinput"
-        );
-
-        if (microphones.length > 0) {
-          await switchMic(config, microphones[0]);
-        } else {
-          console.log("No microphones available to switch to after removal.");
-        }
-      }
     }
-  }
-});
+    updateConfig(config, "onMicrophoneChanged")
+  });
 
-client.on("connection-state-change", async (curState, revState, reason) => {
-  console.log(
-    `Connection state changed from ${revState} to ${curState} due to ${reason}`
-  );
-
-  if (curState === "DISCONNECTED" && !config.leaveReason) {
-    console.log("Processing disconnection because leaveReason is empty.");
-
-    if (reason === "NETWORK_ERROR" || reason === "FAILURE") {
-      console.warn("User has been disconnected due to network issues.");
-      if (leave && typeof leave === "function") {
-        await leave("connectionIssue", config);
-      } else {
-        console.warn("Leave function is not available");
-      }
-    } else if (reason === "LEAVE_CHANNEL") {
-      console.log("User has left the channel voluntarily.");
-      await leave("left", config);
-      // No action needed; this is a normal leave
-    } else {
-      console.warn("User has been disconnected for an unknown reason.");
-      if (leave && typeof leave === "function") {
-        await leave("other", config);
-      }
-    }
-  } else if (config.leaveReason) {
+  client.on("connection-state-change", async (curState, revState, reason) => {
     console.log(
-      `Disconnection handling skipped because leaveReason is set to: ${config.leaveReason}`
+      `Connection state changed from ${revState} to ${curState} due to ${reason}`
     );
-  }
-});
 
+    if (curState === "DISCONNECTED" && !config.leaveReason) {
+      console.log("Processing disconnection because leaveReason is empty.");
 
-config.client.on("onCameraChanged", async (info) => {
-  console.log("Camera device change detected:", info);
-  await fetchAndSendDeviceList();
-
-  if (info.state === "ADDED") {
-    // A camera was added, so we only update the device list
-    console.log("Camera added. Device list updated.");
-  } else if (info.state === "REMOVED") {
-    // A camera was removed, check if we need to switch to a default camera
-    if (config.selectedCam && config.selectedCam.deviceId === info.deviceId) {
-      config.selectedCam = null; // Reset the selected camera
-
-      // Get the updated list of devices and select the first available camera
-      const devices = await AgoraRTC.getDevices();
-      const cameras = devices.filter((device) => device.kind === "videoinput");
-
-      if (cameras.length > 0) {
-        // If there's at least one camera left, switch to it
-        await switchCam(config, cameras[0]);
+      if (reason === "NETWORK_ERROR" || reason === "FAILURE") {
+        console.warn("User has been disconnected due to network issues.");
+        if (leave && typeof leave === "function") {
+          await leave("connectionIssue", config);
+        } else {
+          console.warn("Leave function is not available");
+        }
+      } else if (reason === "LEAVE_CHANNEL") {
+        console.log("User has left the channel voluntarily.");
+        await leave("left", config);
+        // No action needed; this is a normal leave
       } else {
-        console.log("No cameras available to switch to after removal.");
+        console.warn("User has been disconnected for an unknown reason.");
+        if (leave && typeof leave === "function") {
+          await leave("other", config);
+        }
+      }
+    } else if (config.leaveReason) {
+      console.log(
+        `Disconnection handling skipped because leaveReason is set to: ${config.leaveReason}`
+      );
+    }
+  });
+
+  config.client.on("onCameraChanged", async (info) => {
+    config = getConfig()
+    console.log("Camera device change detected:", info);
+    await fetchAndSendDeviceList();
+
+    if (info.state === "ADDED") {
+      // A camera was added, so we only update the device list
+      console.log("Camera added. Device list updated.");
+    } else if (info.state === "REMOVED") {
+      // A camera was removed, check if we need to switch to a default camera
+      if (config.selectedCam && config.selectedCam.deviceId === info.deviceId) {
+        config.selectedCam = null; // Reset the selected camera
+
+        // Get the updated list of devices and select the first available camera
+        const devices = await AgoraRTC.getDevices();
+        const cameras = devices.filter(
+          (device) => device.kind === "videoinput"
+        );
+
+        if (cameras.length > 0) {
+          // If there's at least one camera left, switch to it
+          await switchCam(config, cameras[0]);
+        } else {
+          console.log("No cameras available to switch to after removal.");
+        }
       }
     }
-  }
-});
-
-
+    updateConfig(config, "onCameraChanegd")
+  });
 };
-
 
 export const setupRTMMessageListener = (
   channelRTM,
@@ -423,8 +433,6 @@ export const setupRTMMessageListener = (
     "RTM message listener with member join/leave handlers initialized."
   );
 };
-
-
 
 export async function checkMicrophonePermissions(config) {
   if (navigator.permissions) {

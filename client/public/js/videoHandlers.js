@@ -1,4 +1,3 @@
-
 export const playStreamInDiv = (config, userId, divId) => {
   try {
     const element = document.querySelector(divId);
@@ -26,12 +25,9 @@ export const playStreamInDiv = (config, userId, divId) => {
   }
 };
 
-
-
 export const toggleStages = (isScreenSharing) => {
   const videoStage = document.getElementById("video-stage");
   const screenShareStage = document.getElementById("screen-share-stage");
-
 
   if (!videoStage || !screenShareStage) {
     console.error(

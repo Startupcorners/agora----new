@@ -1,4 +1,7 @@
-import { enableVirtualBackgroundBlur, enableVirtualBackgroundImage } from "./virtualBackgroundHandlers.js";
+import {
+  enableVirtualBackgroundBlur,
+  enableVirtualBackgroundImage,
+} from "./virtualBackgroundHandlers.js";
 
 export const log = (config, arg) => {
   if (config.debugEnabled) {
@@ -14,20 +17,19 @@ export const debounce = (fn, delay) => {
   };
 };
 
-export const sendMessageToPeer = (clientRTM, data, uid) => {
-  clientRTM
-    .sendMessageToPeer(
-      {
-        text: JSON.stringify(data),
-      },
-      `${uid}` // Ensuring uid is passed as a string
-    )
-    .then(() => {
-      console.log("Message sent successfully");
-    })
-    .catch((error) => {
-      console.error("Failed to send message:", error);
-    });
+export const sendRTMMessage = async (message) => {
+  console.warn("sendRTMMessage called with message:", message);
+
+  try {
+    if (config.channelRTM) {
+      await config.channelRTM.sendMessage({ text: message });
+      console.log("Message sent to RTM channel:", message);
+    } else {
+      console.warn("RTM channel is not initialized.");
+    }
+  } catch (error) {
+    console.error("Failed to send RTM message:", error);
+  }
 };
 
 export const fetchTokens = async (config, uidToFetch) => {
@@ -101,9 +103,6 @@ export const sendChat = (config, data) => {
   sendMessage(config.channelRTM, messageObj);
   config.onMessageReceived(messageObj);
 };
-
-
-
 
 // Function to fetch and send the full list of devices to Bubble
 export const fetchAndSendDeviceList = async () => {
@@ -199,8 +198,6 @@ export const updateSelectedDevices = async (config) => {
   }
 };
 
-
-
 export const switchMic = async (config, micInfo) => {
   try {
     // Check if micInfo is a string and try to parse it as JSON
@@ -263,8 +260,6 @@ export const switchMic = async (config, micInfo) => {
   }
 };
 
-
-
 export const switchSpeaker = async (config, speakerInfo) => {
   try {
     // Set the selected speaker in config
@@ -279,7 +274,6 @@ export const switchSpeaker = async (config, speakerInfo) => {
     console.error("Error switching speaker:", error);
   }
 };
-
 
 export const switchCam = async (config, camInfo) => {
   try {
@@ -372,32 +366,30 @@ export const switchCam = async (config, camInfo) => {
   }
 };
 
-
-
 // Helper function to format and send device data to Bubbleexport const sendDeviceDataToBubble = (deviceType, devices) => {
-  export const sendDeviceDataToBubble = (deviceType, devices) => {
-    const formattedData = {
-      outputlist1: devices.map((d) => d.deviceId),
-      outputlist2: devices.map((d) => d.label || "No label"),
-      outputlist3: devices.map((d) => d.kind || "Unknown"),
-      outputlist4: devices.map((d) => JSON.stringify(d)), // Converts each device to a JSON string in an array
-    };
-
-    // Determine the appropriate Bubble function to call based on device type
-    if (
-      deviceType === "microphone" &&
-      typeof bubble_fn_micDevices === "function"
-    ) {
-      bubble_fn_micDevices(formattedData);
-    } else if (
-      deviceType === "camera" &&
-      typeof bubble_fn_camDevices === "function"
-    ) {
-      bubble_fn_camDevices(formattedData);
-    } else if (
-      deviceType === "speaker" &&
-      typeof bubble_fn_speakerDevices === "function"
-    ) {
-      bubble_fn_speakerDevices(formattedData);
-    }
+export const sendDeviceDataToBubble = (deviceType, devices) => {
+  const formattedData = {
+    outputlist1: devices.map((d) => d.deviceId),
+    outputlist2: devices.map((d) => d.label || "No label"),
+    outputlist3: devices.map((d) => d.kind || "Unknown"),
+    outputlist4: devices.map((d) => JSON.stringify(d)), // Converts each device to a JSON string in an array
   };
+
+  // Determine the appropriate Bubble function to call based on device type
+  if (
+    deviceType === "microphone" &&
+    typeof bubble_fn_micDevices === "function"
+  ) {
+    bubble_fn_micDevices(formattedData);
+  } else if (
+    deviceType === "camera" &&
+    typeof bubble_fn_camDevices === "function"
+  ) {
+    bubble_fn_camDevices(formattedData);
+  } else if (
+    deviceType === "speaker" &&
+    typeof bubble_fn_speakerDevices === "function"
+  ) {
+    bubble_fn_speakerDevices(formattedData);
+  }
+};
