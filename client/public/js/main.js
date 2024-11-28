@@ -133,7 +133,6 @@ export const newMainApp = async function (initConfig) {
     leave,
     toggleVirtualBackground,
     toggleCamera,
-    handleRaisingHand,
     denyAccess,
     switchCam,
     switchMic,
