@@ -4,8 +4,11 @@ import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
 
-export const toggleMic = async (config) => {
+export const toggleMic = async () => {
   try {
+    // Retrieve the latest config
+    let config = getConfig();
+
     console.log("configs:", config);
     console.log(`UserTracks:`, config.userTracks);
     console.log(`UserTracks:`, config.userTracks[config.uid]);
@@ -19,8 +22,11 @@ export const toggleMic = async (config) => {
       // Microphone is muted; activate it
       await startMic(config);
     }
+
+    // Optionally, if any config changes are made within the function,
+    // you would call updateConfig(config) here to persist those changes.
   } catch (error) {
-    console.error("Error in toggleMic for user:", config.uid, error);
+    console.error("Error in toggleMic for user:", error);
   }
 };
 
@@ -69,6 +75,9 @@ const startMic = async (config) => {
     } else {
       console.warn("bubble_fn_usersPublishingAudio is not defined.");
     }
+
+    // If you modify the config and need to update it globally, call updateConfig here
+    updateConfig(config);
   } catch (error) {
     console.warn(
       "Error accessing or creating microphone track, setting mic to off.",
@@ -80,6 +89,7 @@ const startMic = async (config) => {
     bubble_fn_isMicOff(true);
   }
 };
+
 
 const endMic = async (config) => {
   try {
@@ -132,33 +142,31 @@ const endMic = async (config) => {
 
     // Notify Bubble that the microphone is off
     bubble_fn_isMicOff(true);
+    updateConfig(config);
   } catch (error) {
     console.error("Error in endMic for user:", config.uid, error);
   }
 };
 
-export const toggleCamera = async (config) => {
+let cameraToggleInProgress = false; // External variable to track camera toggle progress
+
+export const toggleCamera = async () => {
   try {
+    // Retrieve the latest config
+    let config = getConfig();
+
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
     }
 
     console.log("User's UID:", config.uid);
 
-    if (config.cameraToggleInProgress) {
+    if (cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
       return;
     }
 
-    config.cameraToggleInProgress = true; // Prevent simultaneous toggles
-
-    // Ensure userTracks has an entry for the user
-    if (!config.userTracks[config.uid]) {
-      config.userTracks[config.uid] = {
-        videoTrack: null,
-        audioTrack: null,
-      };
-    }
+    cameraToggleInProgress = true; // Prevent simultaneous toggles
 
     const userTrack = config.userTracks[config.uid];
 
@@ -172,10 +180,12 @@ export const toggleCamera = async (config) => {
   } catch (error) {
     console.error("Error toggling the camera for user:", config.uid, error);
   } finally {
-    config.cameraToggleInProgress = false; // Reset toggle state
+    cameraToggleInProgress = false; // Reset toggle state
     console.log("Camera toggle progress reset for user:", config.uid);
   }
 };
+
+
 
 export const startCamera = async (config) => {
   try {
@@ -221,6 +231,8 @@ export const startCamera = async (config) => {
     if (typeof bubble_fn_isCamOn === "function") {
       bubble_fn_isCamOn(true); // Camera is on
     }
+    // Update the global config if it was modified
+    updateConfig(config);
   } catch (error) {
     console.error("Error starting the camera for user:", config.uid, error);
   }
@@ -260,12 +272,15 @@ export const stopCamera = async (config) => {
     } else {
       console.warn("No active video track to stop for user:", config.uid);
     }
+    updateConfig(config)
   } catch (error) {
     console.error("Error stopping the camera for user:", config.uid, error);
   }
 };
 
-export const toggleScreenShare = async (config) => {
+export const toggleScreenShare = async () => {
+  let config = getConfig();
+
   console.log("config.sharingScreenUid", config.sharingScreenUid);
 
   try {
@@ -386,11 +401,14 @@ export const startScreenShare = async (config) => {
       avatarElement.src = user.avatar || "default-avatar.png";
     }
 
-    // Update config
+    // Update config with new screen share info
     config.screenShareRTMClient = rtmClient;
     config.screenShareRTCClient = rtcClient;
     config.sharingScreenUid = config.uid.toString();
     config.generatedScreenShareId = screenShareUid;
+
+    // **Call updateConfig only once at the end**
+    updateConfig(config);
 
     bubble_fn_userSharingScreen(config.sharingScreenUid);
 
@@ -404,6 +422,7 @@ export const startScreenShare = async (config) => {
   }
 };
 
+
 export const stopScreenShare = async (config) => {
   const screenShareUid = config.generatedScreenShareId; // Use the dynamic UID
 
@@ -411,6 +430,7 @@ export const stopScreenShare = async (config) => {
   const screenShareTrack = config.userTracks[screenShareUid]?.videoTrack;
 
   if (screenShareTrack) {
+    // Unpublish the screen share track
     await config.screenShareRTCClient.unpublish([screenShareTrack]);
     screenShareTrack.stop();
     screenShareTrack.close();
@@ -429,7 +449,13 @@ export const stopScreenShare = async (config) => {
   // Clear the screen share UID from config
   config.sharingScreenUid = null;
   bubble_fn_userSharingScreen(config.sharingScreenUid);
+
+  // Update the config after all changes
+  updateConfig(config);
+
+  console.log("Screen share stopped and config updated.");
 };
+
 
 export const changeUserRole = async (
   userUid,
