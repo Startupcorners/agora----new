@@ -117,7 +117,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     } else {
       playStreamInDiv(config, userUid, `#stream-${userUid}`);
     }
-    updateConfig(config);
+    updateConfig(config, "handleVideoPublished");
   } catch (error) {
     console.error(`Error subscribing to video for user ${userUid}:`, error);
   }
@@ -186,7 +186,7 @@ const handleAudioPublished = async (user, userUid, config, client) => {
 
     // Update the publishing list
     updatePublishingList(userUid.toString(), "audio", "add", config);
-    updateConfig(config);
+    updateConfig(config, "handleAudioPublished");
   } catch (error) {
     console.error(`Error subscribing to audio for user ${userUid}:`, error);
   }
@@ -524,7 +524,7 @@ export const manageParticipants = async (
   }
 
   console.log("Participant list updated.");
-  updateConfig(config)
+  updateConfig(config, "maangeParticipants")
 };
 
 // Handles user joined event
