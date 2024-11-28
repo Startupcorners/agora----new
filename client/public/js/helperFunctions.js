@@ -1,3 +1,5 @@
+import { getConfig, updateConfig } from "./config.js";
+
 import {
   enableVirtualBackgroundBlur,
   enableVirtualBackgroundImage,
@@ -18,7 +20,7 @@ export const debounce = (fn, delay) => {
 };
 
 export const sendRTMMessage = async (message) => {
-  let config = getConfig()
+  let config = getConfig();
   console.warn("sendRTMMessage called with message:", message);
 
   try {
