@@ -30,12 +30,14 @@ const client = config.client;
     console.log(
       `user-published event received for user: ${user.uid}, mediaType: ${mediaType}`
     );
+    let config = getConfig();
     await handleUserPublished(user, mediaType, config, client);
   });
 
   // Handle when a user stops publishing their media
   client.on("user-unpublished", async (user, mediaType) => {
     console.log("Heard user-unpublished:", user);
+    let config = getConfig();
     await handleUserUnpublished(user, mediaType, config);
   });
 
@@ -131,6 +133,7 @@ const client = config.client;
 
     try {
       // Pass the user attributes along with the user and config
+      let config = getConfig();
       await handleUserJoined(user, config, userAttr);
       console.log(`User ${user.uid} handled successfully.`);
     } catch (error) {
@@ -141,6 +144,7 @@ const client = config.client;
   // Handle when a user leaves the session
   client.on("user-left", async (user) => {
     console.log("Heard user-left:", user);
+    let config = getConfig();
     await handleUserLeft(user, config);
   });
 
@@ -149,11 +153,12 @@ const client = config.client;
 
   // Handle volume indicator changes
   client.on("volume-indicator", async (volumes) => {
+    let config = getConfig();
     await handleVolumeIndicator(volumes, config);
   });
 
   config.client.on("onMicrophoneChanged", async (info) => {
-    config = getConfig()
+    let onfig = getConfig()
     console.log("Microphone device change detected:", info);
     await fetchAndSendDeviceList();
 
