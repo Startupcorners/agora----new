@@ -109,6 +109,8 @@ const handleRoleChange = async (newRoleInTheCall, config) => {
 export const onRoleChange = async (newRoleInTheCall) => {
   let config = getConfig();
   console.warn("onRoleChange called with newRoleInTheCall:", newRoleInTheCall);
+  console.warn("config", config);
+
 
   // Retrieve the previous role for cleanup
   const previousRoleInTheCall = config.user.roleInTheCall;
