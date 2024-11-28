@@ -5,10 +5,9 @@ import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
 
 export const toggleMic = async () => {
+  // Retrieve the latest config
+  let config = getConfig();
   try {
-    // Retrieve the latest config
-    let config = getConfig();
-
     console.log("configs:", config);
     console.log(`UserTracks:`, config.userTracks);
     console.log(`UserTracks:`, config.userTracks[config.uid]);
@@ -151,10 +150,8 @@ const endMic = async (config) => {
 let cameraToggleInProgress = false; // External variable to track camera toggle progress
 
 export const toggleCamera = async () => {
+  let config = getConfig();
   try {
-    // Retrieve the latest config
-    let config = getConfig();
-
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
     }
