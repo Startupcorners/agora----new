@@ -19,67 +19,101 @@ export const toggleVirtualBackground = async (imageSrc) => {
 
 export const enableVirtualBackgroundBlur = async (config) => {
   console.log("Enabling virtual background blur...");
-  const processor = await getProcessorInstance(config);
-  if (!processor) {
-    console.error("Failed to obtain processor instance for blur.");
-    return;
+
+  try {
+    const processor = await getProcessorInstance(config);
+
+    if (!processor) {
+      console.warn(
+        "Failed to obtain processor instance for blur. Proceeding without processor."
+      );
+    } else {
+      // If processor exists, set its options and enable the blur effect
+      processor.setOptions({ type: "blur", blurDegree: 2 });
+      console.log("Processor options set for blur effect.");
+      await processor.enable();
+    }
+
+    // Regardless of processor success, update the virtual background state
+    bubble_fn_background("blur"); // Notify Bubble of the blur effect
+    config.isVirtualBackGroundEnabled = true;
+    config.currentVirtualBackground = "blur";
+    updateConfig(config, "enableVirtualBackgroundBlur");
+  } catch (error) {
+    console.error("Error enabling virtual background blur:", error);
   }
-
-  processor.setOptions({ type: "blur", blurDegree: 2 });
-  console.log("Processor options set for blur effect.");
-  await processor.enable();
-
-  bubble_fn_background("blur");
-  config.isVirtualBackGroundEnabled = true;
-  config.currentVirtualBackground = "blur";
-  updateConfig(config, "enableVirtualBackgroundBlur");
 };
+
 
 export const enableVirtualBackgroundImage = async (config, imageSrc) => {
   console.log("Enabling virtual background with image source:", imageSrc);
   const imgElement = document.createElement("img");
+
+  // Image loaded event
   imgElement.onload = async () => {
     console.log("Image loaded for virtual background.");
 
-    const processor = await getProcessorInstance(config);
-    if (!processor) {
-      console.error(
-        "Failed to obtain processor instance for image background."
-      );
-      return;
+    try {
+      // Attempt to get the processor instance
+      const processor = await getProcessorInstance(config);
+
+      if (!processor) {
+        console.warn(
+          "Failed to obtain processor instance for image background. Proceeding without processor."
+        );
+      } else {
+        // If processor exists, set the background with the processor
+        processor.setOptions({ type: "img", source: imgElement });
+        console.log("Processor options set for image background.");
+        await processor.enable();
+      }
+
+      // Regardless of processor success, update the background state
+      bubble_fn_background(imageSrc); // Notify Bubble with the image source
+      config.isVirtualBackGroundEnabled = true;
+      config.currentVirtualBackground = imageSrc;
+      updateConfig(config, "enableVirtualBackgroundImage");
+    } catch (error) {
+      console.error("Error enabling virtual background image:", error);
     }
-
-    processor.setOptions({ type: "img", source: imgElement });
-    console.log("Processor options set for image background.");
-    await processor.enable();
-
-    bubble_fn_background(imageSrc);
-    config.isVirtualBackGroundEnabled = true;
-    config.currentVirtualBackground = imageSrc;
-    updateConfig(config, "enableVirtualBackgroundImage");
   };
 
+  // Convert image URL to Base64 before assigning it to the img element
   const base64 = await imageUrlToBase64(imageSrc);
   imgElement.src = base64;
 };
 
+
 export const disableVirtualBackground = async (config) => {
   console.log("Disabling virtual background...");
+
+  // Retrieve processor from config
   const processor = config.processor;
+
+  // Check if processor is initialized
   if (!processor) {
-    console.error("Processor is not initialized.");
-    return;
+    console.warn(
+      "Processor is not initialized. Proceeding to disable virtual background without processor."
+    );
+  } else {
+    try {
+      // If processor exists, disable it
+      await processor.disable();
+      console.log("Virtual background disabled successfully.");
+    } catch (error) {
+      console.error("Error disabling virtual background:", error);
+    }
   }
 
-  await processor.disable();
-  console.log("Virtual background disabled successfully.");
+  // Notify Bubble to reset the background to "none"
   bubble_fn_background("none");
 
+  // Update the config state
   config.isVirtualBackGroundEnabled = false;
   config.currentVirtualBackground = null;
   updateConfig(config, "disableVirtualBackground");
-  
 };
+
 
 export const getProcessorInstance = async (config) => {
   const uid = config.uid; // Ensure the uid is correctly retrieved from the config
