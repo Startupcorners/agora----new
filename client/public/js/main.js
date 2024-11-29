@@ -62,7 +62,6 @@ export const newMainApp = async function (initConfig) {
 
   // Initialize AgoraRTC client
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
-  console.log("Agora SDK version:", AgoraRTC.version);
 
   // Initialize the Virtual Background extension
   try {

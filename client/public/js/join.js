@@ -2,6 +2,13 @@ import { getConfig, updateConfig } from "./config.js";
 import { joinVideoStage} from "./joinleavestage.js";
 import { fetchTokens} from "./helperFunctions.js";
 import { manageParticipants } from "./rtcEventHandlers.js";
+import {
+  setupEventListeners,
+  setupRTMMessageListener,
+  checkMicrophonePermissions,
+  setupLeaveListener
+} from "./setupEventListeners.js"; // Import RTM and RTC event listeners
+
 
 export const join = async (config) => {
 
@@ -67,6 +74,7 @@ export const join = async (config) => {
         roleInTheCall: config.user.roleInTheCall || "audience", // Default to "audience" if not set in config.user
       };
     manageParticipants(config, config.uid, attributes, "join");
+    setupEventListeners();
     bubble_fn_joining("Joined");
     updateConfig(config, "join")
   } catch (error) {
