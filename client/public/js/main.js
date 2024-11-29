@@ -53,6 +53,8 @@ import { getConfig, updateAndGet, updateConfig } from "./config.js";
 
 export const newMainApp = async function (initConfig) {
   console.log("newMainApp called with initConfig:", initConfig);
+  console.log("Agora SDK version:", AgoraRTC.version);
+
 
   // Update the configuration
   let config = await updateAndGet(initConfig, "newMainApp");
