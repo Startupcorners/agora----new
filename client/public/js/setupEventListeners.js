@@ -200,10 +200,12 @@ const client = config.client;
      if (action === "activated") {
        if (info.device.kind === "audioinput") {
          // If a microphone is activated, set it as the selected mic
-         await switchMic(config, info.device);
+         await updateConfig(config);
+         await switchMic(info.device);
        } else if (info.device.kind === "audiooutput") {
          // If a speaker is activated, switch to the new speaker
-         await switchSpeaker(config, info.device);
+         await updateConfig(config);
+         await switchSpeaker(info.device);
        }
      } else if (action === "deactivated") {
        if (info.device.kind === "audioinput") {
@@ -221,7 +223,8 @@ const client = config.client;
            );
 
            if (microphones.length > 0) {
-             await switchMic(config, microphones[0]);
+            await updateConfig(config);
+            await switchMic(config, microphones[0]);
            } else {
              console.log(
                "No microphones available to switch to after deactivation."
@@ -243,7 +246,8 @@ const client = config.client;
            );
 
            if (speakers.length > 0) {
-             await switchSpeaker(config, speakers[0]);
+            await updateConfig(config);
+            await switchSpeaker(speakers[0]);
            } else {
              console.log(
                "No speakers available to switch to after deactivation."
@@ -264,7 +268,8 @@ const client = config.client;
   if (action === "activated") {
     if (info.device.kind === "videoinput") {
       // If a camera is activated, set it as the selected camera
-      await switchCam(config, info.device);
+      await updateConfig(config);
+      await switchCam(info.device);
     }
   } else if (action === "deactivated") {
     if (info.device.kind === "videoinput") {
@@ -279,7 +284,8 @@ const client = config.client;
         );
 
         if (cameras.length > 0) {
-          await switchCam(config, cameras[0]);
+          await updateConfig(config);
+          await switchCam(cameras[0]);
         } else {
           console.log("No cameras available to switch to after deactivation.");
         }
