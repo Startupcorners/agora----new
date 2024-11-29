@@ -3,6 +3,7 @@ import { getConfig, updateConfig } from "./config.js";
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
+import { enableVirtualBackgroundBlur,enableVirtualBackgroundImage } from "./virtualBackgroundHandlers.js"; // Token renewal handler
 
 export const toggleMic = async () => {
   // Retrieve the latest config
@@ -217,6 +218,18 @@ export const startCamera = async (config) => {
     console.log("Camera turned on and published");
     updatePublishingList(config.uid.toString(), "video", "add", config);
 
+    // Handle virtual background if enabled
+    if (config.isVirtualBackGroundEnabled === true) {
+      if (config.currentVirtualBackground === "blur") {
+        await enableVirtualBackgroundBlur(config); // Apply blur if that's the selected background
+      } else if (config.currentVirtualBackground) {
+        await enableVirtualBackgroundImage(
+          config,
+          config.currentVirtualBackground
+        ); // Apply custom virtual background image
+      }
+    }
+
     // Update UI
     if (config.sharingScreenUid === config.uid.toString()) {
       playStreamInDiv(config, config.uid, "#pip-video-track");
@@ -228,12 +241,14 @@ export const startCamera = async (config) => {
     if (typeof bubble_fn_isCamOn === "function") {
       bubble_fn_isCamOn(true); // Camera is on
     }
+
     // Update the global config if it was modified
     updateConfig(config, "startCamera");
   } catch (error) {
     console.error("Error starting the camera for user:", config.uid, error);
   }
 };
+
 
 export const stopCamera = async (config) => {
   try {
