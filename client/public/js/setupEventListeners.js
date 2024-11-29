@@ -28,6 +28,7 @@ import { getConfig, updateConfig } from "./config.js";
 
 export const setupEventListeners = () => {
 let config = getConfig();
+console.log("lisnterCongig", config)
 const client = config.client;
 
   // Handle when a user publishes their media (audio/video)
