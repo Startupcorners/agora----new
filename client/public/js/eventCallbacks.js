@@ -9,3 +9,7 @@
   export const onPlaybackDeviceChanged = (info) => {
   console.log("Playback device changed!", info.state, info.device);
 }
+
+export const onDeviceChanged = (info) => {
+  console.log("device-changed", info.state, info.device);
+};

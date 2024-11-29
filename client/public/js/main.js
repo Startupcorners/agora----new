@@ -1,5 +1,10 @@
 import {join} from "./join.js";
-import { onCameraChanged, onMicrophoneChanged, onPlaybackDeviceChanged } from "./eventCallbacks.js";
+import {
+  onCameraChanged,
+  onMicrophoneChanged,
+  onPlaybackDeviceChanged,
+  onDeviceChanged,
+} from "./eventCallbacks.js";
 import {
   setupEventListeners,
   setupRTMMessageListener,
@@ -103,6 +108,7 @@ export const newMainApp = async function (initConfig) {
   AgoraRTC.onCameraChanged = (info) => onCameraChanged(info);
   AgoraRTC.onMicrophoneChanged = (info) => onMicrophoneChanged(info);
   AgoraRTC.onPlaybackDeviceChanged = (info) => onPlaybackDeviceChanged(info);
+  AgoraRTC.onDeviceChanged = (info) => onDeviceChanged(info);
 
   // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
   config.clientRTM = AgoraRTM.createInstance(config.appId, {
