@@ -670,9 +670,6 @@ export const leave = async (reason) => {
     updateConfig(config);
   } catch (error) {
     console.error("Error during leave:", error);
-  } finally {
-    // Reset the triggeredReason after the function completes
-    triggeredReason = null;
   }
 };
 
