@@ -2,47 +2,37 @@
 import {
   handleUserPublished,
   handleUserUnpublished,
-  handleUserJoined,
-  handleUserLeft,
-  handleVolumeIndicator,
-  manageParticipants,
-  handleRaisingHand,
-} from "./rtcEventHandlers.js";
-import {
-  toggleMic,
-  toggleCamera,
-  toggleScreenShare,
-  leave,
-} from "./uiHandlers.js";
-
-import { onRoleChange} from "./roleChange.js";
-import {
-  fetchTokens,
-  switchCam,
-  switchMic,
-  switchSpeaker,
-  fetchAndSendDeviceList,
-} from "./helperFunctions.js";
+} from "./publishUnpublishHub.js";
+import {handleUserJoined, handleUserLeft} from "./joinLeaveLocalUser"
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
-import { getConfig, updateConfig } from "./config.js";
+import { fetchAndSendDeviceList, manageParticipants } from "./talkToBubble.js";
+import { switchCam, switchCam, switchSpeaker, handleCameraDeactivation, handleMicDeactivation, handleSpeakerDeactivation } from "./handleDevices.js";
+import { handleRaisingHand } from "./uiHandlers.js";
+import { leave } from "./joinLeaveLocalUser.js";
+import { onRoleChange } from "./onRoleChange.js";
+import { toggleCamera, toggleScreenShare } from "./video.js";
+import { toggleMic } from "./audio.js";
 
-export const setupEventListeners = () => {
-let config = getConfig();
-console.log("listenerConfig", config)
-const client = config.client;
+let lastMutedStatuses = {}; // External variable to track the mute status of users
+let speakingIntervals = {}; // External variable to track speaking intervals for users
+let lastMicPermissionState = null; // External variable to track the microphone permission state
+
+export const setupEventListeners = (config) => {
+  console.log("listenerConfig", config);
+  const client = config.client;
 
   // Handle when a user publishes their media (audio/video)
   client.on("user-published", async (user, mediaType) => {
     console.log(
       `user-published event received for user: ${user.uid}, mediaType: ${mediaType}`
     );
-    await handleUserPublished(user, mediaType, client);
+    await handleUserPublished(user, mediaType, client, config);
   });
 
   // Handle when a user stops publishing their media
   client.on("user-unpublished", async (user, mediaType) => {
     console.log("Heard user-unpublished:", user);
-    await handleUserUnpublished(user, mediaType);
+    await handleUserUnpublished(user, mediaType, config);
   });
 
   config.client.on("autoplay-fallback", () => {
@@ -137,7 +127,7 @@ const client = config.client;
 
     try {
       // Pass the user attributes along with the user and config
-      await handleUserJoined(user,userAttr);
+      await handleUserJoined(user, userAttr);
       console.log(`User ${user.uid} handled successfully.`);
     } catch (error) {
       console.error(`Error handling user ${user.uid}:`, error);
@@ -190,124 +180,48 @@ const client = config.client;
     }
   });
 
+  AgoraRTC.on("microphone-changed", async (info) => {
+    console.log("Microphone device change detected:", info);
+    await fetchAndSendDeviceList();
 
-   
-AgoraRTC.on("microphone-changed", async (info) => {
-  console.log("Microphone device change detected:", info);
-  await fetchAndSendDeviceList();
+    const action = info.state === "ACTIVE" ? "activated" : "deactivated";
 
-  const action = info.state === "ACTIVE" ? "activated" : "deactivated";
-
-  if (action === "activated") {
-    // If a microphone is activated, set it as the selected mic
-    await updateConfig(config);
-    await switchMic(info.device);
-  } else if (action === "deactivated") {
-    // If the selected mic is deactivated, set it to null
-    if (
-      config.selectedMic &&
-      config.selectedMic.deviceId === info.device.deviceId
-    ) {
-      config.selectedMic = null;
-
-      // Get the updated list of devices and select the first available microphone
-      const devices = await AgoraRTC.getDevices();
-      const microphones = devices.filter(
-        (device) => device.kind === "audioinput"
-      );
-
-      if (microphones.length > 0) {
-        await updateConfig(config);
-        await switchMic(microphones[0]);
-      } else {
-        console.log(
-          "No microphones available to switch to after deactivation."
-        );
-      }
+    if (action === "activated") {
+      await switchMic(info.device);
+    } else if (action === "deactivated") {
+      await handleMicDeactivation(info.device);
     }
-  }
-});
+  });
 
+  AgoraRTC.on("playback-device-changed", async (info) => {
+    console.log("Playback device (speaker) change detected:", info);
+    await fetchAndSendDeviceList();
 
+    const action = info.state === "ACTIVE" ? "activated" : "deactivated";
 
-   AgoraRTC.on("playback-device-changed", async (info) => {
-     console.log("Playback device (speaker) change detected:", info);
-     await fetchAndSendDeviceList();
+    if (action === "activated") {
+      await switchSpeaker(info.device);
+    } else if (action === "deactivated") {
+      await handleSpeakerDeactivation(info.device);
+    }
+  });
 
-     const action = info.state === "ACTIVE" ? "activated" : "deactivated";
+  AgoraRTC.on("camera-changed", async (info) => {
+    console.log("Camera device change detected:", info);
+    await fetchAndSendDeviceList();
 
-     if (action === "activated") {
-       // If a speaker is activated, switch to it
-       await updateConfig(config);
-       await switchSpeaker(info.device);
-     } else if (action === "deactivated") {
-       // If the selected speaker is deactivated, set it to null
-       if (
-         config.selectedSpeaker &&
-         config.selectedSpeaker.deviceId === info.device.deviceId
-       ) {
-         config.selectedSpeaker = null;
+    const action = info.state === "ACTIVE" ? "activated" : "deactivated";
 
-         // Get the updated list of devices and select the first available speaker
-         const devices = await AgoraRTC.getDevices();
-         const speakers = devices.filter(
-           (device) => device.kind === "audiooutput"
-         );
-
-         if (speakers.length > 0) {
-           // Switch to the first available speaker if any
-           await updateConfig(config);
-           await switchSpeaker(speakers[0]);
-         } else {
-           console.log(
-             "No speakers available to switch to after deactivation."
-           );
-         }
-       }
-     }
-   });
-
-
- AgoraRTC.on("camera-changed", async (info) => {
-   console.log("Camera device change detected:", info);
-   await fetchAndSendDeviceList();
-
-   const action = info.state === "ACTIVE" ? "activated" : "deactivated";
-
-   if (action === "activated") {
-     // Camera is activated, just log it but do not switch automatically
-     console.log("Camera activated:", info.device.label);
-     await updateConfig(config); // Optionally update config or store device details
-   } else if (action === "deactivated") {
-     // Camera is deactivated (removed), reset the selected camera and fetch available cameras
-     if (
-       config.selectedCam &&
-       config.selectedCam.deviceId === info.device.deviceId
-     ) {
-       config.selectedCam = null;
-
-       // Get the updated list of cameras
-       const devices = await AgoraRTC.getDevices();
-       const cameras = devices.filter((device) => device.kind === "videoinput");
-
-       if (cameras.length > 0) {
-         console.log(
-           "Camera removed, switching to the first available camera..."
-         );
-         // Switch to the first available camera
-         await updateConfig(config);
-         await switchCam(cameras[0]);
-       } else {
-         console.log("No cameras available to switch to after removal.");
-       }
-     }
-   }
- });
+    if (action === "activated") {
+      console.log("Camera activated:", info.device.label);
+    } else if (action === "deactivated") {
+      await handleCameraDeactivation(info.device);
+    }
+  });
 };
 
-export const setupRTMMessageListener = () => {
-  let config = getConfig();
-  const channelRTM = config.channelRTM
+export const setupRTMMessageListener = (config) => {
+  const channelRTM = config.channelRTM;
   if (!channelRTM) {
     console.warn("RTM channel is not initialized.");
     return;
@@ -458,7 +372,6 @@ export const setupRTMMessageListener = () => {
 };
 
 export async function checkMicrophonePermissions() {
-  let config = getConfig();
   if (navigator.permissions) {
     try {
       const micPermission = await navigator.permissions.query({
@@ -466,9 +379,9 @@ export async function checkMicrophonePermissions() {
       });
 
       // Notify Bubble on initial state
-      if (micPermission.state !== config.lastMicPermissionState) {
-        handleMicPermissionChange(micPermission.state, config);
-        config.lastMicPermissionState = micPermission.state;
+      if (micPermission.state !== lastMicPermissionState) {
+        handleMicPermissionChange(micPermission.state, { uid: null }); // pass a placeholder config object
+        lastMicPermissionState = micPermission.state; // Update the external variable
       }
 
       // Use onchange if supported
@@ -477,9 +390,9 @@ export async function checkMicrophonePermissions() {
           console.log(
             `Microphone permission changed to: ${micPermission.state}`
           );
-          if (micPermission.state !== config.lastMicPermissionState) {
-            handleMicPermissionChange(micPermission.state, config);
-            config.lastMicPermissionState = micPermission.state; // Update the tracked state
+          if (micPermission.state !== lastMicPermissionState) {
+            handleMicPermissionChange(micPermission.state, { uid: null }); // pass a placeholder config object
+            lastMicPermissionState = micPermission.state; // Update the external variable
           }
         };
       } else {
@@ -492,12 +405,12 @@ export async function checkMicrophonePermissions() {
           const newPermission = await navigator.permissions.query({
             name: "microphone",
           });
-          if (newPermission.state !== config.lastMicPermissionState) {
+          if (newPermission.state !== lastMicPermissionState) {
             console.log(
               `Detected permission change via polling: ${newPermission.state}`
             );
-            handleMicPermissionChange(newPermission.state, config);
-            config.lastMicPermissionState = newPermission.state; // Update the tracked state
+            handleMicPermissionChange(newPermission.state, { uid: null }); // pass a placeholder config object
+            lastMicPermissionState = newPermission.state; // Update the external variable
           }
         }, 5000); // Poll every 5 seconds
       }
@@ -505,7 +418,6 @@ export async function checkMicrophonePermissions() {
       console.log(
         `Initial microphone permission state: ${micPermission.state}`
       );
-      updateConfig(config); 
     } catch (error) {
       console.error("Error checking microphone permissions:", error);
     }
@@ -515,6 +427,7 @@ export async function checkMicrophonePermissions() {
 }
 
 // Handle microphone permission changes
+
 function handleMicPermissionChange(state, config) {
   if (!config || config.user.roleInTheCall === "waiting" || !config.client) {
     console.log(
@@ -551,9 +464,9 @@ function handleMicPermissionChange(state, config) {
       console.warn("bubble_fn_systemmuted is not defined.");
     }
 
-    // Update lastMutedStatuses for the current user
+    // Update lastMutedStatuses for the current user (external variable)
     if (config && config.uid) {
-      config.lastMutedStatuses[config.uid] = "no";
+      lastMutedStatuses[config.uid] = "no"; // Update the external variable
       console.log(
         `Updated lastMutedStatuses for UID ${config.uid} to "no" (unmuted).`
       );
@@ -563,15 +476,101 @@ function handleMicPermissionChange(state, config) {
       );
     }
   }
-  updateConfig(config); 
 }
-
 
 export const setupLeaveListener = () => {
   // Listen for page unload events (close, reload, or navigating away)
   window.addEventListener("beforeunload", (event) => {
     const leaveReason = "left"; // You can customize the reason based on your needs
     leave(leaveReason);
-    }
-  );
+  });
 };
+
+export const handleVolumeIndicator = (() => {
+  return async (result, config) => {
+    const currentUserUid = config.uid; // Extract the current user's UID from the config
+
+    for (const volume of result) {
+      const userUID = volume.uid;
+
+      // Ignore UID 1 (screen share client or any other special case)
+      if (userUID === 1) {
+        continue; // Skip this iteration
+      }
+
+      const audioLevel = volume.level; // The audio level, used to determine when the user is speaking
+      let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
+      let waveElement = document.querySelector(`#wave-${userUID}`);
+      console.log(`UID: ${userUID}, Audio Level: ${audioLevel}`);
+
+      // Determine the current status based on audio level
+      const currentStatus = audioLevel < 3 ? "yes" : "no";
+
+      // Apply audio level indicator styles if the wrapper is available
+      if (wrapper) {
+        if (audioLevel > 50) {
+          wrapper.style.borderColor = "#1a73e8"; // Blue when the user is speaking
+        } else {
+          wrapper.style.borderColor = "transparent"; // Transparent when not speaking
+        }
+      }
+
+      if (waveElement) {
+        const audioBars = waveElement.querySelectorAll(".bar");
+        if (audioBars.length > 0) {
+          if (audioLevel > 50) {
+            // User is speaking
+
+            // If we don't already have an interval for this user, create one
+            if (!speakingIntervals[userUID]) {
+              // Start interval to update bars
+              speakingIntervals[userUID] = setInterval(() => {
+                audioBars.forEach((bar, index) => {
+                  // Define height ranges
+                  const minHeight = 3; // Minimum height
+                  const maxHeight = 12; // Maximum height
+
+                  // Generate random height within the range
+                  const randomHeight =
+                    Math.floor(Math.random() * (maxHeight - minHeight + 1)) +
+                    minHeight;
+
+                  bar.style.height = `${randomHeight}px`;
+                });
+              }, 100); // Update every 100ms
+            }
+          } else {
+            // User is not speaking
+
+            // If we have an interval for this user, clear it
+            if (speakingIntervals[userUID]) {
+              clearInterval(speakingIntervals[userUID]);
+              delete speakingIntervals[userUID];
+
+              // Reset bars to minimum height
+              audioBars.forEach((bar) => {
+                bar.style.height = `5px`; // Reset to minimum height
+              });
+            }
+          }
+        }
+      }
+
+      // Only process and send notifications for the local user (currentUserUid)
+      if (userUID === currentUserUid) {
+        // Notify Bubble only when the status changes
+        if (currentStatus !== lastMutedStatuses[userUID]) {
+          console.log(
+            `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for UID ${userUID}`
+          );
+          bubble_fn_systemmuted(currentStatus);
+          lastMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
+        } else {
+          console.log(
+            `Status for UID ${userUID} remains unchanged (${currentStatus}), no notification sent.`
+          );
+        }
+      }
+    }
+  };
+})();

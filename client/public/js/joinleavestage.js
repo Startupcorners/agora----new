@@ -1,6 +1,8 @@
-import { getConfig, updateConfig } from "./config.js";
-import {updateMicStatusElement, updatePublishingList} from "./uiHandlers.js";
-import { addUserWrapper } from "./wrappers.js";
+import {updatePublishingList} from "./talkToBubble"
+import { updateMicStatusElement } from "./uiHandlers";
+import { addUserWrapper, removeUserWrapper } from "./wrappers";
+
+
 
 export const joinVideoStage = async (config) => {
   console.warn("joinVideoStage called");
@@ -9,19 +11,18 @@ export const joinVideoStage = async (config) => {
     console.log("Creating and enabling audio track...");
 
     try {
-      // Create and enable a new audio track
-      config.userTracks[config.uid].audioTrack =
-        await AgoraRTC.createMicrophoneAudioTrack();
-      await config.userTracks[config.uid].audioTrack.setEnabled(true);
+      // Create and enable a new audio track using Agora's client.localTracks
+      const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      await audioTrack.setEnabled(true);
 
       console.log("Audio track created and enabled.");
       updateMicStatusElement(config.uid, false);
 
       // Publish the audio track
       console.log("Publishing audio track...");
-      await config.client.publish([config.userTracks[config.uid].audioTrack]);
+      await config.client.publish([audioTrack]);
       console.log("Audio track published.");
-      updatePublishingList(config.uid.toString(), "audio", "add", config);
+      updatePublishingList(config.uid.toString(), "audio", "add");
     } catch (error) {
       // Handle specific microphone-related errors
       if (error.name === "NotAllowedError") {
@@ -45,20 +46,15 @@ export const joinVideoStage = async (config) => {
     console.log("User is host, performing additional setup");
     await addUserWrapper(config.uid, config);
 
-    updateLayout();
-
     // Successfully joined the video stage, update the config state
     console.log("Joined the video stage with audio status updated.");
 
-    // Mark user as on stage in the config
-    config.isOnStage = true;
 
-    // Update the config with the new state
-    updateConfig(config, "joinVideoStage");
   } catch (error) {
     console.error("Error in joinVideoStage:", error);
   }
 };
+
 
 
 // Function to leave the video stage
@@ -66,31 +62,26 @@ export const leaveVideoStage = async () => {
   console.warn("leaveVideoStage called");
 
   try {
-    // Unpublish and close audio track
-    if (config.userTracks[config.uid]?.audioTrack) {
-      console.log("Unpublishing audio track...");
-      await config.client.unpublish([config.userTracks[config.uid].audioTrack]);
-      config.userTracks[config.uid].audioTrack.close();
-      config.userTracks[config.uid].audioTrack = null;
-      console.log("Audio track unpublished and closed");
+    // Disable the audio track if it exists
+    if (config.client.localTracks.audioTrack) {
+      console.log("Disabling audio track...");
+      await config.client.localTracks.audioTrack.setEnabled(false);
+      console.log("Audio track disabled");
     }
 
-    // Unpublish and close video track
-    if (config.userTracks[config.uid]?.videoTrack) {
-      console.log("Unpublishing video track...");
-      await config.client.unpublish([config.userTracks[config.uid].videoTrack]);
-      config.userTracks[config.uid].videoTrack.close();
-      config.userTracks[config.uid].videoTrack = null;
-      console.log("Video track unpublished and closed");
+    // Disable the video track if it exists
+    if (config.client.localTracks.videoTrack) {
+      console.log("Disabling video track...");
+      await config.client.localTracks.videoTrack.setEnabled(false);
+      console.log("Video track disabled");
     }
+
+    await removeUserWrapper(config.uid);
 
     // Update stage status to false, as the user has left the stage
-    config.isOnStage = false;
     console.log("Left the video stage successfully");
-
-    // Update the config state
-    updateConfig(config, "leaveVideoStage");
   } catch (error) {
     console.error("Error in leaveVideoStage:", error);
   }
 };
+

@@ -1,4 +1,6 @@
-import { updateMicStatusElement } from "./uiHandlers.js";
+import {
+updateMicStatusElement,
+} from "./uiHandlers";
 
 // Track running state for each user
 let addUserWrapperRunning = {};
@@ -49,11 +51,22 @@ export const addUserWrapper = async (uid, config) => {
 
     console.log(`Added wrapper for user: ${uid}`);
 
-    // Set audio track and update mic status
-    if (config.userTracks[uid]?.audioTrack) {
+    // Determine if the track is local or remote
+    let audioTrack;
+    if (uid === config.uid) {
+      // Use local track for the current user
+      audioTrack = client.localTrack?.audioTrack;
+    } else {
+      // Use remote track for other users
+      const remoteUser = client.remoteUsers.find((user) => user.uid === uid);
+      audioTrack = remoteUser?.audioTrack;
+    }
+
+    // Update mic status based on the audio track
+    if (audioTrack) {
       updateMicStatusElement(uid, false); // Mic is active
     } else {
-      updateMicStatusElement(uid, false); // Mic is inactive
+      updateMicStatusElement(uid, true); // Mic is inactive
     }
 
     updateLayout();

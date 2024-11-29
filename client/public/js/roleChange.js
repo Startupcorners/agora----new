@@ -1,10 +1,8 @@
-import { getConfig, updateConfig } from "./config.js";
-import {sendRTMMessage } from "./helperFunctions.js";
-import { manageParticipants } from "./rtcEventHandlers.js";
-import { joinVideoStage, leaveVideoStage } from "./joinleavestage.js";
+import {updatePublishingList, manageParticipants} from "./talkToBubble"
+import { joinVideoStage, leaveVideoStage } from "./joinleavestage";
+import { sendRTMMessage } from "./helperFunctions";
 
-
-const handleRoleChange = async (newRoleInTheCall, config) => {
+const handleRoleChange = async (newRoleInTheCall) => {
   console.warn(
     "handleRoleChange called with newRoleInTheCall:",
     newRoleInTheCall
@@ -29,63 +27,40 @@ const handleRoleChange = async (newRoleInTheCall, config) => {
   console.log("prevRequiresStage:", prevRequiresStage);
   console.log("newRequiresStage:", newRequiresStage);
 
-  // Subscribe to audio tracks for existing users if transitioning from waiting
+  // Handle unmuting if transitioning from waiting
   if (prevRole === "waiting" && newRoleInTheCall !== "waiting") {
-    console.log("Subscribing to audio tracks for existing users...");
-    console.log("Current config.userTracks:", config.userTracks);
+    console.log("Unmuting audio tracks for existing users...");
 
-    // Iterate over all userTracks
-    for (const userUid in config.userTracks) {
-      // Skip if the user is subscribing to their own track
-      if (userUid === config.uid) {
-        console.log(`Skipping subscription for user ${userUid} (own track).`);
-        continue;
-      }
+    for (const remoteUser of client.remoteUsers) {
+      const audioTrack = remoteUser.audioTrack;
 
-      const user = config.userTracks[userUid];
+      if (audioTrack && audioTrack.muted) {
+        try {
+          console.log(`Unmuting audio track for user ${remoteUser.uid}...`);
+          audioTrack.setEnabled(true);
+          console.log(`Audio track for user ${remoteUser.uid} unmuted.`);
 
-      if (user && user.audioTrack) {
-        console.log(`Found audio track for user ${userUid}:`, user.audioTrack);
-
-        if (!user.audioTrack.isPlaying) {
-          try {
-            console.log(
-              `Attempting to subscribe to audio track for user ${userUid}...`
-            );
-            await config.client.subscribe(user, "audio");
-            user.audioTrack.play();
-
-            console.log(
-              `Successfully subscribed and playing audio for user ${userUid}.`
-            );
-
-            // Update mic status dynamically
-            const micStatusElement = document.getElementById(
-              `mic-status-${userUid}`
-            );
-            if (micStatusElement) {
-              micStatusElement.classList.add("hidden"); // Show unmuted icon
-              console.log(`Updated mic status for user ${userUid}`);
-            } else {
-              console.warn(`Mic status element not found for user ${userUid}`);
-            }
-
-            // Update publishing list
-            updatePublishingList(userUid.toString(), "audio", "add", config);
-          } catch (error) {
-            console.error(
-              `Error subscribing to audio for user ${userUid}:`,
-              error
+          // Update mic status dynamically
+          const micStatusElement = document.getElementById(
+            `mic-status-${remoteUser.uid}`
+          );
+          if (micStatusElement) {
+            micStatusElement.classList.add("hidden"); // Show unmuted icon
+            console.log(`Updated mic status for user ${remoteUser.uid}`);
+          } else {
+            console.warn(
+              `Mic status element not found for user ${remoteUser.uid}`
             );
           }
-        } else {
-          console.log(
-            `User ${userUid}'s audio track is already playing. Skipping subscription.`
+        } catch (error) {
+          console.error(
+            `Error unmuting audio for user ${remoteUser.uid}:`,
+            error
           );
         }
       } else {
         console.log(
-          `User ${userUid} does not have a valid audio track. Skipping.`
+          `No valid or already unmuted audio track for user ${remoteUser.uid}.`
         );
       }
     }
@@ -99,15 +74,13 @@ const handleRoleChange = async (newRoleInTheCall, config) => {
     console.log("Leaving video stage...");
     await leaveVideoStage(config);
   }
-
-  // Update the config after role change
-  updateConfig(config); // Ensure the updated config is saved
 };
 
 
 
+
+
 export const onRoleChange = async (newRoleInTheCall) => {
-  let config = getConfig();
   console.warn("onRoleChange called with newRoleInTheCall:", newRoleInTheCall);
   console.warn("config", config);
 
@@ -178,7 +151,5 @@ export const onRoleChange = async (newRoleInTheCall) => {
 
   console.log("Sent userRoleUpdated message to RTM channel.");
 
-  // Update the config to reflect the new role changes
-  updateConfig(config);
 };
 

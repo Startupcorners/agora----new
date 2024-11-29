@@ -1,58 +1,51 @@
-import {join} from "./join.js";
-import {
-  setupEventListeners,
-  setupRTMMessageListener,
-  checkMicrophonePermissions,
-  setupLeaveListener
-} from "./setupEventListeners.js"; // Import RTM and RTC event listeners
+import {toggleMic} from "./audio"
+import {switchCam, switchMic, switchSpeaker} from "./handleDevices";
+import {toggleCamera, toggleScreenShare, toggleVirtualBackground} from "./video";
+import {join, leave} from "./joinLeaveLocalUser";
+import {fetchAndSendDeviceList} from "./talkToBubble";
+import {startAudioRecording, stopAudioRecording, startCloudRecording, stopCloudRecording} from "./recordingHandlers";
+import {denyAccess, raiseHand, stopUserCamera, stopUserMic, stopUserScreenshare, changeUserRole} from "./uiHandlers";
 
-
-import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
-import {
-  fetchTokens,
-  switchCam,
-  switchMic,
-  switchSpeaker,
-  fetchAndSendDeviceList,
-  updateSelectedDevices,
-  sendRTMMessage,
-} from "./helperFunctions.js";
-
-import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
-
-import {
-  startCloudRecording,
-  stopCloudRecording,
-  startAudioRecording,
-  stopAudioRecording,
-} from "./recordingHandlers.js";
-import { toggleVirtualBackground } from "./virtualBackgroundHandlers.js";
-
-import {
-  toggleMic,
-  toggleCamera,
-  toggleScreenShare,
-  changeUserRole,
-  updateMicStatusElement,
-  stopUserScreenshare,
-  stopUserMic,
-  stopUserCamera,
-  updatePublishingList,
-  leave,
-  denyAccess,
-  raiseHand,
-} from "./uiHandlers.js"; // Import toggle functions from uiHandlers
-
-import { getConfig, updateAndGet, updateConfig } from "./config.js";
 
 export const newMainApp = async function (initConfig) {
   console.log("newMainApp called with initConfig:", initConfig);
 
+  let config = {
+    debugEnabled: true,
+    callContainerSelector: "#video-stage",
+    participantPlayerContainer: templateVideoParticipant,
+    appId: "95e91980e5444a8e86b4e41c7f03b713",
+    uid: null,
+    user: {
+      name: "guest",
+      avatar:
+        "https://ui-avatars.com/api/?background=random&color=fff&name=loading",
+      role: "", // host, audience (for rtc and rtm)
+      company: "",
+      rtmUid: "",
+      designation: "",
+      profileLink: "",
+      uidSharingScreen: "",
+      bubbleid: "",
+      isRaisingHand: "no",
+      roleInTheCall: "", // host, speaker, audience (for ui)
+    },
+    serverUrl: "https://agora-new.vercel.app",
+    token: null,
+    channelName: null,
+    audioRecordingRTMClient: null,
+    extensionVirtualBackground: null,
+    resourceId: null,
+    recordId: null,
+    audioResourceId: null,
+    audioRecordId: null,
+    audioTimestamp: null,
+    timestamp: null,
+    sid: null,
+    audioSid: null,
+  };
 
-
-  // Update the configuration
-  let config = await updateAndGet(initConfig, "newMainApp");
-  console.log(config);
+  config = { ...config, ...initConfig };
 
   // Initialize AgoraRTC client
   config.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
@@ -111,11 +104,10 @@ export const newMainApp = async function (initConfig) {
 
   // Initialize RTM Channel
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
-  await updateConfig(config, "newMainApp");
-  setupRTMMessageListener();
-  setupEventListeners();
-  setupLeaveListener();
-  checkMicrophonePermissions();
+  setupRTMMessageListener(config);
+  setupEventListeners(config);
+  setupLeaveListener(config);
+  checkMicrophonePermissions(config);
   updateSelectedDevices(config);
 
 
@@ -133,6 +125,7 @@ export const newMainApp = async function (initConfig) {
 
   // Return the API
   return {
+    config,
     toggleMic,
     leave,
     toggleVirtualBackground,
@@ -149,7 +142,6 @@ export const newMainApp = async function (initConfig) {
     startAudioRecording,
     raiseHand,
     stopAudioRecording,
-    sendRTMMessage,
     stopUserCamera, // Add stop camera function
     stopUserMic, // Add stop mic function
     stopUserScreenshare,

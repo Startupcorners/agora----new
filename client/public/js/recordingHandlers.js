@@ -1,5 +1,4 @@
-import { getConfig } from "./config.js";
-import { fetchTokens } from "./helperFunctions.js";
+import { fetchTokens } from "./fetchTokens.js";
 
 const debounce = (func, delay) => {
   let inProgress = false;
@@ -79,12 +78,10 @@ export const acquireResource = async (config, scene) => {
 
 // Debounced Start Cloud Recording
 export const startCloudRecording = debounce(async (url) => {
-  let config = getConfig();
   const recordId = Math.floor(100000 + Math.random() * 900000).toString();
 
   // Update recordId in config
   config.recordId = recordId;
-  updateConfig(config, "startCloudRecording");  // Update config with new recordId
 
   try {
     const resourceId = await acquireResource(config, "web");
@@ -92,13 +89,11 @@ export const startCloudRecording = debounce(async (url) => {
 
     // Update resourceId in config
     config.resourceId = resourceId;
-    updateConfig(config, "startCloudRecording");  // Update config with new resourceId
 
     const timestamp = Date.now().toString();
 
     // Update timestamp in config
     config.timestamp = timestamp;
-    updateConfig(config, "startCloudRecording");  // Update config with new timestamp
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
     console.log("Waited 2 seconds after acquiring resource");
@@ -145,7 +140,6 @@ export const startCloudRecording = debounce(async (url) => {
 
       // Update SID in config
       config.sid = startData.sid;
-      updateConfig(config, "startCloudRecording");  // Update config with new sid
     } else {
       console.log("SID not received in the response");
     }
@@ -170,7 +164,6 @@ export const startCloudRecording = debounce(async (url) => {
 
 // Debounced Stop Cloud Recording
 export const stopCloudRecording = debounce(async () => {
-  let config = getConfig();
 
   try {
     const response = await fetch(`${config.serverUrl}/stopCloudRecording`, {
@@ -197,8 +190,6 @@ export const stopCloudRecording = debounce(async () => {
       // For example, resetting sid or resourceId
       config.sid = null;  // Reset sid
       config.resourceId = null;  // Reset resourceId
-      updateConfig(config, "stopCloudRecording");  // Update config after stopping recording
-
       // MP4 file handling and other tasks are now done in the backend
     } else {
       console.log("Error stopping recording:", stopData.error);
@@ -211,7 +202,6 @@ export const stopCloudRecording = debounce(async () => {
 
 // Debounced Start Audio Recording
 export const startAudioRecording = debounce(async () => {
-  let config = getConfig();
   const recordId = Math.floor(100000 + Math.random() * 900000).toString();
   config.audioRecordId = recordId;
 
@@ -310,9 +300,6 @@ export const startAudioRecording = debounce(async () => {
       });
     }
 
-    // Update config after starting the audio recording
-    updateConfig(config, "startAudioRecording");
-
     return startData;
   } catch (error) {
     console.log("Error starting audio recording:", error.message);
@@ -323,7 +310,6 @@ export const startAudioRecording = debounce(async () => {
 
 // Debounced Stop Audio Recording
 export const stopAudioRecording = debounce(async () => {
-  let config = getConfig();
   const requestId = Math.random().toString(36).substring(2); // Unique ID for this attempt
   console.log(`stopAudioRecording attempt started. Request ID: ${requestId}`);
 
@@ -411,7 +397,6 @@ export const stopAudioRecording = debounce(async () => {
     config.audioResourceId = null;
     config.audioTimestamp = null;
 
-    updateConfig(config, "stopAudioRecording");
 
     console.log(
       `stopAudioRecording cleanup completed for Request ID: ${requestId}`
