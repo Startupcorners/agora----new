@@ -3,7 +3,7 @@ import {
   handleUserPublished,
   handleUserUnpublished,
 } from "./publishUnpublishHub.js";
-import { handleUserJoined, handleUserLeft } from "./joinLeaveLocalUser.js";
+import { handleUserJoined, handleUserLeft } from "./joinLeaveRemoveUser.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { fetchAndSendDeviceList, manageParticipants } from "./talkToBubble.js";
 import { switchCam, switchSpeaker, handleCameraDeactivation, handleMicDeactivation, handleSpeakerDeactivation } from "./handleDevices.js";
