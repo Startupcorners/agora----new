@@ -163,6 +163,11 @@ const client = config.client;
     await handleVolumeIndicator(volumes, config);
   });
 
+  client.on("device-changed", async (event) => {
+    console.log("Device changed:", event);
+  });
+
+
   client.on("microphone-changed", async (info) => {
     let config = getConfig();
     console.log("Microphone device change detected:", info);
