@@ -162,8 +162,8 @@ const client = config.client;
     await handleVolumeIndicator(volumes, config);
   });
 
-  config.client.on("onMicrophoneChanged", async (info) => {
-    let config = getConfig()
+  config.client.on("microphone-changed", async (info) => {
+    let config = getConfig();
     console.log("Microphone device change detected:", info);
     await fetchAndSendDeviceList();
 
@@ -254,8 +254,8 @@ const client = config.client;
     }
   });
 
-  config.client.on("onCameraChanged", async (info) => {
-    let config = getConfig()
+  config.client.on("camera-changed", async (info) => {
+    let config = getConfig();
     console.log("Camera device change detected:", info);
     await fetchAndSendDeviceList();
 

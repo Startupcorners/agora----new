@@ -98,9 +98,6 @@ export const newMainApp = async function (initConfig) {
 
   // Initialize AgoraRTC event listeners
   AgoraRTC.setLogLevel(config.debugEnabled ? 0 : 4); // 0 for debug, 4 for none
-  AgoraRTC.onCameraChanged = (info) => config.onCameraChanged(info);
-  AgoraRTC.onMicrophoneChanged = (info) => config.onMicrophoneChanged(info);
-  AgoraRTC.onPlaybackDeviceChanged = (info) => config.onSpeakerChanged(info);
 
   // Initialize AgoraRTM (RTM client must be initialized before eventCallbacks)
   config.clientRTM = AgoraRTM.createInstance(config.appId, {
