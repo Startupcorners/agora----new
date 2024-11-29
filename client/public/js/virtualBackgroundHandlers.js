@@ -1,4 +1,4 @@
-import { getConfig, updateConfig } from "./config";
+import { getConfig, updateConfig } from "./config.js";
 
 export const toggleVirtualBackground = async (imageSrc = "") => {
   let config = getConfig();
