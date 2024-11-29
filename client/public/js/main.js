@@ -21,7 +21,9 @@ import {
   stopUserScreenshare,
   changeUserRole,
 } from "./uiHandlers.js";
-
+import {
+  templateVideoParticipant
+} from "./templates.js";
 
 export const newMainApp = async function (initConfig) {
   console.log("newMainApp called with initConfig:", initConfig);
