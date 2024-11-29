@@ -2,8 +2,7 @@ import {join} from "./join.js";
 import {
   setupEventListeners,
   setupRTMMessageListener,
-  checkMicrophonePermissions,
-  setupLeaveListener
+  checkMicrophonePermissions
 } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
@@ -113,7 +112,6 @@ export const newMainApp = async function (initConfig) {
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
   setupRTMMessageListener();
   setupEventListeners();
-  setupLeaveListener();
   checkMicrophonePermissions();
 
   // Update the config again with the new properties
