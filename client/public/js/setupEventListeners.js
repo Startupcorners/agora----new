@@ -200,7 +200,8 @@ AgoraRTC.on("microphone-changed", async (info) => {
 
   if (action === "activated") {
     // If a microphone is activated, set it as the selected mic
-    await switchMic(config, info.device);
+    await updateConfig(config);
+    await switchMic(info.device);
   } else if (action === "deactivated") {
     // If the selected mic is deactivated, set it to null
     if (
@@ -216,7 +217,8 @@ AgoraRTC.on("microphone-changed", async (info) => {
       );
 
       if (microphones.length > 0) {
-        await switchMic(config, microphones[0]);
+        await updateConfig(config);
+        await switchMic(microphones[0]);
       } else {
         console.log(
           "No microphones available to switch to after deactivation."
