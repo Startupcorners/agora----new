@@ -195,7 +195,7 @@ const client = config.client;
      console.log("Device changed:", event);
    });
 
-   client.on("microphone-changed", async (info) => {
+   AgoraRTC.on("microphone-changed", async (info) => {
      console.log("Microphone device change detected:", info);
      await fetchAndSendDeviceList();
 
@@ -256,7 +256,7 @@ const client = config.client;
      }
    });
 
-  client.on("camera-changed", async (info) => {
+  AgoraRTC.on("camera-changed", async (info) => {
     console.log("Camera device change detected:", info);
     await fetchAndSendDeviceList();
 
