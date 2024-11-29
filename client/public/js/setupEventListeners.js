@@ -163,7 +163,7 @@ const client = config.client;
   });
 
   config.client.on("onMicrophoneChanged", async (info) => {
-    let onfig = getConfig()
+    let config = getConfig()
     console.log("Microphone device change detected:", info);
     await fetchAndSendDeviceList();
 
@@ -220,7 +220,6 @@ const client = config.client;
         }
       }
     }
-    updateConfig(config, "onMicrophoneChanged")
   });
 
   client.on("connection-state-change", async (curState, revState, reason) => {
@@ -256,7 +255,7 @@ const client = config.client;
   });
 
   config.client.on("onCameraChanged", async (info) => {
-    config = getConfig()
+    let config = getConfig()
     console.log("Camera device change detected:", info);
     await fetchAndSendDeviceList();
 
@@ -282,7 +281,6 @@ const client = config.client;
         }
       }
     }
-    updateConfig(config, "onCameraChanegd")
   });
 };
 

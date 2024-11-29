@@ -222,43 +222,40 @@ export const switchMic = async (micInfo) => {
       `Switching to new microphone with deviceId: ${micInfo.deviceId}`
     );
 
-    const { client } = config;
+    const { client, uid } = config;
 
-    // Check if the audio track was actively publishing before switching
-    const wasPublishing =
-      config.localAudioTrack && !config.localAudioTrack.muted;
+    let userTrack = config.userTracks[uid] || {}; // Get or initialize the user track
+    const wasPublishing = userTrack.audioTrack && !userTrack.audioTrack.muted; // Check if the audio track was actively publishing before switching
 
     // If there's an existing audio track, unpublish, stop, and close it
-    if (config.localAudioTrack) {
+    if (userTrack.audioTrack) {
       if (wasPublishing) {
-        await client.unpublish(config.localAudioTrack);
+        await client.unpublish(userTrack.audioTrack);
         console.log("Previous audio track unpublished.");
       }
-      config.localAudioTrack.stop();
-      config.localAudioTrack.close();
+      userTrack.audioTrack.stop();
+      userTrack.audioTrack.close();
       console.log("Previous audio track stopped and closed.");
     }
 
     // Create a new audio track with the selected microphone device
-    config.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+    userTrack.audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
       microphoneId: micInfo.deviceId,
     });
-    config.selectedMic = micInfo;
+    config.selectedMic = micInfo; // Update the selected mic in config
 
     // Send the updated microphone to Bubble with deviceId and label
     if (typeof bubble_fn_selectedMic === "function") {
-      bubble_fn_selectedMic(
-        config.localAudioTrack.getTrackLabel() || "No label"
-      );
+      bubble_fn_selectedMic(userTrack.audioTrack.getTrackLabel() || "No label");
     }
 
     // Republish the new audio track if it was publishing before the switch
     if (wasPublishing) {
-      await client.publish(config.localAudioTrack);
+      await client.publish(userTrack.audioTrack);
       console.log("New audio track published successfully.");
     } else {
       // Mute and keep the new track unpublished if it was muted
-      await config.localAudioTrack.setEnabled(false);
+      await userTrack.audioTrack.setEnabled(false);
       console.log("New audio track created but kept muted and unpublished.");
     }
 
