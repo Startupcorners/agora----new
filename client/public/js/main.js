@@ -112,6 +112,7 @@ export const newMainApp = async function (initConfig) {
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
   setupRTMMessageListener();
   setupEventListeners();
+  setupLeaveListener();
   checkMicrophonePermissions();
 
   // Update the config again with the new properties

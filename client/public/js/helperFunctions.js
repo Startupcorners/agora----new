@@ -201,7 +201,8 @@ export const updateSelectedDevices = async (config) => {
   }
 };
 
-export const switchMic = async (config, micInfo) => {
+export const switchMic = async (micInfo) => {
+  let config = getConfig();
   try {
     // Check if micInfo is a string and try to parse it as JSON
     if (typeof micInfo === "string") {
@@ -257,13 +258,18 @@ export const switchMic = async (config, micInfo) => {
       console.log("New audio track created but kept muted and unpublished.");
     }
 
+    // Update config after switching the mic
+    updateConfig(config, "switchMic");
+
     console.log(`Switched to new microphone: ${micInfo.deviceId}`);
   } catch (error) {
     console.error("Error switching microphone:", error);
   }
 };
 
-export const switchSpeaker = async (config, speakerInfo) => {
+
+export const switchSpeaker = async (speakerInfo) => {
+  let config = getConfig();
   try {
     // Set the selected speaker in config
     config.selectedSpeaker = speakerInfo;
@@ -273,12 +279,17 @@ export const switchSpeaker = async (config, speakerInfo) => {
     if (typeof bubble_fn_selectedSpeaker === "function") {
       bubble_fn_selectedSpeaker(speakerInfo.label);
     }
+
+    // Update the config to persist the speaker change
+    updateConfig(config, "switchSpeaker");
   } catch (error) {
     console.error("Error switching speaker:", error);
   }
 };
 
-export const switchCam = async (config, camInfo) => {
+
+export const switchCam = async (camInfo) => {
+  let config = getConfig();
   try {
     // Check if camInfo is a string and try to parse it as JSON
     if (typeof camInfo === "string") {
@@ -297,11 +308,11 @@ export const switchCam = async (config, camInfo) => {
 
     // Check if the video track was actively publishing before switching
     const wasPublishing =
-      config.userTracks[config.uid].videoTrack &&
-      !config.config.userTracks[config.uid].videoTrack.muted;
+      config.userTracks[config.uid]?.videoTrack &&
+      !config.userTracks[config.uid].videoTrack.muted;
 
     // If there's an existing video track, unpublish, stop, and close it
-    if (config.userTracks[config.uid].videoTrack) {
+    if (config.userTracks[config.uid]?.videoTrack) {
       if (wasPublishing) {
         await client.unpublish(config.userTracks[config.uid].videoTrack);
         console.log("Previous video track unpublished.");
@@ -312,17 +323,20 @@ export const switchCam = async (config, camInfo) => {
     }
 
     // Create a new video track with the selected camera device
-    config.userTracks[config.uid].videoTrack =
-      await AgoraRTC.createCameraVideoTrack({
-        cameraId: camInfo.deviceId,
-      });
+    const newVideoTrack = await AgoraRTC.createCameraVideoTrack({
+      cameraId: camInfo.deviceId,
+    });
+
+    // Update the config with the new video track and selected camera
+    config.userTracks[config.uid] = {
+      ...userTrack,
+      videoTrack: newVideoTrack,
+    };
     config.selectedCam = camInfo;
 
     // Notify Bubble of the new selected camera with deviceId and label
     if (typeof bubble_fn_selectedCam === "function") {
-      bubble_fn_selectedCam(
-        config.userTracks[config.uid].videoTrack.getTrackLabel() || "No label"
-      );
+      bubble_fn_selectedCam(newVideoTrack.getTrackLabel() || "No label");
     }
 
     // Re-enable virtual background if it was enabled
@@ -339,35 +353,30 @@ export const switchCam = async (config, camInfo) => {
 
     // Republish the new video track if it was publishing before the switch
     if (wasPublishing) {
-      await client.publish(config.userTracks[config.uid].videoTrack);
+      await client.publish(newVideoTrack);
       console.log("New video track published successfully.");
-
-      config.userTracks[uid] = {
-        ...userTrack,
-        videoTrack: config.userTracks[config.uid].videoTrack,
-      };
 
       // Update the video player element with the new video feed
       const videoPlayer = document.querySelector(`#stream-${uid}`);
       if (videoPlayer) {
-        config.userTracks[config.uid].videoTrack.play(videoPlayer);
+        newVideoTrack.play(videoPlayer);
         console.log("Video player updated with new camera feed.");
       }
     } else {
       // If the track was muted, keep the new track muted and unpublished
-      config.userTracks[uid] = {
-        ...userTrack,
-        videoTrack: null,
-      };
-      await config.userTracks[config.uid].videoTrack.setEnabled(false);
+      await newVideoTrack.setEnabled(false);
       console.log("New video track created but kept muted and unpublished.");
     }
+
+    // Update config and persist the changes
+    updateConfig(config, "switchCam");
 
     console.log(`Switched to new camera: ${camInfo.deviceId}`);
   } catch (error) {
     console.error("Error switching camera:", error);
   }
 };
+
 
 // Helper function to format and send device data to Bubbleexport const sendDeviceDataToBubble = (deviceType, devices) => {
 export const sendDeviceDataToBubble = (deviceType, devices) => {

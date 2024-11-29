@@ -1,4 +1,7 @@
-export const toggleVirtualBackground = async (config, imageSrc = "") => {
+import { getConfig, updateConfig } from "./config";
+
+export const toggleVirtualBackground = async (imageSrc = "") => {
+  let config = getConfig();
   console.log("toggleVirtualBackground called with imageSrc:", imageSrc);
 
   // Check if the virtual background is already enabled with the same image
@@ -29,6 +32,7 @@ export const enableVirtualBackgroundBlur = async (config) => {
   bubble_fn_background("blur");
   config.isVirtualBackGroundEnabled = true;
   config.currentVirtualBackground = "blur";
+  updateConfig(config, "enableVirtualBackgroundBlur");
 };
 
 export const enableVirtualBackgroundImage = async (config, imageSrc) => {
@@ -52,6 +56,7 @@ export const enableVirtualBackgroundImage = async (config, imageSrc) => {
     bubble_fn_background(imageSrc);
     config.isVirtualBackGroundEnabled = true;
     config.currentVirtualBackground = imageSrc;
+    updateConfig(config, "enableVirtualBackgroundImage");
   };
 
   const base64 = await imageUrlToBase64(imageSrc);
@@ -72,6 +77,8 @@ export const disableVirtualBackground = async (config) => {
 
   config.isVirtualBackGroundEnabled = false;
   config.currentVirtualBackground = null;
+  updateConfig(config, "disableVirtualBackground");
+  
 };
 
 export const getProcessorInstance = async (config) => {
@@ -102,11 +109,13 @@ export const getProcessorInstance = async (config) => {
       .pipe(config.processor)
       .pipe(config.localVideoTrack.processorDestination);
     console.log("Processor created and piped to video track.");
+    updateConfig(config, "getProcessorInstanceSuccess");
 
     return config.processor;
   } catch (error) {
     console.error("Failed to initialize processor:", error);
     config.processor = null;
+    updateConfig(config, "getProcessorInstanceFailed");
     return null;
   }
 };

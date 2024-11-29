@@ -546,3 +546,15 @@ function handleMicPermissionChange(state, config) {
   }
   updateConfig(config); 
 }
+
+
+export const setupLeaveListener = () => {
+  // Listen for page unload events (close, reload, or navigating away)
+  window.addEventListener("beforeunload", (event) => {
+    // Trigger the leave function when the user is trying to leave
+    if (!triggeredReason) {
+      const leaveReason = "left"; // You can customize the reason based on your needs
+      leave(leaveReason);
+    }
+  });
+};
