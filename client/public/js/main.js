@@ -3,6 +3,7 @@ import {
   setupEventListeners,
   setupRTMMessageListener,
   checkMicrophonePermissions,
+  setupLeaveListener
 } from "./setupEventListeners.js"; // Import RTM and RTC event listeners
 
 import { handleRenewToken, manageParticipants } from "./rtcEventHandlers.js"; // Token renewal handler
