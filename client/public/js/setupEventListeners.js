@@ -6,7 +6,7 @@ import {
 import { handleUserJoined, handleUserLeft } from "./joinLeaveLocalUser.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { fetchAndSendDeviceList, manageParticipants } from "./talkToBubble.js";
-import { switchCam, switchCam, switchSpeaker, handleCameraDeactivation, handleMicDeactivation, handleSpeakerDeactivation } from "./handleDevices.js";
+import { switchCam, switchSpeaker, handleCameraDeactivation, handleMicDeactivation, handleSpeakerDeactivation } from "./handleDevices.js";
 import { handleRaisingHand } from "./uiHandlers.js";
 import { leave } from "./joinLeaveLocalUser.js";
 import { onRoleChange } from "./onRoleChange.js";
