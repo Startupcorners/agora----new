@@ -2,11 +2,6 @@
 import "https://cdn.jsdelivr.net/npm/agora-rtc-sdk-ng@4.22.2/AgoraRTC_N-production.min.js";
 import "https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js";
 import "https://unpkg.com/agora-extension-virtual-background@1.3.0/agora-extension-virtual-background.js";
-import "https://startupcorners-df3e7.web.app/js/helperFunctions.js";
-import "https://startupcorners-df3e7.web.app/js/uiHandlers.js";
-import "https://startupcorners-df3e7.web.app/js/rtcEventHandlers.js";
-import "https://startupcorners-df3e7.web.app/js/wrappers.js";
-import "https://startupcorners-df3e7.web.app/js/recordingHandlers.js";
 import "https://startupcorners-df3e7.web.app/js/main.js";
 
 // Inline JavaScript
