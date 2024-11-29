@@ -295,9 +295,9 @@
 }
 
 .bk {
-    background: linear-gradient(45deg, #FF6F61, #6A4C93, #3A7DFF, #3EACDB);
+    background: linear-gradient(45deg, #a8c0ff, #f3c9d1, #d0e8f2, #b2b8b1);
     background-size: 400% 400%;
-    animation: gradientAnimation 15s ease infinite;
+    animation: gradientAnimation 20s ease-in-out infinite;
 }
 
 @keyframes gradientAnimation {
@@ -305,11 +305,19 @@
         background-position: 0% 50%;
     }
 
+    25% {
+        background-position: 25% 70%;
+    }
+
     50% {
-        background-position: 100% 50%;
+        background-position: 50% 50%;
+    }
+
+    75% {
+        background-position: 75% 30%;
     }
 
     100% {
-        background-position: 0% 50%;
+        background-position: 100% 50%;
     }
 }
