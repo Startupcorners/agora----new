@@ -73,7 +73,7 @@ export const join = async (config) => {
         sharingScreenUid: config.sharingScreenUid || "0", // Default to "0" if no screen sharing user ID
         roleInTheCall: config.user.roleInTheCall || "audience", // Default to "audience" if not set in config.user
       };
-    manageParticipants(config, config.uid, attributes, "join");
+    manageParticipants(config.uid, attributes, "join");
     setupEventListeners();
     bubble_fn_joining("Joined");
     updateConfig(config, "join")

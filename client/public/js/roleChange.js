@@ -155,14 +155,14 @@ export const onRoleChange = async (newRoleInTheCall) => {
     console.log(
       `Calling manageParticipants to remove user ${config.uid} from previous role: ${previousRoleInTheCall}`
     );
-    await manageParticipants(config, config.uid, {}, "leave");
+    await manageParticipants(config.uid, {}, "leave");
   }
 
   // Update participant list for the new role
   console.log(
     `Calling manageParticipants for user ${config.uid} with new role: ${newRoleInTheCall}`
   );
-  await manageParticipants(config, config.uid, attributes, "join");
+  await manageParticipants(config.uid, attributes, "join");
 
   // Send a message to inform other users about the role change
   const roleUpdateMessage = {

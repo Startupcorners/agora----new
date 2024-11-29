@@ -4,11 +4,19 @@ import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { toggleStages } from "./videoHandlers.js";
 import { updatePublishingList } from "./uiHandlers.js";
 import { playStreamInDiv } from "./videoHandlers.js";
-import { updateConfig } from "./config.js";
-const userJoinPromises = {};
+import { getConfig, updateConfig } from "./config.js";
+
+
+let userJoinPromise;
 
 // Handles user published event
-export const handleUserPublished = async (user, mediaType, config, client) => {
+export const handleUserPublished = async (user, mediaType, client) => {
+  if (userJoinPromise) {
+    console.log(`Waiting for user join promise to resolve for UID: ${userUid}`);
+    await userJoinPromise; // Wait for the promise to resolve
+    console.log(`User join promise resolved for UID: ${userUid}`);
+  }
+  let config = getConfig();
   const userUid = user.uid.toString();
   console.log(
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
@@ -26,6 +34,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     return;
   }
 
+  // Handle the media subscription based on the mediaType
   if (mediaType === "video") {
     await handleVideoPublished(user, userUid, config, client);
   } else if (mediaType === "audio") {
@@ -34,6 +43,7 @@ export const handleUserPublished = async (user, mediaType, config, client) => {
     console.warn(`Unsupported mediaType: ${mediaType}`);
   }
 };
+
 
 const handleVideoPublished = async (user, userUid, config, client) => {
   console.log(`Handling video published for user: ${userUid}`);
@@ -93,6 +103,9 @@ const handleVideoPublished = async (user, userUid, config, client) => {
       // Play screen share track
       playStreamInDiv(config, userUid, "#screen-share-content");
       playStreamInDiv(config, sharingUserUid, "#pip-video-track");
+
+      // Update config after handling screen share
+      updateConfig(config);
     } catch (error) {
       console.error("Error processing screen share:", error);
     }
@@ -111,6 +124,7 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     config.userTracks[userUid].videoTrack = user.videoTrack;
     console.log(`Subscribed to video track for user ${userUid}`);
 
+    // Update the publishing list
     updatePublishingList(userUid.toString(), "video", "add", config);
 
     if (config.sharingScreenUid) {
@@ -118,11 +132,14 @@ const handleVideoPublished = async (user, userUid, config, client) => {
     } else {
       playStreamInDiv(config, userUid, `#stream-${userUid}`);
     }
+
+    // Update config after handling video
     updateConfig(config, "handleVideoPublished");
   } catch (error) {
     console.error(`Error subscribing to video for user ${userUid}:`, error);
   }
 };
+
 
 const handleAudioPublished = async (user, userUid, config, client) => {
   console.log(`Handling audio published for user: ${userUid}`);
@@ -187,13 +204,17 @@ const handleAudioPublished = async (user, userUid, config, client) => {
 
     // Update the publishing list
     updatePublishingList(userUid.toString(), "audio", "add", config);
+
+    // Update config after handling audio publish
     updateConfig(config, "handleAudioPublished");
   } catch (error) {
     console.error(`Error subscribing to audio for user ${userUid}:`, error);
   }
 };
 
-export const handleUserUnpublished = async (user, mediaType, config) => {
+
+export const handleUserUnpublished = async (user, mediaType) => {
+  let config = getConfig();
   console.log("Entered handleuserUnpublished:", user);
   console.log("User :", user);
   const userUid = user.uid.toString();
@@ -252,6 +273,9 @@ const handleVideoUnpublished = async (user, userUid, config) => {
         config.generatedScreenShareId = null;
         bubble_fn_userSharingScreen(config.sharingScreenUid);
 
+        // Update config after local screen share cleanup
+        updateConfig(config, "handleVideoUnpublished - local user cleanup");
+
         return; // Exit as local user cleanup is already handled elsewhere
       }
 
@@ -282,6 +306,9 @@ const handleVideoUnpublished = async (user, userUid, config) => {
         config.sharingScreenUid = null;
         config.generatedScreenShareId = null;
         bubble_fn_userSharingScreen(config.sharingScreenUid);
+
+        // Update config after restoring previous user's video
+        updateConfig(config, "handleVideoUnpublished - restore previous video");
       }
     } catch (error) {
       console.error("Error handling screen share unpublishing:", error);
@@ -299,11 +326,16 @@ const handleVideoUnpublished = async (user, userUid, config) => {
     console.log(`Removed video track for user ${userUid}`);
   }
 
+  // Update the publishing list to remove the user
   updatePublishingList(userUid.toString(), "video", "remove", config);
 
   // Stop displaying the user's video in the UI
   playStreamInDiv(config, userUid, `#stream-${userUid}`);
+
+  // Update config after video unpublishing
+  updateConfig(config, "handleVideoUnpublished");
 };
+
 
 const handleAudioUnpublished = async (user, userUid, config) => {
   console.log(`Handling audio unpublishing for user: ${userUid}`);
@@ -379,6 +411,9 @@ const handleAudioUnpublished = async (user, userUid, config) => {
 
     // Update the publishing list
     updatePublishingList(userUid.toString(), "audio", "remove", config);
+
+    // Update the config to persist changes
+    updateConfig(config, "handleAudioUnpublished");
   } catch (error) {
     console.error(
       `Error handling audio unpublishing for user ${userUid}:`,
@@ -387,8 +422,9 @@ const handleAudioUnpublished = async (user, userUid, config) => {
   }
 };
 
+
+let participantList = [];
 export const manageParticipants = async (
-  config,
   userUid,
   userAttr,
   actionType
@@ -397,9 +433,6 @@ export const manageParticipants = async (
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
   updateLayout();
-
-  // Use config.participantList
-  let participantList = config.participantList;
 
   // Log the participant list before update
   console.log(
@@ -443,7 +476,6 @@ export const manageParticipants = async (
   } else if (actionType === "leave") {
     // Remove the participant if they are leaving
     participantList = participantList.filter((p) => p.uid !== userUidNumber);
-    config.participantList = participantList; // Update the participantList in config
     console.log(`Participant ${userUid} has left.`);
   } else {
     console.warn(`Unknown action type: ${actionType}`);
@@ -525,18 +557,19 @@ export const manageParticipants = async (
   }
 
   console.log("Participant list updated.");
-  updateConfig(config, "maangeParticipants")
 };
 
-// Handles user joined event
-export const handleUserJoined = async (user, config, userAttr = {}) => {
+// Declare the promise variable outside of the function to make it accessible globally
+// Declare the promise variable outside of the function to make it accessible globally
+
+
+export const handleUserJoined = async (user, userAttr = {}) => {
+  // Get the config
+  let config = getConfig();
   console.log("User info:", user);
   console.log("User attributes:", userAttr);
   const userUid = user.uid.toString();
   console.log("Entering handleUserJoined function for user:", userUid);
-
-  // Initialize userJoinPromises in config if it doesn't exist
-  config.userJoinPromises = config.userJoinPromises || {};
 
   // Handle specific UIDs (2 triggers a special Bubble function)
   if (userUid === "2") {
@@ -548,19 +581,19 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   // Skip handling for special UIDs (UIDs > 999999999 or UID 2)
   if (parseInt(userUid) > 999999999 || userUid === "2") {
     console.log(`Skipping handling for special UID (${userUid}).`);
-    config.userJoinPromises[userUid] = Promise.resolve(); // Ensure a resolved promise is set
+    userJoinPromise = Promise.resolve(); // Assign a resolved promise to the global variable
     console.log(`Promise for UID ${userUid} resolved and skipped.`);
-    return config.userJoinPromises[userUid];
+    return userJoinPromise;  // Return the resolved promise
   }
 
   // If a promise for this user already exists, return it
-  if (config.userJoinPromises[userUid]) {
+  if (userJoinPromise) {
     console.log(`User join already in progress for UID: ${userUid}`);
-    return config.userJoinPromises[userUid];
+    return userJoinPromise;  // Return the existing promise
   }
 
   // Create a new promise for this user
-  config.userJoinPromises[userUid] = new Promise(async (resolve, reject) => {
+  userJoinPromise = new Promise(async (resolve, reject) => {
     try {
       console.log(`Starting promise for user ${userUid}.`);
 
@@ -577,10 +610,10 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
       console.log(`Role for user ${userUid}: ${role}`);
       console.log(`RoleInTheCall for user ${userUid}: ${roleInTheCall}`);
 
-      // Initialize remoteTracks if needed
-      config.remoteTracks = config.remoteTracks || {};
-      config.remoteTracks[userUid] = config.remoteTracks[userUid] || {};
-      config.remoteTracks[userUid].wrapperReady = false;
+      // Initialize userTracks if needed
+      config.userTracks = config.userTracks || {};
+      config.userTracks[userUid] = config.userTracks[userUid] || {};
+      config.userTracks[userUid].wrapperReady = false;
 
       // Only proceed with wrapper if the user is a host and not in the "waiting" state
       if (
@@ -605,7 +638,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         }
 
         // Mark the wrapper as ready
-        config.remoteTracks[userUid].wrapperReady = true;
+        config.userTracks[userUid].wrapperReady = true;
         console.log(`Wrapper marked as ready for user ${userUid}.`);
       } else {
         console.log(
@@ -613,11 +646,14 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         );
       }
 
+      // Update the config after modifying userTracks
+      updateConfig(config);  // Ensure the updated config is saved
+
       console.log(
         `Invoking manageParticipants for user ${userUid} with action "join".`
       );
       // Ensure userUid is a number when calling manageParticipants
-      manageParticipants(config, parseInt(userUid), userAttr, "join");
+      manageParticipants(parseInt(userUid), userAttr, "join");
 
       console.log(`Promise resolved for user ${userUid}.`);
       resolve();
@@ -627,7 +663,7 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
         console.log(
           `Calling manageParticipants with action "error" for user ${userUid}.`
         );
-        manageParticipants(config, parseInt(userUid), userAttr, "error");
+        manageParticipants(parseInt(userUid), userAttr, "error");
       } catch (participantError) {
         console.error(
           `Error managing participant state for user ${userUid}:`,
@@ -639,15 +675,16 @@ export const handleUserJoined = async (user, config, userAttr = {}) => {
   });
 
   console.log(`Returning promise for user ${userUid}.`);
-  return config.userJoinPromises[userUid];
+  return userJoinPromise;  // Return the global promise variable
 };
 
-// Handles user left event
-export const handleUserLeft = async (user, config) => {
-  console.log("Entered handleUserLeft:", user);
 
-  // Initialize userJoinPromises in config if it doesn't exist
-  config.userJoinPromises = config.userJoinPromises || {};
+
+
+// Handles user left event
+export const handleUserLeft = async (user) => {
+  let config = getConfig();
+  console.log("Entered handleUserLeft:", user);
 
   try {
     console.log(`User ${user.uid} left`);
@@ -678,19 +715,17 @@ export const handleUserLeft = async (user, config) => {
     }
 
     // Call manageParticipants with the user's UID and action "leave"
-    manageParticipants(config, user.uid, {}, "leave");
+    manageParticipants(user.uid, {}, "leave");
 
-    // Clear userJoinPromises when the user leaves
-    if (config.userJoinPromises && config.userJoinPromises[user.uid]) {
-      delete config.userJoinPromises[user.uid];
-      console.log(`Cleared userJoinPromises for user ${user.uid}`);
-    }
+    // Update the config after modifications
+    updateConfig(config);
 
     console.log(`User ${user.uid} successfully removed`);
   } catch (error) {
     console.error(`Error removing user ${user.uid}:`, error);
   }
 };
+
 
 export const handleVolumeIndicator = (() => {
   return async (result, config) => {

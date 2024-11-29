@@ -33,18 +33,16 @@ const client = config.client;
 
   // Handle when a user publishes their media (audio/video)
   client.on("user-published", async (user, mediaType) => {
-    const config = getConfig(); 
     console.log(
       `user-published event received for user: ${user.uid}, mediaType: ${mediaType}`
     );
-    await handleUserPublished(user, mediaType, config, client);
+    await handleUserPublished(user, mediaType, client);
   });
 
   // Handle when a user stops publishing their media
   client.on("user-unpublished", async (user, mediaType) => {
-    const config = getConfig(); 
     console.log("Heard user-unpublished:", user);
-    await handleUserUnpublished(user, mediaType, config);
+    await handleUserUnpublished(user, mediaType);
   });
 
   config.client.on("autoplay-fallback", () => {
@@ -69,7 +67,6 @@ const client = config.client;
 
   // Handle when a user joins the session
   client.on("user-joined", async (user) => {
-    const config = getConfig(); 
     console.log(`User joined: ${user.uid}`);
 
     let userAttr = {}; // Initialize an empty object for user attributes
@@ -140,7 +137,7 @@ const client = config.client;
 
     try {
       // Pass the user attributes along with the user and config
-      await handleUserJoined(user, config, userAttr);
+      await handleUserJoined(user,userAttr);
       console.log(`User ${user.uid} handled successfully.`);
     } catch (error) {
       console.error(`Error handling user ${user.uid}:`, error);
@@ -149,7 +146,6 @@ const client = config.client;
 
   // Handle when a user leaves the session
   client.on("user-left", async (user) => {
-    const config = getConfig(); 
     console.log("Heard user-left:", user);
     await handleUserLeft(user, config);
   });
@@ -197,7 +193,6 @@ const client = config.client;
 
    
 AgoraRTC.on("microphone-changed", async (info) => {
-  const config = getConfig(); 
   console.log("Microphone device change detected:", info);
   await fetchAndSendDeviceList();
 
@@ -236,7 +231,6 @@ AgoraRTC.on("microphone-changed", async (info) => {
 
 
    AgoraRTC.on("playback-device-changed", async (info) => {
-    const config = getConfig(); 
      console.log("Playback device (speaker) change detected:", info);
      await fetchAndSendDeviceList();
 
@@ -275,7 +269,6 @@ AgoraRTC.on("microphone-changed", async (info) => {
 
 
  AgoraRTC.on("camera-changed", async (info) => {
-  const config = getConfig(); 
    console.log("Camera device change detected:", info);
    await fetchAndSendDeviceList();
 
@@ -387,8 +380,8 @@ export const setupRTMMessageListener = () => {
       }
 
       // Update participant list
-      await manageParticipants(config, userUid, {}, "leave");
-      await manageParticipants(config, userUid, userAttr, "join");
+      await manageParticipants(userUid, {}, "leave");
+      await manageParticipants(userUid, userAttr, "join");
 
       // Handle video wrapper logic
       const rolesRequiringWrapper = [

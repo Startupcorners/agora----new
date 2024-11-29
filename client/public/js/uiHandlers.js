@@ -475,7 +475,7 @@ export const changeUserRole = async (userUid, newRole, newRoleInTheCall) => {
     `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
 
-  await manageParticipants(config, userUid, {}, "leave");
+  await manageParticipants(userUid, {}, "leave");
 
   // Prepare the message for the role change
   const message = JSON.stringify({

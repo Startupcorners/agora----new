@@ -51,7 +51,6 @@ let config = {
   lastMicPermissionState: null,
   audioRecordId: null,
   audioTimestamp: null,
-  participantList: [],
   timestamp: null,
   sid: null,
   leaveReason: null,
