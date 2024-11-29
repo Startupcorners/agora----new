@@ -82,13 +82,22 @@ export const disableVirtualBackground = async (config) => {
 };
 
 export const getProcessorInstance = async (config) => {
+  const uid = config.uid; // Ensure the uid is correctly retrieved from the config
+  const userTrack = config.userTracks[uid];
+
   if (config.processor) {
     console.log("Reusing existing processor.");
     return config.processor;
   }
 
   console.log("Creating new processor.");
-  if (!config.localVideoTrack || !config.extensionVirtualBackground) {
+
+  // Check if the necessary video track and virtual background extension are available
+  if (
+    !userTrack ||
+    !userTrack.videoTrack ||
+    !config.extensionVirtualBackground
+  ) {
     console.warn("Missing video track or virtual background extension.");
     return null;
   }
@@ -97,7 +106,7 @@ export const getProcessorInstance = async (config) => {
     // If a processor exists, unpipe it from the video track before creating a new one
     if (config.processor) {
       console.log("Unpiping existing processor from video track.");
-      config.localVideoTrack.unpipe(config.processor);
+      userTrack.videoTrack.unpipe(config.processor);
     }
 
     // Create and initialize a new processor
@@ -105,9 +114,9 @@ export const getProcessorInstance = async (config) => {
     await config.processor.init();
 
     // Pipe the processor to the video track
-    config.localVideoTrack
+    userTrack.videoTrack
       .pipe(config.processor)
-      .pipe(config.localVideoTrack.processorDestination);
+      .pipe(userTrack.videoTrack.processorDestination);
     console.log("Processor created and piped to video track.");
     updateConfig(config, "getProcessorInstanceSuccess");
 
@@ -119,6 +128,7 @@ export const getProcessorInstance = async (config) => {
     return null;
   }
 };
+
 
 export const imageUrlToBase64 = async (url) => {
   try {
