@@ -9,7 +9,7 @@ import { fetchAndSendDeviceList, manageParticipants } from "./talkToBubble.js";
 import { switchCam, switchSpeaker, handleCameraDeactivation, handleMicDeactivation, handleSpeakerDeactivation } from "./handleDevices.js";
 import { handleRaisingHand } from "./uiHandlers.js";
 import { leave } from "./joinLeaveLocalUser.js";
-import { onRoleChange } from "./onRoleChange.js";
+import { onRoleChange } from "./roleChange.js";
 import { toggleCamera, toggleScreenShare } from "./video.js";
 import { toggleMic } from "./audio.js";
 
