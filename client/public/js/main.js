@@ -1,11 +1,5 @@
 import {join} from "./join.js";
 import {
-  onCameraChanged,
-  onMicrophoneChanged,
-  onPlaybackDeviceChanged,
-  onDeviceChanged,
-} from "./eventCallbacks.js";
-import {
   setupEventListeners,
   setupRTMMessageListener,
   checkMicrophonePermissions,
