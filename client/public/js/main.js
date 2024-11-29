@@ -1,5 +1,5 @@
 import {toggleMic} from "./audio.js"
-import { switchCam, switchMic, switchSpeaker } from "./handleDevices.js";
+import { switchCam, switchMic, switchSpeaker, updateSelectedDevices } from "./handleDevices.js";
 import {
   toggleCamera,
   toggleScreenShare,
@@ -24,6 +24,7 @@ import {
 import {
   templateVideoParticipant
 } from "./templates.js";
+import { setupEventListeners,setupRTMMessageListener, setupLeaveListener, checkMicrophonePermissions } from "./setupEventListeners.js";
 
 export const newMainApp = async function (initConfig) {
   console.log("newMainApp called with initConfig:", initConfig);
