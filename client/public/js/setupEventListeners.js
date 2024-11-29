@@ -199,19 +199,19 @@ const client = config.client;
      console.log("Microphone device change detected:", info);
      await fetchAndSendDeviceList();
 
-     const action = info.state === "ADDED" ? "added" : "removed";
+     const action = info.state === "ACTIVE" ? "activated" : "deactivated";
 
-     if (action === "added") {
+     if (action === "activated") {
        if (info.kind === "audiooutput") {
-         // If a speaker is added, switch to the new speaker
+         // If a speaker is activated, switch to the new speaker
          await switchSpeaker(config, info);
        } else if (info.kind === "audioinput") {
-         // If a microphone is added, set it as the selected mic
+         // If a microphone is activated, set it as the selected mic
          await switchMic(config, info);
        }
-     } else if (action === "removed") {
+     } else if (action === "deactivated") {
        if (info.kind === "audiooutput") {
-         // If the selected speaker is removed, set it to null
+         // If the selected speaker is deactivated, set it to null
          if (
            config.selectedSpeaker &&
            config.selectedSpeaker.deviceId === info.deviceId
@@ -227,11 +227,13 @@ const client = config.client;
            if (speakers.length > 0) {
              await switchSpeaker(config, speakers[0]);
            } else {
-             console.log("No speakers available to switch to after removal.");
+             console.log(
+               "No speakers available to switch to after deactivation."
+             );
            }
          }
        } else if (info.kind === "audioinput") {
-         // If the selected mic is removed, set it to null if it was the selected mic
+         // If the selected mic is deactivated, set it to null if it was the selected mic
          if (
            config.selectedMic &&
            config.selectedMic.deviceId === info.deviceId
@@ -248,7 +250,7 @@ const client = config.client;
              await switchMic(config, microphones[0]);
            } else {
              console.log(
-               "No microphones available to switch to after removal."
+               "No microphones available to switch to after deactivation."
              );
            }
          }
@@ -256,29 +258,32 @@ const client = config.client;
      }
    });
 
+
   AgoraRTC.on("camera-changed", async (info) => {
-    console.log("Camera device change detected:", info);
-    await fetchAndSendDeviceList();
+  console.log("Camera device change detected:", info);
+  await fetchAndSendDeviceList();
 
-    if (info.state === "ADDED") {
-      // A camera was added, so we only update the device list
-      console.log("Camera added. Device list updated.");
-    } else if (info.state === "REMOVED") {
-      // A camera was removed, check if we need to switch to a default camera
-      if (config.selectedCam && config.selectedCam.deviceId === info.deviceId) {
-        config.selectedCam = null; // Reset the selected camera
+  const action = info.state === "ACTIVE" ? "activated" : "deactivated";
 
-        // Get the updated list of devices and select the first available camera
-        const devices = await AgoraRTC.getDevices();
-        const cameras = devices.filter(
-          (device) => device.kind === "videoinput"
-        );
+  if (action === "activated") {
+    // A camera was activated, so we just update the device list
+    console.log("Camera activated. Device list updated.");
+  } else if (action === "deactivated") {
+    // A camera was deactivated, check if we need to switch to a default camera
+    if (config.selectedCam && config.selectedCam.deviceId === info.deviceId) {
+      config.selectedCam = null; // Reset the selected camera
 
-        if (cameras.length > 0) {
-          // If there's at least one camera left, switch to it
-          await switchCam(config, cameras[0]);
-        } else {
-          console.log("No cameras available to switch to after removal.");
+      // Get the updated list of devices and select the first available camera
+      const devices = await AgoraRTC.getDevices();
+      const cameras = devices.filter(
+        (device) => device.kind === "videoinput"
+      );
+
+      if (cameras.length > 0) {
+        // If there's at least one camera left, switch to it
+        await switchCam(config, cameras[0]);
+      } else {
+        console.log("No cameras available to switch to after deactivation.");
         }
       }
     }
