@@ -191,108 +191,116 @@ const client = config.client;
   });
 
 
-   AgoraRTC.on("microphone-changed", async (info) => {
-     console.log("Microphone device change detected:", info);
+   
+AgoraRTC.on("microphone-changed", async (info) => {
+  console.log("Microphone device change detected:", info);
+  await fetchAndSendDeviceList();
+
+  const action = info.state === "ACTIVE" ? "activated" : "deactivated";
+
+  if (action === "activated") {
+    // If a microphone is activated, set it as the selected mic
+    await switchMic(config, info.device);
+  } else if (action === "deactivated") {
+    // If the selected mic is deactivated, set it to null
+    if (
+      config.selectedMic &&
+      config.selectedMic.deviceId === info.device.deviceId
+    ) {
+      config.selectedMic = null;
+
+      // Get the updated list of devices and select the first available microphone
+      const devices = await AgoraRTC.getDevices();
+      const microphones = devices.filter(
+        (device) => device.kind === "audioinput"
+      );
+
+      if (microphones.length > 0) {
+        await switchMic(config, microphones[0]);
+      } else {
+        console.log(
+          "No microphones available to switch to after deactivation."
+        );
+      }
+    }
+  }
+});
+
+
+
+   AgoraRTC.on("playback-device-changed", async (info) => {
+     console.log("Playback device (speaker) change detected:", info);
      await fetchAndSendDeviceList();
 
      const action = info.state === "ACTIVE" ? "activated" : "deactivated";
 
      if (action === "activated") {
-       if (info.device.kind === "audioinput") {
-         // If a microphone is activated, set it as the selected mic
-         await updateConfig(config);
-         await switchMic(info.device);
-       } else if (info.device.kind === "audiooutput") {
-         // If a speaker is activated, switch to the new speaker
-         await updateConfig(config);
-         await switchSpeaker(info.device);
-       }
+       // If a speaker is activated, switch to it
+       await updateConfig(config);
+       await switchSpeaker(info.device);
      } else if (action === "deactivated") {
-       if (info.device.kind === "audioinput") {
-         // If the selected mic is deactivated, set it to null
-         if (
-           config.selectedMic &&
-           config.selectedMic.deviceId === info.device.deviceId
-         ) {
-           config.selectedMic = null;
+       // If the selected speaker is deactivated, set it to null
+       if (
+         config.selectedSpeaker &&
+         config.selectedSpeaker.deviceId === info.device.deviceId
+       ) {
+         config.selectedSpeaker = null;
 
-           // Get the updated list of devices and select the first available microphone
-           const devices = await AgoraRTC.getDevices();
-           const microphones = devices.filter(
-             (device) => device.kind === "audioinput"
+         // Get the updated list of devices and select the first available speaker
+         const devices = await AgoraRTC.getDevices();
+         const speakers = devices.filter(
+           (device) => device.kind === "audiooutput"
+         );
+
+         if (speakers.length > 0) {
+           // Switch to the first available speaker if any
+           await updateConfig(config);
+           await switchSpeaker(speakers[0]);
+         } else {
+           console.log(
+             "No speakers available to switch to after deactivation."
            );
-
-           if (microphones.length > 0) {
-            await updateConfig(config);
-            await switchMic(config, microphones[0]);
-           } else {
-             console.log(
-               "No microphones available to switch to after deactivation."
-             );
-           }
-         }
-       } else if (info.device.kind === "audiooutput") {
-         // If the selected speaker is deactivated, set it to null
-         if (
-           config.selectedSpeaker &&
-           config.selectedSpeaker.deviceId === info.device.deviceId
-         ) {
-           config.selectedSpeaker = null;
-
-           // Get the updated list of devices and select the first available speaker
-           const devices = await AgoraRTC.getDevices();
-           const speakers = devices.filter(
-             (device) => device.kind === "audiooutput"
-           );
-
-           if (speakers.length > 0) {
-            await updateConfig(config);
-            await switchSpeaker(speakers[0]);
-           } else {
-             console.log(
-               "No speakers available to switch to after deactivation."
-             );
-           }
          }
        }
      }
    });
 
 
-  AgoraRTC.on("camera-changed", async (info) => {
-  console.log("Camera device change detected:", info);
-  await fetchAndSendDeviceList();
+ AgoraRTC.on("camera-changed", async (info) => {
+   console.log("Camera device change detected:", info);
+   await fetchAndSendDeviceList();
 
-  const action = info.state === "ACTIVE" ? "activated" : "deactivated";
+   const action = info.state === "ACTIVE" ? "activated" : "deactivated";
 
-  if (action === "activated") {
-    if (info.device.kind === "videoinput") {
-      // If a camera is activated, set it as the selected camera
-      await updateConfig(config);
-      await switchCam(info.device);
-    }
-  } else if (action === "deactivated") {
-    if (info.device.kind === "videoinput") {
-      // If the selected camera is deactivated, set it to null
-      if (config.selectedCam && config.selectedCam.deviceId === info.device.deviceId) {
-        config.selectedCam = null;
+   if (action === "activated") {
+     // Camera is activated, just log it but do not switch automatically
+     console.log("Camera activated:", info.device.label);
+     await updateConfig(config); // Optionally update config or store device details
+   } else if (action === "deactivated") {
+     // Camera is deactivated (removed), reset the selected camera and fetch available cameras
+     if (
+       config.selectedCam &&
+       config.selectedCam.deviceId === info.device.deviceId
+     ) {
+       config.selectedCam = null;
 
-        // Get the updated list of devices and select the first available camera
-        const devices = await AgoraRTC.getDevices();
-        const cameras = devices.filter(
-          (device) => device.kind === "videoinput"
-        );
+       // Get the updated list of cameras
+       const devices = await AgoraRTC.getDevices();
+       const cameras = devices.filter((device) => device.kind === "videoinput");
 
-        if (cameras.length > 0) {
-          await updateConfig(config);
-          await switchCam(cameras[0]);
-        } else {
-          console.log("No cameras available to switch to after deactivation.");
-        }
-        }
-      }
-    }
-  });
+       if (cameras.length > 0) {
+         console.log(
+           "Camera removed, switching to the first available camera..."
+         );
+         // Switch to the first available camera
+         await updateConfig(config);
+         await switchCam(cameras[0]);
+       } else {
+         console.log("No cameras available to switch to after removal.");
+       }
+     }
+   }
+ });
 };
 
 export const setupRTMMessageListener = () => {
