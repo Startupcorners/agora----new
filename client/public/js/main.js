@@ -13,6 +13,7 @@ import {
   switchMic,
   switchSpeaker,
   fetchAndSendDeviceList,
+  updateSelectedDevices,
   sendRTMMessage,
 } from "./helperFunctions.js";
 
@@ -115,6 +116,7 @@ export const newMainApp = async function (initConfig) {
   setupEventListeners();
   setupLeaveListener();
   checkMicrophonePermissions();
+  updateSelectedDevices(config);
 
   // Update the config again with the new properties
   updateConfig(config, "newMainApp");

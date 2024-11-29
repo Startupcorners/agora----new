@@ -196,10 +196,14 @@ export const updateSelectedDevices = async (config) => {
         bubble_fn_selectedSpeaker(config.selectedSpeaker.label);
       }
     }
+
+    // Update the config to reflect the selected devices
+    updateConfig(config);
   } catch (error) {
     console.error("Error fetching and updating selected devices:", error);
   }
 };
+
 
 export const switchMic = async (micInfo) => {
   let config = getConfig();
