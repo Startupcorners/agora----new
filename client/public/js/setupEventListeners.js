@@ -28,7 +28,7 @@ import { getConfig, updateConfig } from "./config.js";
 
 export const setupEventListeners = () => {
 let config = getConfig();
-console.log("lisnterCongig", config)
+console.log("listenerConfig", config)
 const client = config.client;
 
   // Handle when a user publishes their media (audio/video)
@@ -36,14 +36,12 @@ const client = config.client;
     console.log(
       `user-published event received for user: ${user.uid}, mediaType: ${mediaType}`
     );
-    let config = getConfig();
     await handleUserPublished(user, mediaType, config, client);
   });
 
   // Handle when a user stops publishing their media
   client.on("user-unpublished", async (user, mediaType) => {
     console.log("Heard user-unpublished:", user);
-    let config = getConfig();
     await handleUserUnpublished(user, mediaType, config);
   });
 
@@ -139,7 +137,6 @@ const client = config.client;
 
     try {
       // Pass the user attributes along with the user and config
-      let config = getConfig();
       await handleUserJoined(user, config, userAttr);
       console.log(`User ${user.uid} handled successfully.`);
     } catch (error) {
@@ -150,7 +147,6 @@ const client = config.client;
   // Handle when a user leaves the session
   client.on("user-left", async (user) => {
     console.log("Heard user-left:", user);
-    let config = getConfig();
     await handleUserLeft(user, config);
   });
 
@@ -159,73 +155,7 @@ const client = config.client;
 
   // Handle volume indicator changes
   client.on("volume-indicator", async (volumes) => {
-    let config = getConfig();
     await handleVolumeIndicator(volumes, config);
-  });
-
-  client.on("device-changed", async (event) => {
-    console.log("Device changed:", event);
-  });
-
-
-  client.on("microphone-changed", async (info) => {
-    let config = getConfig();
-    console.log("Microphone device change detected:", info);
-    await fetchAndSendDeviceList();
-
-    const action = info.state === "ADDED" ? "added" : "removed";
-
-    if (action === "added") {
-      if (info.kind === "audiooutput") {
-        // If a speaker is added, switch to the new speaker
-        await switchSpeaker(config, info);
-      } else if (info.kind === "audioinput") {
-        // If a microphone is added, set it as the selected mic
-        await switchMic(config, info);
-      }
-    } else if (action === "removed") {
-      if (info.kind === "audiooutput") {
-        // If the selected speaker is removed, set it to null
-        if (
-          config.selectedSpeaker &&
-          config.selectedSpeaker.deviceId === info.deviceId
-        ) {
-          config.selectedSpeaker = null;
-
-          // Get the updated list of devices and select the first available speaker if any
-          const devices = await AgoraRTC.getDevices();
-          const speakers = devices.filter(
-            (device) => device.kind === "audiooutput"
-          );
-
-          if (speakers.length > 0) {
-            await switchSpeaker(config, speakers[0]);
-          } else {
-            console.log("No speakers available to switch to after removal.");
-          }
-        }
-      } else if (info.kind === "audioinput") {
-        // If the selected mic is removed, set it to null if it was the selected mic
-        if (
-          config.selectedMic &&
-          config.selectedMic.deviceId === info.deviceId
-        ) {
-          config.selectedMic = null;
-
-          // Get the updated list of devices and select the first available microphone if any
-          const devices = await AgoraRTC.getDevices();
-          const microphones = devices.filter(
-            (device) => device.kind === "audioinput"
-          );
-
-          if (microphones.length > 0) {
-            await switchMic(config, microphones[0]);
-          } else {
-            console.log("No microphones available to switch to after removal.");
-          }
-        }
-      }
-    }
   });
 
   client.on("connection-state-change", async (curState, revState, reason) => {
@@ -260,8 +190,73 @@ const client = config.client;
     }
   });
 
+
+   client.on("device-changed", async (event) => {
+     console.log("Device changed:", event);
+   });
+
+   client.on("microphone-changed", async (info) => {
+     console.log("Microphone device change detected:", info);
+     await fetchAndSendDeviceList();
+
+     const action = info.state === "ADDED" ? "added" : "removed";
+
+     if (action === "added") {
+       if (info.kind === "audiooutput") {
+         // If a speaker is added, switch to the new speaker
+         await switchSpeaker(config, info);
+       } else if (info.kind === "audioinput") {
+         // If a microphone is added, set it as the selected mic
+         await switchMic(config, info);
+       }
+     } else if (action === "removed") {
+       if (info.kind === "audiooutput") {
+         // If the selected speaker is removed, set it to null
+         if (
+           config.selectedSpeaker &&
+           config.selectedSpeaker.deviceId === info.deviceId
+         ) {
+           config.selectedSpeaker = null;
+
+           // Get the updated list of devices and select the first available speaker if any
+           const devices = await AgoraRTC.getDevices();
+           const speakers = devices.filter(
+             (device) => device.kind === "audiooutput"
+           );
+
+           if (speakers.length > 0) {
+             await switchSpeaker(config, speakers[0]);
+           } else {
+             console.log("No speakers available to switch to after removal.");
+           }
+         }
+       } else if (info.kind === "audioinput") {
+         // If the selected mic is removed, set it to null if it was the selected mic
+         if (
+           config.selectedMic &&
+           config.selectedMic.deviceId === info.deviceId
+         ) {
+           config.selectedMic = null;
+
+           // Get the updated list of devices and select the first available microphone if any
+           const devices = await AgoraRTC.getDevices();
+           const microphones = devices.filter(
+             (device) => device.kind === "audioinput"
+           );
+
+           if (microphones.length > 0) {
+             await switchMic(config, microphones[0]);
+           } else {
+             console.log(
+               "No microphones available to switch to after removal."
+             );
+           }
+         }
+       }
+     }
+   });
+
   client.on("camera-changed", async (info) => {
-    let config = getConfig()
     console.log("Camera device change detected:", info);
     await fetchAndSendDeviceList();
 
