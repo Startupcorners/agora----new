@@ -1,5 +1,5 @@
-import { updatePublishingList } from "./talkToBubble";
-import { updateMicStatusElement } from "./uiHandlers";
+import { updatePublishingList } from "./talkToBubble.js";
+import { updateMicStatusElement } from "./uiHandlers.js";
 
 export const handleAudioPublished = async (user, userUid, config, client) => {
   console.log(`Handling audio published for user: ${userUid}`);

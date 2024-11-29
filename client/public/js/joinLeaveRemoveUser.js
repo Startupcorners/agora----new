@@ -1,5 +1,5 @@
-import { addUserWrapper, removeUserWrapper } from "./wrappers";
-import { manageParticipants } from "./talkToBubble";
+import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
+import { manageParticipants } from "./talkToBubble.js";
 
 export const handleUserJoined = async (user, userAttr = {}) => {
   console.log("User info:", user);

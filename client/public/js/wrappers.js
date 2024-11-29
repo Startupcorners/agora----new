@@ -1,6 +1,4 @@
-import {
-updateMicStatusElement,
-} from "./uiHandlers";
+import { updateMicStatusElement } from "./uiHandlers.js";
 
 // Track running state for each user
 let addUserWrapperRunning = {};

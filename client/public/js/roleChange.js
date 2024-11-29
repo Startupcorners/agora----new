@@ -1,6 +1,6 @@
-import {updatePublishingList, manageParticipants} from "./talkToBubble"
-import { joinVideoStage, leaveVideoStage } from "./joinleavestage";
-import { sendRTMMessage } from "./helperFunctions";
+import { updatePublishingList, manageParticipants } from "./talkToBubble.js";
+import { joinVideoStage, leaveVideoStage } from "./joinleavestage.js";
+import { sendRTMMessage } from "./helperFunctions.js";
 
 const handleRoleChange = async (newRoleInTheCall) => {
   console.warn(

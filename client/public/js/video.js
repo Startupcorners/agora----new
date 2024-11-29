@@ -1,5 +1,5 @@
-import {playStreamInDiv, toggleStages} from "./videoHandlers"
-import { updatePublishingList } from "./talkToBubble";
+import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
+import { updatePublishingList } from "./talkToBubble.js";
 
 let sharingScreenUid = null; // Declare the sharingScreenUid outside of config
 let screenShareRTMClient = null;

@@ -1,10 +1,26 @@
-import {toggleMic} from "./audio"
-import {switchCam, switchMic, switchSpeaker} from "./handleDevices";
-import {toggleCamera, toggleScreenShare, toggleVirtualBackground} from "./video";
-import {join, leave} from "./joinLeaveLocalUser";
-import {fetchAndSendDeviceList} from "./talkToBubble";
-import {startAudioRecording, stopAudioRecording, startCloudRecording, stopCloudRecording} from "./recordingHandlers";
-import {denyAccess, raiseHand, stopUserCamera, stopUserMic, stopUserScreenshare, changeUserRole} from "./uiHandlers";
+import {toggleMic} from "./audio.js"
+import { switchCam, switchMic, switchSpeaker } from "./handleDevices.js";
+import {
+  toggleCamera,
+  toggleScreenShare,
+  toggleVirtualBackground,
+} from "./video.js";
+import { join, leave } from "./joinLeaveLocalUser.js";
+import { fetchAndSendDeviceList } from "./talkToBubble.js";
+import {
+  startAudioRecording,
+  stopAudioRecording,
+  startCloudRecording,
+  stopCloudRecording,
+} from "./recordingHandlers.js";
+import {
+  denyAccess,
+  raiseHand,
+  stopUserCamera,
+  stopUserMic,
+  stopUserScreenshare,
+  changeUserRole,
+} from "./uiHandlers.js";
 
 
 export const newMainApp = async function (initConfig) {

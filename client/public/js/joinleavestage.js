@@ -1,6 +1,6 @@
-import {updatePublishingList} from "./talkToBubble"
-import { updateMicStatusElement } from "./uiHandlers";
-import { addUserWrapper, removeUserWrapper } from "./wrappers";
+import { updatePublishingList } from "./talkToBubble.js";
+import { updateMicStatusElement } from "./uiHandlers.js";
+import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 
 
 

@@ -1,3 +1,7 @@
+import { fetchTokens } from "./fetchTokens.js";
+import { joinVideoStage } from "./joinleavestage.js";
+import { manageParticipants } from "./talkToBubble.js";
+
 export const join = async (config) => {
   console.warn("join function called");
 
@@ -71,8 +75,6 @@ export const join = async (config) => {
   }
 };
 
-
-
 // Function to join RTM
 const joinRTM = async (config, rtmToken, retryCount = 0) => {
   try {
@@ -134,7 +136,6 @@ const joinRTC = async (config, rtcToken) => {
     console.error("Error during joinRTC:", error);
   }
 };
-
 
 let triggeredReason = null;
 
