@@ -438,6 +438,14 @@ function handleMicPermissionChange(state, config) {
 
   const isMicAvailable = state === "granted";
 
+  // Initialize lastMutedStatuses for the user if not already set (external variable)
+  if (!lastMutedStatuses[config.uid]) {
+    lastMutedStatuses[config.uid] = "unknown"; // Default to "unknown" for first-time detection
+    console.log(
+      `Initialized lastMutedStatuses for UID ${config.uid}: "unknown"`
+    );
+  }
+
   // Notify Bubble about the microphone permission change
   if (typeof bubble_fn_micPermissionIsGranted === "function") {
     const bubbleMessage = isMicAvailable ? "yes" : "no";
@@ -453,6 +461,8 @@ function handleMicPermissionChange(state, config) {
   if (!isMicAvailable) {
     console.log("Microphone permission not granted. Updating UI...");
     toggleMic(); // Call toggleMic to handle the UI and notify the user
+    lastMutedStatuses[config.uid] = "unknown"; // Set to "unknown" when mic is unavailable
+    console.log(`Set lastMutedStatuses for UID ${config.uid} to "unknown".`);
   } else {
     // If microphone is granted, notify Bubble using bubble_fn_systemmuted(false)
     if (typeof bubble_fn_systemmuted === "function") {
@@ -465,18 +475,13 @@ function handleMicPermissionChange(state, config) {
     }
 
     // Update lastMutedStatuses for the current user (external variable)
-    if (config && config.uid) {
-      lastMutedStatuses[config.uid] = "no"; // Update the external variable
-      console.log(
-        `Updated lastMutedStatuses for UID ${config.uid} to "no" (unmuted).`
-      );
-    } else {
-      console.warn(
-        "Config or UID is undefined; could not update lastMutedStatuses."
-      );
-    }
+    lastMutedStatuses[config.uid] = "no"; // Update the external variable to "no" (unmuted)
+    console.log(
+      `Updated lastMutedStatuses for UID ${config.uid} to "no" (unmuted).`
+    );
   }
 }
+
 
 export const setupLeaveListener = () => {
   // Listen for page unload events (close, reload, or navigating away)
@@ -558,6 +563,14 @@ export const handleVolumeIndicator = (() => {
 
       // Only process and send notifications for the local user (currentUserUid)
       if (userUID === currentUserUid) {
+        // Initialize lastMutedStatuses for the user if not already set
+        if (!lastMutedStatuses[userUID]) {
+          lastMutedStatuses[userUID] = "unknown"; // Default to "unknown" for first-time detection
+          console.log(
+            `Initialized lastMutedStatuses for UID ${userUID}: "unknown"`
+          );
+        }
+
         // Notify Bubble only when the status changes
         if (currentStatus !== lastMutedStatuses[userUID]) {
           console.log(
@@ -574,3 +587,4 @@ export const handleVolumeIndicator = (() => {
     }
   };
 })();
+

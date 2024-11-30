@@ -5,11 +5,6 @@ import { manageParticipants } from "./talkToBubble.js";
 export const join = async (config) => {
   console.warn("join function called");
 
-  // Initialize lastMutedStatuses for the user if not already set
-  if (!config.lastMutedStatuses[config.uid]) {
-    config.lastMutedStatuses[config.uid] = "unknown"; // Default to "unknown" for first-time detection
-  }
-
   bubble_fn_role(config.user.roleInTheCall);
 
   try {
