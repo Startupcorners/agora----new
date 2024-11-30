@@ -2,7 +2,7 @@ import {handleVideoPublished, handleVideoUnpublished} from "./video.js"
 import { handleAudioUnpublished, handleAudioPublished } from "./audio.js";
 
 // Handles user published event
-export const handleUserPublished = async (user, mediaType, client, config) => {
+export const handleUserPublished = async (user, mediaType, config) => {
   const userUid = user.uid.toString();
   console.log(
     `handleUserPublished for user: ${userUid}, mediaType: ${mediaType}`
@@ -22,9 +22,9 @@ export const handleUserPublished = async (user, mediaType, client, config) => {
 
   // Handle the media subscription based on the mediaType
   if (mediaType === "video") {
-    await handleVideoPublished(user, userUid, config, client);
+    await handleVideoPublished(user, userUid, config);
   } else if (mediaType === "audio") {
-    await handleAudioPublished(user, userUid, config, client);
+    await handleAudioPublished(user, userUid, config);
   } else {
     console.warn(`Unsupported mediaType: ${mediaType}`);
   }

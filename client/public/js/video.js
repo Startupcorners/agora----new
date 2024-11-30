@@ -10,7 +10,8 @@ let isVirtualBackGroundEnabled = false; // External variable for virtual backgro
 let currentVirtualBackground = null; // External variable for the current virtual background
 let processor = null; // External variable to hold the processor instance
 
-export const handleVideoPublished = async (user, userUid, config, client) => {
+export const handleVideoPublished = async (user, userUid, config) => {
+  const client = config.client
   console.log(`Handling video published for user: ${userUid}`);
 
   // Special case: Handle screen share (userUid > 999999999)
