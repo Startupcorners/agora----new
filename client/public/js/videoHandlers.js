@@ -1,4 +1,5 @@
-export const playStreamInDiv = (userId, divId) => {
+export const playStreamInDiv = (config, userId, divId) => {
+  const client = config.client
   try {
     const element = document.querySelector(divId);
     if (!element) {
