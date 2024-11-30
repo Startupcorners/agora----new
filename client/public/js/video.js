@@ -341,6 +341,7 @@ export const stopScreenShare = async (config) => {
 };
 
 export const toggleCamera = async (config) => {
+  const client = config.client;
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
@@ -373,6 +374,7 @@ export const toggleCamera = async (config) => {
 };
 
 export const startCamera = async (config) => {
+  const client = config.client;
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
@@ -424,6 +426,7 @@ export const startCamera = async (config) => {
 };
 
 export const stopCamera = async (config) => {
+  const client = config.client;
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
