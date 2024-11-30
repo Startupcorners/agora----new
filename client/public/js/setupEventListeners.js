@@ -380,7 +380,7 @@ export async function checkMicrophonePermissions() {
 
       // Notify Bubble on initial state
       if (micPermission.state !== lastMicPermissionState) {
-        handleMicPermissionChange(micPermission.state, { uid: null }); // pass a placeholder config object
+        handleMicPermissionChange(micPermission.state, config); // pass a placeholder config object
         lastMicPermissionState = micPermission.state; // Update the external variable
       }
 
@@ -391,7 +391,7 @@ export async function checkMicrophonePermissions() {
             `Microphone permission changed to: ${micPermission.state}`
           );
           if (micPermission.state !== lastMicPermissionState) {
-            handleMicPermissionChange(micPermission.state, { uid: null }); // pass a placeholder config object
+            handleMicPermissionChange(micPermission.state, config); // pass a placeholder config object
             lastMicPermissionState = micPermission.state; // Update the external variable
           }
         };
@@ -409,7 +409,7 @@ export async function checkMicrophonePermissions() {
             console.log(
               `Detected permission change via polling: ${newPermission.state}`
             );
-            handleMicPermissionChange(newPermission.state, { uid: null }); // pass a placeholder config object
+            handleMicPermissionChange(newPermission.state, config); // pass a placeholder config object
             lastMicPermissionState = newPermission.state; // Update the external variable
           }
         }, 5000); // Poll every 5 seconds
