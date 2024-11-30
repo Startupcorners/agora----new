@@ -4,6 +4,7 @@ import { updateMicStatusElement } from "./uiHandlers.js";
 let addUserWrapperRunning = {};
 
 export const addUserWrapper = async (uid, config) => {
+  const client = config.client; // Retrieve the client from config
   const rtmUid = uid.toString();
 
   // Check if the function is already running for the same user
