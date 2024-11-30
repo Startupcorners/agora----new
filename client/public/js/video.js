@@ -180,14 +180,14 @@ export const handleVideoUnpublished = async (user, userUid) => {
   playStreamInDiv(userUid, `#stream-${userUid}`);
 };
 
-export const toggleScreenShare = async () => {
+export const toggleScreenShare = async (config) => {
   console.log("sharingScreenUid", sharingScreenUid);
 
   try {
     if (sharingScreenUid !== screenShareRTCClient?.uid.toString()) {
-      await startScreenShare(); // Start screen share
+      await startScreenShare(config); // Start screen share
     } else {
-      await stopScreenShare(); // Stop screen share
+      await stopScreenShare(config); // Stop screen share
     }
   } catch (error) {
     console.error("Error during screen share toggle:", error);
@@ -340,7 +340,7 @@ export const stopScreenShare = async (config) => {
   console.log("Screen share stopped and external variable updated.");
 };
 
-export const toggleCamera = async () => {
+export const toggleCamera = async (config) => {
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
@@ -359,10 +359,10 @@ export const toggleCamera = async () => {
 
     if (localVideoTrack && localVideoTrack.isPlaying()) {
       // User is trying to turn off the camera if it's playing
-      await stopCamera(); // Call stopCamera directly, no need to pass config
+      await stopCamera(config); // Call stopCamera directly, no need to pass config
     } else {
       // User is trying to turn on the camera if it's not playing or null
-      await startCamera(); // Call startCamera directly, no need to pass config
+      await startCamera(config); // Call startCamera directly, no need to pass config
     }
   } catch (error) {
     console.error("Error toggling the camera for user:", config.uid, error);
@@ -372,7 +372,7 @@ export const toggleCamera = async () => {
   }
 };
 
-export const startCamera = async () => {
+export const startCamera = async (config) => {
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
@@ -423,7 +423,7 @@ export const startCamera = async () => {
   }
 };
 
-export const stopCamera = async () => {
+export const stopCamera = async (config) => {
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
@@ -464,27 +464,27 @@ export const stopCamera = async () => {
   }
 };
 
-export const toggleVirtualBackground = async (imageSrc) => {
+export const toggleVirtualBackground = async (imageSrc, config) => {
   console.log("toggleVirtualBackground called with imageSrc:", imageSrc);
 
   // Check if the virtual background is already enabled with the same image
   if (currentVirtualBackground === imageSrc) {
     console.log("Virtual background matches current image, disabling.");
-    await disableVirtualBackground(); // No need for config here
+    await disableVirtualBackground(config); // No need for config here
   } else if (imageSrc !== "blur") {
     console.log("Switching to image-based virtual background.");
-    await enableVirtualBackgroundImage(imageSrc); // Pass the imageSrc directly
+    await enableVirtualBackgroundImage(imageSrc, config); // Pass the imageSrc directly
   } else {
     console.log("Switching to blur effect virtual background.");
-    await enableVirtualBackgroundBlur(); // Call blur directly
+    await enableVirtualBackgroundBlur(config); // Call blur directly
   }
 };
 
-export const enableVirtualBackgroundBlur = async () => {
+export const enableVirtualBackgroundBlur = async (config) => {
   console.log("Enabling virtual background blur...");
 
   try {
-    const processor = await getProcessorInstance();
+    const processor = await getProcessorInstance(config);
 
     if (!processor) {
       console.warn(
@@ -506,7 +506,7 @@ export const enableVirtualBackgroundBlur = async () => {
   }
 };
 
-export const enableVirtualBackgroundImage = async (imageSrc) => {
+export const enableVirtualBackgroundImage = async (imageSrc, config) => {
   console.log("Enabling virtual background with image source:", imageSrc);
   const imgElement = document.createElement("img");
 
@@ -516,7 +516,7 @@ export const enableVirtualBackgroundImage = async (imageSrc) => {
 
     try {
       // Attempt to get the processor instance
-      const processor = await getProcessorInstance();
+      const processor = await getProcessorInstance(config);
 
       if (!processor) {
         console.warn(
@@ -543,7 +543,7 @@ export const enableVirtualBackgroundImage = async (imageSrc) => {
   imgElement.src = base64;
 };
 
-export const disableVirtualBackground = async () => {
+export const disableVirtualBackground = async (config) => {
   console.log("Disabling virtual background...");
 
   // Check if the processor is initialized
@@ -569,7 +569,7 @@ export const disableVirtualBackground = async () => {
   currentVirtualBackground = null;
 };
 
-export const getProcessorInstance = async () => {
+export const getProcessorInstance = async (config) => {
   const uid = config.uid; // Ensure the uid is correctly retrieved from the config
   const userTrack = client.localTrack; // Use client.localTrack instead of config.userTracks
 
