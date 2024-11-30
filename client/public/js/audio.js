@@ -103,7 +103,6 @@ export const handleAudioUnpublished = async (user, userUid) => {
     );
   }
 };
-
 export const toggleMic = async (config) => {
   const client = config.client;
 
@@ -116,14 +115,14 @@ export const toggleMic = async (config) => {
     );
     console.log("Local audio track:", localAudioTrack);
 
-    if (localAudioTrack && localAudioTrack.isPlaying()) {
-      // Microphone is active and playing; mute it
+    if (localAudioTrack && localAudioTrack.enabled) {
+      // Microphone is active (enabled); mute it
       console.log("Microphone is active; muting...");
       await endMic(config); // Mute the microphone
       console.log("Microphone muted.");
     } else {
-      // Microphone is not playing (muted); activate it
-      console.log("Microphone is muted or not playing; activating...");
+      // Microphone is muted or not enabled; activate it
+      console.log("Microphone is muted or not enabled; activating...");
       await startMic(config); // Start the microphone
       console.log("Microphone activated.");
     }
@@ -131,6 +130,7 @@ export const toggleMic = async (config) => {
     console.error("Error in toggleMic for user:", error);
   }
 };
+
 
 
 const startMic = async (config) => {
@@ -158,6 +158,9 @@ const startMic = async (config) => {
     } else {
       console.log("Microphone already active, no need to create a new track.");
     }
+
+    // Log the track after creation or reuse
+    console.log("Audio track after creation or reuse:", audioTrack);
 
     // Update UI to indicate the microphone is active
     updateMicStatusElement(config.uid, false); // Mic is unmuted
@@ -196,6 +199,7 @@ const startMic = async (config) => {
 };
 
 
+
 const endMic = async (config) => {
   const client = config.client;
 
@@ -217,6 +221,9 @@ const endMic = async (config) => {
       await client.unpublish([localAudioTrack]);
       localAudioTrack.stop();
       localAudioTrack.close();
+
+      // Log the track after stop and close
+      console.log("Audio track after stop and close:", localAudioTrack);
 
       // Remove the audio track from localTracks
       client.localTracks.splice(localAudioTrackIndex, 1);
