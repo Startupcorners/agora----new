@@ -343,6 +343,7 @@ export const stopScreenShare = async (config) => {
 
 export const toggleCamera = async (config) => {
   const client = config.client;
+
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
@@ -357,14 +358,19 @@ export const toggleCamera = async (config) => {
 
     cameraToggleInProgress = true; // Prevent simultaneous toggles
 
-    const localVideoTrack = client.localTrack?.videoTrack; // Check the local video track
+    // Find the local video track
+    const localVideoTrack = client.localTracks?.find(
+      (track) => track.trackMediaType === "video"
+    );
 
-    if (localVideoTrack && localVideoTrack.isPlaying()) {
-      // User is trying to turn off the camera if it's playing
-      await stopCamera(config); // Call stopCamera directly, no need to pass config
+    if (localVideoTrack && localVideoTrack.enabled) {
+      // User is trying to turn off the camera if it's enabled
+      console.log("Camera is active; turning it off...");
+      await stopCamera(config); // Mute the camera
     } else {
-      // User is trying to turn on the camera if it's not playing or null
-      await startCamera(config); // Call startCamera directly, no need to pass config
+      // User is trying to turn on the camera if it's disabled or null
+      console.log("Camera is inactive or not found; turning it on...");
+      await startCamera(config); // Activate the camera
     }
   } catch (error) {
     console.error("Error toggling the camera for user:", config.uid, error);
@@ -376,6 +382,7 @@ export const toggleCamera = async (config) => {
 
 export const startCamera = async (config) => {
   const client = config.client;
+
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
@@ -383,10 +390,18 @@ export const startCamera = async (config) => {
 
     console.log("Turning on the camera for user:", config.uid);
 
-    // Check if the camera track already exists
-    if (!client.localTrack?.videoTrack) {
+    // Find the local video track
+    let videoTrack = client.localTracks?.find(
+      (track) => track.trackMediaType === "video"
+    );
+
+    if (videoTrack) {
+      console.log("Video track already exists; enabling it...");
+      await videoTrack.setEnabled(true); // Enable the existing track
+    } else {
+      console.log("No video track found; creating a new one...");
       // Create a new video track
-      const videoTrack = await AgoraRTC.createCameraVideoTrack();
+      videoTrack = await AgoraRTC.createCameraVideoTrack();
 
       if (!videoTrack) {
         console.error("Failed to create a new video track!");
@@ -395,31 +410,28 @@ export const startCamera = async (config) => {
 
       // Publish the video track
       await client.publish([videoTrack]);
+      console.log("Camera turned on and published.");
+    }
 
-      console.log("Camera turned on and published");
-
-      // Handle virtual background if enabled
-      if (isVirtualBackGroundEnabled) {
-        if (currentVirtualBackground === "blur") {
-          await enableVirtualBackgroundBlur(config); // Apply blur if that's the selected background
-        } else if (currentVirtualBackground) {
-          await enableVirtualBackgroundImage(config, currentVirtualBackground); // Apply custom virtual background image
-        }
+    // Handle virtual background if enabled
+    if (isVirtualBackGroundEnabled) {
+      if (currentVirtualBackground === "blur") {
+        await enableVirtualBackgroundBlur(config); // Apply blur if that's the selected background
+      } else if (currentVirtualBackground) {
+        await enableVirtualBackgroundImage(config, currentVirtualBackground); // Apply custom virtual background image
       }
+    }
 
-      // Update UI
-      if (sharingScreenUid === config.uid.toString()) {
-        playStreamInDiv(config, config.uid, "#pip-video-track");
-      } else {
-        playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
-      }
-
-      // Notify Bubble of the camera state
-      if (typeof bubble_fn_isCamOn === "function") {
-        bubble_fn_isCamOn(true); // Camera is on
-      }
+    // Update UI
+    if (sharingScreenUid === config.uid.toString()) {
+      playStreamInDiv(config, config.uid, "#pip-video-track");
     } else {
-      console.log("Camera is already on.");
+      playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
+    }
+
+    // Notify Bubble of the camera state
+    if (typeof bubble_fn_isCamOn === "function") {
+      bubble_fn_isCamOn(true); // Camera is on
     }
   } catch (error) {
     console.error("Error starting the camera for user:", config.uid, error);
@@ -428,6 +440,7 @@ export const startCamera = async (config) => {
 
 export const stopCamera = async (config) => {
   const client = config.client;
+
   try {
     if (!config || !config.uid) {
       throw new Error("Config object or UID is missing.");
@@ -435,18 +448,21 @@ export const stopCamera = async (config) => {
 
     console.log("Turning off the camera for user:", config.uid);
 
-    const localVideoTrack = client.localTrack?.videoTrack; // Access the local video track
+    // Find the local video track
+    const localVideoTrack = client.localTracks?.find(
+      (track) => track.trackMediaType === "video"
+    );
 
     if (localVideoTrack) {
-      // Unpublish and stop the video track
+      // Disable the video track locally
+      console.log("Disabling video track locally...");
+      await localVideoTrack.setEnabled(false);
+
+      // Optionally unpublish the video track globally
+      console.log("Unpublishing video track globally...");
       await client.unpublish([localVideoTrack]);
-      localVideoTrack.stop();
-      localVideoTrack.close();
 
-      // Set the video track to null to indicate the camera is off
-      client.localTrack.videoTrack = null;
-
-      console.log("Camera turned off and unpublished");
+      console.log("Camera turned off and unpublished.");
       updatePublishingList(config.uid.toString(), "video", "remove");
 
       // Update UI
@@ -467,6 +483,7 @@ export const stopCamera = async (config) => {
     console.error("Error stopping the camera for user:", config.uid, error);
   }
 };
+
 
 export const toggleVirtualBackground = async (imageSrc, config) => {
   console.log("toggleVirtualBackground called with imageSrc:", imageSrc);
