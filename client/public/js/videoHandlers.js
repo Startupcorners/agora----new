@@ -18,7 +18,7 @@ export const playStreamInDiv = (config, userId, divId) => {
     if (userId === config.uid) {
       // Use local track for the current user
       console.log("UserId matches config.uid. Fetching local video track...");
-      videoTrack = client.localTrack?.videoTrack;
+      videoTrack = client.localTracks?.videoTrack;
       console.log("Local video track:", videoTrack);
     } else {
       // Use remote track for other users
