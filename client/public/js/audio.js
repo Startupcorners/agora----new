@@ -103,6 +103,8 @@ export const handleAudioUnpublished = async (user, userUid) => {
     );
   }
 };
+
+
 export const toggleMic = async (config) => {
   const client = config.client;
 
@@ -116,20 +118,20 @@ export const toggleMic = async (config) => {
     console.log("Local audio track:", localAudioTrack);
 
     if (localAudioTrack && localAudioTrack.enabled) {
-      // Microphone is active (enabled); mute it
+      // Microphone is active; mute it
       console.log("Microphone is active; muting...");
-      await endMic(config); // Mute the microphone
-      console.log("Microphone muted.");
+      await endMic(config);
     } else {
-      // Microphone is muted or not enabled; activate it
-      console.log("Microphone is muted or not enabled; activating...");
-      await startMic(config); // Start the microphone
-      console.log("Microphone activated.");
+      // Microphone is muted or does not exist; activate it
+      console.log("Microphone is muted or does not exist; activating...");
+      await startMic(config);
     }
   } catch (error) {
     console.error("Error in toggleMic for user:", error);
   }
 };
+
+
 
 
 
@@ -149,43 +151,23 @@ const startMic = async (config) => {
       console.log("No active microphone track found. Creating a new one...");
       audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
 
-      // Add the new track to localTracks
-      client.localTracks = [...(client.localTracks || []), audioTrack];
-
-      // Publish the audio track
-      await client.publish([audioTrack]);
-      console.log("Microphone started and published.");
+      console.log("New audio track created:", audioTrack);
     } else {
-      console.log("Microphone already active, no need to create a new track.");
+      console.log("Microphone already active, enabling the existing track...");
+      await audioTrack.setEnabled(true); // Unmute the existing track
     }
 
-    // Log the track after creation or reuse
-    console.log("Audio track after creation or reuse:", audioTrack);
+    // Publish the audio track globally
+    console.log("Publishing audio track globally...");
+    await client.publish([audioTrack]);
+    console.log("Microphone started and published.");
+
+    // Update the publishing list
+    updatePublishingList(config.uid.toString(), "audio", "add");
 
     // Update UI to indicate the microphone is active
     updateMicStatusElement(config.uid, false); // Mic is unmuted
     bubble_fn_isMicOff(false);
-
-    // Ensure usersPublishingAudio is initialized
-    if (!config.usersPublishingAudio) {
-      config.usersPublishingAudio = [];
-    }
-
-    if (!config.usersPublishingAudio.includes(config.uid.toString())) {
-      config.usersPublishingAudio.push(config.uid.toString());
-    }
-
-    console.log(
-      "Updated usersPublishingAudio list:",
-      config.usersPublishingAudio
-    );
-
-    // Notify Bubble with the updated list
-    if (typeof bubble_fn_usersPublishingAudio === "function") {
-      bubble_fn_usersPublishingAudio(config.usersPublishingAudio);
-    } else {
-      console.warn("bubble_fn_usersPublishingAudio is not defined.");
-    }
   } catch (error) {
     console.warn(
       "Error accessing or creating microphone track, setting mic to off.",
@@ -207,31 +189,23 @@ const endMic = async (config) => {
     console.log("Ending microphone for user:", config.uid);
 
     // Find the local audio track
-    const localAudioTrackIndex = client.localTracks?.findIndex(
+    const localAudioTrack = client.localTracks?.find(
       (track) => track.trackMediaType === "audio"
     );
-    const localAudioTrack =
-      localAudioTrackIndex !== -1
-        ? client.localTracks[localAudioTrackIndex]
-        : null;
 
     if (localAudioTrack) {
-      // Unpublish and stop the audio track
-      console.log("Found local audio track. Unpublishing...");
+      // Mute the track locally
+      console.log("Muting audio track locally...");
+      await localAudioTrack.setEnabled(false);
+
+      // Unpublish the track globally
+      console.log("Unpublishing audio track globally...");
       await client.unpublish([localAudioTrack]);
-      localAudioTrack.stop();
-      localAudioTrack.close();
 
-      // Log the track after stop and close
-      console.log("Audio track after stop and close:", localAudioTrack);
-
-      // Remove the audio track from localTracks
-      client.localTracks.splice(localAudioTrackIndex, 1);
-
-      console.log("Microphone ended and unpublished");
+      console.log("Microphone muted and unpublished.");
       updatePublishingList(config.uid.toString(), "audio", "remove");
     } else {
-      console.error("No audio track found for the user.");
+      console.warn("No local audio track found. Microphone is not active.");
     }
 
     // Update UI to indicate the microphone is muted
@@ -266,4 +240,5 @@ const endMic = async (config) => {
     console.error("Error in endMic for user:", config.uid, error);
   }
 };
+
 
