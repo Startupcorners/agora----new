@@ -1,5 +1,6 @@
 export const playStreamInDiv = (config, userId, divId) => {
   const client = config.client;
+  console.log(client)
 
   console.log(`playStreamInDiv called with userId: ${userId}, divId: ${divId}`);
 
