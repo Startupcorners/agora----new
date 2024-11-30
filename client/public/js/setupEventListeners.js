@@ -371,7 +371,7 @@ export const setupRTMMessageListener = (config) => {
   );
 };
 
-export async function checkMicrophonePermissions() {
+export async function checkMicrophonePermissions(config) {
   if (navigator.permissions) {
     try {
       const micPermission = await navigator.permissions.query({
