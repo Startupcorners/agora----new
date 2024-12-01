@@ -135,7 +135,7 @@ const joinRTC = async (config, rtcToken) => {
 let triggeredReason = null;
 
 // Add the general leave function
-export const leave = async (reason) => {
+export const leave = async (reason, config) => {
   // Check if leave function has already been triggered
   if (triggeredReason) {
     console.warn(
@@ -148,8 +148,6 @@ export const leave = async (reason) => {
   triggeredReason = reason; // Set the triggered reason to prevent re-entry
 
   try {
-    // Set the leave reason in the config
-    config.leaveReason = reason;
 
     // Leave RTC
     await leaveRTC(config);
