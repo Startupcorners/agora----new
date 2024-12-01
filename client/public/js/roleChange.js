@@ -6,12 +6,6 @@ let previousRoleInTheCall = null; // Store the previous role globally
 
 
 const handleRoleChange = async (newRoleInTheCall, config) => {
-    if (previousRoleInTheCall == null) {
-      previousRoleInTheCall = config.user.roleInTheCall || "audience"; // Default to 'audience' if undefined
-      console.log(
-        `previousRoleInTheCall was null. Initialized to config.user.roleInTheCall: ${prevRole}`
-      );
-    }
   const client = config.client;
   console.warn(
     "handleRoleChange called with newRoleInTheCall:",
@@ -100,7 +94,12 @@ export const onRoleChange = async (newRoleInTheCall, config) => {
 
 
   // Retrieve the previous role for cleanup
-  const previousRoleInTheCall = config.user.roleInTheCall;
+   if (previousRoleInTheCall === null) {
+     previousRoleInTheCall = config.user.roleInTheCall;
+     console.log(
+       `previousRoleInTheCall was null. Initialized to config.user.roleInTheCall: ${prevRole}`
+     );
+   }
 
   // Update the user's role in config
   config.user.roleInTheCall = newRoleInTheCall;
