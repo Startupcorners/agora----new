@@ -6,7 +6,7 @@ let previousRoleInTheCall = null; // Store the previous role globally
 
 
 const handleRoleChange = async (newRoleInTheCall, config) => {
-    const client = config.client
+  const client = config.client;
   console.warn(
     "handleRoleChange called with newRoleInTheCall:",
     newRoleInTheCall
@@ -34,16 +34,16 @@ const handleRoleChange = async (newRoleInTheCall, config) => {
 
   // Handle unmuting if transitioning from waiting
   if (prevRole === "waiting" && newRoleInTheCall !== "waiting") {
-    console.log("Unmuting audio tracks for existing users...");
+    console.log("Unmuting and playing audio tracks for existing users...");
 
     for (const remoteUser of client.remoteUsers) {
       const audioTrack = remoteUser.audioTrack;
 
-      if (audioTrack && audioTrack.muted) {
+      if (audioTrack && !audioTrack.isPlaying) {
         try {
-          console.log(`Unmuting audio track for user ${remoteUser.uid}...`);
-          audioTrack.setEnabled(true);
-          console.log(`Audio track for user ${remoteUser.uid} unmuted.`);
+          console.log(`Playing audio track for user ${remoteUser.uid}...`);
+          audioTrack.play(); // Start playing the audio track
+          console.log(`Audio track for user ${remoteUser.uid} is now playing.`);
 
           // Update mic status dynamically
           const micStatusElement = document.getElementById(
@@ -59,13 +59,13 @@ const handleRoleChange = async (newRoleInTheCall, config) => {
           }
         } catch (error) {
           console.error(
-            `Error unmuting audio for user ${remoteUser.uid}:`,
+            `Error playing audio for user ${remoteUser.uid}:`,
             error
           );
         }
       } else {
         console.log(
-          `No valid or already unmuted audio track for user ${remoteUser.uid}.`
+          `No valid or already playing audio track for user ${remoteUser.uid}.`
         );
       }
     }
@@ -80,6 +80,7 @@ const handleRoleChange = async (newRoleInTheCall, config) => {
     await leaveVideoStage(config);
   }
 };
+
 
 
 
