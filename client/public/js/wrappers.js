@@ -53,19 +53,25 @@ export const addUserWrapper = async (uid, config) => {
     // Determine if the track is local or remote
     let audioTrack;
     if (uid === config.uid) {
-      // Use local track for the current user
-      audioTrack = client.localTrack?.audioTrack;
+      // Use local tracks array for the current user
+      audioTrack = client.localTracks?.find(
+        (track) => track.trackMediaType === "audio"
+      );
     } else {
-      // Use remote track for other users
+      // Use remote tracks for other users
       const remoteUser = client.remoteUsers.find((user) => user.uid === uid);
       audioTrack = remoteUser?.audioTrack;
     }
 
+    console.log(`Audio track for user ${uid}:`, audioTrack);
+
     // Update mic status based on the audio track
-    if (audioTrack) {
+    if (audioTrack && audioTrack.enabled) {
       updateMicStatusElement(uid, false); // Mic is active
+      console.log(`User ${uid}'s microphone is active.`);
     } else {
       updateMicStatusElement(uid, true); // Mic is inactive
+      console.log(`User ${uid}'s microphone is inactive.`);
     }
 
     updateLayout();
