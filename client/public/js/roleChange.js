@@ -2,7 +2,11 @@ import { updatePublishingList, manageParticipants } from "./talkToBubble.js";
 import { joinVideoStage, leaveVideoStage } from "./joinleavestage.js";
 import { sendRTMMessage } from "./helperFunctions.js";
 
-const handleRoleChange = async (newRoleInTheCall) => {
+let previousRoleInTheCall = null; // Store the previous role globally
+
+
+const handleRoleChange = async (newRoleInTheCall, config) => {
+    const client = config.client
   console.warn(
     "handleRoleChange called with newRoleInTheCall:",
     newRoleInTheCall
@@ -16,9 +20,10 @@ const handleRoleChange = async (newRoleInTheCall) => {
     "audienceOnStage",
   ];
 
-  // Store previous role and check if it requires stage
-  const prevRole = config.previousRoleInTheCall;
-  config.previousRoleInTheCall = newRoleInTheCall; // Update previous role
+  // Use the external variable for previous role
+  const prevRole = previousRoleInTheCall;
+  previousRoleInTheCall = newRoleInTheCall; // Update the global previous role
+
   const prevRequiresStage = rolesRequiringStage.includes(prevRole);
   const newRequiresStage = rolesRequiringStage.includes(newRoleInTheCall);
 
@@ -80,7 +85,8 @@ const handleRoleChange = async (newRoleInTheCall) => {
 
 
 
-export const onRoleChange = async (newRoleInTheCall) => {
+
+export const onRoleChange = async (newRoleInTheCall, config) => {
   console.warn("onRoleChange called with newRoleInTheCall:", newRoleInTheCall);
   console.warn("config", config);
 
