@@ -1,4 +1,9 @@
-export const playStreamInDiv = (config, userId, divId) => {
+export const playStreamInDiv = (
+  config,
+  userId,
+  divId,
+  screenShareTrackExternal
+) => {
   const client = config.client;
   console.log(client);
 
@@ -13,32 +18,28 @@ export const playStreamInDiv = (config, userId, divId) => {
     }
     console.log(`Element with ID ${divId} found:`, element);
 
-    // Determine if the track is local or remote
-    let videoTrack;
-    if (userId === config.uid) {
-      // Use local track for the current user
-      console.log("UserId matches config.uid. Fetching local video track...");
-      videoTrack = client.localTracks?.find(
-        (track) => track.trackMediaType === "video"
-      );
-      console.log("Local video track:", videoTrack);
-    } else {
-      // Use remote track for other users
-      console.log(
-        "UserId does not match config.uid. Fetching remote video track..."
-      );
-const remoteUser = client.remoteUsers.find(
-  (user) => user.uid.toString() === userId.toString()
-);
-console.log("Remote user found:", remoteUser);
-
-if (remoteUser) {
-  videoTrack = remoteUser.videoTrack; // Access the videoTrack of the remote user
-  console.log("Remote video track:", videoTrack);
-} else {
-  console.warn(`Remote user with UID ${userId} not found.`);
-}
-
+    // Determine the video track
+    let videoTrack = screenShareTrackExternal; // Use screen share track if provided
+    if (!videoTrack) {
+      if (userId === config.uid) {
+        // Use local track for the current user
+        console.log("UserId matches config.uid. Fetching local video track...");
+        videoTrack = client.localTracks?.find(
+          (track) => track.trackMediaType === "video"
+        );
+        console.log("Local video track:", videoTrack);
+      } else {
+        // Use remote track for other users
+        console.log(
+          "UserId does not match config.uid. Fetching remote video track..."
+        );
+        const remoteUser = client.remoteUsers.find(
+          (user) => user.uid.toString() === userId.toString()
+        );
+        console.log("Remote user found:", remoteUser);
+        videoTrack = remoteUser?.videoTrack;
+        console.log("Remote video track:", videoTrack);
+      }
     }
 
     // Check if the user has a valid video track
@@ -58,6 +59,8 @@ if (remoteUser) {
     console.error(`Error playing video in ${divId} for user ${userId}:`, error);
   }
 };
+
+
 
 export const toggleStages = (isScreenSharing) => {
   const videoStage = document.getElementById("video-stage");

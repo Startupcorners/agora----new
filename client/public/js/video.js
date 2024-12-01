@@ -290,7 +290,12 @@ export const startScreenShare = async (config) => {
 
     // Toggle UI
     toggleStages(true);
-    playStreamInDiv(config, screenShareUid, "#screen-share-content");
+    playStreamInDiv(
+      config,
+      screenShareUid,
+      "#screen-share-content",
+      screenShareTrackExternal
+    );
     playStreamInDiv(config, uid, "#pip-video-track");
 
     // Update PiP avatar
