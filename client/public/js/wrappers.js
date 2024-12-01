@@ -52,24 +52,28 @@ export const addUserWrapper = async (uid, config) => {
 
     // Determine if the track is local or remote
     let audioTrack;
+    let isActiveMic = false;
+
     if (uid === config.uid) {
       // Use local tracks array for the current user
       audioTrack = client.localTracks?.find(
         (track) => track.trackMediaType === "audio"
       );
+      isActiveMic = audioTrack?.enabled || false; // Check if enabled for local user
     } else {
       // Use remote tracks for other users
       console.log("client.remoteUsers", client.remoteUsers);
-       const remoteUser = client.remoteUsers.find(
-         (user) => user.uid.toString() === uid.toString()
-       );
+      const remoteUser = client.remoteUsers.find(
+        (user) => user.uid.toString() === uid.toString()
+      );
       audioTrack = remoteUser?.audioTrack;
+      isActiveMic = audioTrack?.isPlaying || false; // Check if playing for remote user
     }
 
     console.log(`Audio track for user ${uid}:`, audioTrack);
 
     // Update mic status based on the audio track
-    if (audioTrack && audioTrack.enabled) {
+    if (isActiveMic) {
       updateMicStatusElement(uid, false); // Mic is active
       console.log(`User ${uid}'s microphone is active.`);
     } else {
@@ -85,6 +89,8 @@ export const addUserWrapper = async (uid, config) => {
     addUserWrapperRunning[rtmUid] = false;
   }
 };
+
+
 
 // Wrapper for removing users from the video stage
 export const removeUserWrapper = (uid) => {
