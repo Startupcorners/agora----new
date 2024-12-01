@@ -60,7 +60,9 @@ export const addUserWrapper = async (uid, config) => {
     } else {
       // Use remote tracks for other users
       console.log("client.remoteUsers", client.remoteUsers);
-      const remoteUser = client.remoteUsers.find((user) => user.uid === uid);
+       const remoteUser = client.remoteUsers.find(
+         (user) => user.uid.toString() === uid.toString()
+       );
       audioTrack = remoteUser?.audioTrack;
     }
 
