@@ -47,7 +47,7 @@ export const handleAudioPublished = async (user, userUid, config) => {
   }
 };
 
-export const handleAudioUnpublished = async (user, userUid) => {
+export const handleAudioUnpublished = async (user, userUid, config) => {
     const client = config.client;
   console.log(`Handling audio unpublishing for user: ${userUid}`);
 
@@ -55,7 +55,8 @@ export const handleAudioUnpublished = async (user, userUid) => {
     // Stop and remove the audio track
     if (user.audioTrack) {
       user.audioTrack.stop();
-      console.log(`Stopped and removed audio track for user ${userUid}`);
+      console.log(`Stopped and removed audio track for user ${userUid}`, user.audioTrack);
+
     }
 
     // Update the mic status element to show muted state
