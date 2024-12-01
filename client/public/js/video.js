@@ -186,7 +186,7 @@ export const toggleScreenShare = async (config) => {
   console.log("sharingScreenUid", sharingScreenUid);
 
   try {
-    if (sharingScreenUid !== screenShareRTCClient?.uid.toString()) {
+    if (sharingScreenUid !== config.uid.toString()) {
       await startScreenShare(config); // Start screen share
     } else {
       await stopScreenShare(config); // Stop screen share
