@@ -96,15 +96,8 @@ export const onRoleChange = async (newRoleInTheCall, config) => {
   // Retrieve the previous role for cleanup
    if (previousRoleInTheCall === null) {
      previousRoleInTheCall = config.user.roleInTheCall;
-     console.log(
-       `previousRoleInTheCall was null. Initialized to config.user.roleInTheCall: ${prevRole}`
-     );
    }
-
-  // Update the user's role in config
-  config.user.roleInTheCall = newRoleInTheCall;
-  console.warn("bubble_fn_role:", config.user.roleInTheCall);
-  bubble_fn_role(config.user.roleInTheCall);
+  bubble_fn_role(newRoleInTheCall);
 
   // Update the user's attributes in RTM
   const attributes = {
