@@ -1,4 +1,4 @@
-export const sendRTMMessage = async (message) => {
+export const sendRTMMessage = async (message, config) => {
   console.warn("sendRTMMessage called with message:", message);
 
   try {

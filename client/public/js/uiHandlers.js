@@ -20,7 +20,7 @@ export const changeUserRole = async (userUid, newRole, newRoleInTheCall) => {
   });
 
   // Use the helper function to send the RTM message
-  await sendRTMMessage(message);
+  await sendRTMMessage(message, config);
 
   console.log(
     `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
@@ -57,7 +57,7 @@ export const stopUserCamera = async (userUid) => {
   });
 
   // Use the helper function to send the RTM message
-  await sendRTMMessage(message);
+  await sendRTMMessage(message, config);
 
   console.log(`Stop camera request for user ${userUid} completed.`);
 };
@@ -73,7 +73,7 @@ export const stopUserMic = async (userUid) => {
   });
 
   // Use the helper function to send the RTM message
-  await sendRTMMessage(message);
+  await sendRTMMessage(message, config);
 
   console.log(`Stop mic request for user ${userUid} completed.`);
 };
@@ -89,7 +89,7 @@ export const denyAccess = async (userUid, config) => {
   });
 
   // Use the helper function to send the RTM message
-  await sendRTMMessage(message);
+  await sendRTMMessage(message, config);
 
   console.log(`Deny access request for user ${userUid} completed.`);
 };
@@ -105,7 +105,7 @@ export const stopUserScreenshare = async (userUid, config) => {
   });
 
   // Use the helper function to send the RTM message
-  await sendRTMMessage(message);
+  await sendRTMMessage(message, config);
 
   console.log(`Stop screenshare request for user ${userUid} completed.`);
 };
@@ -140,7 +140,7 @@ export const raiseHand = async (userUid) => {
   });
 
   // Use the helper function to send the RTM message
-  await sendRTMMessage(message);
+  await sendRTMMessage(message, config);
 
   // Update the list of users raising hands in the UI
   bubble_fn_usersRaisingHand(usersRaisingHand);

@@ -147,7 +147,7 @@ export const onRoleChange = async (newRoleInTheCall) => {
   };
 
   // Use sendRTMMessage helper to send the message
-  await sendRTMMessage(JSON.stringify(roleUpdateMessage));
+  await sendRTMMessage(JSON.stringify(roleUpdateMessage), config);
 
   console.log("Sent userRoleUpdated message to RTM channel.");
 
