@@ -4,7 +4,7 @@ import { manageParticipants } from "./talkToBubble.js";
 
 let usersRaisingHand = []; // External variable to track users raising their hands
 
-export const changeUserRole = async (userUid, newRole, newRoleInTheCall) => {
+export const changeUserRole = async (userUid, newRole, newRoleInTheCall, config) => {
   console.log(
     `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
