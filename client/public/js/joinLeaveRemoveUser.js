@@ -1,7 +1,7 @@
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { manageParticipants } from "./talkToBubble.js";
 
-export const handleUserJoined = async (user, userAttr = {}) => {
+export const handleUserJoined = async (user, userAttr = {}, config) => {
   console.log("User info:", user);
   console.log("User attributes:", userAttr);
 
@@ -85,7 +85,7 @@ export const handleUserJoined = async (user, userAttr = {}) => {
 
 
 // Handles user left event
-export const handleUserLeft = async (user) => {
+export const handleUserLeft = async (user, config) => {
   console.log("Entered handleUserLeft:", user);
 
   try {
@@ -108,18 +108,12 @@ export const handleUserLeft = async (user) => {
     // Remove the user's wrapper (video element and UI components)
     await removeUserWrapper(user.uid);
 
-    // Remove the user's tracks from the config
-    if (config.userTracks && config.userTracks[user.uid]) {
-      delete config.userTracks[user.uid];
-      console.log(`Removed tracks for user ${user.uid}`);
-    } else {
-      console.log(`No tracks found for user ${user.uid}`);
-    }
-
     // Call manageParticipants with the user's UID and action "leave"
     manageParticipants(user.uid, {}, "leave");
 
     console.log(`User ${user.uid} successfully removed`);
+    console.log("config:", config);
+
   } catch (error) {
     console.error(`Error removing user ${user.uid}:`, error);
   }

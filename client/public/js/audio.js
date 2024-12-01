@@ -46,6 +46,7 @@ export const handleAudioPublished = async (user, userUid, config) => {
 
     // Update the publishing list
     updatePublishingList(userUid.toString(), "audio", "add");
+    console.log("config:", config);
   } catch (error) {
     console.error(`Error subscribing to audio for user ${userUid}:`, error);
   }

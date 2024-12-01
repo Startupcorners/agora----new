@@ -139,7 +139,7 @@ client.on("user-joined", async (user) => {
 
     try {
       // Process the user join logic
-      await handleUserJoined(user, userAttr);
+      await handleUserJoined(user, userAttr, config);
       console.log(`User ${userUid} handled successfully.`);
     } catch (error) {
       console.error(`Error handling user ${userUid}:`, error);
