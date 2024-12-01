@@ -294,7 +294,7 @@ export const setupRTMMessageListener = (config) => {
           "Role change is for the current user. Calling onRoleChange."
         );
         try {
-          await onRoleChange(newRoleInTheCall);
+          await onRoleChange(newRoleInTheCall, config);
           console.log("Successfully handled role change.");
         } catch (error) {
           console.error("Error handling role change:", error);
