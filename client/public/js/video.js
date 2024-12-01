@@ -88,7 +88,7 @@ export const handleVideoPublished = async (user, userUid, config) => {
   }
 };
 
-export const handleVideoUnpublished = async (user, userUid) => {
+export const handleVideoUnpublished = async (user, userUid, config) => {
   console.log(`Handling video unpublishing for user: ${userUid}`);
 
   // Special case: Handle screen share (UID > 999999999)
