@@ -2,6 +2,7 @@
 import {
   handleUserPublished,
   handleUserUnpublished,
+  manageUserPromise,
 } from "./publishUnpublishHub.js";
 import { handleUserJoined, handleUserLeft } from "./joinLeaveRemoveUser.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
@@ -56,40 +57,51 @@ export const setupEventListeners = (config) => {
   });
 
   // Handle when a user joins the session
-  client.on("user-joined", async (user) => {
-    console.log(`User joined: ${user.uid}`);
+client.on("user-joined", async (user) => {
+  console.log(`User joined: ${user.uid}`);
+  const userUid = user.uid.toString();
 
+  // Check if a promise already exists
+  let existingPromise = manageUserPromise(userUid, "get");
+  if (existingPromise) {
+    console.log(
+      `A promise is already running for user: ${userUid}. Waiting...`
+    );
+    await existingPromise; // Wait for the existing promise to resolve
+    console.log(`Existing promise for user ${userUid} completed.`);
+    return; // Exit early since the user is already being processed
+  }
+
+  // Create a new promise for this user
+  const userJoinPromise = (async () => {
     let userAttr = {}; // Initialize an empty object for user attributes
 
     if (config.clientRTM) {
       try {
         // Fetch attributes for the joining user
         const fetchedAttributes = await config.clientRTM.getUserAttributes(
-          user.uid.toString()
+          userUid
         );
         console.log(
-          `Fetched attributes for user ${user.uid}:`,
+          `Fetched attributes for user ${userUid}:`,
           fetchedAttributes
         );
 
-        // Merge fetched attributes with defaults to ensure all fields are covered
+        // Merge fetched attributes with defaults
         userAttr = {
           name: fetchedAttributes.name || "Unknown",
           avatar: fetchedAttributes.avatar || "default-avatar-url",
           company: fetchedAttributes.company || "Unknown",
           designation: fetchedAttributes.designation || "Unknown",
           role: fetchedAttributes.role || "audience",
-          rtmUid: fetchedAttributes.rtmUid || user.uid, // Fall back to user UID
+          rtmUid: fetchedAttributes.rtmUid || userUid, // Default to user UID
           bubbleid: fetchedAttributes.bubbleid || "",
           isRaisingHand: fetchedAttributes.isRaisingHand || false,
           sharingScreenUid: fetchedAttributes.sharingScreenUid || "0",
           roleInTheCall: fetchedAttributes.roleInTheCall || "audience",
         };
       } catch (error) {
-        console.error(
-          `Failed to fetch attributes for user ${user.uid}:`,
-          error
-        );
+        console.error(`Failed to fetch attributes for user ${userUid}:`, error);
 
         // Default attributes if fetching fails
         userAttr = {
@@ -98,7 +110,7 @@ export const setupEventListeners = (config) => {
           company: "Unknown",
           designation: "Unknown",
           role: "audience",
-          rtmUid: user.uid, // Default to user UID
+          rtmUid: userUid, // Default to user UID
           bubbleid: "",
           isRaisingHand: false,
           sharingScreenUid: "0",
@@ -107,7 +119,7 @@ export const setupEventListeners = (config) => {
       }
     } else {
       console.warn(
-        `RTM client not initialized. Skipping attribute fetch for user ${user.uid}.`
+        `RTM client not initialized. Skipping attribute fetch for user ${userUid}.`
       );
 
       // Default attributes if RTM is unavailable
@@ -117,7 +129,7 @@ export const setupEventListeners = (config) => {
         company: "Unknown",
         designation: "Unknown",
         role: "audience",
-        rtmUid: user.uid,
+        rtmUid: userUid,
         bubbleid: "",
         isRaisingHand: false,
         sharingScreenUid: "0",
@@ -126,13 +138,25 @@ export const setupEventListeners = (config) => {
     }
 
     try {
-      // Pass the user attributes along with the user and config
+      // Process the user join logic
       await handleUserJoined(user, userAttr);
-      console.log(`User ${user.uid} handled successfully.`);
+      console.log(`User ${userUid} handled successfully.`);
     } catch (error) {
-      console.error(`Error handling user ${user.uid}:`, error);
+      console.error(`Error handling user ${userUid}:`, error);
     }
-  });
+  })();
+
+  // Add the promise to the map
+  manageUserPromise(userUid, "add", userJoinPromise);
+
+  // Wait for the promise to complete
+  await userJoinPromise;
+
+  // Remove the promise from the map
+  manageUserPromise(userUid, "remove");
+  console.log(`Promise for user ${userUid} completed and removed.`);
+});
+
 
   // Handle when a user leaves the session
   client.on("user-left", async (user) => {
