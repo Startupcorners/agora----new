@@ -27,10 +27,18 @@ export const playStreamInDiv = (config, userId, divId) => {
       console.log(
         "UserId does not match config.uid. Fetching remote video track..."
       );
-      const remoteUser = client.remoteUsers.find((user) => user.uid === userId);
-      console.log("Remote user found:", remoteUser);
-      videoTrack = remoteUser?.videoTrack;
-      console.log("Remote video track:", videoTrack);
+const remoteUser = client.remoteUsers.find(
+  (user) => user.uid.toString() === userId.toString()
+);
+console.log("Remote user found:", remoteUser);
+
+if (remoteUser) {
+  videoTrack = remoteUser.videoTrack; // Access the videoTrack of the remote user
+  console.log("Remote video track:", videoTrack);
+} else {
+  console.warn(`Remote user with UID ${userId} not found.`);
+}
+
     }
 
     // Check if the user has a valid video track
