@@ -468,9 +468,6 @@ export const stopCamera = async (config) => {
     console.log("Turning off the camera for user:", config.uid);
 
     console.log("Unpublishing video track globally...");
-    if (isVirtualBackGroundEnabled) {
-      await disableVirtualBackground(config);
-    }
     await client.unpublish([localVideoTrack]);
       
 
@@ -577,6 +574,7 @@ export const enableVirtualBackgroundImage = async (imageSrc, config) => {
 
           // Now, pipe the processor to the video track
           videoTrack.unpipe(processor);
+          processor.unpipe();
           videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
           console.log("Processor piped to video track after setting options.");
         }
@@ -610,7 +608,6 @@ export const disableVirtualBackground = async (config) => {
 
       // Unpipe the processor and processorDestination from the video track
       videoTrack.unpipe();
-      processor.unpipe();
 
       console.log("Virtual background disabled successfully.");
     } catch (error) {
@@ -626,7 +623,6 @@ export const disableVirtualBackground = async (config) => {
   bubble_fn_background("none");
   isVirtualBackGroundEnabled = false;
   currentVirtualBackground = null;
-  processor = null;
 
   console.log("Virtual background state reset to default.");
 };
