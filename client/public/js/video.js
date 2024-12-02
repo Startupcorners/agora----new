@@ -45,6 +45,7 @@ export const handleVideoPublished = async (user, userUid, config) => {
       sharingScreenUid = newSharingUserUid;
       generatedScreenShareId = userUid.toString();
       bubble_fn_userSharingScreen(sharingScreenUid);
+      bubble_fn_isScreenOn(false);
 
       // Update the PiP avatar
       const avatarElement = document.getElementById("pip-avatar");
@@ -342,11 +343,6 @@ export const stopScreenShare = async (config) => {
   // Toggle UI
   toggleStages(false);
   playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
-
-  // Clear the screen share UID from external variable
-  sharingScreenUid = null; // Declare the sharingScreenUid outside of config
-  bubble_fn_userSharingScreen(sharingScreenUid);
-
   console.log("Screen share stopped and external variable updated.");
 };
 
