@@ -565,40 +565,58 @@ export const enableVirtualBackgroundBlur = async (config) => {
 
 export const enableVirtualBackgroundImage = async (imageSrc, config) => {
   console.log("Enabling virtual background with image source:", imageSrc);
-  const imgElement = document.createElement("img");
 
-  // Image loaded event
-  imgElement.onload = async () => {
-    console.log("Image loaded for virtual background.");
+  // Check for video track
+  const videoTrack = config.client.localTracks?.find(
+    (track) => track.trackMediaType === "video"
+  );
 
-    try {
-      // Attempt to get the processor instance
-      const processor = await getProcessorInstance(config);
+  if (!videoTrack) {
+    console.warn(
+      "No video track found. Updating background state without processor."
+    );
+    bubble_fn_background(imageSrc); // Notify Bubble with the image source
+    isVirtualBackGroundEnabled = true; // Set the external variable
+    currentVirtualBackground = imageSrc; // Set the external variable
+    return;
+  }
 
-      if (!processor) {
-        console.warn(
-          "Failed to obtain processor instance for image background. Proceeding without processor."
-        );
-      } else {
-        // If processor exists, set the background with the processor
-        processor.setOptions({ type: "img", source: imgElement });
-        console.log("Processor options set for image background.");
-        await processor.enable();
+  try {
+    // Convert image URL to Base64 and create an image element
+    const base64 = await imageUrlToBase64(imageSrc);
+    const imgElement = document.createElement("img");
+
+    imgElement.onload = async () => {
+      console.log("Image loaded for virtual background.");
+
+      try {
+        const processor = await getProcessorInstance(config);
+
+        if (!processor) {
+          console.warn(
+            "Failed to obtain processor instance. Proceeding without processor."
+          );
+        } else {
+          processor.setOptions({ type: "img", source: imgElement });
+          console.log("Processor options set for image background.");
+          await processor.enable();
+        }
+
+        // Update background state
+        bubble_fn_background(imageSrc);
+        isVirtualBackGroundEnabled = true;
+        currentVirtualBackground = imageSrc;
+      } catch (error) {
+        console.error("Error enabling virtual background image:", error);
       }
+    };
 
-      // Regardless of processor success, update the background state
-      bubble_fn_background(imageSrc); // Notify Bubble with the image source
-      isVirtualBackGroundEnabled = true; // Set the external variable
-      currentVirtualBackground = imageSrc; // Set the external variable
-    } catch (error) {
-      console.error("Error enabling virtual background image:", error);
-    }
-  };
-
-  // Convert image URL to Base64 before assigning it to the img element
-  const base64 = await imageUrlToBase64(imageSrc);
-  imgElement.src = base64;
+    imgElement.src = base64;
+  } catch (error) {
+    console.error("Error processing virtual background image:", error);
+  }
 };
+
 
 export const disableVirtualBackground = async (config) => {
   console.log("Disabling virtual background...");
