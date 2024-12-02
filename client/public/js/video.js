@@ -460,12 +460,11 @@ export const startCamera = async (config) => {
 
 export const stopCamera = async (config) => {
   const client = config.client;
+  const localVideoTrack = client.localTracks?.find(
+    (track) => track.trackMediaType === "video"
+  );
 
   try {
-    if (!config || !config.uid) {
-      throw new Error("Config object or UID is missing.");
-    }
-
     console.log("Turning off the camera for user:", config.uid);
 
     console.log("Unpublishing video track globally...");
