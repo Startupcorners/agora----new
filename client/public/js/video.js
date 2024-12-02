@@ -10,7 +10,35 @@ let screenShareTrackExternal = null;
 let cameraToggleInProgress = false; // External variable to track camera toggle progress
 let isVirtualBackGroundEnabled = false; // External variable for virtual background enabled state
 let currentVirtualBackground = null; // External variable for the current virtual background
-let processor = null; // External variable to hold the processor instance
+
+let processorOne = null;
+let processorTwo = null;
+let processorThree = null;
+let processorFour = null;
+let processorFive = null;
+let processorSix = null;
+let processorSeven = null;
+let processorEight = null;
+let processorNine = null;
+
+let imageSourcetwo =
+  "https://8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1716472390057x747743675763905500/workplace-arrangement-with-laptop.jpg";
+let imageSourceThree =
+  "https://8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1716472407250x607742611177520800/modern-company-manager-workplace-bright-office.jpg";
+let imageSourceFour =
+  "https://8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1716472419422x923666776481338000/laptop-table-modern-office-interior-workplace-concept-3d-rendering.jpg";
+let imageSourceFive =
+  "https://8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1716472444979x386006437542762100/photorealistic-view-tree-nature-with-branches-trunk.jpg";
+let imageSourceSix =
+  "https://8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1716472481033x216203155346062820/outdoor-swimming-pool-hotel-resort-neary-sea-beach.jpg";
+let imageSourceSeven =
+  "https://8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1716472499422x793571029245521400/majestic-mountain-peaks-reflected-tranquil-pond-waters-generated-by-ai.jpg";
+let imageSourceEight =
+  "https://8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1716472521369x113030800942868220/light-up-laser-show-beautiful-architecture-kiyomizu-dera-t.jpg";
+let imageSourceNine =
+  "https://8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1716472534264x734120863095309300/dreamy-aesthetic-color-year-tones-nature-landscape.jpg";
+
+
 
 export const handleVideoPublished = async (user, userUid, config) => {
   const client = config.client
@@ -421,22 +449,7 @@ export const startCamera = async (config) => {
     // Handle virtual background if enabled
     if (isVirtualBackGroundEnabled) {
       console.log("Virtual background is enabled.");
-
-      if (currentVirtualBackground === "blur") {
-        console.log("Applying blur as the virtual background...");
-        await enableVirtualBackgroundBlur(config); // Apply blur if that's the selected background
-        console.log("Blur virtual background applied successfully.");
-      } else if (currentVirtualBackground) {
-        console.log(
-          `Applying custom virtual background image: ${currentVirtualBackground}...`
-        );
-         await enableVirtualBackgroundImage(currentVirtualBackground, config); // Apply custom virtual background image
-        console.log(
-          `Custom virtual background image (${currentVirtualBackground}) applied successfully.`
-        );
-      } else {
-        console.log("No specific virtual background is selected.");
-      }
+        await enableVirtualBackground(currentVirtualBackground); // Apply blur if that's the selected background
     } else {
       console.log("Virtual background is not enabled.");
     }
@@ -468,13 +481,6 @@ export const stopCamera = async (config) => {
     console.log("Turning off the camera for user:", config.uid);
 
     console.log("Unpublishing video track globally...");
-    if(processor){
-      await processor.disable(); // Disable the processor
-      await processor.unpipe(); // Disable the processor
-      await processor.release();
-      await localVideoTrack.unpipe();
-      processor = null;
-    }
     await client.unpublish([localVideoTrack]);
       
 
@@ -493,6 +499,13 @@ export const stopCamera = async (config) => {
       if (typeof bubble_fn_isCamOn === "function") {
         bubble_fn_isCamOn(false); // Camera is off
       }
+
+       if (processor && currentVirtualBackground) {
+        await localVideoTrack.unpipe();
+         await processor.disable(); // Disable the processor
+         await processor.unpipe(); // Disable the processor
+         await processor.release();
+       }
     
   } catch (error) {
     console.error("Error stopping the camera for user:", config.uid, error);
@@ -500,48 +513,31 @@ export const stopCamera = async (config) => {
 };
 
 
-export const toggleVirtualBackground = async (imageSrc, config) => {
+export const toggleVirtualBackground = async (imageSrc, config, index) => {
   console.log("toggleVirtualBackground called with imageSrc:", imageSrc);
 
   // Check if the virtual background is already enabled with the same image
-  if (currentVirtualBackground === imageSrc) {
+  if (currentVirtualBackground === index) {
     console.log("Virtual background matches current image, disabling.");
     await disableVirtualBackground(config); // No need for config here
-  } else if (imageSrc !== "blur") {
-    console.log("Switching to image-based virtual background.");
-    await enableVirtualBackgroundImage(imageSrc, config); // Pass the imageSrc directly
   } else {
-    console.log("Switching to blur effect virtual background.");
-    await enableVirtualBackgroundBlur(config); // Call blur directly
-  }
-};
-
-export const enableVirtualBackgroundBlur = async (config) => {
-  console.log("Enabling virtual background blur...");
-
-  try {
-    if (!processor) {
-      processor = await getProcessorInstance(config);
-    }
-      // If processor exists, set its options and enable the blur effect
-      
-      processor.setOptions({ type: "blur", blurDegree: 2 });
-      console.log("Processor options set for blur effect.");
-      await processor.enable();
-    
-
-    // Regardless of processor success, update the virtual background state
-    bubble_fn_background("blur"); // Notify Bubble of the blur effect
-    isVirtualBackGroundEnabled = true; // Set the external variable
-    currentVirtualBackground = "blur"; // Set the external variable
-  } catch (error) {
-    console.error("Error enabling virtual background blur:", error);
+    console.log("Switching to image-based virtual background.");
+    await enableVirtualBackgroundImage(index, config); // Pass the imageSrc directly
   }
 };
 
 // In enableVirtualBackgroundImage
-export const enableVirtualBackgroundImage = async (imageSrc, config) => {
-  console.log("Enabling virtual background with image source:", imageSrc);
+export const enableVirtualBackground = async (index, config) => {
+  console.log(`Enabling virtual background using processor index: ${index}`);
+
+  // Initialize processor if not already done
+  if (!processor) {
+    processor = await getProcessorInstance(config);
+    if (!processor) {
+      console.error("Failed to initialize processor.");
+      return;
+    }
+  }
 
   const videoTrack = config.client.localTracks?.find(
     (track) => track.trackMediaType === "video"
@@ -549,50 +545,62 @@ export const enableVirtualBackgroundImage = async (imageSrc, config) => {
 
   if (!videoTrack) {
     console.warn(
-      "No video track found. Updating background state without processor."
+      "No video track found. Virtual background state updated without processor."
     );
-    bubble_fn_background(imageSrc);
     isVirtualBackGroundEnabled = true;
-    currentVirtualBackground = imageSrc;
+    currentVirtualBackground = index;
     return;
   }
 
   try {
-    const base64 = await imageUrlToBase64(imageSrc);
-    const imgElement = document.createElement("img");
+    const imageSources = [
+      imageSourcetwo,
+      imageSourceThree,
+      imageSourceFour,
+      imageSourceFive,
+      imageSourceSix,
+      imageSourceSeven,
+      imageSourceEight,
+      imageSourceNine,
+    ];
 
-    imgElement.onload = async () => {
-      console.log("Image loaded for virtual background.");
-
-      try {
-        // If an existing processor is active, disable and unpipe it
-        if (!processor) {
-          processor = await getProcessorInstance(config);
-        }
-
-        // Configure the processor with the new image
-        processor.setOptions({ type: "img", source: imgElement });
-        console.log("Processor options set for image background.");
-        await processor.enable();
-
-        // Pipe the processor to the video track
-        videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
-        console.log("Processor piped to video track after setting options.");
-
-        // Update Bubble and state variables
-        bubble_fn_background(imageSrc);
-        isVirtualBackGroundEnabled = true;
-        currentVirtualBackground = imageSrc;
-      } catch (error) {
-        console.error("Error enabling virtual background image:", error);
+    if (index === 1) {
+      console.log("Configuring blur processor.");
+      processor.setOptions({
+        type: "blur",
+        blurDegree: 2,
+      });
+      console.log("Blur processor configured successfully.");
+    } else {
+      const imageSource = imageSources[index - 2]; // Adjust for 1-based index
+      if (!imageSource) {
+        console.error(`No image source found for index ${index}.`);
+        return;
       }
-    };
+      const base64Image = await imageUrlToBase64(imageSource);
+      processor.setOptions({
+        type: "image",
+        source: base64Image,
+      });
+      console.log(`Processor configured with image source for index ${index}.`);
+    }
 
-    imgElement.src = base64;
+    // Enable and pipe the processor
+    await processor.enable();
+    videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
+
+    // Update state
+    isVirtualBackGroundEnabled = true;
+    currentVirtualBackground = index;
+    console.log(`Virtual background enabled with processor index: ${index}.`);
   } catch (error) {
-    console.error("Error processing virtual background image:", error);
+    console.error(
+      `Error enabling virtual background for index ${index}:`,
+      error
+    );
   }
 };
+
 
 
 
@@ -607,21 +615,22 @@ export const disableVirtualBackground = async (config) => {
   if (processor && videoTrack) {
     try {
       await processor.disable(); // Disable the processor
-      await processor.unpipe(); // Disable the processor
-      await videoTrack.unpipe();
+      videoTrack.unpipe(); // Unpipe the video track from the processor
 
       console.log("Virtual background disabled successfully.");
     } catch (error) {
       console.error("Error disabling virtual background:", error);
     }
   } else {
-    console.warn(
-      "Processor is not initialized or video track not found. Skipping processor disable step."
-    );
+    console.warn("Processor not initialized or video track not found.");
   }
 
-  // Notify Bubble and update external state variables
-  bubble_fn_background("none");
+  // Notify Bubble and update state variables
+  if (typeof bubble_fn_background === "function") {
+    bubble_fn_background("none");
+  } else {
+    console.warn("bubble_fn_background function not found.");
+  }
   isVirtualBackGroundEnabled = false;
   currentVirtualBackground = null;
 
@@ -632,27 +641,14 @@ export const disableVirtualBackground = async (config) => {
 
 // In getProcessorInstance
 export const getProcessorInstance = async (config) => {
-  const client = config.client;
-  const userTrack = client.localTracks?.find(
-    (track) => track.trackMediaType === "video"
-  );
-
-  if (!userTrack || !config.extensionVirtualBackground) {
-    console.warn("Missing video track or virtual background extension.");
-    return null;
-  }
-
   try {
-    // Create and initialize a new processor
-    console.log("Creating new processor.");
-    processor = config.extensionVirtualBackground.createProcessor();
+    console.log("Initializing new virtual background processor...");
+    const processor = config.extensionVirtualBackground.createProcessor();
     await processor.init();
-    console.log("Processor created successfully.");
-
+    console.log("Processor initialized successfully.");
     return processor;
   } catch (error) {
     console.error("Failed to initialize processor:", error);
-    processor = null;
     return null;
   }
 };
@@ -661,18 +657,19 @@ export const getProcessorInstance = async (config) => {
 
 export const imageUrlToBase64 = async (url) => {
   try {
-    const data = await fetch(url);
-    const blob = await data.blob();
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch image. HTTP Status: ${response.status}`);
+    }
+    const blob = await response.blob();
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.readAsDataURL(blob);
       reader.onloadend = () => resolve(reader.result);
-      reader.onerror = reject;
+      reader.onerror = () => reject(new Error("Error reading blob as base64"));
+      reader.readAsDataURL(blob);
     });
   } catch (error) {
-    console.error("Failed to convert image URL to base64. Error:", error);
+    console.error("Failed to convert image URL to base64:", error);
     throw error;
   }
 };
-
-

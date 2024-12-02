@@ -129,9 +129,6 @@ export const newMainApp = async function (initConfig) {
   checkMicrophonePermissions(config);
   updateSelectedDevices(config);
 
-
-
-
   // Call the join function at the end
   try {
     console.log("Attempting to join...");
