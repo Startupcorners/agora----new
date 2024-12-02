@@ -2,7 +2,22 @@ import { updatePublishingList, manageParticipants } from "./talkToBubble.js";
 import { joinVideoStage, leaveVideoStage } from "./joinleavestage.js";
 import { sendRTMMessage } from "./helperFunctions.js";
 
-let previousRoleInTheCall = null; // Store the previous role globally
+// Store the previous role globally
+let previousRoleInTheCall = null;
+
+/**
+ * Retrieve the current value of previousRoleInTheCall.
+ */
+export const getPreviousRoleInTheCall = () => previousRoleInTheCall;
+
+/**
+ * Update the value of previousRoleInTheCall.
+ * @param {string} role - The new role to set.
+ */
+export const setPreviousRoleInTheCall = (role) => {
+  console.log(`Updating previousRoleInTheCall from ${previousRoleInTheCall} to ${role}`);
+  previousRoleInTheCall = role;
+};
 
 
 const handleRoleChange = async (newRoleInTheCall, config) => {

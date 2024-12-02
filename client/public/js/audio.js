@@ -1,27 +1,40 @@
 import { updatePublishingList } from "./talkToBubble.js";
 import { updateMicStatusElement } from "./uiHandlers.js";
+import { getPreviousRoleInTheCall } from "./audio.js";
 
 export const handleAudioPublished = async (user, userUid, config) => {
-    const client = config.client
+  const client = config.client;
   console.log(`Handling audio published for user: ${userUid}`);
   console.log("config", config);
 
   try {
-    // Check if the user's role is "waiting"
-    if (config.user.roleInTheCall === "waiting") {
-      console.warn(
-        `User ${userUid} is in 'waiting' role. Subscribing but muting audio.`
+    // Check if the current role is "waiting"
+    if (config.user.role === "waiting") {
+      const previousRole = getPreviousRoleInTheCall();
+
+      console.log(
+        `Current role is 'waiting'. Previous role retrieved: ${previousRole}`
       );
 
-      // Subscribe to the audio track even if the user is waiting
-      await client.subscribe(user, "audio");
-      console.log(`Subscribed to audio track for user ${userUid}`);
-      console.log("config:", config);
-      return; // Exit, no need to proceed with playing audio or updating UI
+      // If the previous role is null or "waiting", subscribe but mute
+      if (previousRole === null || previousRole === "waiting") {
+        console.warn(
+          `User ${userUid} is in 'waiting' or had a previous role of 'waiting'. Subscribing but muting audio.`
+        );
+
+        // Subscribe to the audio track
+        await client.subscribe(user, "audio");
+        console.log(`Subscribed to audio track for user ${userUid}`);
+
+        // Do not play the audio
+        console.log(
+          `Audio for user ${userUid} is muted due to role: ${config.user.role} and previous role: ${previousRole}`
+        );
+        return; // Exit, no need to proceed with playing audio or updating UI
+      }
     }
 
-    // If the user is not in the "waiting" role, proceed as normal
-    // Subscribe to the audio track using the client object
+    // If not in "waiting" or if the previous role allows it, proceed as normal
     await client.subscribe(user, "audio");
     console.log(`Subscribed to audio track for user ${userUid}`);
 
@@ -47,6 +60,7 @@ export const handleAudioPublished = async (user, userUid, config) => {
     console.error(`Error subscribing to audio for user ${userUid}:`, error);
   }
 };
+
 
 export const handleAudioUnpublished = async (user, userUid, config) => {
     const client = config.client;
