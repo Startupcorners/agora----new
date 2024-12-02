@@ -45,6 +45,7 @@ const handleRoleChange = async (newRoleInTheCall, config) => {
           console.log(`Playing audio track for user ${remoteUser.uid}...`);
           audioTrack.play(); // Start playing the audio track
           console.log(`Audio track for user ${remoteUser.uid} is now playing.`);
+          updatePublishingList(remoteUser.uid.toString(), "audio", "add");
 
           // Update mic status dynamically
           const micStatusElement = document.getElementById(
