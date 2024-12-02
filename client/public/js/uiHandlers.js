@@ -67,36 +67,64 @@ export function updateMicStatusElement(uid, isMuted) {
   }
 }
 
-export const stopUserCamera = async (userUid, config) => {
-  console.log(`Sending stop camera message for user ${userUid}`);
+export const stopUserCamera = async (userUids, config) => {
+  console.log(`Sending stop camera messages for users: ${userUids.join(", ")}`);
 
-  // Prepare the stop camera message
-  const message = JSON.stringify({
-    type: "stopCamera",
-    userUid: userUid,
-  });
+  for (const userUid of userUids) {
+    try {
+      // Prepare the stop camera message for the current user
+      const message = JSON.stringify({
+        type: "stopCamera",
+        userUid: userUid,
+      });
 
-  // Use the helper function to send the RTM message
-  await sendRTMMessage(message, config);
+      // Use the helper function to send the RTM message
+      console.log(`Sending stop camera message for user ${userUid}...`);
+      await sendRTMMessage(message, config);
 
-  console.log(`Stop camera request for user ${userUid} completed.`);
+      console.log(`Stop camera request for user ${userUid} completed.`);
+    } catch (error) {
+      console.error(
+        `Error sending stop camera message for user ${userUid}:`,
+        error
+      );
+    }
+  }
+
+  console.log(
+    `Stop camera requests completed for users: ${userUids.join(", ")}`
+  );
 };
 
 
-export const stopUserMic = async (userUid, config) => {
-  console.log(`Sending stop mic message for user ${userUid}`);
 
-  // Prepare the stop mic message
-  const message = JSON.stringify({
-    type: "stopMic",
-    userUid: userUid,
-  });
+export const stopUserMic = async (userUids, config) => {
+  console.log(`Sending stop mic messages for users: ${userUids.join(", ")}`);
 
-  // Use the helper function to send the RTM message
-  await sendRTMMessage(message, config);
+  for (const userUid of userUids) {
+    try {
+      // Prepare the stop mic message
+      const message = JSON.stringify({
+        type: "stopMic",
+        userUid: userUid,
+      });
 
-  console.log(`Stop mic request for user ${userUid} completed.`);
+      // Use the helper function to send the RTM message
+      console.log(`Sending stop mic message for user ${userUid}...`);
+      await sendRTMMessage(message, config);
+
+      console.log(`Stop mic request for user ${userUid} completed.`);
+    } catch (error) {
+      console.error(
+        `Error sending stop mic message for user ${userUid}:`,
+        error
+      );
+    }
+  }
+
+  console.log(`Stop mic requests completed for users: ${userUids.join(", ")}`);
 };
+
 
 
 export const denyAccess = async (userUid, config) => {
@@ -136,37 +164,49 @@ export const stopUserScreenshare = async (userUid, config) => {
 
 
 
-export const raiseHand = async (userUid, config) => {
-  console.log(`Processing raise hand action for user ${userUid}`);
+export const raiseHand = async (userUids, config) => {
+  console.log(`Processing raise hand action for users: ${userUids.join(", ")}`);
 
-  // Check if the user is already in the list
-  const isRaisingHand = usersRaisingHand.includes(userUid);
+  for (const userUid of userUids) {
+    try {
+      // Check if the user is already in the list
+      const isRaisingHand = usersRaisingHand.includes(userUid);
 
-  // Update the `usersRaisingHand` list
-  if (!isRaisingHand) {
-    // Add the user to the list if not present
-    usersRaisingHand.push(userUid);
-    console.log(`User ${userUid} added to raising hand list.`);
-  } else {
-    // Remove the user from the list if already present
-    usersRaisingHand = usersRaisingHand.filter((uid) => uid !== userUid);
-    console.log(`User ${userUid} removed from raising hand list.`);
+      // Update the `usersRaisingHand` list
+      if (!isRaisingHand) {
+        // Add the user to the list if not present
+        usersRaisingHand.push(userUid);
+        console.log(`User ${userUid} added to raising hand list.`);
+      } else {
+        // Remove the user from the list if already present
+        usersRaisingHand = usersRaisingHand.filter((uid) => uid !== userUid);
+        console.log(`User ${userUid} removed from raising hand list.`);
+      }
+
+      // Prepare the message payload for raising hand
+      const message = JSON.stringify({
+        type: "raiseHand",
+        userUid: userUid,
+      });
+
+      // Use the helper function to send the RTM message
+      await sendRTMMessage(message, config);
+
+      console.log(`Raise hand action processed for user ${userUid}.`);
+    } catch (error) {
+      console.error(
+        `Error processing raise hand action for user ${userUid}:`,
+        error
+      );
+    }
   }
-
-  // Prepare the message payload for raising hand
-  const message = JSON.stringify({
-    type: "raiseHand",
-    userUid: userUid,
-  });
-
-  // Use the helper function to send the RTM message
-  await sendRTMMessage(message, config);
 
   // Update the list of users raising hands in the UI
   bubble_fn_usersRaisingHand(usersRaisingHand);
 
-  console.log(`Raise hand action for user ${userUid} completed.`);
+  console.log(`Raise hand actions completed for users: ${userUids.join(", ")}`);
 };
+
 
 
 export const handleRaisingHand = async (userUid) => {
