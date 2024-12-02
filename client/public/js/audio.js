@@ -93,6 +93,7 @@ export const handleAudioUnpublished = async (user, userUid, config) => {
 
     // Update the publishing list
     updatePublishingList(userUid.toString(), "audio", "remove");
+    console.log("config:", config);
   } catch (error) {
     console.error(
       `Error handling audio unpublishing for user ${userUid}:`,
