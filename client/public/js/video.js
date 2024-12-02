@@ -603,28 +603,25 @@ export const enableVirtualBackgroundImage = async (imageSrc, config) => {
 export const disableVirtualBackground = async (config) => {
   console.log("Disabling virtual background...");
 
-  // Check if the processor is initialized
-  if (!processor) {
-    console.warn(
-      "Processor is not initialized. Proceeding to disable virtual background without processor."
-    );
-  } else {
+  if (processor) {
     try {
-      // If the processor exists, disable it
-      await processor.disable();
+      await processor.disable(); // Disable the processor if initialized
       console.log("Virtual background disabled successfully.");
     } catch (error) {
       console.error("Error disabling virtual background:", error);
     }
+  } else {
+    console.warn("Processor is not initialized. Skipping processor disable step.");
   }
 
-  // Notify Bubble to reset the background to "none"
+  // Notify Bubble and update external state variables
   bubble_fn_background("none");
-
-  // Update the external state variables
   isVirtualBackGroundEnabled = false;
   currentVirtualBackground = null;
+
+  console.log("Virtual background state reset to default.");
 };
+
 
 export const getProcessorInstance = async (config) => {
   const client = config.client
