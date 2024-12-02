@@ -592,8 +592,8 @@ export const enableVirtualBackgroundImage = async (imageSrc, config) => {
         }
 
         // Ensure the processor is piped to the video track
-        videoTrack.unpipe(processor);
         processor.unpipe();
+        videoTrack.unpipe(processor);
         videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
         console.log("Processor piped to video track after setting options.");
 
