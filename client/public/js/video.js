@@ -561,24 +561,43 @@ export const enableVirtualBackgroundImage = async (imageSrc, config) => {
       console.log("Image loaded for virtual background.");
 
       try {
-        const processor = await getProcessorInstance(config);
-
+        // Check if the processor already exists
         if (!processor) {
-          console.warn(
-            "Failed to obtain processor instance. Proceeding without processor."
+          console.log("No existing processor found. Creating a new one.");
+          processor = await getProcessorInstance(config);
+
+          if (!processor) {
+            console.warn(
+              "Failed to obtain processor instance. Proceeding without processor."
+            );
+            return;
+          }
+        } else {
+          console.log("Reusing existing processor.");
+        }
+
+        // Check if the processor is already configured with this image
+        if (
+          processor.options?.type === "img" &&
+          processor.options?.source === imgElement
+        ) {
+          console.log(
+            "Processor is already configured with this image. Skipping reconfiguration."
           );
         } else {
+          // Configure the processor with the new image
           processor.setOptions({ type: "img", source: imgElement });
           console.log("Processor options set for image background.");
           await processor.enable();
-
-          // Now, pipe the processor to the video track
-          videoTrack.unpipe(processor);
-          processor.unpipe();
-          videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
-          console.log("Processor piped to video track after setting options.");
         }
 
+        // Ensure the processor is piped to the video track
+        videoTrack.unpipe(processor);
+        processor.unpipe();
+        videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
+        console.log("Processor piped to video track after setting options.");
+
+        // Update Bubble and state variables
         bubble_fn_background(imageSrc);
         isVirtualBackGroundEnabled = true;
         currentVirtualBackground = imageSrc;
@@ -636,30 +655,18 @@ export const getProcessorInstance = async (config) => {
     (track) => track.trackMediaType === "video"
   );
 
-  if (processor) {
-    console.log("Reusing existing processor.");
-    return processor;
-  }
-
-  console.log("Creating new processor.");
-
   if (!userTrack || !config.extensionVirtualBackground) {
     console.warn("Missing video track or virtual background extension.");
     return null;
   }
 
   try {
-    if (processor) {
-      console.log("Unpiping existing processor from video track.");
-      userTrack.unpipe(processor);
-    }
-
-    // Create and initialize a new processor without piping
+    // Create and initialize a new processor
+    console.log("Creating new processor.");
     processor = config.extensionVirtualBackground.createProcessor();
     await processor.init();
-    console.log("Processor created but not yet piped to video track.");
+    console.log("Processor created successfully.");
 
-    // Return the processor without piping
     return processor;
   } catch (error) {
     console.error("Failed to initialize processor:", error);
@@ -667,6 +674,7 @@ export const getProcessorInstance = async (config) => {
     return null;
   }
 };
+
 
 
 export const imageUrlToBase64 = async (url) => {
