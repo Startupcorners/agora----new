@@ -606,12 +606,7 @@ export const disableVirtualBackground = async (config) => {
       await processor.disable(); // Disable the processor
 
       // Unpipe the processor and processorDestination from the video track
-      videoTrack.unpipe(processor);
-      processor.unpipe();
-      videoTrack.processorDestination.unpipe();
-      console.log(
-        "Processor and processorDestination unpiped from video track."
-      );
+      videoTrack.unpipe();
 
       console.log("Virtual background disabled successfully.");
     } catch (error) {
