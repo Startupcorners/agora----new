@@ -471,7 +471,7 @@ export const stopCamera = async (config) => {
     if(processor){
       await processor.disable(); // Disable the processor
       await processor.unpipe(); // Disable the processor
-      await videoTrack.unpipe();
+      await localVideoTrack.unpipe();
       processor = null;
     }
     await client.unpublish([localVideoTrack]);
