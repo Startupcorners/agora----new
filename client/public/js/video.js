@@ -100,7 +100,7 @@ export const handleVideoUnpublished = async (user, userUid, config) => {
 
     try {
       // Check if the local user is the one sharing
-      if (sharingScreenUid === config.toString()) {
+      if (sharingScreenUid === config.uid.toString()) {
         console.log(
           `Local user (UID: ${userUid}) was sharing. Stopping local screen share.`
         );
