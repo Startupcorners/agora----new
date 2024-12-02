@@ -413,28 +413,9 @@ export const startCamera = async (config) => {
 
     console.log("Turning on the camera for user:", config.uid);
 
-    // Find the local video track
-    let videoTrack = client.localTracks?.find(
-      (track) => track.trackMediaType === "video"
-    );
-
-    if (videoTrack) {
-      console.log("Video track already exists; enabling it...");
-      await videoTrack.setEnabled(true); // Enable the existing track
-    } else {
-      console.log("No video track found; creating a new one...");
-      // Create a new video track
-      videoTrack = await AgoraRTC.createCameraVideoTrack();
-
-      if (!videoTrack) {
-        console.error("Failed to create a new video track!");
-        return;
-      }
-
       // Publish the video track
-      await client.publish([videoTrack]);
+    await client.publish([videoTrack]);
       console.log("Camera turned on and published.");
-    }
 
     // Handle virtual background if enabled
     if (isVirtualBackGroundEnabled) {
@@ -486,19 +467,9 @@ export const stopCamera = async (config) => {
 
     console.log("Turning off the camera for user:", config.uid);
 
-    // Find the local video track
-    const localVideoTrack = client.localTracks?.find(
-      (track) => track.trackMediaType === "video"
-    );
-
-    if (localVideoTrack) {
-      // Disable the video track locally
-      console.log("Disabling video track locally...");
-      await localVideoTrack.setEnabled(false);
-
-      // Optionally unpublish the video track globally
-      console.log("Unpublishing video track globally...");
-      await client.unpublish([localVideoTrack]);
+    console.log("Unpublishing video track globally...");
+    await client.unpublish([localVideoTrack]);
+      
 
       console.log("Camera turned off and unpublished.");
       updatePublishingList(config.uid.toString(), "video", "remove");
@@ -515,9 +486,7 @@ export const stopCamera = async (config) => {
       if (typeof bubble_fn_isCamOn === "function") {
         bubble_fn_isCamOn(false); // Camera is off
       }
-    } else {
-      console.warn("No active video track to stop for user:", config.uid);
-    }
+    
   } catch (error) {
     console.error("Error stopping the camera for user:", config.uid, error);
   }
