@@ -1,6 +1,6 @@
 import { updatePublishingList } from "./talkToBubble.js";
 import { updateMicStatusElement } from "./uiHandlers.js";
-import { getPreviousRoleInTheCall } from "./audio.js";
+import { getPreviousRoleInTheCall } from "./roleChange.js";
 
 export const handleAudioPublished = async (user, userUid, config) => {
   const client = config.client;
