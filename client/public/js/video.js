@@ -160,8 +160,9 @@ export const handleVideoUnpublished = async (user, userUid, config) => {
         // Reset screen share tracking
         screenShareRTMClient = null;
         screenShareRTCClient = null;
-        sharingScreenUid = null;
         screenShareTrackExternal = null;
+        generatedScreenShareId = null;
+        sharingScreenUid = null;
         bubble_fn_userSharingScreen(sharingScreenUid);
       }
     } catch (error) {
@@ -344,10 +345,6 @@ export const stopScreenShare = async (config) => {
 
   // Clear the screen share UID from external variable
   sharingScreenUid = null; // Declare the sharingScreenUid outside of config
-  screenShareRTMClient = null;
-  screenShareRTCClient = null;
-  screenShareTrackExternal = null;
-  generatedScreenShareId = null;
   bubble_fn_userSharingScreen(sharingScreenUid);
 
   console.log("Screen share stopped and external variable updated.");
