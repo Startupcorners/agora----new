@@ -16,6 +16,7 @@ export const handleAudioPublished = async (user, userUid, config) => {
       // Subscribe to the audio track even if the user is waiting
       await client.subscribe(user, "audio");
       console.log(`Subscribed to audio track for user ${userUid}`);
+      console.log("config:", config);
       return; // Exit, no need to proceed with playing audio or updating UI
     }
 
