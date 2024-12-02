@@ -323,19 +323,30 @@ export const startScreenShare = async (config) => {
 
 
 export const stopScreenShare = async (config) => {
-  const screenShareUid = generatedScreenShareId; // Use the dynamic UID
+  // Check if the current user is the one sharing the screen
+  if (sharingScreenUid !== config.uid.toString()) {
+    console.warn(
+      `User with UID ${config.uid} attempted to stop screen sharing, but the sharing UID is ${sharingScreenUid}. Action denied.`
+    );
+    return; // Exit the function if the user is not the screen sharer
+  }
 
+  const screenShareUid = generatedScreenShareId; // Use the dynamic UID
   console.log("Stopping screen share for UID:", screenShareUid);
 
   // Use the external screen share track
   if (screenShareTrackExternal) {
-    // Unpublish the screen share track
-    await screenShareRTCClient.unpublish([screenShareTrackExternal]);
-    screenShareTrackExternal.stop();
-    screenShareTrackExternal.close();
+    try {
+      // Unpublish the screen share track
+      await screenShareRTCClient.unpublish([screenShareTrackExternal]);
+      screenShareTrackExternal.stop();
+      screenShareTrackExternal.close();
 
-    console.log("Screen share stopped successfully.");
-    bubble_fn_isScreenOn(false);
+      console.log("Screen share stopped successfully.");
+      bubble_fn_isScreenOn(false);
+    } catch (error) {
+      console.error("Error while stopping the screen share track:", error);
+    }
   } else {
     console.warn("No screen share track found.");
   }
@@ -343,8 +354,14 @@ export const stopScreenShare = async (config) => {
   // Toggle UI
   toggleStages(false);
   playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
+
+  // Reset the sharing screen UID
+  sharingScreenUid = null;
+  generatedScreenShareId = null;
+
   console.log("Screen share stopped and external variable updated.");
 };
+
 
 export const toggleCamera = async (config) => {
   const client = config.client;

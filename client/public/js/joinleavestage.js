@@ -1,6 +1,9 @@
 import { updatePublishingList } from "./talkToBubble.js";
 import { updateMicStatusElement } from "./uiHandlers.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
+import { startMic, endMic } from "./audio.js";
+import { stopCamera, stopScreenShare } from "./video.js";
+
 
 
 
@@ -58,28 +61,25 @@ export const joinVideoStage = async (config) => {
 
 
 // Function to leave the video stage
-export const leaveVideoStage = async () => {
+export const leaveVideoStage = async (config) => {
   console.warn("leaveVideoStage called");
 
   try {
-    // Disable the audio track if it exists
-    if (config.client.localTracks.audioTrack) {
-      console.log("Disabling audio track...");
-      await config.client.localTracks.audioTrack.setEnabled(false);
-      console.log("Audio track disabled");
+    // Turn off mic, camera, and stop screen sharing
+    await endMic(config); // Disable and clean up the microphone
+    await stopCamera(config); // Disable and clean up the camera
+    await stopScreenShare(config); // Stop screen sharing if active
+
+    // Remove user wrapper (UI cleanup)
+    if (config.uid) {
+      await removeUserWrapper(config.uid);
+      console.log(`Removed user wrapper for UID: ${config.uid}`);
+    } else {
+      console.warn("No UID provided for removeUserWrapper.");
     }
 
-    // Disable the video track if it exists
-    if (config.client.localTracks.videoTrack) {
-      console.log("Disabling video track...");
-      await config.client.localTracks.videoTrack.setEnabled(false);
-      console.log("Video track disabled");
-    }
-
-    await removeUserWrapper(config.uid);
-
-    // Update stage status to false, as the user has left the stage
-    console.log("Left the video stage successfully");
+    // Update stage status to reflect that the user has left
+    console.log("Left the video stage successfully.");
   } catch (error) {
     console.error("Error in leaveVideoStage:", error);
   }

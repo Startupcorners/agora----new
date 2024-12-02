@@ -134,7 +134,7 @@ export const toggleMic = async (config) => {
 
 
 
-const startMic = async (config) => {
+export const startMic = async (config) => {
   const client = config.client;
 
   try {
@@ -181,7 +181,7 @@ const startMic = async (config) => {
 
 
 
-const endMic = async (config) => {
+export const endMic = async (config) => {
   const client = config.client;
 
   try {
