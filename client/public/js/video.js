@@ -5,6 +5,7 @@ import { fetchTokens } from "./fetchTokens.js";
 let sharingScreenUid = null; // Declare the sharingScreenUid outside of config
 let screenShareRTMClient = null;
 let screenShareRTCClient = null;
+let generatedScreenShareId = null;
 let screenShareTrackExternal = null;
 let cameraToggleInProgress = false; // External variable to track camera toggle progress
 let isVirtualBackGroundEnabled = false; // External variable for virtual background enabled state
@@ -42,6 +43,7 @@ export const handleVideoPublished = async (user, userUid, config) => {
 
       // Set sharingScreenUid to the sharing user's UID
       sharingScreenUid = newSharingUserUid;
+      generatedScreenShareId = userUid.toString();
       bubble_fn_userSharingScreen(sharingScreenUid);
 
       // Update the PiP avatar
@@ -58,7 +60,8 @@ export const handleVideoPublished = async (user, userUid, config) => {
 
       // Play screen share track
       playStreamInDiv(config, userUid, "#screen-share-content");
-      playStreamInDiv(config, sharingScreenUid, "#pip-video-track");
+      playStreamInDiv(config, sharingScreenUid, "#pip-video-track") = 
+
 
       // Toggle stage to screen share
       toggleStages(true);
@@ -306,6 +309,7 @@ export const startScreenShare = async (config) => {
 
     // Update external variable with new screen share info
     sharingScreenUid = config.uid.toString(); // Set sharingScreenUid directly
+    generatedScreenShareId = screenShareUid;
     bubble_fn_userSharingScreen(sharingScreenUid);
 
     console.log("Screen sharing started successfully.");
@@ -319,7 +323,7 @@ export const startScreenShare = async (config) => {
 };
 
 export const stopScreenShare = async (config) => {
-  const screenShareUid = config.generatedScreenShareId; // Use the dynamic UID
+  const screenShareUid = generatedScreenShareId; // Use the dynamic UID
 
   console.log("Stopping screen share for UID:", screenShareUid);
 
@@ -341,7 +345,11 @@ export const stopScreenShare = async (config) => {
   playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
 
   // Clear the screen share UID from external variable
-  sharingScreenUid = null; // Reset the external variable
+  sharingScreenUid = null; // Declare the sharingScreenUid outside of config
+  screenShareRTMClient = null;
+  screenShareRTCClient = null;
+  screenShareTrackExternal = null;
+  generatedScreenShareId = null;
   bubble_fn_userSharingScreen(sharingScreenUid);
 
   console.log("Screen share stopped and external variable updated.");
