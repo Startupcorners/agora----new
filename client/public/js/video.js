@@ -372,6 +372,7 @@ export const toggleCamera = async (config) => {
     }
 
     console.log("User's UID:", config.uid);
+    console.log("Config", config);
 
     if (cameraToggleInProgress) {
       console.warn("Camera toggle already in progress, skipping...");
@@ -447,7 +448,7 @@ export const startCamera = async (config) => {
         console.log(
           `Applying custom virtual background image: ${currentVirtualBackground}...`
         );
-        await enableVirtualBackgroundImage(config, currentVirtualBackground); // Apply custom virtual background image
+        await enableVirtualBackgroundImage(currentVirtualBackground, config); // Apply custom virtual background image
         console.log(
           `Custom virtual background image (${currentVirtualBackground}) applied successfully.`
         );
