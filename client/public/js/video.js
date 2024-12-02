@@ -315,18 +315,7 @@ export const startScreenShare = async (config) => {
     console.log("Screen sharing started successfully.");
 } catch (error) {
   console.error("Error during screen share initialization:", error);
-} finally {
-  if (screenShareTrackExternal) {
-    screenShareTrackExternal.stop();
-    screenShareTrackExternal.close();
-  }
-  if (screenShareRTCClient) {
-    await screenShareRTCClient.leave();
-  }
-  if (screenShareRTMClient) {
-    await screenShareRTMClient.logout();
-  }
-}
+} 
 }
 
 
