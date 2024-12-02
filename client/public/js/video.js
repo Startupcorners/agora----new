@@ -60,7 +60,7 @@ export const handleVideoPublished = async (user, userUid, config) => {
 
       // Play screen share track
       playStreamInDiv(config, userUid, "#screen-share-content");
-      playStreamInDiv(config, sharingScreenUid, "#pip-video-track") = 
+      playStreamInDiv(config, sharingScreenUid, "#pip-video-track"); 
 
 
       // Toggle stage to screen share
@@ -182,7 +182,7 @@ export const handleVideoUnpublished = async (user, userUid, config) => {
   updatePublishingList(userUid.toString(), "video", "remove");
 
   // Stop displaying the user's video in the UI
-  playStreamInDiv(userUid, `#stream-${userUid}`);
+  playStreamInDiv(config, userUid, `#stream-${userUid}`);
 };
 
 export const toggleScreenShare = async (config) => {
@@ -313,14 +313,22 @@ export const startScreenShare = async (config) => {
     bubble_fn_userSharingScreen(sharingScreenUid);
 
     console.log("Screen sharing started successfully.");
-  } catch (error) {
-    console.error(
-      "Error during screen share initialization:",
-      error.message,
-      error.stack
-    );
+} catch (error) {
+  console.error("Error during screen share initialization:", error);
+} finally {
+  if (screenShareTrackExternal) {
+    screenShareTrackExternal.stop();
+    screenShareTrackExternal.close();
   }
-};
+  if (screenShareRTCClient) {
+    await screenShareRTCClient.leave();
+  }
+  if (screenShareRTMClient) {
+    await screenShareRTMClient.logout();
+  }
+}
+}
+
 
 export const stopScreenShare = async (config) => {
   const screenShareUid = generatedScreenShareId; // Use the dynamic UID
