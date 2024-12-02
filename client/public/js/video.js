@@ -470,6 +470,7 @@ export const startCamera = async (config) => {
     if (typeof bubble_fn_isCamOn === "function") {
       bubble_fn_isCamOn(true); // Camera is on
     }
+    console.log("Config", config);
   } catch (error) {
     console.error("Error starting the camera for user:", config.uid, error);
   }
@@ -508,6 +509,7 @@ export const stopCamera = async (config) => {
       } else {
         playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
       }
+      console.log("Config", config);
 
       // Notify Bubble of the camera state
       if (typeof bubble_fn_isCamOn === "function") {
