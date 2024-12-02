@@ -472,6 +472,7 @@ export const stopCamera = async (config) => {
       await processor.disable(); // Disable the processor
       await processor.unpipe(); // Disable the processor
       await videoTrack.unpipe();
+      processor = null;
     }
     await client.unpublish([localVideoTrack]);
       
@@ -622,7 +623,6 @@ export const disableVirtualBackground = async (config) => {
   bubble_fn_background("none");
   isVirtualBackGroundEnabled = false;
   currentVirtualBackground = null;
-  processor = null;
 
   console.log("Virtual background state reset to default.");
 };
