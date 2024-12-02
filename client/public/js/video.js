@@ -412,6 +412,7 @@ export const startCamera = async (config) => {
     }
 
     console.log("Turning on the camera for user:", config.uid);
+    videoTrack = await AgoraRTC.createCameraVideoTrack();
 
       // Publish the video track
     await client.publish([videoTrack]);
