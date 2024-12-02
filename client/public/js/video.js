@@ -132,6 +132,7 @@ export const handleVideoUnpublished = async (user, userUid, config) => {
         screenShareRTMClient = null;
         screenShareRTCClient = null;
         sharingScreenUid = null;
+        generatedScreenShareId = null;
         bubble_fn_userSharingScreen(sharingScreenUid);
 
         return; // Exit as local user cleanup is already handled
