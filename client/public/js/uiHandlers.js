@@ -47,7 +47,7 @@ export function updateMicStatusElement(uid, isMuted) {
   }
 }
 
-export const stopUserCamera = async (userUid) => {
+export const stopUserCamera = async (userUid, config) => {
   console.log(`Sending stop camera message for user ${userUid}`);
 
   // Prepare the stop camera message
@@ -63,7 +63,7 @@ export const stopUserCamera = async (userUid) => {
 };
 
 
-export const stopUserMic = async (userUid) => {
+export const stopUserMic = async (userUid, config) => {
   console.log(`Sending stop mic message for user ${userUid}`);
 
   // Prepare the stop mic message
@@ -116,7 +116,7 @@ export const stopUserScreenshare = async (userUid, config) => {
 
 
 
-export const raiseHand = async (userUid) => {
+export const raiseHand = async (userUid, config) => {
   console.log(`Processing raise hand action for user ${userUid}`);
 
   // Check if the user is already in the list
