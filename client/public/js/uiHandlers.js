@@ -4,28 +4,48 @@ import { manageParticipants } from "./talkToBubble.js";
 
 let usersRaisingHand = []; // External variable to track users raising their hands
 
-export const changeUserRole = async (userUid, newRole, newRoleInTheCall, config) => {
+export const changeUserRole = async (
+  userUids,
+  newRole,
+  newRoleInTheCall,
+  config
+) => {
   console.log(
-    `Changing role for user ${userUid} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
+    `Changing roles for users ${userUids.join(
+      ", "
+    )} to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
   );
 
-  await manageParticipants(userUid, {}, "leave");
+  // Iterate through the list of user UIDs
+  for (const userUid of userUids) {
+    try {
+      // Manage the participant by removing their existing role
+      console.log(`Managing participant for user ${userUid}...`);
+      await manageParticipants(userUid, {}, "leave");
 
-  // Prepare the message for the role change
-  const message = JSON.stringify({
-    type: "roleChange",
-    userUid: userUid,
-    newRole: newRole,
-    newRoleInTheCall: newRoleInTheCall,
-  });
+      // Prepare the message for the role change
+      const message = JSON.stringify({
+        type: "roleChange",
+        userUid: userUid,
+        newRole: newRole,
+        newRoleInTheCall: newRoleInTheCall,
+      });
 
-  // Use the helper function to send the RTM message
-  await sendRTMMessage(message, config);
+      // Use the helper function to send the RTM message
+      console.log(`Sending role change message for user ${userUid}...`);
+      await sendRTMMessage(message, config);
 
-  console.log(
-    `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
-  );
+      console.log(
+        `Role for user ${userUid} successfully changed to role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
+      );
+    } catch (error) {
+      console.error(`Error changing role for user ${userUid}:`, error);
+    }
+  }
+
+  console.log(`Roles successfully changed for all specified users.`);
 };
+
 
 
 export function updateMicStatusElement(uid, isMuted) {
