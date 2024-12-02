@@ -607,8 +607,6 @@ export const disableVirtualBackground = async (config) => {
 
       // Unpipe the processor and processorDestination from the video track
       videoTrack.unpipe();
-      processor.release();
-
       console.log("Virtual background disabled successfully.");
     } catch (error) {
       console.error("Error disabling virtual background:", error);
@@ -623,7 +621,6 @@ export const disableVirtualBackground = async (config) => {
   bubble_fn_background("none");
   isVirtualBackGroundEnabled = false;
   currentVirtualBackground = null;
-  processor = null;
 
   console.log("Virtual background state reset to default.");
 };
