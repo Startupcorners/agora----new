@@ -468,6 +468,9 @@ export const stopCamera = async (config) => {
     console.log("Turning off the camera for user:", config.uid);
 
     console.log("Unpublishing video track globally...");
+    if (isVirtualBackGroundEnabled) {
+      await disableVirtualBackground(config);
+    }
     await client.unpublish([localVideoTrack]);
       
 
