@@ -71,6 +71,12 @@ export const stopUserCamera = async (userUids, config) => {
   console.log(`Sending stop camera messages for users: ${userUids.join(", ")}`);
 
   for (const userUid of userUids) {
+    // Skip the current user's UID
+    if (userUid === config.uid.toString()) {
+      console.log(`Skipping stop camera for the current user UID: ${userUid}`);
+      continue;
+    }
+
     try {
       // Prepare the stop camera message for the current user
       const message = JSON.stringify({
@@ -98,10 +104,17 @@ export const stopUserCamera = async (userUids, config) => {
 
 
 
+
 export const stopUserMic = async (userUids, config) => {
   console.log(`Sending stop mic messages for users: ${userUids.join(", ")}`);
 
   for (const userUid of userUids) {
+    // Skip the current user's UID
+    if (userUid === config.uid.toString()) {
+      console.log(`Skipping stop mic for the current user UID: ${userUid}`);
+      continue;
+    }
+
     try {
       // Prepare the stop mic message
       const message = JSON.stringify({
@@ -124,6 +137,7 @@ export const stopUserMic = async (userUids, config) => {
 
   console.log(`Stop mic requests completed for users: ${userUids.join(", ")}`);
 };
+
 
 
 
