@@ -520,7 +520,7 @@ export const toggleVirtualBackground = async (config, index) => {
     await disableVirtualBackground(config); // No need for config here
   } else {
     console.log("Switching to image-based virtual background.");
-    await enableVirtualBackgroundImage(index, config); // Pass the imageSrc directly
+    await enableVirtualBackground(index, config); // Pass the imageSrc directly
   }
 };
 
