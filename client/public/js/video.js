@@ -430,7 +430,7 @@ export const startCamera = async (config) => {
         console.log(
           `Applying custom virtual background image: ${currentVirtualBackground}...`
         );
-        await enableVirtualBackgroundImage(currentVirtualBackground, config); // Apply custom virtual background image
+         await enableVirtualBackgroundImage(currentVirtualBackground, config); // Apply custom virtual background image
         console.log(
           `Custom virtual background image (${currentVirtualBackground}) applied successfully.`
         );
@@ -468,6 +468,11 @@ export const stopCamera = async (config) => {
     console.log("Turning off the camera for user:", config.uid);
 
     console.log("Unpublishing video track globally...");
+    if(processor){
+      await processor.disable(); // Disable the processor
+      await processor.unpipe(); // Disable the processor
+      await videoTrack.unpipe();
+    }
     await client.unpublish([localVideoTrack]);
       
 
@@ -513,18 +518,15 @@ export const enableVirtualBackgroundBlur = async (config) => {
   console.log("Enabling virtual background blur...");
 
   try {
-    if (processor) {
-      await processor.disable(); // Disable the processor
-      await processor.unpipe(); // Disable the processor
-      await videoTrack.unpipe();
-      processor = null;
-    } else {
+    if (!processor) {
+      processor = await getProcessorInstance(config);
+    }
       // If processor exists, set its options and enable the blur effect
-      const processor = await getProcessorInstance(config);
+      
       processor.setOptions({ type: "blur", blurDegree: 2 });
       console.log("Processor options set for blur effect.");
       await processor.enable();
-    }
+    
 
     // Regardless of processor success, update the virtual background state
     bubble_fn_background("blur"); // Notify Bubble of the blur effect
@@ -562,23 +564,8 @@ export const enableVirtualBackgroundImage = async (imageSrc, config) => {
 
       try {
         // If an existing processor is active, disable and unpipe it
-        if (processor) {
-          console.log("Disabling and unpiping existing processor...");
-          await processor.disable();
-          processor.unpipe();
-          videoTrack.unpipe(processor);
-          processor = null;
-        }
-
-        // Create a new processor instance
-        console.log("Creating and configuring a new processor...");
-        processor = await getProcessorInstance(config);
-
         if (!processor) {
-          console.warn(
-            "Failed to obtain processor instance. Proceeding without processor."
-          );
-          return;
+          processor = await getProcessorInstance(config);
         }
 
         // Configure the processor with the new image
