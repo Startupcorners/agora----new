@@ -513,7 +513,6 @@ export const stopCamera = async (config) => {
 
 
 export const toggleVirtualBackground = async (config, index) => {
-  console.log("toggleVirtualBackground called with imageSrc:", imageSrc);
 
   // Check if the virtual background is already enabled with the same image
   if (currentVirtualBackground === index) {
