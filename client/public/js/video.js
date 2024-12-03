@@ -474,6 +474,7 @@ export const stopCamera = async (config) => {
 
     if (processor && currentVirtualBackground) {
       await localVideoTrack.unpipe();
+      console.log("Releasing");
       await processor.release(); // Disable the processor
     }
 
