@@ -1,5 +1,13 @@
 import { fetchTokens } from "./fetchTokens.js";
 
+let audioRecordId,
+  audioResourceId,
+  audioTimestamp,
+  audioSid,
+  audioRecordingRTMClient,
+  audioRecordingChannelRTM;
+let recordId, resourceId, timestamp, sid;
+
 const debounce = (func, delay) => {
   let inProgress = false;
   return async (...args) => {
@@ -18,6 +26,7 @@ const debounce = (func, delay) => {
   };
 };
 
+
 export const acquireResource = async (config, scene) => {
   // Ensure scene is provided and valid
   const validScenes = ["composite", "web"];
@@ -30,11 +39,14 @@ export const acquireResource = async (config, scene) => {
   }
 
   // Determine recordId based on scene
-  let recordId;
   if (scene === "web") {
-    recordId = config.recordId;
+    if (!recordId) {
+      throw new Error("recordId is not set for web recording.");
+    }
   } else if (scene === "composite") {
-    recordId = config.audioRecordId;
+    if (!recordId) {
+      throw new Error("recordId is not set for composite recording.");
+    }
   } else {
     throw new Error(`Invalid scene: ${scene}`);
   }
@@ -49,7 +61,7 @@ export const acquireResource = async (config, scene) => {
       })
     );
 
-    const response = await fetch(config.serverUrl + "/acquire", {
+    const response = await fetch(`${config.serverUrl}/acquire`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -77,29 +89,26 @@ export const acquireResource = async (config, scene) => {
 };
 
 // Debounced Start Cloud Recording
-export const startCloudRecording = debounce(async (url) => {
-  const recordId = Math.floor(100000 + Math.random() * 900000).toString();
+// External variables
 
-  // Update recordId in config
-  config.recordId = recordId;
+
+export const startCloudRecording = debounce(async (url, config) => {
+  // Assign new recordId to external variable
+  recordId = Math.floor(100000 + Math.random() * 900000).toString();
 
   try {
-    const resourceId = await acquireResource(config, "web");
+    // Acquire resource and assign to external variable
+    resourceId = await acquireResource(config, "web");
     console.log("Resource acquired:", resourceId);
 
-    // Update resourceId in config
-    config.resourceId = resourceId;
-
-    const timestamp = Date.now().toString();
-
-    // Update timestamp in config
-    config.timestamp = timestamp;
+    // Assign timestamp to external variable
+    timestamp = Date.now().toString();
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
     console.log("Waited 2 seconds after acquiring resource");
 
     const recordingTokenResponse = await fetch(
-      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.recordId}`,
+      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${recordId}`,
       { method: "GET" }
     );
 
@@ -117,11 +126,11 @@ export const startCloudRecording = debounce(async (url) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        resourceId: config.resourceId,
+        resourceId,
         channelName: config.channelName,
-        uid: config.recordId,
+        uid: recordId,
         token: recordingToken,
-        timestamp: config.timestamp,
+        timestamp,
         serviceUrl: recordingServiceUrl,
         serverUrl: config.serverUrl, // Pass the `url` to the backend
       }),
@@ -138,8 +147,8 @@ export const startCloudRecording = debounce(async (url) => {
     if (startData.sid) {
       console.log("SID received successfully:", startData.sid);
 
-      // Update SID in config
-      config.sid = startData.sid;
+      // Assign SID to external variable
+      sid = startData.sid;
     } else {
       console.log("SID not received in the response");
     }
@@ -148,10 +157,10 @@ export const startCloudRecording = debounce(async (url) => {
 
     if (typeof bubble_fn_record === "function") {
       bubble_fn_videoRecord({
-        output1: config.resourceId,  // Use the updated resourceId
-        output2: config.sid,         // Use the updated sid
-        output3: config.recordId,    // Use the updated recordId
-        output4: config.timestamp,   // Use the updated timestamp
+        output1: resourceId,  // Use the external resourceId
+        output2: sid,         // Use the external sid
+        output3: recordId,    // Use the external recordId
+        output4: timestamp,   // Use the external timestamp
       });
     }
 
@@ -163,8 +172,9 @@ export const startCloudRecording = debounce(async (url) => {
 }, 3000); // 3-second debounce
 
 // Debounced Stop Cloud Recording
-export const stopCloudRecording = debounce(async () => {
 
+
+export const stopCloudRecording = debounce(async (config) => {
   try {
     const response = await fetch(`${config.serverUrl}/stopCloudRecording`, {
       method: "POST",
@@ -172,11 +182,11 @@ export const stopCloudRecording = debounce(async () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        resourceId: config.resourceId,
-        sid: config.sid,
-        channelName: config.channelName,
-        uid: config.recordId,
-        timestamp: config.timestamp,
+        resourceId, // Use the external variable
+        sid,        // Use the external variable
+        channelName, // Assuming channelName is globally available or imported
+        uid: recordId, // Use the external variable
+        timestamp,  // Use the external variable
       }),
     });
 
@@ -186,10 +196,12 @@ export const stopCloudRecording = debounce(async () => {
       console.log("Recording stopped successfully:", JSON.stringify(stopData));
       bubble_fn_isVideoRecording("no");
 
-      // Optionally reset or update the config if needed
-      // For example, resetting sid or resourceId
-      config.sid = null;  // Reset sid
-      config.resourceId = null;  // Reset resourceId
+      // Optionally reset the external variables
+      resourceId = null; // Reset resourceId
+      sid = null;        // Reset sid
+      recordId = null;   // Reset recordId
+      timestamp = null;  // Reset timestamp
+
       // MP4 file handling and other tasks are now done in the backend
     } else {
       console.log("Error stopping recording:", stopData.error);
@@ -200,26 +212,28 @@ export const stopCloudRecording = debounce(async () => {
 }, 3000); // 3-second debounce
 
 
+
 // Debounced Start Audio Recording
-export const startAudioRecording = debounce(async () => {
-  const recordId = Math.floor(100000 + Math.random() * 900000).toString();
-  config.audioRecordId = recordId;
+
+
+export const startAudioRecording = debounce(async (config) => {
+  // Assign new audioRecordId to external variable
+  audioRecordId = Math.floor(100000 + Math.random() * 900000).toString();
 
   try {
-    const resourceId = await acquireResource(config, "composite");
-    console.log("Resource acquired:", resourceId);
+    // Acquire resource and assign to external variable
+    audioResourceId = await acquireResource(config, "composite");
+    console.log("Resource acquired:", audioResourceId);
 
-    config.audioResourceId = resourceId;
-
-    const timestamp = Date.now().toString();
-    config.audioTimestamp = timestamp;
+    // Assign timestamp to external variable
+    audioTimestamp = Date.now().toString();
 
     // Wait for 2 seconds after acquiring the resource
     await new Promise((resolve) => setTimeout(resolve, 2000));
     console.log("Waited 2 seconds after acquiring resource");
 
     const recordingTokenResponse = await fetch(
-      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${config.audioRecordId}`,
+      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${audioRecordId}`,
       { method: "GET" }
     );
 
@@ -234,11 +248,11 @@ export const startAudioRecording = debounce(async () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        resourceId: config.audioResourceId,
+        resourceId: audioResourceId, // Use the external variable
         channelName: config.channelName,
-        uid: config.audioRecordId,
+        uid: audioRecordId, // Use the external variable
         token: recordingToken,
-        timestamp: config.audioTimestamp,
+        timestamp: audioTimestamp, // Use the external variable
       }),
     });
 
@@ -252,13 +266,13 @@ export const startAudioRecording = debounce(async () => {
 
     if (startData.sid) {
       console.log("SID received successfully:", startData.sid);
-      config.audioSid = startData.sid;
+      audioSid = startData.sid; // Assign SID to external variable
     } else {
       console.log("SID not received in the response");
     }
 
     // Create and initialize the audio recording RTM client
-    config.audioRecordingRTMClient = AgoraRTM.createInstance(config.appId, {
+    audioRecordingRTMClient = AgoraRTM.createInstance(config.appId, {
       enableLogUpload: false,
       logFilter: config.debugEnabled
         ? AgoraRTM.LOG_FILTER_INFO
@@ -269,22 +283,18 @@ export const startAudioRecording = debounce(async () => {
     const tokens = await fetchTokens(config, audioRtmUid);
     if (!tokens) throw new Error("Failed to fetch token");
 
-    // Ensure the user has a role assigned
-    if (!config.user.role) {
-      throw new Error("User does not have a role assigned.");
-    }
-
     const audioRtmToken = tokens.rtmToken;
 
-    await config.audioRecordingRTMClient.login({
+    await audioRecordingRTMClient.login({
       uid: audioRtmUid,
       token: audioRtmToken,
     });
     console.log("Audio recording RTM client logged in with UID:", audioRtmUid);
 
-    config.audioRecordingChannelRTM =
-      config.audioRecordingRTMClient.createChannel(config.channelName);
-    await config.audioRecordingChannelRTM.join();
+    audioRecordingChannelRTM = audioRecordingRTMClient.createChannel(
+      config.channelName
+    );
+    await audioRecordingChannelRTM.join();
     console.log("Audio recording RTM client joined channel:", config.channelName);
 
     bubble_fn_isAudioRecording("yes");
@@ -293,10 +303,10 @@ export const startAudioRecording = debounce(async () => {
     if (typeof bubble_fn_audioRecord === "function") {
       console.log("Running bubble_fn_audioRecord");
       bubble_fn_audioRecord({
-        output1: resourceId,
-        output2: config.audioSid,
-        output3: config.audioRecordId,
-        output4: config.audioTimestamp,
+        output1: audioResourceId, // Use the external variable
+        output2: audioSid,        // Use the external variable
+        output3: audioRecordId,   // Use the external variable
+        output4: audioTimestamp,  // Use the external variable
       });
     }
 
@@ -308,18 +318,17 @@ export const startAudioRecording = debounce(async () => {
 }, 3000); // 3-second debounce
 
 
-// Debounced Stop Audio Recording
-export const stopAudioRecording = debounce(async () => {
+export const stopAudioRecording = debounce(async (config) => {
   const requestId = Math.random().toString(36).substring(2); // Unique ID for this attempt
   console.log(`stopAudioRecording attempt started. Request ID: ${requestId}`);
 
   try {
     console.log("Request payload:", {
-      resourceId: config.audioResourceId,
-      channelName: config.channelName,
-      sid: config.audioSid,
-      uid: config.audioRecordId,
-      timestamp: config.audioTimestamp,
+      resourceId: audioResourceId, // Use external variable
+      channelName: config.channelName, // From config
+      sid: audioSid, // Use external variable
+      uid: audioRecordId, // Use external variable
+      timestamp: audioTimestamp, // Use external variable
     });
 
     const response = await fetch(`${config.serverUrl}/stopAudioRecording`, {
@@ -328,11 +337,11 @@ export const stopAudioRecording = debounce(async () => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        resourceId: config.audioResourceId,
+        resourceId: audioResourceId,
         channelName: config.channelName,
-        sid: config.audioSid,
-        uid: config.audioRecordId,
-        timestamp: config.audioTimestamp,
+        sid: audioSid,
+        uid: audioRecordId,
+        timestamp: audioTimestamp,
       }),
     });
 
@@ -363,11 +372,11 @@ export const stopAudioRecording = debounce(async () => {
     );
 
     // Cleanup audio recording RTM channel
-    if (config.audioRecordingChannelRTM) {
+    if (audioRecordingChannelRTM) {
       try {
-        await config.audioRecordingChannelRTM.leave();
+        await audioRecordingChannelRTM.leave();
         console.log("Audio recording RTM client left the channel");
-        config.audioRecordingChannelRTM = null; // Clear the RTM channel
+        audioRecordingChannelRTM = null; // Clear the RTM channel
       } catch (error) {
         console.error(
           "Failed to leave RTM channel for audio recording client:",
@@ -379,11 +388,11 @@ export const stopAudioRecording = debounce(async () => {
     }
 
     // Cleanup audio recording RTM client
-    if (config.audioRecordingRTMClient) {
+    if (audioRecordingRTMClient) {
       try {
-        await config.audioRecordingRTMClient.logout();
+        await audioRecordingRTMClient.logout();
         console.log("Audio recording RTM client logged out");
-        config.audioRecordingRTMClient = null; // Clear the RTM client
+        audioRecordingRTMClient = null; // Clear the RTM client
       } catch (error) {
         console.error("Failed to logout audio recording RTM client:", error);
       }
@@ -391,12 +400,11 @@ export const stopAudioRecording = debounce(async () => {
       console.log("No RTM client to logout.");
     }
 
-    // Update config after stopping the audio recording
-    config.audioSid = null;
-    config.audioRecordId = null;
-    config.audioResourceId = null;
-    config.audioTimestamp = null;
-
+    // Reset external variables
+    audioSid = null;
+    audioRecordId = null;
+    audioResourceId = null;
+    audioTimestamp = null;
 
     console.log(
       `stopAudioRecording cleanup completed for Request ID: ${requestId}`
