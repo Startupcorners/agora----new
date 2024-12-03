@@ -522,9 +522,7 @@ export const enableVirtualBackground = async (index, config) => {
   console.log(`Enabling virtual background using processor index: ${index}`);
 
 
-  if (!processor){
  processor = await getProcessorInstance(config);
-  }
 
 
 
