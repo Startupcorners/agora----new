@@ -521,14 +521,9 @@ export const toggleVirtualBackground = async (config, index) => {
 export const enableVirtualBackground = async (index, config) => {
   console.log(`Enabling virtual background using processor index: ${index}`);
 
-  // Initialize processor if not already done
-  if (!processor) {
-    processor = await getProcessorInstance(config);
-    if (!processor) {
-      console.error("Failed to initialize processor.");
-      return;
-    }
-  }
+
+  processor = await getProcessorInstance(config);
+
 
   const videoTrack = config.client.localTracks?.find(
     (track) => track.trackMediaType === "video"
