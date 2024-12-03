@@ -473,6 +473,12 @@ export const stopCamera = async (config) => {
   try {
     console.log("Turning off the camera for user:", config.uid);
 
+    if (processor && currentVirtualBackground) {
+      await localVideoTrack.unpipe();
+      await processor.disable(); // Disable the processor
+      await processor.unpipe(); // Disable the processor
+    }
+
     console.log("Unpublishing video track globally...");
     await client.unpublish([localVideoTrack]);
       
@@ -492,12 +498,6 @@ export const stopCamera = async (config) => {
       if (typeof bubble_fn_isCamOn === "function") {
         bubble_fn_isCamOn(false); // Camera is off
       }
-
-       if (processor && currentVirtualBackground) {
-        await localVideoTrack.unpipe();
-         await processor.disable(); // Disable the processor
-         await processor.unpipe(); // Disable the processor
-       }
     
   } catch (error) {
     console.error("Error stopping the camera for user:", config.uid, error);
@@ -525,8 +525,7 @@ export const enableVirtualBackground = async (index, config) => {
   if (processor) {
     console.log("Unpiping and disabling existing processor.");
     await processor.disable();
-    processor.unpipe();
-    processor.release();
+    await processor.unpipe();
     processor = null; // Remove reference to allow garbage collection
   }
   processor = await getProcessorInstance(config);
