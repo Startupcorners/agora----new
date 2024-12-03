@@ -528,6 +528,7 @@ export const enableVirtualBackground = async (index, config) => {
   const videoTrack = config.client.localTracks?.find(
     (track) => track.trackMediaType === "video"
   );
+  console.log("videoTrack", videoTrack);
 
   if (!videoTrack) {
     console.warn(
