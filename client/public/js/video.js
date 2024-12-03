@@ -568,6 +568,7 @@ export const enableVirtualBackground = async (index, config) => {
         console.error(`No image source found for index ${index}.`);
         return;
       }
+      console.log(`Selected Image`, imageSource);
       const base64Image = await imageUrlToBase64(imageSource);
       processor.setOptions({
         type: "image",
