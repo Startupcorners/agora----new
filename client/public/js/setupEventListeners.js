@@ -18,6 +18,7 @@ let lastMutedStatuses = {}; // External variable to track the mute status of use
 let speakingIntervals = {}; // External variable to track speaking intervals for users
 let lastMicPermissionState = null; // External variable to track the microphone permission state
 let inactivityTimer;
+let isTimerActive = false; // Tracks whether the inactivity timer is active
 let stillPresentTimer;
 const inactivityTimeout = 300000; // 5 minutes in milliseconds
 const stillPresentTimeout = 60000; // 1 minute in milliseconds
@@ -629,11 +630,20 @@ const resetInactivityTimer = (config) => {
     return; // Do not reset the timer if the tab is inactive
   }
 
+  // Prevent resetting the timer if it has already expired
+  if (!isTimerActive) {
+    console.log("Inactivity timer has already expired. No reset allowed.");
+    return;
+  }
+
   clearTimeout(inactivityTimer);
   console.log("User activity detected. Resetting inactivity timer.");
 
+  isTimerActive = true; // Mark the timer as active
   inactivityTimer = setTimeout(() => {
     console.log("User inactive for 5 minutes. Displaying inactivity message.");
+    isTimerActive = false; // Mark the timer as expired
+
     if (typeof bubble_fn_inactive === "function") {
       bubble_fn_inactive(); // Show the inactivity message
       waitForStillPresentOrLeave(config); // Start waiting for user response
@@ -663,6 +673,7 @@ const waitForStillPresentOrLeave = (config) => {
 export const stillPresent = (config) => {
   console.log("User confirmed presence. Resetting inactivity timer.");
   clearTimeout(stillPresentTimer); // Stop the leave timer
+  isTimerActive = true; // Reactivate the timer after confirmation
   resetInactivityTimer(config); // Reset the inactivity timer
 };
 
@@ -689,6 +700,7 @@ const handleVisibilityChange = (config) => {
 // Initialize listeners
 export const initializeInactivityTracker = (config) => {
   console.log("Initializing enhanced inactivity tracker...");
+  isTimerActive = true; // Ensure timer starts as active
   addUserActivityListeners(config);
   document.addEventListener("visibilitychange", () =>
     handleVisibilityChange(config)

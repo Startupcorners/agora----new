@@ -178,10 +178,8 @@ export const stopUserScreenshare = async (userUid, config) => {
 
 
 
-export const raiseHand = async (userUids, config) => {
-  console.log(`Processing raise hand action for users: ${userUids.join(", ")}`);
+export const raiseHand = async (userUid, config) => {
 
-  for (const userUid of userUids) {
     try {
       // Check if the user is already in the list
       const isRaisingHand = usersRaisingHand.includes(userUid);
@@ -213,7 +211,7 @@ export const raiseHand = async (userUids, config) => {
         error
       );
     }
-  }
+  
 
   // Update the list of users raising hands in the UI
   bubble_fn_usersRaisingHand(usersRaisingHand);
@@ -229,10 +227,6 @@ export const handleRaisingHand = async (userUid) => {
     // Remove the user if they are already in the list
     usersRaisingHand = usersRaisingHand.filter((uid) => uid !== userUid);
     console.log(`User ${userUid} removed from raising hand list.`);
-  } else {
-    // Add the user if they are not in the list
-    usersRaisingHand.push(userUid);
-    console.log(`User ${userUid} added to raising hand list.`);
   }
 
   console.log("usersRaisingHand:", usersRaisingHand);
