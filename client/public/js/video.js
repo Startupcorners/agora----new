@@ -435,23 +435,22 @@ export const startCamera = async (config) => {
     console.log("Turning on the camera for user:", config.uid);
     const videoTrack = await AgoraRTC.createCameraVideoTrack();
 
-      // Publish the video track
+    // Publish the video track
     await client.publish([videoTrack]);
-      console.log("Camera turned on and published.");
-
-    // Handle virtual background if enabled
-    if (isVirtualBackGroundEnabled) {
-      console.log("Virtual background is enabled.");
-        await enableVirtualBackground(currentVirtualBackground, config); // Apply blur if that's the selected background
-    } else {
-      console.log("Virtual background is not enabled.");
-    }
+    console.log("Camera turned on and published.");
 
     // Update UI
     if (sharingScreenUid === config.uid.toString()) {
       playStreamInDiv(config, config.uid, "#pip-video-track");
     } else {
       playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
+    }
+    // Handle virtual background if enabled
+    if (isVirtualBackGroundEnabled) {
+      console.log("Virtual background is enabled.");
+      await enableVirtualBackground(currentVirtualBackground, config); // Apply blur if that's the selected background
+    } else {
+      console.log("Virtual background is not enabled.");
     }
 
     // Notify Bubble of the camera state
