@@ -526,7 +526,6 @@ export const enableVirtualBackground = async (index, config) => {
 
 
 
-  await processor.enable();
   const videoTrack = config.client.localTracks?.find(
     (track) => track.trackMediaType === "video"
   );
@@ -578,7 +577,7 @@ export const enableVirtualBackground = async (index, config) => {
     }
 
     // Enable and pipe the processor
-    
+    await processor.enable();
     videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
     
     // Update state
