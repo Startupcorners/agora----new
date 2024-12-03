@@ -24,7 +24,16 @@ import {
 import {
   templateVideoParticipant
 } from "./templates.js";
-import { setupEventListeners,setupRTMMessageListener, setupLeaveListener, checkMicrophonePermissions } from "./setupEventListeners.js";
+import {
+  setupEventListeners,
+  setupRTMMessageListener,
+  setupLeaveListener,
+  checkMicrophonePermissions,
+  initializeInactivityTracker,
+  stillPresent,
+  noHosts,
+  hostJoined
+} from "./setupEventListeners.js";
 
 export const newMainApp = async function (initConfig) {
   console.log("newMainApp called with initConfig:", initConfig);
@@ -128,6 +137,7 @@ export const newMainApp = async function (initConfig) {
   setupLeaveListener(config);
   checkMicrophonePermissions(config);
   updateSelectedDevices(config);
+  initializeInactivityTracker();
 
   // Call the join function at the end
   try {
@@ -156,7 +166,10 @@ export const newMainApp = async function (initConfig) {
     startCloudRecording,
     stopCloudRecording,
     startAudioRecording,
+    stillPresent,
     raiseHand,
+    noHosts,
+    hostJoined,
     stopAudioRecording,
     stopUserCamera, // Add stop camera function
     stopUserMic, // Add stop mic function

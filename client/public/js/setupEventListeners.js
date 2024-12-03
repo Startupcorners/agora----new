@@ -17,6 +17,13 @@ import { toggleMic } from "./audio.js";
 let lastMutedStatuses = {}; // External variable to track the mute status of users
 let speakingIntervals = {}; // External variable to track speaking intervals for users
 let lastMicPermissionState = null; // External variable to track the microphone permission state
+let inactivityTimer;
+let stillPresentTimer;
+const inactivityTimeout = 300000; // 5 minutes in milliseconds
+const stillPresentTimeout = 60000; // 1 minute in milliseconds
+let isTabActive = true; // Tracks if the tab is active
+let noHostTimer;
+const noHostTimeout = 300000; // 5 minutes in milliseconds
 
 export const setupEventListeners = (config) => {
   console.log("listenerConfig", config);
@@ -612,3 +619,112 @@ export const handleVolumeIndicator = (() => {
   };
 })();
 
+
+
+
+// Function to reset the inactivity timer
+const resetInactivityTimer = () => {
+  if (!isTabActive) {
+    console.log("Tab is inactive. Inactivity timer will not reset.");
+    return; // Do not reset the timer if the tab is inactive
+  }
+
+  clearTimeout(inactivityTimer);
+  console.log("User activity detected. Resetting inactivity timer.");
+
+  inactivityTimer = setTimeout(() => {
+    console.log("User inactive for 5 minutes. Displaying inactivity message.");
+    if (typeof bubble_fn_inactive === "function") {
+      bubble_fn_inactive(); // Show the inactivity message
+      waitForStillPresentOrLeave(); // Start waiting for user response
+    } else {
+      console.warn("bubble_fn_inactive is not defined.");
+    }
+  }, inactivityTimeout);
+};
+
+// Function to handle the user response timeout
+const waitForStillPresentOrLeave = () => {
+  clearTimeout(stillPresentTimer); // Clear any existing stillPresentTimer
+
+  stillPresentTimer = setTimeout(() => {
+    console.log(
+      "User did not respond within 1 minute. Calling leave('inactive', config)."
+    );
+    if (typeof leave === "function") {
+      leave("inactive", config); // Trigger leave with "inactive" reason
+    } else {
+      console.warn("leave is not defined.");
+    }
+  }, stillPresentTimeout);
+};
+
+// Function to be called by the user when they confirm presence
+export const stillPresent = () => {
+  console.log("User confirmed presence. Resetting inactivity timer.");
+  clearTimeout(stillPresentTimer); // Stop the leave timer
+  resetInactivityTimer(); // Reset the inactivity timer
+};
+
+// Listener for user activity
+const addUserActivityListeners = () => {
+  document.addEventListener("mousemove", resetInactivityTimer);
+  document.addEventListener("keydown", resetInactivityTimer);
+  document.addEventListener("click", resetInactivityTimer);
+  document.addEventListener("scroll", resetInactivityTimer); // Optional for scroll activity
+};
+
+// Listener for tab visibility
+const handleVisibilityChange = () => {
+  if (document.hidden) {
+    console.log("Tab is inactive. Pausing inactivity detection.");
+    isTabActive = false;
+  } else {
+    console.log("Tab is active. Resuming inactivity detection.");
+    isTabActive = true;
+    resetInactivityTimer(); // Reset the timer when the tab becomes active
+  }
+};
+
+// Initialize listeners
+export const initializeInactivityTracker = () => {
+  console.log("Initializing enhanced inactivity tracker...");
+  addUserActivityListeners();
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+  resetInactivityTimer(); // Start the timer initially
+};
+
+
+
+// Function to be triggered when no host is detected
+export const noHosts = (config) => {
+  console.log("No hosts detected. Starting 5-minute timer.");
+
+  // Clear any existing noHostTimer
+  clearTimeout(noHostTimer);
+
+  // Start the 5-minute timer
+  noHostTimer = setTimeout(() => {
+    console.log("No host joined within 5 minutes. Leaving the session.");
+    if (typeof leave === "function") {
+      leave("nohost", config); // Trigger leave with "nohost" reason
+    } else {
+      console.warn("leave function is not defined.");
+    }
+  }, noHostTimeout);
+};
+
+// Function to be triggered when a host joins
+export const hostJoined = () => {
+  console.log("A host has joined. Clearing the no-host timer.");
+
+  // Clear the no-host timer
+  clearTimeout(noHostTimer);
+
+  // Trigger Bubble function to indicate the host has joined
+  if (typeof bubble_fn_hostJoined === "function") {
+    bubble_fn_hostJoined(); // Notify Bubble that a host has joined
+  } else {
+    console.warn("bubble_fn_hostJoined is not defined.");
+  }
+};

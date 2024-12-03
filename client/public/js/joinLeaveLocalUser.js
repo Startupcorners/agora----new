@@ -158,7 +158,7 @@ export const leave = async (reason, config) => {
     console.log("Left RTM channel successfully");
 
     // Determine the appropriate reason
-    const validReasons = ["left", "removed", "deniedAccess", "connectionIssue"];
+    const validReasons = ["left", "removed", "deniedAccess", "connectionIssue", "inactive"];
     const finalReason = validReasons.includes(reason) ? reason : "other";
 
     // Call the Bubble function with the final reason

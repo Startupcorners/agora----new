@@ -1,5 +1,6 @@
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { manageParticipants } from "./talkToBubble.js";
+import { hostJoined } from "./setupEventListeners.js";
 
 export const handleUserJoined = async (user, userAttr = {}, config) => {
   console.log("User info:", user);
@@ -34,6 +35,17 @@ export const handleUserJoined = async (user, userAttr = {}, config) => {
     const roleInTheCall = userAttr.roleInTheCall || "waiting";
     console.log(`Role for user ${userUid}: ${role}`);
     console.log(`RoleInTheCall for user ${userUid}: ${roleInTheCall}`);
+
+    if (["speaker", "host", "master"].includes(roleInTheCall)) {
+      console.log(
+        `User ${userUid} has role "${roleInTheCall}". Triggering hostJoined.`
+      );
+      if (typeof hostJoined === "function") {
+        hostJoined();
+      } else {
+        console.warn("hostJoined function is not defined.");
+      }
+    }
 
     // Only proceed with wrapper if the user is a host and not in the "waiting" state
     if (
