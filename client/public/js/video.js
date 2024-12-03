@@ -634,7 +634,7 @@ export const disableVirtualBackground = async (config) => {
 export const getProcessorInstance = async (config) => {
   try {
     console.log("Initializing new virtual background processor...");
-    const processor = config.extensionVirtualBackground.createProcessor();
+    processor = config.extensionVirtualBackground.createProcessor();
     await processor.init();
     console.log("Processor initialized successfully.");
     return processor;
