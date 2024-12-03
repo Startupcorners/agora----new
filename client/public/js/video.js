@@ -521,21 +521,31 @@ export const toggleVirtualBackground = async (config, index) => {
 export const enableVirtualBackground = async (index, config) => {
   console.log(`Enabling virtual background using processor index: ${index}`);
 
+  // Initialize the processor
+  processor = await getProcessorInstance(config);
+  console.log("Initialized processor:", processor);
 
- processor = await getProcessorInstance(config);
- console.log("processor", processor)
+  // Check if processor is properly initialized
+  if (!processor) {
+    console.error(
+      "Failed to initialize processor. Aborting virtual background setup."
+    );
+    return;
+  }
+  console.log("Processor state after initialization:", {
+    initialized: processor.isInitialized ? processor.isInitialized() : null,
+    piped: processor.piped,
+  });
 
-
-
+  // Find the video track
   const videoTrack = config.client.localTracks?.find(
     (track) => track.trackMediaType === "video"
   );
-  console.log("videoTrack", videoTrack);
+  console.log("Found video track:", videoTrack);
 
+  // Verify video track availability
   if (!videoTrack) {
-    console.warn(
-      "No video track found. Virtual background state updated without processor."
-    );
+    console.warn("No video track found. Cannot apply virtual background.");
     isVirtualBackGroundEnabled = true;
     currentVirtualBackground = index;
     return;
@@ -554,42 +564,70 @@ export const enableVirtualBackground = async (index, config) => {
     ];
 
     if (index === 1) {
-      console.log("Configuring blur processor.");
+      console.log("Configuring processor for blur background.");
       processor.setOptions({
         type: "blur",
         blurDegree: 2,
       });
-      console.log("Blur processor configured successfully.");
+      console.log("Blur processor options set successfully.");
     } else {
       const imageSource = imageSources[index - 2]; // Adjust for 1-based index
+      console.log("Selected image source:", imageSource);
       if (!imageSource) {
         console.error(`No image source found for index ${index}.`);
         return;
       }
-      console.log(`Selected Image`, imageSource);
       try {
         const imageElement = await imageUrlToImageElement(imageSource);
+        console.log(
+          "Loaded image element for virtual background:",
+          imageElement
+        );
         processor.setOptions({ type: "img", source: imageElement });
-        console.log("Virtual background set successfully.");
+        console.log("Virtual background image configured successfully.");
       } catch (error) {
-        console.error("Failed to set virtual background:", error);
+        console.error("Failed to configure virtual background image:", error);
       }
-      console.log(`Processor configured with image source for index ${index}.`);
     }
 
-    // Enable and pipe the processor
+    // Enable the processor
+    console.log("Enabling processor...");
     await processor.enable();
+    console.log("Processor enabled successfully.");
+
+    // Pipe the processor
+    console.log("Piping video track through processor...");
     videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
-    console.log("processor", processor);
-    console.warn("VideoTrack that has been pipped", videoTrack);
-    
-    // Update state
+
+    // Log processor and video track state after piping
+    console.log("Processor state after piping:", {
+      initialized: processor.isInitialized ? processor.isInitialized() : null,
+      piped: processor.piped,
+    });
+    console.log("Video track state after piping:", videoTrack);
+
+    // Confirm processor destination availability
+    if (!videoTrack.processorDestination) {
+      console.error(
+        "Processor destination is not available on the video track."
+      );
+    } else {
+      console.log(
+        "Processor destination is valid:",
+        videoTrack.processorDestination
+      );
+    }
+
+    // Update state variables
     isVirtualBackGroundEnabled = true;
     currentVirtualBackground = index;
+
+    // Notify external functions
     bubble_fn_background(index);
     console.log(`Virtual background enabled with processor index: ${index}.`);
-    console.log("Config", config);
-    console.log(processor); // Disable the processor
+
+    // Log final state
+    console.log("Configuration object:", config);
   } catch (error) {
     console.error(
       `Error enabling virtual background for index ${index}:`,
@@ -597,6 +635,7 @@ export const enableVirtualBackground = async (index, config) => {
     );
   }
 };
+
 
 
 
