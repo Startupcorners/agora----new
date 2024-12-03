@@ -14,8 +14,6 @@ let currentVirtualBackground = null; // External variable for the current virtua
 
 let processor = null;
 
-let localVideoTrack = null;
-
 let imageSourcetwo =
   "https://8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1716472390057x747743675763905500/workplace-arrangement-with-laptop.jpg";
 let imageSourceThree =
@@ -436,7 +434,6 @@ export const startCamera = async (config) => {
 
     console.log("Turning on the camera for user:", config.uid);
     const videoTrack = await AgoraRTC.createCameraVideoTrack();
-    localVideoTrack = videoTrack;
 
     // Publish the video track
     await client.publish([videoTrack]);
@@ -468,20 +465,20 @@ export const startCamera = async (config) => {
 
 export const stopCamera = async (config) => {
   const client = config.client;
-  const videoTrack = localVideoTrack
+  const localVideoTrack = client.localTracks?.find(
+    (track) => track.trackMediaType === "video"
+  );
 
   try {
     console.log("Turning off the camera for user:", config.uid);
 
     if (processor && currentVirtualBackground) {
-      await processor.disable(); // Disable the processor
-      await videoTrack.unpipe(); // Unpipe the video track from the processor
+      await localVideoTrack.unpipe(processor); // Unpipe the video track from the processor
       await processor.unpipe();
-      await processor.release(); // Disable the processor
     }
 
     console.log("Unpublishing video track globally...");
-    await client.unpublish([videoTrack]);
+    await client.unpublish([localVideoTrack]);
       
 
       console.log("Camera turned off and unpublished.");
@@ -523,11 +520,15 @@ export const enableVirtualBackground = async (index, config) => {
   console.log(`Enabling virtual background using processor index: ${index}`);
 
 
+  if (!processor) {
  processor = await getProcessorInstance(config);
+  }
 
 
 
-  const videoTrack = localVideoTrack
+  const videoTrack = config.client.localTracks?.find(
+    (track) => track.trackMediaType === "video"
+  );
   console.log("videoTrack", videoTrack);
 
   if (!videoTrack) {
@@ -600,12 +601,12 @@ export const enableVirtualBackground = async (index, config) => {
 export const disableVirtualBackground = async (config) => {
   console.log("Disabling virtual background...");
 
-  const videoTrack = localVideoTrack;
+  const videoTrack = config.client.localTracks?.find(
+    (track) => track.trackMediaType === "video"
+  );
 
-      await processor.disable(); // Disable the processor
-      await videoTrack.unpipe(); // Unpipe the video track from the processor
+      await videoTrack.unpipe(processor); // Unpipe the video track from the processor
       await processor.unpipe();
-      await processor.release(); // Disable the processor
       console.log("Virtual background disabled successfully.");
 
   // Notify Bubble and update state variables
