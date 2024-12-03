@@ -442,7 +442,7 @@ export const startCamera = async (config) => {
     // Handle virtual background if enabled
     if (isVirtualBackGroundEnabled) {
       console.log("Virtual background is enabled.");
-        await enableVirtualBackground(currentVirtualBackground); // Apply blur if that's the selected background
+        await enableVirtualBackground(currentVirtualBackground, config); // Apply blur if that's the selected background
     } else {
       console.log("Virtual background is not enabled.");
     }
