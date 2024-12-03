@@ -11,15 +11,8 @@ let cameraToggleInProgress = false; // External variable to track camera toggle 
 let isVirtualBackGroundEnabled = false; // External variable for virtual background enabled state
 let currentVirtualBackground = null; // External variable for the current virtual background
 
-let processorOne = null;
-let processorTwo = null;
-let processorThree = null;
-let processorFour = null;
-let processorFive = null;
-let processorSix = null;
-let processorSeven = null;
-let processorEight = null;
-let processorNine = null;
+
+let processor = null;
 
 let imageSourcetwo =
   "https://8904bc7641660798a0e7eb5706b6a380.cdn.bubble.io/f1716472390057x747743675763905500/workplace-arrangement-with-laptop.jpg";
