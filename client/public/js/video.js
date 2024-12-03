@@ -476,9 +476,6 @@ export const stopCamera = async (config) => {
       await localVideoTrack.unpipe();
       await processor.disable(); // Disable the processor
       await processor.unpipe(); // Disable the processor
-      await processor.release();
-      console.log(processor);// Disable the processor
-      processor = null; // Remove reference to allow garbage collection
     }
 
     console.log("Unpublishing video track globally...");
@@ -524,7 +521,9 @@ export const enableVirtualBackground = async (index, config) => {
   console.log(`Enabling virtual background using processor index: ${index}`);
 
 
+  if (!processor){
  processor = await getProcessorInstance(config);
+  }
 
 
 
@@ -613,9 +612,6 @@ export const disableVirtualBackground = async (config) => {
       await processor.disable(); // Disable the processor
       await videoTrack.unpipe(); // Unpipe the video track from the processor
       await processor.unpipe();
-      await processor.release();
-      console.log(processor);
-      processor = null;
       console.log("Virtual background disabled successfully.");
     } catch (error) {
       console.error("Error disabling virtual background:", error);
