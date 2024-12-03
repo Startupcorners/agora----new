@@ -473,9 +473,7 @@ export const stopCamera = async (config) => {
     console.log("Turning off the camera for user:", config.uid);
 
     if (processor && currentVirtualBackground) {
-      await processor.disable(); // Disable the processor
       await localVideoTrack.unpipe();
-      await processor.unpipe(); // Disable the processor
       await processor.release(); // Disable the processor
     }
 
