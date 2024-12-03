@@ -441,9 +441,9 @@ export const startCamera = async (config) => {
 
     // Update UI
     if (sharingScreenUid === config.uid.toString()) {
-      playStreamInDiv(config, config.uid, "#pip-video-track");
+      await playStreamInDiv(config, config.uid, "#pip-video-track");
     } else {
-      playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
+      await playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
     }
     // Handle virtual background if enabled
     if (isVirtualBackGroundEnabled) {
