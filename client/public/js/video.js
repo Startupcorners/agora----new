@@ -475,6 +475,7 @@ export const stopCamera = async (config) => {
     if (processor && currentVirtualBackground) {
       await localVideoTrack.unpipe(processor); // Unpipe the video track from the processor
       await processor.unpipe();
+      await processor.release();
     }
 
     console.log("Unpublishing video track globally...");
@@ -520,9 +521,8 @@ export const enableVirtualBackground = async (index, config) => {
   console.log(`Enabling virtual background using processor index: ${index}`);
 
 
-  if (!processor) {
  processor = await getProcessorInstance(config);
-  }
+ console.log("processor", processor)
 
 
 
@@ -541,10 +541,6 @@ export const enableVirtualBackground = async (index, config) => {
   }
 
   try {
-
-    videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
-    await processor.enable();
-
     const imageSources = [
       imageSourcetwo,
       imageSourceThree,
@@ -580,8 +576,9 @@ export const enableVirtualBackground = async (index, config) => {
       console.log(`Processor configured with image source for index ${index}.`);
     }
 
-    
-    
+    // Enable and pipe the processor
+    await processor.enable();
+    videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
     
     // Update state
     isVirtualBackGroundEnabled = true;
@@ -611,6 +608,7 @@ export const disableVirtualBackground = async (config) => {
 
       await videoTrack.unpipe(processor); // Unpipe the video track from the processor
       await processor.unpipe();
+      await processor.release();
       console.log("Virtual background disabled successfully.");
 
   // Notify Bubble and update state variables
@@ -632,6 +630,7 @@ export const disableVirtualBackground = async (config) => {
 export const getProcessorInstance = async (config) => {
   try {
     console.log("Initializing new virtual background processor...");
+    processor = null;
     processor = config.extensionVirtualBackground.createProcessor();
     await processor.init();
     console.log("Processor initialized successfully.");
