@@ -541,6 +541,10 @@ export const enableVirtualBackground = async (index, config) => {
   }
 
   try {
+
+    videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
+    await processor.enable();
+
     const imageSources = [
       imageSourcetwo,
       imageSourceThree,
@@ -576,9 +580,8 @@ export const enableVirtualBackground = async (index, config) => {
       console.log(`Processor configured with image source for index ${index}.`);
     }
 
-    // Enable and pipe the processor
-    await processor.enable();
-    videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
+    
+    
     
     // Update state
     isVirtualBackGroundEnabled = true;
