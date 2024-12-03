@@ -19,7 +19,7 @@ let speakingIntervals = {}; // External variable to track speaking intervals for
 let lastMicPermissionState = null; // External variable to track the microphone permission state
 let inactivityTimer;
 let stillPresentTimer;
-const inactivityTimeout = 30000; // 5 minutes in milliseconds
+const inactivityTimeout = 300000; // 5 minutes in milliseconds
 const stillPresentTimeout = 60000; // 1 minute in milliseconds
 let isTabActive = true; // Tracks if the tab is active
 let noHostTimer;
