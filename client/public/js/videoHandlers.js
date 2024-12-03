@@ -28,6 +28,7 @@ export const playStreamInDiv = (
           (track) => track.trackMediaType === "video"
         );
         console.log("Local video track:", videoTrack);
+        console.warn("VideoTrack played in the div", videoTrack);
       } else {
         // Use remote track for other users
         console.log(

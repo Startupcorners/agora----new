@@ -438,6 +438,7 @@ export const startCamera = async (config) => {
     // Publish the video track
     await client.publish([videoTrack]);
     console.log("Camera turned on and published.");
+    console.warn("VideoTrack after publish", videoTrack);
 
     // Update UI
     if (sharingScreenUid === config.uid.toString()) {
@@ -580,6 +581,7 @@ export const enableVirtualBackground = async (index, config) => {
     await processor.enable();
     videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
     console.log("processor", processor);
+    console.warn("VideoTrack that has been pipped", videoTrack);
     
     // Update state
     isVirtualBackGroundEnabled = true;
