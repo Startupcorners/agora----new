@@ -579,6 +579,7 @@ export const enableVirtualBackground = async (index, config) => {
     // Enable and pipe the processor
     await processor.enable();
     videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
+    console.log("processor", processor);
     
     // Update state
     isVirtualBackGroundEnabled = true;
