@@ -526,6 +526,7 @@ export const enableVirtualBackground = async (index, config) => {
     console.log("Unpiping and disabling existing processor.");
     await processor.disable();
     processor.unpipe();
+    processor.release();
     processor = null; // Remove reference to allow garbage collection
   }
   processor = await getProcessorInstance(config);
