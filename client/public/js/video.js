@@ -622,7 +622,7 @@ export const disableVirtualBackground = async (config) => {
 
   // Notify Bubble and update state variables
   if (typeof bubble_fn_background === "function") {
-    bubble_fn_background("none");
+    bubble_fn_background();
   } else {
     console.warn("bubble_fn_background function not found.");
   }
