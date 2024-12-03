@@ -473,8 +473,9 @@ export const stopCamera = async (config) => {
     console.log("Turning off the camera for user:", config.uid);
 
     if (processor && currentVirtualBackground) {
-      await localVideoTrack.unpipe();
-      console.log("Releasing");
+      await processor.disable(); // Disable the processor
+      await localVideoTrack.unpipe(); // Unpipe the video track from the processor
+      await processor.unpipe();
       await processor.release(); // Disable the processor
     }
 
@@ -604,18 +605,11 @@ export const disableVirtualBackground = async (config) => {
     (track) => track.trackMediaType === "video"
   );
 
-  if (processor && videoTrack) {
-    try {
       await processor.disable(); // Disable the processor
       await videoTrack.unpipe(); // Unpipe the video track from the processor
       await processor.unpipe();
+      await processor.release(); // Disable the processor
       console.log("Virtual background disabled successfully.");
-    } catch (error) {
-      console.error("Error disabling virtual background:", error);
-    }
-  } else {
-    console.warn("Processor not initialized or video track not found.");
-  }
 
   // Notify Bubble and update state variables
   if (typeof bubble_fn_background === "function") {
