@@ -19,7 +19,7 @@ let speakingIntervals = {}; // External variable to track speaking intervals for
 let lastMicPermissionState = null; // External variable to track the microphone permission state
 let inactivityTimer;
 let stillPresentTimer;
-const inactivityTimeout = 60000; // 5 minutes in milliseconds
+const inactivityTimeout = 30000; // 5 minutes in milliseconds
 const stillPresentTimeout = 60000; // 1 minute in milliseconds
 let isTabActive = true; // Tracks if the tab is active
 let noHostTimer;
@@ -623,7 +623,7 @@ export const handleVolumeIndicator = (() => {
 
 
 // Function to reset the inactivity timer
-const resetInactivityTimer = () => {
+const resetInactivityTimer = (config) => {
   if (!isTabActive) {
     console.log("Tab is inactive. Inactivity timer will not reset.");
     return; // Do not reset the timer if the tab is inactive
@@ -636,7 +636,7 @@ const resetInactivityTimer = () => {
     console.log("User inactive for 5 minutes. Displaying inactivity message.");
     if (typeof bubble_fn_inactive === "function") {
       bubble_fn_inactive(); // Show the inactivity message
-      waitForStillPresentOrLeave(); // Start waiting for user response
+      waitForStillPresentOrLeave(config); // Start waiting for user response
     } else {
       console.warn("bubble_fn_inactive is not defined.");
     }
@@ -644,7 +644,7 @@ const resetInactivityTimer = () => {
 };
 
 // Function to handle the user response timeout
-const waitForStillPresentOrLeave = () => {
+const waitForStillPresentOrLeave = (config) => {
   clearTimeout(stillPresentTimer); // Clear any existing stillPresentTimer
 
   stillPresentTimer = setTimeout(() => {
@@ -660,39 +660,42 @@ const waitForStillPresentOrLeave = () => {
 };
 
 // Function to be called by the user when they confirm presence
-export const stillPresent = () => {
+export const stillPresent = (config) => {
   console.log("User confirmed presence. Resetting inactivity timer.");
   clearTimeout(stillPresentTimer); // Stop the leave timer
-  resetInactivityTimer(); // Reset the inactivity timer
+  resetInactivityTimer(config); // Reset the inactivity timer
 };
 
 // Listener for user activity
-const addUserActivityListeners = () => {
-  document.addEventListener("mousemove", resetInactivityTimer);
-  document.addEventListener("keydown", resetInactivityTimer);
-  document.addEventListener("click", resetInactivityTimer);
-  document.addEventListener("scroll", resetInactivityTimer); // Optional for scroll activity
+const addUserActivityListeners = (config) => {
+  document.addEventListener("mousemove", () => resetInactivityTimer(config));
+  document.addEventListener("keydown", () => resetInactivityTimer(config));
+  document.addEventListener("click", () => resetInactivityTimer(config));
+  document.addEventListener("scroll", () => resetInactivityTimer(config)); // Optional for scroll activity
 };
 
 // Listener for tab visibility
-const handleVisibilityChange = () => {
+const handleVisibilityChange = (config) => {
   if (document.hidden) {
     console.log("Tab is inactive. Pausing inactivity detection.");
     isTabActive = false;
   } else {
     console.log("Tab is active. Resuming inactivity detection.");
     isTabActive = true;
-    resetInactivityTimer(); // Reset the timer when the tab becomes active
+    resetInactivityTimer(config); // Reset the timer when the tab becomes active
   }
 };
 
 // Initialize listeners
-export const initializeInactivityTracker = () => {
+export const initializeInactivityTracker = (config) => {
   console.log("Initializing enhanced inactivity tracker...");
-  addUserActivityListeners();
-  document.addEventListener("visibilitychange", handleVisibilityChange);
-  resetInactivityTimer(); // Start the timer initially
+  addUserActivityListeners(config);
+  document.addEventListener("visibilitychange", () =>
+    handleVisibilityChange(config)
+  );
+  resetInactivityTimer(config); // Start the timer initially
 };
+
 
 
 
