@@ -477,7 +477,6 @@ export const stopCamera = async (config) => {
     if (processor && currentVirtualBackground) {
       await localVideoTrack.unpipe(processor); // Unpipe the video track from the processor
       await processor.unpipe();
-      await processor.release();
       processor = null; // Clear processor reference
     }
 
@@ -523,7 +522,9 @@ export const enableVirtualBackground = async (index, config) => {
   console.log(`Enabling virtual background using processor index: ${index}`);
 
   // Initialize the processor
-  processor = await getProcessorInstance(config);
+  if(!processor){
+    processor = await getProcessorInstance(config);
+  }
   console.log("Initialized processor:", processor);
 
   // Check if processor is properly initialized
@@ -651,7 +652,6 @@ export const disableVirtualBackground = async (config) => {
 
       await videoTrack.unpipe(processor); // Unpipe the video track from the processor
       await processor.unpipe();
-      await processor.release();
       console.log("Virtual background disabled successfully.");
 
   // Notify Bubble and update state variables
