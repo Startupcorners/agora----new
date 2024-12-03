@@ -569,10 +569,16 @@ export const enableVirtualBackground = async (index, config) => {
         return;
       }
       console.log(`Selected Image`, imageSource);
-      const base64Image = await imageUrlToBase64(imageSource);
+      try {
+        const imageElement = await imageUrlToImageElement(imageSource);
+        processor.setOptions({ type: "image", source: imageElement });
+        console.log("Virtual background set successfully.");
+      } catch (error) {
+        console.error("Failed to set virtual background:", error);
+      }
       processor.setOptions({
         type: "image",
-        source: base64Image,
+        source: imageElement,
       });
       console.log(`Processor configured with image source for index ${index}.`);
     }
@@ -647,21 +653,19 @@ export const getProcessorInstance = async (config) => {
 
 
 
-export const imageUrlToBase64 = async (url) => {
+export const imageUrlToImageElement = async (url) => {
   try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image. HTTP Status: ${response.status}`);
-    }
-    const blob = await response.blob();
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.onerror = () => reject(new Error("Error reading blob as base64"));
-      reader.readAsDataURL(blob);
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.src = url;
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
     });
+    return img;
   } catch (error) {
-    console.error("Failed to convert image URL to base64:", error);
+    console.error("Failed to load image:", error);
     throw error;
   }
 };
+
