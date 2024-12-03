@@ -473,32 +473,33 @@ export const stopCamera = async (config) => {
   try {
     console.log("Turning off the camera for user:", config.uid);
 
+    // Clean up processor
     if (processor && currentVirtualBackground) {
       await localVideoTrack.unpipe(processor); // Unpipe the video track from the processor
       await processor.unpipe();
       await processor.release();
+      processor = null; // Clear processor reference
     }
 
-    console.log("Unpublishing video track globally...");
-    await client.unpublish([localVideoTrack]);
-      
+    // Stop and unpublish the video track
+    if (localVideoTrack) {
+      console.log("Stopping local video track...");
+      localVideoTrack.stop(); // Stop the track and clean up resources
+      console.log("Unpublishing local video track...");
+      await client.unpublish([localVideoTrack]);
+      localVideoTrack.close(); // Optionally close the track
+    }
 
-      console.log("Camera turned off and unpublished.");
-      updatePublishingList(config.uid.toString(), "video", "remove");
+    console.log("Camera turned off and unpublished.");
+    updatePublishingList(config.uid.toString(), "video", "remove");
 
-      // Update UI
-      if (sharingScreenUid === config.uid.toString()) {
-        playStreamInDiv(config, config.uid, "#pip-video-track");
-      } else {
-        playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
-      }
-      console.log("Config", config);
+  
+    // Notify Bubble
+    if (typeof bubble_fn_isCamOn === "function") {
+      bubble_fn_isCamOn(false); // Notify that the camera is off
+    }
 
-      // Notify Bubble of the camera state
-      if (typeof bubble_fn_isCamOn === "function") {
-        bubble_fn_isCamOn(false); // Camera is off
-      }
-    
+    console.log("Config", config);
   } catch (error) {
     console.error("Error stopping the camera for user:", config.uid, error);
   }

@@ -207,16 +207,25 @@ export const endMic = async (config) => {
     );
 
     if (localAudioTrack) {
-      // Mute the track locally
-      console.log("Muting audio track locally...");
-      await localAudioTrack.setEnabled(false);
+      // Disable and stop the audio track
+      console.log("Disabling and stopping audio track...");
+      await localAudioTrack.setEnabled(false); // Disable the track
+      localAudioTrack.stop(); // Stop the track to free resources
 
       // Unpublish the track globally
       console.log("Unpublishing audio track globally...");
       await client.unpublish([localAudioTrack]);
 
-      console.log("Microphone muted and unpublished.");
-      updatePublishingList(config.uid.toString(), "audio", "remove");
+      // Close the track to release all resources
+      console.log("Closing audio track...");
+      localAudioTrack.close();
+      console.log("Audio track stopped and closed.");
+
+      // Remove the track from the client
+      client.localTracks = client.localTracks.filter(
+        (track) => track !== localAudioTrack
+      );
+      console.log("Audio track removed from local tracks.");
     } else {
       console.warn("No local audio track found. Microphone is not active.");
     }
@@ -253,5 +262,6 @@ export const endMic = async (config) => {
     console.error("Error in endMic for user:", config.uid, error);
   }
 };
+
 
 
