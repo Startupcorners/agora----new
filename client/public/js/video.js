@@ -571,15 +571,11 @@ export const enableVirtualBackground = async (index, config) => {
       console.log(`Selected Image`, imageSource);
       try {
         const imageElement = await imageUrlToImageElement(imageSource);
-        processor.setOptions({ type: "image", source: imageElement });
+        processor.setOptions({ type: "img", source: imageElement });
         console.log("Virtual background set successfully.");
       } catch (error) {
         console.error("Failed to set virtual background:", error);
       }
-      processor.setOptions({
-        type: "img",
-        source: imageElement,
-      });
       console.log(`Processor configured with image source for index ${index}.`);
     }
 
