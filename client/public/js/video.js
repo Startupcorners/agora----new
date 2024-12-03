@@ -473,8 +473,8 @@ export const stopCamera = async (config) => {
     console.log("Turning off the camera for user:", config.uid);
 
     if (processor && currentVirtualBackground) {
-      await localVideoTrack.unpipe();
       await processor.disable(); // Disable the processor
+      await localVideoTrack.unpipe();
       await processor.unpipe(); // Disable the processor
     }
 
@@ -578,9 +578,8 @@ export const enableVirtualBackground = async (index, config) => {
     }
 
     // Enable and pipe the processor
-    await processor.enable();
     videoTrack.pipe(processor).pipe(videoTrack.processorDestination);
-
+    await processor.enable();
     // Update state
     isVirtualBackGroundEnabled = true;
     currentVirtualBackground = index;
