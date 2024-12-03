@@ -583,6 +583,7 @@ export const enableVirtualBackground = async (index, config) => {
     currentVirtualBackground = index;
     bubble_fn_background(index);
     console.log(`Virtual background enabled with processor index: ${index}.`);
+    console.log("Config", config);
   } catch (error) {
     console.error(
       `Error enabling virtual background for index ${index}:`,
@@ -625,6 +626,7 @@ export const disableVirtualBackground = async (config) => {
   currentVirtualBackground = null;
 
   console.log("Virtual background state reset to default.");
+  console.log("Config", config);
 };
 
 
