@@ -183,10 +183,10 @@ export const stopCloudRecording = debounce(async (config) => {
       },
       body: JSON.stringify({
         resourceId, // Use the external variable
-        sid,        // Use the external variable
-        channelName, // Assuming channelName is globally available or imported
+        sid, // Use the external variable
+        channelName: config.channelName, // Assuming channelName is globally available or imported
         uid: recordId, // Use the external variable
-        timestamp,  // Use the external variable
+        timestamp, // Use the external variable
       }),
     });
 
