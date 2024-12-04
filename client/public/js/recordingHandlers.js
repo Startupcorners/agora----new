@@ -27,7 +27,7 @@ const debounce = (func, delay) => {
 };
 
 
-export const acquireResource = async (config, scene, recordId) => {
+export const acquireResource = async (config, scene, setRecordId) => {
   // Ensure scene is provided and valid
   const validScenes = ["composite", "web"];
   if (!scene || !validScenes.includes(scene)) {
@@ -40,11 +40,11 @@ export const acquireResource = async (config, scene, recordId) => {
 
   // Determine recordId based on scene
   if (scene === "web") {
-    if (!recordId) {
+    if (!setRecordId) {
       throw new Error("recordId is not set for web recording.");
     }
   } else if (scene === "composite") {
-    if (!recordId) {
+    if (!setRecordId) {
       throw new Error("recordId is not set for composite recording.");
     }
   } else {
@@ -56,7 +56,7 @@ export const acquireResource = async (config, scene, recordId) => {
       "Payload for acquire resource:",
       JSON.stringify({
         channelName: config.channelName,
-        uid: recordId,
+        uid: setRecordId,
         recordingType: scene,
       })
     );
@@ -68,7 +68,7 @@ export const acquireResource = async (config, scene, recordId) => {
       },
       body: JSON.stringify({
         channelName: config.channelName,
-        uid: recordId,
+        uid: setRecordId,
         recordingType: scene, // Pass scene dynamically
       }),
     });
@@ -80,8 +80,8 @@ export const acquireResource = async (config, scene, recordId) => {
     }
 
     const data = await response.json();
-    console.log("Resource acquired:", data.resourceId);
-    return data.resourceId;
+    console.log("Resource acquired:", data.setRecordId);
+    return data.setRecordId;
   } catch (error) {
     console.log("Error acquiring resource:", error.message);
     throw error;
@@ -222,7 +222,7 @@ export const startAudioRecording = debounce(async (config) => {
 
   try {
     // Acquire resource and assign to external variable
-    audioResourceId = await acquireResource(config, "composite", audioResourceId );
+    audioResourceId = await acquireResource(config, "composite", audioRecordId);
     console.log("Resource acquired:", audioResourceId);
 
     // Assign timestamp to external variable
