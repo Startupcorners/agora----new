@@ -27,7 +27,7 @@ const debounce = (func, delay) => {
 };
 
 
-export const acquireResource = async (config, scene, setRecordId) => {
+export const acquireResource = async (config, scene) => {
   // Ensure scene is provided and valid
   const validScenes = ["composite", "web"];
   if (!scene || !validScenes.includes(scene)) {
@@ -38,25 +38,11 @@ export const acquireResource = async (config, scene, setRecordId) => {
     );
   }
 
-  // Determine recordId based on scene
-  if (scene === "web") {
-    if (!setRecordId) {
-      throw new Error("recordId is not set for web recording.");
-    }
-  } else if (scene === "composite") {
-    if (!setRecordId) {
-      throw new Error("recordId is not set for composite recording.");
-    }
-  } else {
-    throw new Error(`Invalid scene: ${scene}`);
-  }
-
   try {
     console.log(
       "Payload for acquire resource:",
       JSON.stringify({
         channelName: config.channelName,
-        uid: setRecordId,
         recordingType: scene,
       })
     );
@@ -68,7 +54,6 @@ export const acquireResource = async (config, scene, setRecordId) => {
       },
       body: JSON.stringify({
         channelName: config.channelName,
-        uid: setRecordId,
         recordingType: scene, // Pass scene dynamically
       }),
     });
@@ -80,16 +65,16 @@ export const acquireResource = async (config, scene, setRecordId) => {
     }
 
     const data = await response.json();
-    console.log("Resource acquired:", data.setRecordId);
-    return data.setRecordId;
+    console.log("Resource acquired:", data);
+
+    // Return the acquired recordId
+    return data.recordId;
   } catch (error) {
     console.log("Error acquiring resource:", error.message);
     throw error;
   }
 };
 
-// Debounced Start Cloud Recording
-// External variables
 
 
 export const startCloudRecording = debounce(async (url, config) => {
@@ -98,7 +83,7 @@ export const startCloudRecording = debounce(async (url, config) => {
 
   try {
     // Acquire resource and assign to external variable
-    resourceId = await acquireResource(config, "web", recordId);
+    resourceId = await acquireResource(config, "web");
     console.log("Resource acquired:", resourceId);
 
     // Assign timestamp to external variable
@@ -222,7 +207,7 @@ export const startAudioRecording = debounce(async (config) => {
 
   try {
     // Acquire resource and assign to external variable
-    audioResourceId = await acquireResource(config, "composite", audioRecordId);
+    audioResourceId = await acquireResource(config, "composite");
     console.log("Resource acquired:", audioResourceId);
 
     // Assign timestamp to external variable
