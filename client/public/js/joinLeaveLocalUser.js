@@ -21,7 +21,8 @@ export const join = async (config) => {
     // Check for RTM members 2 or 3 and trigger the Bubble popup if not in waiting room
     if (
       config.user.roleInTheCall !== "waiting" &&
-      config.user.roleInTheCall !== "audience"
+      config.user.roleInTheCall !== "audience" &&
+      config.uid <= 999999999
     ) {
       joinVideoStage(config);
     }
