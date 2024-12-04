@@ -469,6 +469,10 @@ export const stopCamera = async (config) => {
   const localVideoTrack = client.localTracks?.find(
     (track) => track.trackMediaType === "video"
   );
+  if (!localVideoTrack) {
+    console.log("No video tracks to stop");
+    return
+  }
 
   try {
     console.log("Turning off the camera for user:", config.uid);

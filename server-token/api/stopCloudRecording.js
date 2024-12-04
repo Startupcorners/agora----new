@@ -38,7 +38,7 @@ router.post("/", nocache, async (req, res) => {
   try {
     // Check if there's already a log entry for this resourceId to avoid redundant actions
     const logResponse = await axios.post(
-      "https://startupcorners.com/version-test/api/1.1/wf/recording_logs",
+      "https://startupcorners.com/api/1.1/wf/recording_logs",
       {
         resourceId: resourceId, // Ensure the parameter is correctly passed in the body
       }
@@ -97,7 +97,7 @@ router.post("/", nocache, async (req, res) => {
 
     // Send the MP4 URL to Bubble's API
     const bubbleResponse = await axios.post(
-      "https://startupcorners.com/version-test/api/1.1/wf/receiveawsvideo",
+      "https://startupcorners.com/api/1.1/wf/receiveawsvideo",
       {
         resourceId: resourceId,
         url: mp4Url,

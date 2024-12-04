@@ -1,6 +1,8 @@
 import { fetchTokens } from "./fetchTokens.js";
 import { joinVideoStage } from "./joinleavestage.js";
 import { manageParticipants } from "./talkToBubble.js";
+import { stopCamera, stopScreenShare } from "./video.js";
+import { endMic } from "./audio.js";
 
 export const join = async (config) => {
   console.warn("join function called");
@@ -147,6 +149,9 @@ export const leave = async (reason, config) => {
 
   console.warn("leave function called with reason:", reason);
   triggeredReason = reason; // Set the triggered reason to prevent re-entry
+  await stopScreenShare(config);
+  await stopCamera(config);
+  await endMic(config);
 
   try {
 

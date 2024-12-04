@@ -43,7 +43,7 @@ router.post("/", nocache, async (req, res) => {
   try {
     console.log("Step 1: Checking for existing log entry for resourceId");
     const logResponse = await axios.post(
-      "https://startupcorners.com/version-test/api/1.1/wf/recording_logs",
+      "https://startupcorners.com/api/1.1/wf/recording_logs",
       {
         resourceId: resourceId,
       }
@@ -108,7 +108,7 @@ router.post("/", nocache, async (req, res) => {
 
     console.log("Step 6: Sending AssemblyAI ID and resourceId to Bubble API");
     const bubbleResponse = await axios.post(
-      "https://startupcorners.com/version-test/api/1.1/wf/pollfortext",
+      "https://startupcorners.com/api/1.1/wf/pollfortext",
       {
         resourceId: resourceId,
         assemblyId: assemblyId,

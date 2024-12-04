@@ -205,6 +205,10 @@ export const endMic = async (config) => {
     const localAudioTrack = client.localTracks?.find(
       (track) => track.trackMediaType === "audio"
     );
+    if (!localAudioTrack) {
+      console.log("No audio tracks to stop");
+      return;
+    }
 
     if (localAudioTrack) {
       // Mute the track locally
