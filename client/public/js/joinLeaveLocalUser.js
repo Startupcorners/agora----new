@@ -22,7 +22,7 @@ export const join = async (config) => {
     if (
       config.user.roleInTheCall !== "waiting" &&
       config.user.roleInTheCall !== "audience" &&
-      config.uid >= 100000000
+      config.uid != 2
     ) {
       joinVideoStage(config);
     }
