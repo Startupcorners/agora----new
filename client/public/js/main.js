@@ -137,7 +137,9 @@ export const newMainApp = async function (initConfig) {
   setupLeaveListener(config);
   checkMicrophonePermissions(config);
   updateSelectedDevices(config);
+  if (config.uid <= 999999999 && config.uid != 2) {
   initializeInactivityTracker(config);
+  }
 
   // Call the join function at the end
   try {
