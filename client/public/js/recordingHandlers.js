@@ -155,12 +155,17 @@ export const startCloudRecording = debounce(async (url, config) => {
 
     bubble_fn_isVideoRecording("yes");
 
+    console.log("Running videoRecord");
+
     bubble_fn_videoRecord({
         output1: resourceId,  // Use the external resourceId
         output2: sid,         // Use the external sid
         output3: recordId,    // Use the external recordId
         output4: timestamp,   // Use the external timestamp
       });
+
+      console.log("Ran videoRecord");
+
     return startData;
   } catch (error) {
     console.log("Error starting recording:", error.message);
