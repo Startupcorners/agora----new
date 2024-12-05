@@ -1,8 +1,55 @@
 import {sendNotification} from "./helperFunctions.js"
 
-let selectedMic = null; // External variable for the selected microphone
-let selectedCam = null; // External variable for the selected camera
-let selectedSpeaker = null; // External variable for the selected speaker
+// Internal variables to store the selected devices
+let selectedMic = null;
+let selectedCam = null;
+let selectedSpeaker = null;
+
+/**
+ * Get the current value of the selected microphone.
+ * @returns {string|null} The selected microphone ID, or null if not set.
+ */
+export const getSelectedMic = () => selectedMic;
+
+/**
+ * Update the value of the selected microphone.
+ * @param {string} mic - The new microphone ID to set.
+ */
+export const setSelectedMic = (mic) => {
+  console.log(`Updating selectedMic from ${selectedMic} to ${mic}`);
+  selectedMic = mic;
+};
+
+/**
+ * Get the current value of the selected camera.
+ * @returns {string|null} The selected camera ID, or null if not set.
+ */
+export const getSelectedCam = () => selectedCam;
+
+/**
+ * Update the value of the selected camera.
+ * @param {string} cam - The new camera ID to set.
+ */
+export const setSelectedCam = (cam) => {
+  console.log(`Updating selectedCam from ${selectedCam} to ${cam}`);
+  selectedCam = cam;
+};
+
+/**
+ * Get the current value of the selected speaker.
+ * @returns {string|null} The selected speaker ID, or null if not set.
+ */
+export const getSelectedSpeaker = () => selectedSpeaker;
+
+/**
+ * Update the value of the selected speaker.
+ * @param {string} speaker - The new speaker ID to set.
+ */
+export const setSelectedSpeaker = (speaker) => {
+  console.log(`Updating selectedSpeaker from ${selectedSpeaker} to ${speaker}`);
+  selectedSpeaker = speaker;
+};
+
 
 export const switchCam = async (camInfo, config) => {
     sendNotification("log", "switching camera", config); 
@@ -240,5 +287,62 @@ export const handleSpeakerDeactivation = async (deactivatedDevice, config) => {
       console.log("No speakers available to switch to after deactivation.");
     }
   }
+};
+
+
+
+// In your device management file
+export const checkAndUpdateSelectedCam = async () => {
+  // Fetch the list of available devices
+  const devices = await AgoraRTC.getDevices();
+  const cameras = devices.filter((device) => device.kind === "videoinput");
+
+  // Check if selectedCam is still available
+  if (
+    selectedCam &&
+    !cameras.find((cam) => cam.deviceId === selectedCam.deviceId)
+  ) {
+    if (cameras.length > 0) {
+      // Select the first available camera
+      selectedCam = cameras[0];
+
+      // Notify Bubble of the selected camera
+      if (typeof bubble_fn_selectedCam === "function") {
+        bubble_fn_selectedCam(selectedCam.label);
+      }
+    } else {
+      // No cameras available
+      selectedCam = null;
+    }
+  }
+  // Return selectedCam
+  return selectedCam;
+};
+
+export const checkAndUpdateSelectedMic = async () => {
+  // Fetch the list of available devices
+  const devices = await AgoraRTC.getDevices();
+  const mics = devices.filter((device) => device.kind === "audioinput");
+
+  // Check if selectedMic is still available
+  if (
+    selectedMic &&
+    !mics.find((mic) => mic.deviceId === selectedMic.deviceId)
+  ) {
+    if (mics.length > 0) {
+      // Select the first available microphone
+      selectedMic = mics[0];
+
+      // Notify Bubble of the selected microphone
+      if (typeof bubble_fn_selectedMic === "function") {
+        bubble_fn_selectedMic(selectedMic.label);
+      }
+    } else {
+      // No microphones available
+      selectedMic = null;
+    }
+  }
+  // Return selectedMic
+  return selectedMic;
 };
 

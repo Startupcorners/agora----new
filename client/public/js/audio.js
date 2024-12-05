@@ -154,19 +154,40 @@ export const startMic = async (config) => {
   try {
     console.log("Starting microphone for user:", config.uid);
 
+    // Get the updated selected microphone
+    const updatedSelectedMic = await checkAndUpdateSelectedMic();
+
+    if (!updatedSelectedMic) {
+      console.error("No microphone available to start audio track.");
+      // Update UI to indicate the microphone is off
+      updateMicStatusElement(config.uid, true); // Mic is muted/off
+      bubble_fn_isMicOff(true);
+      return;
+    }
+
     // Check if the microphone audio track already exists
     let audioTrack = client.localTracks?.find(
       (track) => track.trackMediaType === "audio"
     );
 
     if (!audioTrack) {
-      // Create and assign a new microphone audio track
+      // Create and assign a new microphone audio track using the selected microphone
       console.log("No active microphone track found. Creating a new one...");
-      audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+      audioTrack = await AgoraRTC.createMicrophoneAudioTrack({
+        microphoneId: updatedSelectedMic.deviceId,
+      });
 
       console.log("New audio track created:", audioTrack);
     } else {
       console.log("Microphone already active, enabling the existing track...");
+
+      // Check if the audio track is using the correct microphone
+      const currentDeviceId = audioTrack.getTrackLabel();
+      if (currentDeviceId !== updatedSelectedMic.deviceId) {
+        console.log("Switching to the selected microphone...");
+        await audioTrack.setDevice(updatedSelectedMic.deviceId);
+      }
+
       await audioTrack.setEnabled(true); // Unmute the existing track
     }
 
@@ -192,6 +213,7 @@ export const startMic = async (config) => {
     bubble_fn_isMicOff(true);
   }
 };
+
 
 
 

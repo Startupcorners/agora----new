@@ -2,6 +2,14 @@ import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { updatePublishingList } from "./talkToBubble.js";
 import { fetchTokens } from "./fetchTokens.js";
 import { sendRTMMessage } from "./helperFunctions.js";
+import {
+  getSelectedMic,
+  setSelectedMic,
+  getSelectedCam,
+  setSelectedCam,
+  getSelectedSpeaker,
+  setSelectedSpeaker,
+} from "./deviceManager.js";
 
 let sharingScreenUid = null; // Declare the sharingScreenUid outside of config
 let screenShareRTMClient = null;
