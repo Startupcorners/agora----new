@@ -540,9 +540,6 @@ export const handleVolumeIndicator = (() => {
       let waveElement = document.querySelector(`#wave-${userUID}`);
       console.log(`UID: ${userUID}, Audio Level: ${audioLevel}`);
 
-      // Determine the current status based on audio level
-      const currentStatus = audioLevel < 3 ? "yes" : "no";
-
       // Apply audio level indicator styles if the wrapper is available
       if (wrapper) {
         if (audioLevel > 50) {
@@ -593,32 +590,38 @@ export const handleVolumeIndicator = (() => {
         }
       }
 
-      // Only process and send notifications for the local user (currentUserUid)
-      if (userUID === currentUserUid) {
-        // Initialize lastMutedStatuses for the user if not already set
-        if (!lastMutedStatuses[userUID]) {
-          lastMutedStatuses[userUID] = "unknown"; // Default to "unknown" for first-time detection
-          console.log(
-            `Initialized lastMutedStatuses for UID ${userUID}: "unknown"`
-          );
-        }
+      // Skip processing other users for local status/notifications
+      if (userUID !== currentUserUid) {
+        continue;
+      }
 
-        // Notify Bubble only when the status changes
-        if (currentStatus !== lastMutedStatuses[userUID]) {
-          console.log(
-            `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for UID ${userUID}`
-          );
-          bubble_fn_systemmuted(currentStatus);
-          lastMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
-        } else {
-          console.log(
-            `Status for UID ${userUID} remains unchanged (${currentStatus}), no notification sent.`
-          );
-        }
+      // Process and send notifications for the local user (currentUserUid)
+      const currentStatus = audioLevel < 3 ? "yes" : "no";
+
+      // Initialize lastMutedStatuses for the user if not already set
+      if (!lastMutedStatuses[userUID]) {
+        lastMutedStatuses[userUID] = "unknown"; // Default to "unknown" for first-time detection
+        console.log(
+          `Initialized lastMutedStatuses for UID ${userUID}: "unknown"`
+        );
+      }
+
+      // Notify Bubble only when the status changes
+      if (currentStatus !== lastMutedStatuses[userUID]) {
+        console.log(
+          `Sending to bubble: bubble_fn_systemmuted("${currentStatus}") for UID ${userUID}`
+        );
+        bubble_fn_systemmuted(currentStatus);
+        lastMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
+      } else {
+        console.log(
+          `Status for UID ${userUID} remains unchanged (${currentStatus}), no notification sent.`
+        );
       }
     }
   };
 })();
+
 
 
 
