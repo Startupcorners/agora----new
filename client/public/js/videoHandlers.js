@@ -1,3 +1,5 @@
+import {sendRTMMessage} from "./helperFunctions.js"
+
 export const playStreamInDiv = (
   config,
   userId,
@@ -71,6 +73,16 @@ export const toggleStages = (isScreenSharing) => {
     console.error(
       "toggleStages: video or screen share stage element not found."
     );
+    sendRTMMessage(
+        JSON.stringify({
+          type: "ERROR_NOTIFICATION",
+          message: errorMessage,
+          details: null,
+          timestamp: Date.now(),
+          user: config?.uid || "unknown",
+        }),
+        config
+      );
     return; // Exit early if elements are not found
   }
 
