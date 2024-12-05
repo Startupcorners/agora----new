@@ -178,59 +178,104 @@ export const stopUserScreenshare = async (userUid, config) => {
 
 
 
-export const raiseHand = async (userUid, config) => {
+// Function to toggle the local user's hand-raising status
+export const toggleHand = async (bubbleId, config) => {
+  try {
+    const isCurrentlyRaisingHand = usersRaisingHand.includes(bubbleId);
+    const newIsRaisingHand = !isCurrentlyRaisingHand;
 
-    try {
-      // Check if the user is already in the list
-      const isRaisingHand = usersRaisingHand.includes(userUid);
-
-      // Update the `usersRaisingHand` list
-      if (!isRaisingHand) {
-        // Add the user to the list if not present
-        usersRaisingHand.push(userUid);
-        console.log(`User ${userUid} added to raising hand list.`);
-      } else {
-        // Remove the user from the list if already present
-        usersRaisingHand = usersRaisingHand.filter((uid) => uid !== userUid);
-        console.log(`User ${userUid} removed from raising hand list.`);
-      }
-
-      // Prepare the message payload for raising hand
-      const message = JSON.stringify({
-        type: "raiseHand",
-        userUid: userUid,
-      });
-
-      // Use the helper function to send the RTM message
-      await sendRTMMessage(message, config);
-
-      console.log(`Raise hand action processed for user ${userUid}.`);
-    } catch (error) {
-      console.error(
-        `Error processing raise hand action for user ${userUid}:`,
-        error
-      );
+    // Update the local usersRaisingHand list
+    if (newIsRaisingHand) {
+      usersRaisingHand.push(bubbleId);
+      console.log(`User ${bubbleId} raised their hand.`);
+    } else {
+      usersRaisingHand = usersRaisingHand.filter((uid) => uid !== bubbleId);
+      console.log(`User ${bubbleId} lowered their hand.`);
     }
-  
 
-  // Update the list of users raising hands in the UI
-  bubble_fn_usersRaisingHand(usersRaisingHand);
+    // Update the UI
+    bubble_fn_usersRaisingHand(usersRaisingHand);
 
-  console.log(`Raise hand actions completed for users: ${userUids.join(", ")}`);
+    // Update the RTM attribute 'isRaisingHand' for the local user
+    if (config.clientRTM) {
+      await config.clientRTM.setLocalUserAttributes({
+        isRaisingHand: newIsRaisingHand ? 'yes' : 'no',
+      });
+      console.log(
+        `RTM attribute 'isRaisingHand' updated for local user ${bubbleId}.`
+      );
+    } else {
+      console.warn('RTM client is not available in the config.');
+    }
+
+    // Prepare the message payload
+    const message = JSON.stringify({
+      type: 'toggleHand',
+      bubbleId: bubbleId,
+      isRaisingHand: newIsRaisingHand,
+    });
+
+    // Send the message to the channel
+    await sendRTMMessage(message, config);
+
+    console.log(`Toggle hand action processed for user ${bubbleId}.`);
+  } catch (error) {
+    console.error(`Error toggling hand for user ${bubbleId}:`, error);
+  }
 };
 
 
 
-export const handleRaisingHand = async (userUid) => {
-  // Check if the user is already in the list
-  if (usersRaisingHand.includes(userUid)) {
-    // Remove the user if they are already in the list
-    usersRaisingHand = usersRaisingHand.filter((uid) => uid !== userUid);
-    console.log(`User ${userUid} removed from raising hand list.`);
-  }
+// Combined function to handle hand raise/lower messages
+export const handleHandMessage = async (bubbleId, isRaisingHand, config) => {
 
-  console.log("usersRaisingHand:", usersRaisingHand);
-
-  // Update Bubble with the new list of users raising their hand
+      if (isRaisingHand) {
+        if (!usersRaisingHand.includes(bubbleId)) {
+          usersRaisingHand.push(bubbleId);
+          console.log(`User ${bubbleId} added to raising hand list.`);
+        }
+      } else {
+        usersRaisingHand = usersRaisingHand.filter((uid) => uid !== bubbleId);
+        console.log(`User ${bubbleId} removed from raising hand list.`);
+        if (bubbleId === config.user.bubbleid) {
+          if (config.clientRTM) {
+            await config.clientRTM.setLocalUserAttributes({
+              isRaisingHand: "no",
+            });
+            console.log(
+              `Local user ${bubbleId} updated isRaisingHand attribute to 'no'.`
+            );
+          } else {
+            console.warn("RTM client is not available in the config.");
+          }
+        }
+      }
+      
   bubble_fn_usersRaisingHand(usersRaisingHand);
+};
+
+
+
+// Function to lower another user's hand
+export const lowerHand = async (targetBubbleId, config) => {
+  try {
+    // Prepare the message payload
+    const message = JSON.stringify({
+      type: 'lowerHand',
+      bubbleId: targetBubbleId,
+    });
+
+    // Send the message to the channel
+    await sendRTMMessage(message, config);
+
+    console.log(`Lower hand message sent for user ${targetBubbleId}.`);
+
+    // Remove the user from the local usersRaisingHand list
+    usersRaisingHand = usersRaisingHand.filter((uid) => uid !== targetBubbleId);
+
+    // Update the UI
+    bubble_fn_usersRaisingHand(usersRaisingHand);
+  } catch (error) {
+    console.error(`Error lowering hand for user ${targetBubbleId}:`, error);
+  }
 };
