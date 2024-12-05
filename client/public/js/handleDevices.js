@@ -1,4 +1,4 @@
-import {sendNotification} from "./helperFunctions"
+import {sendNotification} from "./helperFunctions.js"
 
 let selectedMic = null; // External variable for the selected microphone
 let selectedCam = null; // External variable for the selected camera
