@@ -174,42 +174,48 @@ export const startCloudRecording = debounce(async (url, config) => {
 // Debounced Stop Cloud Recording
 
 
-export const stopCloudRecording = debounce(async (config) => {
-  try {
-    const response = await fetch(`${config.serverUrl}/stopCloudRecording`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resourceId, // Use the external variable
-        sid, // Use the external variable
-        channelName: config.channelName, // Assuming channelName is globally available or imported
-        uid: recordId, // Use the external variable
-        timestamp, // Use the external variable
-      }),
-    });
+export const stopCloudRecording = debounce(
+  async (config, resourceId, sid, recordId, timestamp) => {
+    try {
+      const response = await fetch(`${config.serverUrl}/stopCloudRecording`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resourceId, // Use the external variable
+          sid, // Use the external variable
+          channelName: config.channelName, // Assuming channelName is globally available or imported
+          uid: recordId, // Use the external variable
+          timestamp, // Use the external variable
+        }),
+      });
 
-    const stopData = await response.json();
+      const stopData = await response.json();
 
-    if (response.ok) {
-      console.log("Recording stopped successfully:", JSON.stringify(stopData));
-      bubble_fn_isVideoRecording("no");
+      if (response.ok) {
+        console.log(
+          "Recording stopped successfully:",
+          JSON.stringify(stopData)
+        );
+        bubble_fn_isVideoRecording("no");
 
-      // Optionally reset the external variables
-      resourceId = null; // Reset resourceId
-      sid = null;        // Reset sid
-      recordId = null;   // Reset recordId
-      timestamp = null;  // Reset timestamp
+        // Optionally reset the external variables
+        resourceId = null; // Reset resourceId
+        sid = null; // Reset sid
+        recordId = null; // Reset recordId
+        timestamp = null; // Reset timestamp
 
-      // MP4 file handling and other tasks are now done in the backend
-    } else {
-      console.log("Error stopping recording:", stopData.error);
+        // MP4 file handling and other tasks are now done in the backend
+      } else {
+        console.log("Error stopping recording:", stopData.error);
+      }
+    } catch (error) {
+      console.log("Error stopping recording:", error.message);
     }
-  } catch (error) {
-    console.log("Error stopping recording:", error.message);
-  }
-}, 3000); // 3-second debounce
+  },
+  3000
+); // 3-second debounce
 
 
 
@@ -318,96 +324,99 @@ export const startAudioRecording = debounce(async (config) => {
 }, 3000); // 3-second debounce
 
 
-export const stopAudioRecording = debounce(async (config) => {
-  const requestId = Math.random().toString(36).substring(2); // Unique ID for this attempt
-  console.log(`stopAudioRecording attempt started. Request ID: ${requestId}`);
+export const stopAudioRecording = debounce(
+  async (config, audioResourceId, audioSid, audioRecordId, audioTimestamp) => {
+    const requestId = Math.random().toString(36).substring(2); // Unique ID for this attempt
+    console.log(`stopAudioRecording attempt started. Request ID: ${requestId}`);
 
-  try {
-    console.log("Request payload:", {
-      resourceId: audioResourceId, // Use external variable
-      channelName: config.channelName, // From config
-      sid: audioSid, // Use external variable
-      uid: audioRecordId, // Use external variable
-      timestamp: audioTimestamp, // Use external variable
-    });
+    try {
+      console.log("Request payload:", {
+        resourceId: audioResourceId, // Use external variable
+        channelName: config.channelName, // From config
+        sid: audioSid, // Use external variable
+        uid: audioRecordId, // Use external variable
+        timestamp: audioTimestamp, // Use external variable
+      });
 
-    const response = await fetch(`${config.serverUrl}/stopAudioRecording`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        resourceId: audioResourceId,
-        channelName: config.channelName,
-        sid: audioSid,
-        uid: audioRecordId,
-        timestamp: audioTimestamp,
-      }),
-    });
+      const response = await fetch(`${config.serverUrl}/stopAudioRecording`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          resourceId: audioResourceId,
+          channelName: config.channelName,
+          sid: audioSid,
+          uid: audioRecordId,
+          timestamp: audioTimestamp,
+        }),
+      });
 
-    const stopData = await response.json();
+      const stopData = await response.json();
 
-    if (response.ok) {
-      console.log(
-        `Audio recording stopped successfully. Request ID: ${requestId}`,
-        JSON.stringify(stopData)
-      );
-      if (typeof bubble_fn_isAudioRecording === "function") {
-        bubble_fn_isAudioRecording("no");
-      }
-    } else {
-      console.error(
-        `Error stopping audio recording (Request ID: ${requestId}):`,
-        stopData
-      );
-    }
-  } catch (error) {
-    console.error(
-      `Unexpected error in stopAudioRecording (Request ID: ${requestId}):`,
-      error.message
-    );
-  } finally {
-    console.log(
-      `Finalizing stopAudioRecording for Request ID: ${requestId}. Cleaning up RTM clients.`
-    );
-
-    // Cleanup audio recording RTM channel
-    if (audioRecordingChannelRTM) {
-      try {
-        await audioRecordingChannelRTM.leave();
-        console.log("Audio recording RTM client left the channel");
-        audioRecordingChannelRTM = null; // Clear the RTM channel
-      } catch (error) {
+      if (response.ok) {
+        console.log(
+          `Audio recording stopped successfully. Request ID: ${requestId}`,
+          JSON.stringify(stopData)
+        );
+        if (typeof bubble_fn_isAudioRecording === "function") {
+          bubble_fn_isAudioRecording("no");
+        }
+      } else {
         console.error(
-          "Failed to leave RTM channel for audio recording client:",
-          error
+          `Error stopping audio recording (Request ID: ${requestId}):`,
+          stopData
         );
       }
-    } else {
-      console.log("No RTM channel to leave.");
-    }
+    } catch (error) {
+      console.error(
+        `Unexpected error in stopAudioRecording (Request ID: ${requestId}):`,
+        error.message
+      );
+    } finally {
+      console.log(
+        `Finalizing stopAudioRecording for Request ID: ${requestId}. Cleaning up RTM clients.`
+      );
 
-    // Cleanup audio recording RTM client
-    if (audioRecordingRTMClient) {
-      try {
-        await audioRecordingRTMClient.logout();
-        console.log("Audio recording RTM client logged out");
-        audioRecordingRTMClient = null; // Clear the RTM client
-      } catch (error) {
-        console.error("Failed to logout audio recording RTM client:", error);
+      // Cleanup audio recording RTM channel
+      if (audioRecordingChannelRTM) {
+        try {
+          await audioRecordingChannelRTM.leave();
+          console.log("Audio recording RTM client left the channel");
+          audioRecordingChannelRTM = null; // Clear the RTM channel
+        } catch (error) {
+          console.error(
+            "Failed to leave RTM channel for audio recording client:",
+            error
+          );
+        }
+      } else {
+        console.log("No RTM channel to leave.");
       }
-    } else {
-      console.log("No RTM client to logout.");
+
+      // Cleanup audio recording RTM client
+      if (audioRecordingRTMClient) {
+        try {
+          await audioRecordingRTMClient.logout();
+          console.log("Audio recording RTM client logged out");
+          audioRecordingRTMClient = null; // Clear the RTM client
+        } catch (error) {
+          console.error("Failed to logout audio recording RTM client:", error);
+        }
+      } else {
+        console.log("No RTM client to logout.");
+      }
+
+      // Reset external variables
+      audioSid = null;
+      audioRecordId = null;
+      audioResourceId = null;
+      audioTimestamp = null;
+
+      console.log(
+        `stopAudioRecording cleanup completed for Request ID: ${requestId}`
+      );
     }
-
-    // Reset external variables
-    audioSid = null;
-    audioRecordId = null;
-    audioResourceId = null;
-    audioTimestamp = null;
-
-    console.log(
-      `stopAudioRecording cleanup completed for Request ID: ${requestId}`
-    );
-  }
-}, 3000); // 3-second debounce
+  },
+  3000
+); // 3-second debounce
