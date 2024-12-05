@@ -65,27 +65,39 @@ export const playStreamInDiv = (
 
 
 
-export const toggleStages = (isScreenSharing) => {
+export const toggleStages = (isScreenSharing, config) => {
   const videoStage = document.getElementById("video-stage");
   const screenShareStage = document.getElementById("screen-share-stage");
 
+  // Check for missing elements
   if (!videoStage || !screenShareStage) {
-    console.error(
-      "toggleStages: video or screen share stage element not found."
-    );
+    let missingElements = [];
+    if (!videoStage) missingElements.push("video-stage");
+    if (!screenShareStage) missingElements.push("screen-share-stage");
+
+    const errorMessage = `toggleStages: The following element(s) are not found: ${missingElements.join(
+      ", "
+    )}.`;
+    console.error(errorMessage);
+
+    // Send detailed error message via RTM
     sendRTMMessage(
-        JSON.stringify({
-          type: "ERROR_NOTIFICATION",
-          message: errorMessage,
-          details: null,
-          timestamp: Date.now(),
-          user: config?.uid || "unknown",
-        }),
-        config
-      );
+      JSON.stringify({
+        type: "ERROR_NOTIFICATION",
+        message: errorMessage,
+        details: {
+          missingElements,
+        },
+        timestamp: Date.now(),
+        user: config?.uid || "unknown",
+      }),
+      config
+    );
+
     return; // Exit early if elements are not found
   }
 
+  // Toggle stages visibility
   if (isScreenSharing) {
     videoStage.classList.add("hidden"); // Hide video stage
     screenShareStage.classList.remove("hidden"); // Show screen share stage
@@ -94,5 +106,28 @@ export const toggleStages = (isScreenSharing) => {
     screenShareStage.classList.add("hidden"); // Hide screen share stage
   }
 
-  updateLayout(); // Ensure layout is updated after toggling
+  // Update layout after toggling
+  try {
+    if (typeof updateLayout === "function") {
+      updateLayout();
+    } else {
+      console.warn("updateLayout function is not defined.");
+    }
+  } catch (error) {
+    console.error("Error in updateLayout:", error);
+    sendRTMMessage(
+      JSON.stringify({
+        type: "ERROR_NOTIFICATION",
+        message: "Error occurred in updateLayout function.",
+        details: {
+          errorMessage: error.message,
+          stack: error.stack,
+        },
+        timestamp: Date.now(),
+        user: config?.uid || "unknown",
+      }),
+      config
+    );
+  }
 };
+
