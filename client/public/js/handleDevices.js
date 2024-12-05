@@ -5,51 +5,6 @@ let selectedMic = null;
 let selectedCam = null;
 let selectedSpeaker = null;
 
-/**
- * Get the current value of the selected microphone.
- * @returns {string|null} The selected microphone ID, or null if not set.
- */
-export const getSelectedMic = () => selectedMic;
-
-/**
- * Update the value of the selected microphone.
- * @param {string} mic - The new microphone ID to set.
- */
-export const setSelectedMic = (mic) => {
-  console.log(`Updating selectedMic from ${selectedMic} to ${mic}`);
-  selectedMic = mic;
-};
-
-/**
- * Get the current value of the selected camera.
- * @returns {string|null} The selected camera ID, or null if not set.
- */
-export const getSelectedCam = () => selectedCam;
-
-/**
- * Update the value of the selected camera.
- * @param {string} cam - The new camera ID to set.
- */
-export const setSelectedCam = (cam) => {
-  console.log(`Updating selectedCam from ${selectedCam} to ${cam}`);
-  selectedCam = cam;
-};
-
-/**
- * Get the current value of the selected speaker.
- * @returns {string|null} The selected speaker ID, or null if not set.
- */
-export const getSelectedSpeaker = () => selectedSpeaker;
-
-/**
- * Update the value of the selected speaker.
- * @param {string} speaker - The new speaker ID to set.
- */
-export const setSelectedSpeaker = (speaker) => {
-  console.log(`Updating selectedSpeaker from ${selectedSpeaker} to ${speaker}`);
-  selectedSpeaker = speaker;
-};
-
 
 export const switchCam = async (camInfo, config) => {
     sendNotification("log", "switching camera", config); 

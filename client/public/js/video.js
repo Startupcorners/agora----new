@@ -2,14 +2,7 @@ import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { updatePublishingList } from "./talkToBubble.js";
 import { fetchTokens } from "./fetchTokens.js";
 import { sendRTMMessage } from "./helperFunctions.js";
-import {
-  getSelectedMic,
-  setSelectedMic,
-  getSelectedCam,
-  setSelectedCam,
-  getSelectedSpeaker,
-  setSelectedSpeaker,
-} from "./deviceManager.js";
+import { checkAndUpdateSelectedCam } from "./handleDevices.js"
 
 let sharingScreenUid = null; // Declare the sharingScreenUid outside of config
 let screenShareRTMClient = null;
@@ -452,6 +445,7 @@ export const toggleCamera = async (config) => {
   }
 };
 
+
 export const startCamera = async (config) => {
   const client = config.client;
 
@@ -460,8 +454,20 @@ export const startCamera = async (config) => {
       throw new Error("Config object or UID is missing.");
     }
 
+    // Get the updated selected camera
+    const updatedSelectedCam = await checkAndUpdateSelectedCam();
+
+    if (!updatedSelectedCam) {
+      console.error("No camera available to start video track.");
+      return;
+    }
+
     console.log("Turning on the camera for user:", config.uid);
-    const videoTrack = await AgoraRTC.createCameraVideoTrack();
+
+    // Create video track using the selected camera
+    const videoTrack = await AgoraRTC.createCameraVideoTrack({
+      cameraId: updatedSelectedCam.deviceId,
+    });
 
     // Publish the video track
     await client.publish([videoTrack]);
@@ -474,10 +480,11 @@ export const startCamera = async (config) => {
     } else {
       await playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
     }
+
     // Handle virtual background if enabled
     if (isVirtualBackGroundEnabled) {
       console.log("Virtual background is enabled.");
-      await enableVirtualBackground(currentVirtualBackground, config); // Apply blur if that's the selected background
+      await enableVirtualBackground(currentVirtualBackground, config);
     } else {
       console.log("Virtual background is not enabled.");
     }
@@ -491,6 +498,7 @@ export const startCamera = async (config) => {
     console.error("Error starting the camera for user:", config.uid, error);
   }
 };
+
 
 export const stopCamera = async (config) => {
   const client = config.client;
