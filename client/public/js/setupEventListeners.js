@@ -8,7 +8,7 @@ import { handleUserJoined, handleUserLeft } from "./joinLeaveRemoveUser.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { fetchAndSendDeviceList, manageParticipants } from "./talkToBubble.js";
 import { switchCam, switchSpeaker, handleCameraDeactivation, handleMicDeactivation, handleSpeakerDeactivation } from "./handleDevices.js";
-import { handleRaisingHand, handleLocalUserRaisingHand } from "./uiHandlers.js";
+import { handleRaiseHandMessage } from "./uiHandlers.js";
 import { leave } from "./joinLeaveLocalUser.js";
 import { onRoleChange } from "./roleChange.js";
 import { toggleCamera, toggleScreenShare } from "./video.js";

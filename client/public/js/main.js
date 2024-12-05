@@ -15,7 +15,8 @@ import {
 } from "./recordingHandlers.js";
 import {
   denyAccess,
-  raiseHand,
+  toggleHand,
+  lowerHand,
   stopUserCamera,
   stopUserMic,
   stopUserScreenshare,
@@ -169,7 +170,8 @@ export const newMainApp = async function (initConfig) {
     stopCloudRecording,
     startAudioRecording,
     stillPresent,
-    raiseHand,
+    toggleHand,
+    lowerHand,
     noHosts,
     hostJoined,
     stopAudioRecording,

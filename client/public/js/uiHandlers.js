@@ -227,30 +227,29 @@ export const toggleHand = async (bubbleId, config) => {
 
 
 // Combined function to handle hand raise/lower messages
-export const handleHandMessage = async (bubbleId, isRaisingHand, config) => {
-
-      if (isRaisingHand) {
-        if (!usersRaisingHand.includes(bubbleId)) {
-          usersRaisingHand.push(bubbleId);
-          console.log(`User ${bubbleId} added to raising hand list.`);
-        }
+export const handleRaiseHandMessage = async (bubbleId, isRaisingHand, config) => {
+  if (isRaisingHand) {
+    if (!usersRaisingHand.includes(bubbleId)) {
+      usersRaisingHand.push(bubbleId);
+      console.log(`User ${bubbleId} added to raising hand list.`);
+    }
+  } else {
+    usersRaisingHand = usersRaisingHand.filter((uid) => uid !== bubbleId);
+    console.log(`User ${bubbleId} removed from raising hand list.`);
+    if (bubbleId === config.user.bubbleid) {
+      if (config.clientRTM) {
+        await config.clientRTM.setLocalUserAttributes({
+          isRaisingHand: "no",
+        });
+        console.log(
+          `Local user ${bubbleId} updated isRaisingHand attribute to 'no'.`
+        );
       } else {
-        usersRaisingHand = usersRaisingHand.filter((uid) => uid !== bubbleId);
-        console.log(`User ${bubbleId} removed from raising hand list.`);
-        if (bubbleId === config.user.bubbleid) {
-          if (config.clientRTM) {
-            await config.clientRTM.setLocalUserAttributes({
-              isRaisingHand: "no",
-            });
-            console.log(
-              `Local user ${bubbleId} updated isRaisingHand attribute to 'no'.`
-            );
-          } else {
-            console.warn("RTM client is not available in the config.");
-          }
-        }
+        console.warn("RTM client is not available in the config.");
       }
-      
+    }
+  }
+
   bubble_fn_usersRaisingHand(usersRaisingHand);
 };
 
