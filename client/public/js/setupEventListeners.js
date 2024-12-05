@@ -293,7 +293,7 @@ switch (type) {
   case "toggleHand":
     console.log(`Raise hand message received for user ${bubbleId}`);
     if (bubbleId !== undefined && typeof isRaisingHand === "boolean") {
-      handleRaiseHandMessage(bubbleId, isRaisingHand);
+      handleRaiseHandMessage(bubbleId, isRaisingHand, config);
     } else {
       console.warn("Invalid raiseHand message format.");
     }
@@ -301,7 +301,7 @@ switch (type) {
   case "lowerHand":
     console.log(`Raise hand message received for user ${bubbleId}`);
     if (bubbleId !== undefined) {
-      handleRaiseHandMessage(bubbleId, false);
+      handleRaiseHandMessage(bubbleId, false, config);
     } else {
       console.warn("Invalid raiseHand message format.");
     }
