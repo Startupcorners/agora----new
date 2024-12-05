@@ -286,7 +286,15 @@ export const setupRTMMessageListener = (config) => {
      return;
    }
 
-   const { type, userUid, newRole, newRoleInTheCall, userAttr } = parsedMessage;
+   const {
+     type,
+     bubbleId,
+     isRaisingHand,
+     newRole,
+     newRoleInTheCall,
+     userAttr,
+   } = parsedMessage;
+
 
 // Switch-case to handle different message types
 switch (type) {
