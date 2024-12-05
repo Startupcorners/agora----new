@@ -1,5 +1,7 @@
 import { sendRTMMessage } from "./helperFunctions.js";
 import { manageParticipants } from "./talkToBubble.js";
+import {removeUserWrapper} from "./wrappers.js"
+import {onRoleChange} from "./roleChange.js"
 
 
 let usersRaisingHand = []; // External variable to track users raising their hands
