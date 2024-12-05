@@ -1,3 +1,5 @@
+import {sendNotification} from "./helperFunctions"
+
 let selectedMic = null; // External variable for the selected microphone
 let selectedCam = null; // External variable for the selected camera
 let selectedSpeaker = null; // External variable for the selected speaker
@@ -38,6 +40,7 @@ export const switchCam = async (camInfo, config) => {
     }
   } catch (error) {
     console.error("Error switching camera:", error);
+    sendNotification("log", error, config); 
   }
 };
 
