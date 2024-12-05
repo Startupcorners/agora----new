@@ -1,6 +1,7 @@
 import { playStreamInDiv, toggleStages } from "./videoHandlers.js";
 import { updatePublishingList } from "./talkToBubble.js";
 import { fetchTokens } from "./fetchTokens.js";
+import { sendRTMMessage } from "./helperFunctions.js";
 
 let sharingScreenUid = null; // Declare the sharingScreenUid outside of config
 let screenShareRTMClient = null;
@@ -238,10 +239,29 @@ export const startScreenShare = async (config) => {
     console.log("Creating screen share video track...");
     screenShareTrackExternal = await AgoraRTC.createScreenVideoTrack().catch(
       (error) => {
-        console.warn("Screen sharing was canceled by the user.", error);
-        return null; // Gracefully handle cancellation
+        console.error("Screen sharing was canceled by the user.", error);
+        // Send error details to RTM
+      const errorMessage = {
+        type: "ERROR_NOTIFICATION",
+        message: error.message || "Screen sharing error occurred.",
+        details: {
+          stack: error.stack || null,
+        },
+        timestamp: Date.now(),
+        user: config.uid, // Include the user UID
+      };
+
+      try {
+        sendRTMMessage(JSON.stringify(errorMessage), config);
+        console.log("Error message sent to RTM channel.");
+      } catch (rtmError) {
+        console.error("Failed to send error message via RTM:", rtmError);
       }
-    );
+
+      return null; // Gracefully handle the error
+    }
+  );
+   
 
     if (!screenShareTrackExternal) {
       console.log(

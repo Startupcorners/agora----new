@@ -373,10 +373,6 @@ export const setupRTMMessageListener = (config) => {
        console.warn(
          `Error from user ${parsedMessage.user}: ${parsedMessage.message}`
        );
-       alert(
-         `User ${parsedMessage.user} is experiencing an issue: ${parsedMessage.message}`
-       );
-       break;
 
      case "accessDenied":
        console.log(`Access denied message received for user ${userUid}`);
