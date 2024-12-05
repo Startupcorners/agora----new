@@ -176,6 +176,7 @@ export const startCloudRecording = debounce(async (url, config) => {
 
 export const stopCloudRecording = debounce(
   async (config, resourceId, sid, recordId, timestamp) => {
+    console.log(resourceId, sid, recordId, timestamp);
     try {
       const response = await fetch(`${config.serverUrl}/stopCloudRecording`, {
         method: "POST",
@@ -183,11 +184,11 @@ export const stopCloudRecording = debounce(
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          resourceId, // Use the external variable
-          sid, // Use the external variable
+          resourceId: resourceId, // Use the external variable
+          sid: sid, // Use the external variable
           channelName: config.channelName, // Assuming channelName is globally available or imported
           uid: recordId, // Use the external variable
-          timestamp, // Use the external variable
+          timestamp: timestamp, // Use the external variable
         }),
       });
 
