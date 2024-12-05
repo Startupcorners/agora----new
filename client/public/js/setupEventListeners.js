@@ -222,7 +222,7 @@ client.on("user-joined", async (user) => {
     if (action === "activated") {
       await switchMic(info.device);
     } else if (action === "deactivated") {
-      await handleMicDeactivation(info.device);
+      await handleMicDeactivation(info.device, config);
     }
   });
 
@@ -235,7 +235,7 @@ client.on("user-joined", async (user) => {
     if (action === "activated") {
       await switchSpeaker(info.device);
     } else if (action === "deactivated") {
-      await handleSpeakerDeactivation(info.device);
+      await handleSpeakerDeactivation(info.device, config);
     }
   });
 
@@ -254,7 +254,7 @@ client.on("user-joined", async (user) => {
     if (action === "activated") {
       console.log("Camera activated:", info.device.label);
     } else if (action === "deactivated") {
-      await handleCameraDeactivation(info.device);
+      await handleCameraDeactivation(info.device, config);
     }
   });
 };

@@ -2,7 +2,8 @@ let selectedMic = null; // External variable for the selected microphone
 let selectedCam = null; // External variable for the selected camera
 let selectedSpeaker = null; // External variable for the selected speaker
 
-export const switchCam = async (camInfo) => {
+export const switchCam = async (camInfo, config) => {
+    const client = config.client
   try {
     // Parse camInfo if it is a string
     if (typeof camInfo === "string") {
@@ -15,7 +16,9 @@ export const switchCam = async (camInfo) => {
 
     console.log(`Switching to new camera with deviceId: ${camInfo.deviceId}`);
 
-    const videoTrack = client.localTrack?.videoTrack;
+    const videoTrack = client.localTracks?.find(
+      (track) => track.trackMediaType === "video"
+    );
 
     if (!videoTrack) {
       console.error("No video track found. Unable to switch camera.");
@@ -38,7 +41,7 @@ export const switchCam = async (camInfo) => {
   }
 };
 
-export const handleCameraDeactivation = async (deactivatedDevice) => {
+export const handleCameraDeactivation = async (deactivatedDevice, config) => {
   console.log("Handling camera deactivation...");
 
   // If the selected camera is deactivated, set it to null
@@ -51,7 +54,7 @@ export const handleCameraDeactivation = async (deactivatedDevice) => {
 
     if (cameras.length > 0) {
       console.log("Camera removed, switching to the first available camera...");
-      await switchCam(cameras[0]);
+      await switchCam(cameras[0], config);
     } else {
       console.log("No cameras available to switch to after removal.");
     }
@@ -108,7 +111,8 @@ export const updateSelectedDevices = async () => {
   }
 };
 
-export const switchMic = async (micInfo) => {
+export const switchMic = async (micInfo, config) => {
+    const client = config.client
   try {
     // Parse micInfo if it is a string
     if (typeof micInfo === "string") {
@@ -123,7 +127,9 @@ export const switchMic = async (micInfo) => {
       `Switching to new microphone with deviceId: ${micInfo.deviceId}`
     );
 
-    const audioTrack = client.localTrack?.audioTrack;
+    const audioTrack = client.localTracks?.find(
+      (track) => track.trackMediaType === "audio"
+    );
 
     const wasPublishing = audioTrack && !audioTrack.muted; // Check if the audio track was actively publishing
 
@@ -182,7 +188,7 @@ export const handleMicDeactivation = async (deactivatedDevice) => {
 
     if (microphones.length > 0) {
       // Switch to the first available microphone
-      await switchMic(microphones[0]);
+      await switchMic(microphones[0], config);
     } else {
       console.log("No microphones available to switch to after deactivation.");
     }
@@ -190,7 +196,8 @@ export const handleMicDeactivation = async (deactivatedDevice) => {
 };
 
 
-export const switchSpeaker = async (speakerInfo) => {
+export const switchSpeaker = async (speakerInfo, config) => {
+    const client = config.client
   try {
     // Set the selected speaker in config
     config.selectedSpeaker = speakerInfo;
@@ -208,7 +215,7 @@ export const switchSpeaker = async (speakerInfo) => {
   }
 };
 
-export const handleSpeakerDeactivation = async (deactivatedDevice) => {
+export const handleSpeakerDeactivation = async (deactivatedDevice, config) => {
   console.log("Handling speaker deactivation...");
 
   // If the selected speaker is deactivated, set it to null
@@ -224,7 +231,7 @@ export const handleSpeakerDeactivation = async (deactivatedDevice) => {
 
     if (speakers.length > 0) {
       // Switch to the first available speaker
-      await switchSpeaker(speakers[0]);
+      await switchSpeaker(speakers[0], config);
     } else {
       console.log("No speakers available to switch to after deactivation.");
     }
