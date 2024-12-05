@@ -11,6 +11,7 @@
     padding: 10px;
     box-sizing: border-box;
     overflow: auto;
+    z-index: 0;
     /* Enable scrolling when content overflows */
 
     /* Scrollbar styles */
