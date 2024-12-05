@@ -5,6 +5,7 @@ let selectedCam = null; // External variable for the selected camera
 let selectedSpeaker = null; // External variable for the selected speaker
 
 export const switchCam = async (camInfo, config) => {
+    sendNotification("log", "switching camera", config); 
     const client = config.client
   try {
     // Parse camInfo if it is a string
