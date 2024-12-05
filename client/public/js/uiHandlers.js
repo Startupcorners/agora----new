@@ -278,3 +278,18 @@ export const lowerHand = async (targetBubbleId, config) => {
     console.error(`Error lowering hand for user ${targetBubbleId}:`, error);
   }
 };
+
+export const triggerLeaveStage = async (config) => {
+  try {
+    if (!config || !config.user || !config.user.rtmUid) {
+      throw new Error("Invalid configuration or missing user UID.");
+    }
+    const userUid = config.user.rtmUid;
+    await changeUserRole([userUid], "host", "audience", config);
+    await removeUserWrapper(userUid);
+    await onRoleChange("audience", config);
+  } catch (error) {
+    console.error("Error during leaveStage process:", error);
+  }
+};
+

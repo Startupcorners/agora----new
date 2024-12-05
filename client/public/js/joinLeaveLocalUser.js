@@ -35,6 +35,24 @@ export const join = async (config) => {
     if (channelMembers.includes("2")) {
       console.log("RTM member 2 detected. Video recording is active.");
       bubble_fn_isVideoRecording("yes"); // Indicate video recording is active
+      console.log("Checking who created the event");
+      const logResponse = await axios.post(
+        "https://startupcorners.com/api/1.1/wf/recording_information",
+        {
+          resourceId: resourceId,
+        }
+      );
+      console.log("Response from /recording_information:", logResponse.data);
+
+      if (logResponse.data === "yes") {
+        console.log(
+          `Log entry for resourceId ${resourceId} already exists, skipping stop recording.`
+        );
+        return res.json({
+          message: "Recording stop request skipped, log entry exists",
+        });
+      }
+
     }
 
     if (channelMembers.includes("3")) {

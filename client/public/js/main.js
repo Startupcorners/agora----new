@@ -21,6 +21,7 @@ import {
   stopUserMic,
   stopUserScreenshare,
   changeUserRole,
+  triggerLeaveStage,
 } from "./uiHandlers.js";
 import {
   templateVideoParticipant
@@ -168,6 +169,7 @@ export const newMainApp = async function (initConfig) {
     fetchAndSendDeviceList,
     startCloudRecording,
     stopCloudRecording,
+    triggerLeaveStage,
     startAudioRecording,
     stillPresent,
     toggleHand,
