@@ -13,6 +13,7 @@ import { leave } from "./joinLeaveLocalUser.js";
 import { onRoleChange } from "./roleChange.js";
 import { toggleCamera, toggleScreenShare } from "./video.js";
 import { toggleMic } from "./audio.js";
+import { sendRTMMessage } from "./helperFunctions.js";
 
 let lastMutedStatuses = {}; // External variable to track the mute status of users
 let speakingIntervals = {}; // External variable to track speaking intervals for users
@@ -238,6 +239,12 @@ client.on("user-joined", async (user) => {
     }
   });
 
+  client.on("exception", (error) => {
+    console.error("RTC Exception detected:", error);
+    notifyErrorToChannel(error, config);
+  });
+
+
   AgoraRTC.on("camera-changed", async (info) => {
     console.log("Camera device change detected:", info);
     await fetchAndSendDeviceList();
@@ -262,131 +269,127 @@ export const setupRTMMessageListener = (config) => {
   console.log("Current user's rtmUid:", config.user.rtmUid);
 
   // Listen for messages on the RTM channel
-  channelRTM.on("ChannelMessage", async (message, memberId) => {
-    console.log("Received RTM message:", message.text);
+ channelRTM.on("ChannelMessage", async (message, memberId) => {
+   console.log("Received RTM message:", message.text);
 
-    // Ignore messages sent by yourself
-    if (memberId === config.user.rtmUid) {
-      console.log("Message is from the current user. Ignoring.");
-      return;
-    }
+   // Ignore messages sent by the current user
+   if (memberId === config.user.rtmUid) {
+     console.log("Message is from the current user. Ignoring.");
+     return;
+   }
 
-    let parsedMessage;
-    try {
-      parsedMessage = JSON.parse(message.text);
-    } catch (error) {
-      console.error("Failed to parse RTM message:", error);
-      return;
-    }
+   let parsedMessage;
+   try {
+     parsedMessage = JSON.parse(message.text);
+   } catch (error) {
+     console.error("Failed to parse RTM message:", error);
+     return;
+   }
 
-    const { type, userUid, newRole, newRoleInTheCall, userAttr } =
-      parsedMessage;
+   const { type, userUid, newRole, newRoleInTheCall, userAttr } = parsedMessage;
 
-    if (type === "raiseHand") {
-      // Handle "raiseHand" message
-      console.log(`Raise hand message received for user ${userUid}`);
-      if (userUid) {
-        console.log(`User ${userUid} has raised their hand.`);
-        await handleRaisingHand(userUid);
-      }
-    } else if (type === "roleChange") {
-      // Handle "roleChange" message
-      if (newRoleInTheCall === "audience") {
-        await removeUserWrapper(userUid);
-      }
+   switch (type) {
+     case "raiseHand":
+       console.log(`Raise hand message received for user ${userUid}`);
+       if (userUid) {
+         await handleRaisingHand(userUid);
+       }
+       break;
 
-      console.log(config.user.rtmUid);
+     case "roleChange":
+       console.log(`Role change message received for user ${userUid}`);
+       if (newRoleInTheCall === "audience") {
+         await removeUserWrapper(userUid);
+       }
+       if (userUid.toString() === config.user.rtmUid) {
+         console.log(
+           "Role change is for the current user. Handling role change."
+         );
+         try {
+           await onRoleChange(newRoleInTheCall, config);
+         } catch (error) {
+           console.error("Error handling role change:", error);
+         }
+       }
+       break;
 
-      if (userUid.toString() === config.user.rtmUid) {
-        console.log(
-          "Role change is for the current user. Calling onRoleChange."
-        );
-        try {
-          await onRoleChange(newRoleInTheCall, config);
-          console.log("Successfully handled role change.");
-        } catch (error) {
-          console.error("Error handling role change:", error);
-        }
-      } else {
-        console.log(
-          `Role change message for user ${userUid}, but not current user. Ignoring.`
-        );
-      }
-    } else if (type === "userRoleUpdated") {
-      // Handle "userRoleUpdated" message
-      console.log(
-        `Received userRoleUpdated for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
-      );
+     case "userRoleUpdated":
+       console.log(
+         `UserRoleUpdated for user ${userUid}: role: ${newRole}, roleInTheCall: ${newRoleInTheCall}`
+       );
+       if (!userAttr) {
+         console.warn(
+           `No userAttr provided in userRoleUpdated message for user ${userUid}.`
+         );
+         return;
+       }
 
-      if (!userAttr) {
-        console.warn(
-          `No userAttr provided in userRoleUpdated message for user ${userUid}.`
-        );
-        return;
-      }
+       await manageParticipants(userUid, {}, "leave");
+       await manageParticipants(userUid, userAttr, "join");
 
-      // Update participant list
-      await manageParticipants(userUid, {}, "leave");
-      await manageParticipants(userUid, userAttr, "join");
+       const rolesRequiringWrapper = [
+         "master",
+         "host",
+         "speaker",
+         "meetingParticipant",
+         "audienceOnStage",
+       ];
 
-      // Handle video wrapper logic
-      const rolesRequiringWrapper = [
-        "master",
-        "host",
-        "speaker",
-        "meetingParticipant",
-        "audienceOnStage",
-      ];
+       if (rolesRequiringWrapper.includes(newRoleInTheCall)) {
+         console.log(
+           `Role ${newRoleInTheCall} requires a video wrapper. Adding if necessary.`
+         );
+         await addUserWrapper(userUid, config);
+       } else {
+         console.log(
+           `Role ${newRoleInTheCall} does not require a video wrapper. Removing if exists.`
+         );
+         removeUserWrapper(userUid);
+       }
+       break;
 
-      if (rolesRequiringWrapper.includes(newRoleInTheCall)) {
-        console.log(
-          `Role ${newRoleInTheCall} requires a video wrapper. Adding if necessary.`
-        );
-        await addUserWrapper(userUid, config);
-      } else {
-        console.log(
-          `Role ${newRoleInTheCall} does not require a video wrapper. Removing if exists.`
-        );
-        removeUserWrapper(userUid);
-      }
-    } else if (type === "stopCamera") {
-      // Handle "stopCamera" message
-      console.log(`Stop camera message received for user ${userUid}`);
-      if (userUid.toString() === config.user.rtmUid) {
-        console.log(
-          "stopCamera is for the current user. Calling toggleCamera."
-        );
-        toggleCamera(config);
-      }
-    } else if (type === "stopMic") {
-      // Handle "stopMic" message
-      console.log(`Stop mic message received for user ${userUid}`);
-      if (userUid.toString() === config.user.rtmUid) {
-        console.log("stopMic is for the current user. Calling toggleMic.");
-        toggleMic(config);
-      }
-    } else if (type === "stopScreenshare") {
-      // Handle "stopScreenshare" message
-      console.log(`Stop screenshare message received for user ${userUid}`);
-      if (userUid.toString() === config.user.rtmUid) {
-        console.log(
-          "stopScreenshare is for the current user. Calling toggleScreenShare."
-        );
-        toggleScreenShare(config);
-      }
-    } else if (type === "accessDenied") {
-      // Handle "accessDenied" message
-      console.log(`Access denied message received for user ${userUid}`);
-      if (userUid.toString() === config.user.rtmUid) {
-        console.log(
-          "Access denied is for the current user. Triggering leave with 'removed'."
-        );
-        await leave("removed", config);
-      }
-    } else {
-      console.warn("Unhandled RTM message type:", type);
-    }
-  });
+     case "stopCamera":
+       console.log(`Stop camera message received for user ${userUid}`);
+       if (userUid.toString() === config.user.rtmUid) {
+         toggleCamera(config);
+       }
+       break;
+
+     case "stopMic":
+       console.log(`Stop mic message received for user ${userUid}`);
+       if (userUid.toString() === config.user.rtmUid) {
+         toggleMic(config);
+       }
+       break;
+
+     case "stopScreenshare":
+       console.log(`Stop screenshare message received for user ${userUid}`);
+       if (userUid.toString() === config.user.rtmUid) {
+         toggleScreenShare(config);
+       }
+       break;
+
+     case "ERROR_NOTIFICATION":
+       console.warn(
+         `Error from user ${parsedMessage.user}: ${parsedMessage.message}`
+       );
+       alert(
+         `User ${parsedMessage.user} is experiencing an issue: ${parsedMessage.message}`
+       );
+       break;
+
+     case "accessDenied":
+       console.log(`Access denied message received for user ${userUid}`);
+       if (userUid.toString() === config.user.rtmUid) {
+         await leave("removed", config);
+       }
+       break;
+
+     default:
+       console.warn("Unhandled RTM message type:", type);
+   }
+ });
+
 
   // Handle member join
   channelRTM.on("MemberJoined", async (memberId) => {
@@ -741,5 +744,24 @@ export const hostJoined = () => {
     bubble_fn_hostJoined(); // Notify Bubble that a host has joined
   } else {
     console.warn("bubble_fn_hostJoined is not defined.");
+  }
+};
+
+
+const notifyErrorToChannel = async (error, config) => {
+  const errorMessage = {
+    type: "ERROR_NOTIFICATION",
+    message: error.message || "An unknown error occurred.",
+    details: error.details || null,
+    user: config.uid, // Include the UID of the user reporting the error
+    timestamp: Date.now(),
+  };
+
+  try {
+    // Use the existing function to send the RTM message
+    await sendRTMMessage(JSON.stringify(errorMessage), config);
+    console.log("Error notification sent:", errorMessage);
+  } catch (sendError) {
+    console.error("Failed to send error notification via RTM:", sendError);
   }
 };
