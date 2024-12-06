@@ -111,7 +111,7 @@ const joinRTM = async (config, rtmToken, retryCount = 0) => {
       role: config.user.role || "audience",
       rtmUid: rtmUid,
       speakerId: config.user.speakerId || "None",
-      participantId: config.participantId,
+      participantId: config.user.participantId,
       bubbleid: config.user.bubbleid,
       isRaisingHand: config.user.isRaisingHand,
       sharingScreenUid: "0",
