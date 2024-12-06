@@ -73,6 +73,7 @@ export const join = async (config) => {
       designation: config.user.designation || "", // Default to empty string if not set in config.user
       role: config.user.role || "audience", // Default to "audience" if not set in config.user
       rtmUid: config.uid.toString(), // Use config.uid for RTM UID
+      speakerId: config.user.speakerId,
       bubbleid: config.user.bubbleid || "", // Default to empty if not set in config.user
       isRaisingHand: config.user.isRaisingHand || false, // Default to false if not set in config.user
       sharingScreenUid: config.sharingScreenUid || "0", // Default to "0" if no screen sharing user ID
@@ -108,6 +109,7 @@ const joinRTM = async (config, rtmToken, retryCount = 0) => {
       designation: config.user.designation || "Unknown",
       role: config.user.role || "audience",
       rtmUid: rtmUid,
+      speakerId: config.user.speakerId || "None",
       bubbleid: config.user.bubbleid,
       isRaisingHand: config.user.isRaisingHand,
       sharingScreenUid: "0",

@@ -105,6 +105,7 @@ client.on("user-joined", async (user) => {
           role: fetchedAttributes.role || "audience",
           rtmUid: fetchedAttributes.rtmUid || userUid, // Default to user UID
           bubbleid: fetchedAttributes.bubbleid || "",
+          speakerId: fetchedAttributes.speakerId,
           isRaisingHand: fetchedAttributes.isRaisingHand || false,
           sharingScreenUid: fetchedAttributes.sharingScreenUid || "0",
           roleInTheCall: fetchedAttributes.roleInTheCall || "audience",
@@ -121,6 +122,7 @@ client.on("user-joined", async (user) => {
           role: "audience",
           rtmUid: userUid, // Default to user UID
           bubbleid: "",
+          speakerId: "",
           isRaisingHand: false,
           sharingScreenUid: "0",
           roleInTheCall: "audience",
