@@ -78,7 +78,8 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
         designation: userAttr.designation || "",
         avatar: userAttr.avatar || "https://ui-avatars.com/api/?name=Unknown",
         role: userAttr.role || "audience",
-        speakerId:userAttr.speakerId, 
+        speakerId: userAttr.speakerId,
+        participantId: userAttr.participantId,
         bubbleid: userAttr.bubbleid || "",
         isRaisingHand: userAttr.isRaisingHand || "no",
         roleInTheCall: userAttr.roleInTheCall || "audience",
@@ -133,6 +134,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     outputlist6: participants.map((p) => p.isRaisingHand),
     outputlist7: participants.map((p) => p.rtmUid),
     outputlist8: participants.map((p) => p.speakerId),
+    outputlist9: participants.map((p) => p.participantId),
   });
 
   // Send data to Bubble functions

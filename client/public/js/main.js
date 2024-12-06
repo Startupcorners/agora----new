@@ -57,6 +57,7 @@ export const newMainApp = async function (initConfig) {
       profileLink: "",
       uidSharingScreen: "",
       speakerId: "",
+      participantId: "",
       bubbleid: "",
       isRaisingHand: "no",
       roleInTheCall: "", // host, speaker, audience (for ui)

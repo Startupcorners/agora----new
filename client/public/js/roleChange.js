@@ -125,6 +125,7 @@ export const onRoleChange = async (newRoleInTheCall, config) => {
     role: config.user.role || "audience",
     rtmUid: config.uid.toString(),
     speakerId: config.user.speakerId,
+    participantId: config.user.participantId,
     bubbleid: config.user.bubbleid,
     isRaisingHand: config.user.isRaisingHand,
     sharingScreenUid: "0",
