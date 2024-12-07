@@ -68,7 +68,7 @@ export const join = async (config) => {
     // Fetching attributes for all RTM channel members
     const membersAttributes = await Promise.all(
       channelMembers.map(async (member) => {
-        const attributes = await config.channelRTM.getUserAttributes(member);
+        const attributes = await config.clientRTM.getUserAttributes(member);
         return { member, attributes };
       })
     );
