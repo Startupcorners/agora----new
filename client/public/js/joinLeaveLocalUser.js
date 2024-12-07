@@ -3,7 +3,6 @@ import { joinVideoStage } from "./joinleavestage.js";
 import { manageParticipants } from "./talkToBubble.js";
 import { stopCamera, stopScreenShare } from "./video.js";
 import { endMic } from "./audio.js";
-import { handleRaiseHandMessage } from "./uiHandlers.js";
 
 export const join = async (config) => {
   console.warn("join function called");
@@ -53,6 +52,7 @@ export const join = async (config) => {
           message: "Recording stop request skipped, log entry exists",
         });
       }
+
     }
 
     if (channelMembers.includes("3")) {
@@ -64,23 +64,6 @@ export const join = async (config) => {
       console.log("RTM members 2 or 3 detected. Event is being recorded.");
       bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
     }
-
-    // Fetching attributes for all RTM channel members
-    const membersAttributes = await Promise.all(
-      channelMembers.map(async (member) => {
-        const attributes = await config.clientRTM.getUserAttributes(member);
-        return { member, attributes };
-      })
-    );
-
-    // Use handleRaiseHandMessage to manage the raising hand list for each user
-    await Promise.all(
-      membersAttributes.map(({ member, attributes }) => {
-        const bubbleId = attributes.bubbleid || member; // Use bubbleid if available, fallback to member ID
-        const isRaisingHand = attributes.isRaisingHand === "yes";
-        return handleRaiseHandMessage(bubbleId, isRaisingHand, config);
-      })
-    );
 
     // Ensure both audio and video tracks are set from Agora's local tracks
     const attributes = {
@@ -109,8 +92,6 @@ export const join = async (config) => {
     }
   }
 };
-
-
 
 // Function to join RTM
 const joinRTM = async (config, rtmToken, retryCount = 0) => {
