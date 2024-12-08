@@ -200,8 +200,8 @@ export const toggleHand = async (bubbleId, config) => {
 
     // Update the RTM attribute 'isRaisingHand' for the local user
     if (config.clientRTM) {
-      await config.clientRTM.setLocalUserAttributes({
-        isRaisingHand: newIsRaisingHand ? 'yes' : 'no',
+      config.clientRTM.addOrUpdateLocalUserAttributes({
+        isRaisingHand: newIsRaisingHand ? "yes" : "no",
       });
       console.log(
         `RTM attribute 'isRaisingHand' updated for local user ${bubbleId}.`
