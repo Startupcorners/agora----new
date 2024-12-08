@@ -3,8 +3,7 @@ import { joinVideoStage } from "./joinleavestage.js";
 import { manageParticipants } from "./talkToBubble.js";
 import { stopCamera, stopScreenShare } from "./video.js";
 import { endMic } from "./audio.js";
-
-const axios = require("axios");
+import axios from "axios";
 
 export const join = async (config) => {
   console.warn("join function called");
