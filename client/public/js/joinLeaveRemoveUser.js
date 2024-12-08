@@ -77,6 +77,10 @@ export const handleUserJoined = async (user, userAttr = {}, config) => {
     console.log(
       `Invoking manageParticipants for user ${userUid} with action "join".`
     );
+
+    console.log("user attributes :", userAttr);
+
+    
     // Ensure userUid is a number when calling manageParticipants
     await manageParticipants(parseInt(userUid), userAttr, "join");
     // Check if user is raising their hand and call handleRaiseHandMessage if yes
