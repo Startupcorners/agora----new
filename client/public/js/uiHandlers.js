@@ -240,7 +240,7 @@ export const handleRaiseHandMessage = async (bubbleId, isRaisingHand, config) =>
     console.log(`User ${bubbleId} removed from raising hand list.`);
     if (bubbleId === config.user.bubbleid) {
       if (config.clientRTM) {
-        await config.clientRTM.setLocalUserAttributes({
+        config.clientRTM.addOrUpdateLocalUserAttributes({
           isRaisingHand: "no",
         });
         console.log(
