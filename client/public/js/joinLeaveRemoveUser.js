@@ -1,6 +1,7 @@
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { manageParticipants } from "./talkToBubble.js";
 import { hostJoined } from "./setupEventListeners.js";
+import { handleRaiseHandMessage } from "./uiHandlers.js";
 
 export const handleUserJoined = async (user, userAttr = {}, config) => {
   console.log("User info:", user);
@@ -30,7 +31,6 @@ export const handleUserJoined = async (user, userAttr = {}, config) => {
       return;
     }
 
-    // Log the role and roleInTheCall for clarity
     const role = userAttr.role || "audience";
     const roleInTheCall = userAttr.roleInTheCall || "waiting";
     console.log(`Role for user ${userUid}: ${role}`);
@@ -47,7 +47,17 @@ export const handleUserJoined = async (user, userAttr = {}, config) => {
       }
     }
 
-    // Only proceed with wrapper if the user is a host and not in the "waiting" state
+    // Check if user is raising their hand and call handleRaiseHandMessage if yes
+    const bubbleId = userAttr.bubbleid || userUid;
+    const isRaisingHand = userAttr.isRaisingHand === "yes";
+    if (isRaisingHand) {
+      console.log(
+        `User ${userUid} is raising their hand. Calling handleRaiseHandMessage.`
+      );
+      await handleRaiseHandMessage(bubbleId, true, config);
+    }
+
+    // Only proceed with wrapper if the user is a host and not in "waiting" or "audience"
     if (
       role === "host" &&
       roleInTheCall !== "waiting" &&
@@ -94,6 +104,7 @@ export const handleUserJoined = async (user, userAttr = {}, config) => {
     }
   }
 };
+
 
 
 // Handles user left event
