@@ -236,6 +236,19 @@ export const leaveRTM = async (config) => {
   console.warn("leaveRTM called");
 
   try {
+    const bubbleResponse = await axios.post(
+      "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
+      {
+        participantId: config.user.participantId,
+        action: "leave",
+      }
+    );
+    console.log("Participant enter/leave API response:", bubbleResponse.data);
+  } catch (apiError) {
+    console.error("Error notifying participantEnterLeave API:", apiError);
+  }
+
+  try {
     if (config.channelRTM) {
       await config.channelRTM.leave();
       console.log("Left the RTM channel successfully");
