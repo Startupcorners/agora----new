@@ -4,6 +4,8 @@ import { manageParticipants } from "./talkToBubble.js";
 import { stopCamera, stopScreenShare } from "./video.js";
 import { endMic } from "./audio.js";
 
+const axios = require("axios");
+
 export const join = async (config) => {
   console.warn("join function called");
 
@@ -36,21 +38,28 @@ export const join = async (config) => {
       console.log("RTM member 2 detected. Video recording is active.");
       bubble_fn_isVideoRecording("yes"); // Indicate video recording is active
       console.log("Checking who created the event");
-      const logResponse = await axios.post(
-        "https://startupcorners.com/api/1.1/wf/recording_information",
-        {
-          resourceId: resourceId,
-        }
-      );
-      console.log("Response from /recording_information:", logResponse.data);
 
-      if (logResponse.data === "yes") {
-        console.log(
-          `Log entry for resourceId ${resourceId} already exists, skipping stop recording.`
+      try {
+        const resourceId = config.resourceId || ""; // Ensure resourceId is set
+        if (!resourceId) throw new Error("Missing resourceId for API call.");
+
+        const logResponse = await axios.post(
+          "https://startupcorners.com/api/1.1/wf/recording_information",
+          {
+            resourceId: resourceId,
+          }
         );
-        return res.json({
-          message: "Recording stop request skipped, log entry exists",
-        });
+
+        console.log("Response from /recording_information:", logResponse.data);
+
+        if (logResponse.data === "yes") {
+          console.log(
+            `Log entry for resourceId ${resourceId} already exists, skipping stop recording.`
+          );
+          return; // Skip further processing
+        }
+      } catch (apiError) {
+        console.error("Error fetching recording information:", apiError);
       }
     }
 
@@ -64,7 +73,6 @@ export const join = async (config) => {
       bubble_fn_waitingForAcceptance(); // Trigger the Bubble function to display the popup
     }
 
-    
     // Ensure both audio and video tracks are set from Agora's local tracks
     const attributes = {
       name: config.user.name, // Pull name from config.user
@@ -83,6 +91,20 @@ export const join = async (config) => {
 
     manageParticipants(config.uid, attributes, "join");
     bubble_fn_joining("Joined");
+
+    // Notify Bubble when participant enters the session
+    try {
+      const bubbleResponse = await axios.post(
+        "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
+        {
+          participantId: config.user.participantId,
+          action: "enter",
+        }
+      );
+      console.log("Participant enter/leave API response:", bubbleResponse.data);
+    } catch (apiError) {
+      console.error("Error notifying participantEnterLeave API:", apiError);
+    }
   } catch (error) {
     console.error("Error during join:", error);
 
@@ -92,6 +114,7 @@ export const join = async (config) => {
     }
   }
 };
+
 
 // Function to join RTM
 const joinRTM = async (config, rtmToken, retryCount = 0) => {
