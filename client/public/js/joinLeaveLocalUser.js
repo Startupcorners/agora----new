@@ -66,21 +66,21 @@ export const join = async (config) => {
     }
 
     // // Fetching attributes for all RTM channel members
-    // const membersAttributes = await Promise.all(
-    //   channelMembers.map(async (member) => {
-    //     const remoteAttributes = await config.clientRTM.getUserAttributes(member);
-    //     return { member, remoteAttributes };
-    //   })
-    // );
+    const membersAttributes = await Promise.all(
+      channelMembers.map(async (member) => {
+        const remoteAttributes = await config.clientRTM.getUserAttributes(member);
+        return { member, remoteAttributes };
+      })
+    );
 
-    // // Use handleRaiseHandMessage to manage the raising hand list for each user
-    // await Promise.all(
-    //   membersAttributes.map(({ member, remoteAttributes }) => {
-    //     const bubbleId = remoteAttributes.bubbleid || member; // Use bubbleid if available, fallback to member ID
-    //     const isRaisingHand = remoteAttributes.isRaisingHand === "yes";
-    //     return handleRaiseHandMessage(bubbleId, isRaisingHand, config);
-    //   })
-    // );
+    // Use handleRaiseHandMessage to manage the raising hand list for each user
+    await Promise.all(
+      membersAttributes.map(({ member, remoteAttributes }) => {
+        const bubbleId = remoteAttributes.bubbleid || member; // Use bubbleid if available, fallback to member ID
+        const isRaisingHand = remoteAttributes.isRaisingHand === "yes";
+        return handleRaiseHandMessage(bubbleId, isRaisingHand, config);
+      })
+    );
 
     // Ensure both audio and video tracks are set from Agora's local tracks
     const attributes = {
