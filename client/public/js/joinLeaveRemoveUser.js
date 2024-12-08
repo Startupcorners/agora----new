@@ -47,16 +47,6 @@ export const handleUserJoined = async (user, userAttr = {}, config) => {
       }
     }
 
-    // Check if user is raising their hand and call handleRaiseHandMessage if yes
-    const bubbleId = userAttr.bubbleid || userUid;
-    const isRaisingHand = userAttr.isRaisingHand === "yes";
-    if (isRaisingHand) {
-      console.log(
-        `User ${userUid} is raising their hand. Calling handleRaiseHandMessage.`
-      );
-      await handleRaiseHandMessage(bubbleId, true, config);
-    }
-
     // Only proceed with wrapper if the user is a host and not in "waiting" or "audience"
     if (
       role === "host" &&
@@ -88,7 +78,16 @@ export const handleUserJoined = async (user, userAttr = {}, config) => {
       `Invoking manageParticipants for user ${userUid} with action "join".`
     );
     // Ensure userUid is a number when calling manageParticipants
-    manageParticipants(parseInt(userUid), userAttr, "join");
+    await manageParticipants(parseInt(userUid), userAttr, "join");
+    // Check if user is raising their hand and call handleRaiseHandMessage if yes
+    const bubbleId = userAttr.bubbleid || userUid;
+    const isRaisingHand = userAttr.isRaisingHand === "yes";
+    if (isRaisingHand) {
+      console.log(
+        `User ${userUid} is raising their hand. Calling handleRaiseHandMessage.`
+      );
+      await handleRaiseHandMessage(bubbleId, true, config);
+    }
   } catch (error) {
     console.error(`Error in handleUserJoined for user ${userUid}:`, error);
     try {
