@@ -75,10 +75,10 @@ export const toggleStages = (isScreenSharing) => {
   }
 
   if (isScreenSharing) {
-    videoStage.classList.add("hidden"); // Hide video stage
+    videoStage.classList.add("screenshare"); // Hide video stage
     screenShareStage.classList.remove("hidden"); // Show screen share stage
   } else {
-    videoStage.classList.remove("hidden"); // Show video stage
+    videoStage.classList.remove("screenshare"); // Show video stage
     screenShareStage.classList.add("hidden"); // Hide screen share stage
   }
 
