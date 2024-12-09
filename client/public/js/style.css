@@ -45,6 +45,19 @@
     overflow: hidden;
 }
 
+.video-participant-screenshare {
+    object-fit: cover;
+    background-color: #333;
+    border: 2px solid #555;
+    border-radius: 8px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
 /* Style for the video player */
 .video-player {
     width: 100%;
