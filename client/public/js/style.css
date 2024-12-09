@@ -1,3 +1,11 @@
+#main-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* Take full available viewport height */
+    overflow: hidden;
+}
+
 /* Fullscreen wrapper for the screen share */
 .fullscreen-wrapper {
     width: 100%;
