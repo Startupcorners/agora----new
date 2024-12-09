@@ -197,6 +197,19 @@ export const leave = async (reason, config) => {
   await endMic(config);
 
   try {
+    const bubbleResponse = await axios.post(
+      "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
+      {
+        participantId: config.user.participantId,
+        action: "leave",
+      }
+    );
+    console.log("Participant enter/leave API response:", bubbleResponse.data);
+  } catch (apiError) {
+    console.error("Error notifying participantEnterLeave API:", apiError);
+  }
+
+  try {
 
     // Leave RTC
     await leaveRTC(config);
@@ -233,18 +246,6 @@ export const leaveRTC = async (config) => {
 export const leaveRTM = async (config) => {
   console.warn("leaveRTM called");
 
-  try {
-    const bubbleResponse = await axios.post(
-      "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
-      {
-        participantId: config.user.participantId,
-        action: "leave",
-      }
-    );
-    console.log("Participant enter/leave API response:", bubbleResponse.data);
-  } catch (apiError) {
-    console.error("Error notifying participantEnterLeave API:", apiError);
-  }
 
   try {
     if (config.channelRTM) {

@@ -112,15 +112,42 @@ export const handleUserJoined = async (user, userAttr = {}, config) => {
 
 // Handles user left event
 export const handleUserLeft = async (user, config) => {
-  console.log("Entered handleUserLeft:", user);
-
   try {
-    console.log(`User ${user.uid} left`);
+    console.log("Entered handleUserLeft:", user);
 
-    // Skip handling for screen share UID (RTC UID > 999999999)
+    // Fetch user attributes from RTM
+    const userUid = user.uid.toString(); // Ensure UID is a string
+    const fetchedAttributes = await config.clientRTM.getUserAttributes(userUid);
+    console.log(`Fetched attributes for user ${userUid}:`, fetchedAttributes);
+
+    // Notify Bubble about the user's leave action
+    try {
+      const participantId = fetchedAttributes.participantId;
+      if (!participantId) {
+        console.warn(
+          `Participant ID missing for user ${userUid}. Skipping API call.`
+        );
+      } else {
+        const bubbleResponse = await axios.post(
+          "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
+          {
+            participantId: participantId,
+            action: "leave",
+          }
+        );
+        console.log(
+          "Participant enter/leave API response:",
+          bubbleResponse.data
+        );
+      }
+    } catch (apiError) {
+      console.error("Error notifying participantEnterLeave API:", apiError);
+    }
+
+    // Handle special cases
     if (user.uid > 999999999) {
       console.log(`Skipping handling for screen share UID: ${user.uid}`);
-      return;
+      return; // Skip handling for screen share UIDs
     }
 
     if (user.uid === 2) {
@@ -128,19 +155,26 @@ export const handleUserLeft = async (user, config) => {
         `User ${user.uid} is a virtual participant, stopping recording.`
       );
       bubble_fn_isVideoRecording("no");
-      return;
+      return; // Stop further processing for virtual participant
     }
 
-    // Remove the user's wrapper (video element and UI components)
-    await removeUserWrapper(user.uid);
+    // Remove the user's video wrapper and manage participants
+    try {
+      console.log(`Removing UI elements for user ${user.uid}...`);
+      await removeUserWrapper(user.uid); // Remove user's video UI
 
-    // Call manageParticipants with the user's UID and action "leave"
-    manageParticipants(user.uid, {}, "leave");
+      console.log(`Updating participant list for user ${user.uid}...`);
+      manageParticipants(user.uid, {}, "leave"); // Update participant management
 
-    console.log(`User ${user.uid} successfully removed`);
-    console.log("config:", config);
-
+      console.log(`User ${user.uid} successfully removed.`);
+    } catch (uiError) {
+      console.error(
+        `Error removing UI elements for user ${user.uid}:`,
+        uiError
+      );
+    }
   } catch (error) {
-    console.error(`Error removing user ${user.uid}:`, error);
+    console.error(`Error in handleUserLeft for user ${user?.uid}:`, error);
   }
 };
+
