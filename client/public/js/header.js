@@ -4,14 +4,14 @@ import "https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js";
 import "https://unpkg.com/agora-extension-virtual-background@2.0.0/agora-extension-virtual-background.js";
 import "https://startupcorners-df3e7.web.app/js/main.js";
 
-// Inline JavaScript
+
 document.addEventListener('DOMContentLoaded', function () {
-  let videoStage;
+  let videoStage; // This will store either .video-stage or .video-stage-screenshare, whichever is currently in the DOM.
 
   // Define updateLayout as a global function
   window.updateLayout = function () {
     if (!videoStage) {
-      console.log("updateLayout skipped: .video-stage is not present in the DOM.");
+      console.log("updateLayout skipped: no video stage element present in the DOM.");
       return;
     }
 
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (isDisplayNone || isVisibilityHidden || isZeroWidth || isZeroHeight) {
       console.log(
-        "updateLayout skipped: .video-stage is not visible based on dimensions or visibility properties."
+        "updateLayout skipped: stage element is not visible based on dimensions or visibility properties."
       );
       return;
     }
@@ -42,22 +42,30 @@ document.addEventListener('DOMContentLoaded', function () {
 
     console.log(`updateLayout called with ${participantCount} participant(s).`);
 
-    // Remove any existing child-count-X class
+    // Remove any existing child-count-X class from the stage element
     videoStage.className = videoStage.className.replace(/\bchild-count-\d+\b/g, "").trim();
 
     // Add the new child-count class based on the current number of participants
     videoStage.classList.add(`child-count-${Math.min(participantCount, 9)}`);
   };
 
-  // Observe DOM for the addition of .video-stage
+  // Observe DOM for the addition of .video-stage or .video-stage-screenshare
   const observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       if (mutation.addedNodes.length) {
         mutation.addedNodes.forEach((node) => {
-          if (node.classList && node.classList.contains("video-stage")) {
+          if (
+            node.classList &&
+            (node.classList.contains("video-stage") ||
+             node.classList.contains("video-stage-screenshare"))
+          ) {
             videoStage = node;
-            console.log(".video-stage has been added to the DOM.");
-            observer.disconnect(); // Stop observing once .video-stage is found
+            if (node.classList.contains("video-stage")) {
+              console.log(".video-stage has been added to the DOM.");
+            } else if (node.classList.contains("video-stage-screenshare")) {
+              console.log(".video-stage-screenshare has been added to the DOM.");
+            }
+            observer.disconnect(); // Stop observing once we have our element
             window.updateLayout(); // Initial layout update
           }
         });
@@ -65,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // Start observing the document body for the addition of .video-stage
+  // Start observing the document body for the addition of .video-stage or .video-stage-screenshare
   observer.observe(document.body, { childList: true, subtree: true });
 
   // Re-check layout on window resize
