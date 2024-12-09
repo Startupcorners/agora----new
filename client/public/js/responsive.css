@@ -11,8 +11,11 @@
 /* Screen share stage */
 .screen-share-stage {
     flex: 1 1 auto;
+    /* Take the remaining available space */
     position: relative;
     z-index: 1;
+    overflow: hidden;
+    /* Prevent content overflow */
 }
 
 /* Main screen share content */
@@ -155,23 +158,23 @@
 }
 
 .video-stage-screenshare {
+    width: 300px;
+    /* Fixed width */
+    height: 100%;
+    /* Full height of the parent container */
     display: grid;
     grid-template-columns: 1fr;
     /* Default: One column */
     gap: 10px;
-    /* Space between children */
-    width: 300px;
-    /* Fixed width */
-    height: 100%;
-    /* Adjust as needed */
+    /* Space between grid items */
     padding: 10px;
     box-sizing: border-box;
     overflow-y: auto;
-    /* Enable vertical scrolling for overflow */
+    /* Enable vertical scrolling if content overflows */
     overflow-x: hidden;
-    /* No horizontal scrolling */
+    /* Prevent horizontal scrolling */
     scrollbar-width: thin;
-    /* For Firefox */
+    /* Thin scrollbar for Firefox */
 }
 
 /* For 8 to 14 children: Switch to 2 columns */

@@ -1,9 +1,11 @@
 #main-container {
     display: flex;
-    flex-direction: column;
-    height: 100%;
-    /* Take full available viewport height */
+    flex-direction: row;
+    /* Arrange child elements horizontally */
+    height: 100vh;
+    /* Full viewport height */
     overflow: hidden;
+    /* Prevent overflow */
 }
 
 /* Fullscreen wrapper for the screen share */
