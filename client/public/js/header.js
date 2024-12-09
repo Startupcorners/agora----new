@@ -5,13 +5,15 @@ import "https://unpkg.com/agora-extension-virtual-background@2.0.0/agora-extensi
 import "https://startupcorners-df3e7.web.app/js/main.js";
 
 // Inline JavaScript
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener("DOMContentLoaded", function () {
   let videoStage;
 
   // Define updateLayout as a global function
   window.updateLayout = function () {
     if (!videoStage) {
-      console.log("updateLayout skipped: .video-stage is not present in the DOM.");
+      console.log(
+        "updateLayout skipped: .video-stage is not present in the DOM."
+      );
       return;
     }
 
@@ -43,10 +45,29 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log(`updateLayout called with ${participantCount} participant(s).`);
 
     // Remove any existing child-count-X class
-    videoStage.className = videoStage.className.replace(/\bchild-count-\d+\b/g, "").trim();
+    videoStage.className = videoStage.className
+      .replace(/\bchild-count-\d+\b/g, "")
+      .trim();
 
     // Add the new child-count class based on the current number of participants
     videoStage.classList.add(`child-count-${Math.min(participantCount, 9)}`);
+
+    // If in screenshare mode, dynamically justify
+    if (videoStage.classList.contains("screenshare")) {
+      // Measure total width of children
+      const totalChildrenWidth = participants.reduce(
+        (sum, child) => sum + child.offsetWidth,
+        0
+      );
+      const containerWidth = videoStage.offsetWidth;
+
+      // Center if they fit, otherwise left-align
+      if (totalChildrenWidth <= containerWidth) {
+        videoStage.classList.add("centered");
+      } else {
+        videoStage.classList.remove("centered");
+      }
+    }
   };
 
   // Observe DOM for the addition of .video-stage
