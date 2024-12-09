@@ -403,23 +403,82 @@
 
 
 .video-stage.screenshare {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    align-items: center;
-    height: 100px;
-    justify-content: flex-start;
-    /* Default when overflowing */
-}
-
-/* When all fit, center them */
-.video-stage.screenshare.centered {
-    justify-content: center;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    align-items: center !important;
+    height: 100px !important;
+    justify-content: flex-start !important;
 }
 
 .video-stage.screenshare>div {
-    flex: 0 0 auto;
-    aspect-ratio: 16/9;
-    height: 100px;
-    min-width: 150px;
+    flex: 0 0 auto !important;
+    aspect-ratio: 16/9 !important;
+    height: 100px !important;
+    min-width: 150px !important;
+}
+
+/* When centered is applied with screenshare, override justify-content */
+.video-stage.screenshare.centered {
+    justify-content: center !important;
+}
+
+
+
+/* Base .screenshare rules should be above these new rules */
+
+/* Non-right-visible breakpoints */
+@media (max-width: 349px) {
+    .video-stage.screenshare>div {
+        height: 55px !important;
+    }
+}
+
+@media (min-width: 350px) and (max-width: 650px) {
+    .video-stage.screenshare>div {
+        height: 60px !important;
+    }
+}
+
+@media (min-width: 651px) and (max-width: 950px) {
+    .video-stage.screenshare>div {
+        height: 65px !important;
+    }
+}
+
+@media (min-width: 951px) and (max-width: 1250px) {
+    .video-stage.screenshare>div {
+        height: 70px !important;
+    }
+}
+
+@media (min-width: 1251px) {
+    .video-stage.screenshare>div {
+        height: 75px !important;
+    }
+}
+
+/* Right-visible breakpoints */
+@media (min-width: 651px) and (max-width: 950px) {
+    .right-visible .video-stage.screenshare>div {
+        height: 55px !important;
+    }
+}
+
+@media (min-width: 951px) and (max-width: 1250px) {
+    .right-visible .video-stage.screenshare>div {
+        height: 60px !important;
+    }
+}
+
+@media (min-width: 1251px) and (max-width: 1500px) {
+    .right-visible .video-stage.screenshare>div {
+        height: 65px !important;
+    }
+}
+
+@media (min-width: 1501px) {
+    .right-visible .video-stage.screenshare>div {
+        height: 70px !important;
+    }
 }
