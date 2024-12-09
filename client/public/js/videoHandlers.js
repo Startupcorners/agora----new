@@ -77,24 +77,24 @@ const videoStage = document.getElementById("video-stage");
   if (isScreenSharing) {
     videoStage.classList.add("screenshare"); // Hide video stage
     screenShareStage.classList.remove("hidden"); // Show screen share stage
-    const participants = document.querySelectorAll(".video-participant");
+    const participants = document.querySelectorAll("video-participant");
 
     participants.forEach((participant) => {
       // Remove the old class
       participant.classList.remove("video-participant");
       // Add the new class
-      participant.classList.add(".video-participant-screenshare");
+      participant.classList.add("video-participant-screenshare");
     });
   } else {
     videoStage.classList.remove("screenshare"); // Show video stage
     screenShareStage.classList.add("hidden"); // Hide screen share stage
-    const participants = document.querySelectorAll(".video-participant-screenshare");
+    const participants = document.querySelectorAll("video-participant-screenshare");
 
     participants.forEach((participant) => {
       // Remove the old class
-      participant.classList.remove(".video-participant-screenshare");
+      participant.classList.remove("video-participant-screenshare");
       // Add the new class
-      participant.classList.add(".video-participant");
+      participant.classList.add("video-participant");
       
     });
   }

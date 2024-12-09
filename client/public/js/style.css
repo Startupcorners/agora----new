@@ -65,7 +65,8 @@
     object-fit: cover;
 }
 
-/* Style for the larger user avatar inside video-stage */
+
+
 .video-stage .user-avatar {
     position: absolute;
     top: 50%;
@@ -78,9 +79,12 @@
     border: 2px solid #fff;
 }
 
-/* Style for the smaller user avatar inside screen-share-stage */
-.screen-share-stage .user-avatar {
-    display: block;
+/* Style for the larger user avatar inside video-stage */
+.video-stage .screenshare .user-avatar {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 40px;
     height: 40px;
     border-radius: 50%;
@@ -100,8 +104,28 @@
     border-radius: 4px;
 }
 
+.video-participant-screenshare .user-name {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    font-size: 16px;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
 /* Style for the participant status indicators */
 .video-participant .status-indicators {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    gap: 5px;
+}
+
+
+.video-participant-screenshare .status-indicators {
     position: absolute;
     top: 10px;
     right: 10px;
