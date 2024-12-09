@@ -5,13 +5,15 @@ import "https://unpkg.com/agora-extension-virtual-background@2.0.0/agora-extensi
 import "https://startupcorners-df3e7.web.app/js/main.js";
 
 
-document.addEventListener('DOMContentLoaded', function () {
-  let videoStage; // This will store either .video-stage or .video-stage-screenshare, whichever is currently in the DOM.
+document.addEventListener("DOMContentLoaded", function () {
+  let videoStage;
 
   // Define updateLayout as a global function
   window.updateLayout = function () {
     if (!videoStage) {
-      console.log("updateLayout skipped: no video stage element present in the DOM.");
+      console.log(
+        "updateLayout skipped: no video stage element present in the DOM."
+      );
       return;
     }
 
@@ -43,38 +45,47 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log(`updateLayout called with ${participantCount} participant(s).`);
 
     // Remove any existing child-count-X class from the stage element
-    videoStage.className = videoStage.className.replace(/\bchild-count-\d+\b/g, "").trim();
+    videoStage.className = videoStage.className
+      .replace(/\bchild-count-\d+\b/g, "")
+      .trim();
 
     // Add the new child-count class based on the current number of participants
     videoStage.classList.add(`child-count-${Math.min(participantCount, 9)}`);
   };
 
-  // Observe DOM for the addition of .video-stage or .video-stage-screenshare
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      if (mutation.addedNodes.length) {
-        mutation.addedNodes.forEach((node) => {
-          if (
-            node.classList &&
-            (node.classList.contains("video-stage") ||
-             node.classList.contains("video-stage-screenshare"))
-          ) {
-            videoStage = node;
-            if (node.classList.contains("video-stage")) {
-              console.log(".video-stage has been added to the DOM.");
-            } else if (node.classList.contains("video-stage-screenshare")) {
-              console.log(".video-stage-screenshare has been added to the DOM.");
+  // Try to find .video-stage or .video-stage-screenshare immediately
+  videoStage = document.querySelector(".video-stage, .video-stage-screenshare");
+  if (videoStage) {
+    console.log(
+      ".video-stage or .video-stage-screenshare found on initial load."
+    );
+    window.updateLayout();
+  } else {
+    // If not found, observe DOM for the addition of either element
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.addedNodes.length) {
+          mutation.addedNodes.forEach((node) => {
+            if (
+              node.classList &&
+              (node.classList.contains("video-stage") ||
+                node.classList.contains("video-stage-screenshare"))
+            ) {
+              videoStage = node;
+              console.log(
+                ".video-stage or .video-stage-screenshare has been added to the DOM."
+              );
+              observer.disconnect(); // Stop observing once found (remove if you want to keep observing changes)
+              window.updateLayout(); // Initial layout update
             }
-            observer.disconnect(); // Stop observing once we have our element
-            window.updateLayout(); // Initial layout update
-          }
-        });
-      }
+          });
+        }
+      });
     });
-  });
 
-  // Start observing the document body for the addition of .video-stage or .video-stage-screenshare
-  observer.observe(document.body, { childList: true, subtree: true });
+    // Start observing the document body for the addition of .video-stage or .video-stage-screenshare
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 
   // Re-check layout on window resize
   window.addEventListener("resize", window.updateLayout);
