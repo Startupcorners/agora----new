@@ -761,55 +761,55 @@
 /* Non-right-visible breakpoints */
 @media (max-width: 349px) {
     .video-stage.screenshare>div {
-        height: 55px !important;
+        height: 75px !important;
     }
 }
 
 @media (min-width: 350px) and (max-width: 650px) {
     .video-stage.screenshare>div {
-        height: 60px !important;
+        height: 80px !important;
     }
 }
 
 @media (min-width: 651px) and (max-width: 950px) {
     .video-stage.screenshare>div {
-        height: 65px !important;
+        height: 85px !important;
     }
 }
 
 @media (min-width: 951px) and (max-width: 1250px) {
     .video-stage.screenshare>div {
-        height: 70px !important;
+        height: 90px !important;
     }
 }
 
 @media (min-width: 1251px) {
     .video-stage.screenshare>div {
-        height: 75px !important;
+        height: 95px !important;
     }
 }
 
 /* Right-visible breakpoints */
 @media (min-width: 651px) and (max-width: 950px) {
     .right-visible .video-stage.screenshare>div {
-        height: 55px !important;
+        height: 75px !important;
     }
 }
 
 @media (min-width: 951px) and (max-width: 1250px) {
     .right-visible .video-stage.screenshare>div {
-        height: 60px !important;
+        height: 80px !important;
     }
 }
 
 @media (min-width: 1251px) and (max-width: 1500px) {
     .right-visible .video-stage.screenshare>div {
-        height: 65px !important;
+        height: 85px !important;
     }
 }
 
 @media (min-width: 1501px) {
     .right-visible .video-stage.screenshare>div {
-        height: 70px !important;
+        height: 90px !important;
     }
 }
