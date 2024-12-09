@@ -543,6 +543,7 @@ export const setupLeaveListener = (config) => {
   });
 };
 
+
 export const handleVolumeIndicator = (() => {
   return async (result, config) => {
     const currentUserUid = config.uid; // Extract the current user's UID from the config
@@ -558,10 +559,12 @@ export const handleVolumeIndicator = (() => {
       const audioLevel = volume.level; // The audio level, used to determine when the user is speaking
       let wrapper = document.querySelector(`#video-wrapper-${userUID}`);
       let waveElement = document.querySelector(`#wave-${userUID}`);
-      console.log(`UID: ${userUID}, Audio Level: ${audioLevel}`);
+      console.log(
+        `UID: ${userUID}, Audio Level: ${audioLevel}, Override: ${override}`
+      );
 
-      // Determine the current status based on audio level
-      const currentStatus = audioLevel < 3 ? "yes" : "no";
+      // Determine the current status based on audio level, bypassing logic if override is true
+      const currentStatus = override ? "no" : audioLevel < 3 ? "yes" : "no";
 
       // Apply audio level indicator styles if the wrapper is available
       if (wrapper) {
@@ -623,8 +626,9 @@ export const handleVolumeIndicator = (() => {
           );
         }
 
-        // Notify Bubble only when the status changes
+        // Notify Bubble only when the status changes and override is false
         if (
+          !override &&
           currentStatus !== lastMutedStatuses[userUID] &&
           userUID === config.uid
         ) {
@@ -635,13 +639,14 @@ export const handleVolumeIndicator = (() => {
           lastMutedStatuses[userUID] = currentStatus; // Update the last status for this UID
         } else {
           console.log(
-            `Status for UID ${userUID} remains unchanged (${currentStatus}), no notification sent.`
+            `Status for UID ${userUID} remains unchanged (${currentStatus}), or override is active, no notification sent.`
           );
         }
       }
     }
   };
 })();
+
 
 
 
