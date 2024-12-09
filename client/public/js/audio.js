@@ -10,7 +10,7 @@ export const handleAudioPublished = async (user, userUid, config) => {
 
   try {
     // Check if the current role is "waiting"
-    if (config.user.role === "waiting") {
+    if (config.user.roleInTheCall === "waiting") {
       const previousRole = getPreviousRoleInTheCall();
 
       console.log(
@@ -31,13 +31,6 @@ export const handleAudioPublished = async (user, userUid, config) => {
         console.log(
           `Audio for user ${userUid} is muted due to role: ${config.user.role} and previous role: ${previousRole}`
         );
-        if (user.audioTrack) {
-          user.audioTrack.stop();
-          console.log(
-            `Stopped and removed audio track for user ${userUid}`,
-            user.audioTrack
-          );
-        }
         return; // Exit, no need to proceed with playing audio or updating UI
       }
     }
