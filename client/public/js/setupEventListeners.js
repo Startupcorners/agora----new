@@ -566,6 +566,14 @@ export const handleVolumeIndicator = (() => {
       // Determine the current status based on audio level, bypassing logic if override is true
       const currentStatus = override ? "no" : audioLevel < 3 ? "yes" : "no";
 
+      // Reset the inactivity timer if the volume is above 30 and it's the local user
+      if (userUID === currentUserUid && audioLevel > 30) {
+        console.log(
+          `Audio level above 30 detected for local user ${userUID}. Resetting inactivity timer.`
+        );
+        resetInactivityTimer(config);
+      }
+
       // Apply audio level indicator styles if the wrapper is available
       if (wrapper) {
         if (audioLevel > 50) {
@@ -646,6 +654,7 @@ export const handleVolumeIndicator = (() => {
     }
   };
 })();
+
 
 
 
