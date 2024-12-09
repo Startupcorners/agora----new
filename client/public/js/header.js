@@ -4,20 +4,18 @@ import "https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js";
 import "https://unpkg.com/agora-extension-virtual-background@2.0.0/agora-extension-virtual-background.js";
 import "https://startupcorners-df3e7.web.app/js/main.js";
 
-
 document.addEventListener("DOMContentLoaded", function () {
+  console.log("Video stage script running!");
+
   let videoStage;
 
   // Define updateLayout as a global function
   window.updateLayout = function () {
     if (!videoStage) {
-      console.log(
-        "updateLayout skipped: no video stage element present in the DOM."
-      );
+      console.log("updateLayout skipped: no video stage element present.");
       return;
     }
 
-    // Check visibility and log properties
     const computedStyle = window.getComputedStyle(videoStage);
     const isDisplayNone = computedStyle.display === "none";
     const isVisibilityHidden = computedStyle.visibility === "hidden";
@@ -33,39 +31,40 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     if (isDisplayNone || isVisibilityHidden || isZeroWidth || isZeroHeight) {
-      console.log(
-        "updateLayout skipped: stage element is not visible based on dimensions or visibility properties."
-      );
+      console.log("updateLayout skipped: stage is not visible.");
       return;
     }
 
     const participants = Array.from(videoStage.children);
     const participantCount = participants.length;
-
     console.log(`updateLayout called with ${participantCount} participant(s).`);
 
-    // Remove any existing child-count-X class from the stage element
+    // Remove any existing child-count-X class
     videoStage.className = videoStage.className
       .replace(/\bchild-count-\d+\b/g, "")
       .trim();
-
-    // Add the new child-count class based on the current number of participants
     videoStage.classList.add(`child-count-${Math.min(participantCount, 9)}`);
   };
 
-  // Try to find .video-stage or .video-stage-screenshare immediately
-  videoStage = document.querySelector(".video-stage, .video-stage-screenshare");
-  if (videoStage) {
-    console.log(
-      ".video-stage or .video-stage-screenshare found on initial load."
-    );
+  // Check immediately on DOMContentLoaded
+  let initialCheck = document.querySelector(
+    ".video-stage, .video-stage-screenshare"
+  );
+  console.log("Check on DOMContentLoaded:", initialCheck);
+
+  if (initialCheck) {
+    videoStage = initialCheck;
+    console.log("Found stage at DOMContentLoaded:", videoStage);
     window.updateLayout();
   } else {
-    // If not found, observe DOM for the addition of either element
+    console.log(
+      "Stage not found at DOMContentLoaded, starting MutationObserver..."
+    );
+
     const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.addedNodes.length) {
-          mutation.addedNodes.forEach((node) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
             if (
               node.classList &&
               (node.classList.contains("video-stage") ||
@@ -73,20 +72,21 @@ document.addEventListener("DOMContentLoaded", function () {
             ) {
               videoStage = node;
               console.log(
-                ".video-stage or .video-stage-screenshare has been added to the DOM."
+                ".video-stage or .video-stage-screenshare has been added to the DOM:",
+                videoStage
               );
-              observer.disconnect(); // Stop observing once found (remove if you want to keep observing changes)
-              window.updateLayout(); // Initial layout update
+              // You can disconnect if you don't need further observation, or keep observing if it might change again.
+              observer.disconnect();
+              window.updateLayout();
+              return;
             }
-          });
+          }
         }
-      });
+      }
     });
 
-    // Start observing the document body for the addition of .video-stage or .video-stage-screenshare
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  // Re-check layout on window resize
   window.addEventListener("resize", window.updateLayout);
 });
