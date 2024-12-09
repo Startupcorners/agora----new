@@ -34,7 +34,8 @@ import {
   initializeInactivityTracker,
   stillPresent,
   noHosts,
-  hostJoined
+  hostJoined,
+  toggleOverride,
 } from "./setupEventListeners.js";
 
 export const newMainApp = async function (initConfig) {
@@ -178,6 +179,7 @@ export const newMainApp = async function (initConfig) {
     lowerHand,
     noHosts,
     hostJoined,
+    toggleOverride,
     stopAudioRecording,
     stopUserCamera, // Add stop camera function
     stopUserMic, // Add stop mic function

@@ -26,6 +26,7 @@ const stillPresentTimeout = 60000; // 1 minute in milliseconds
 let isTabActive = true; // Tracks if the tab is active
 let noHostTimer;
 const noHostTimeout = 300000; // 5 minutes in milliseconds
+let override = false; // Default value for the override variable
 
 export const setupEventListeners = (config) => {
   console.log("listenerConfig", config);
@@ -784,3 +785,32 @@ const notifyErrorToChannel = async (error, config) => {
     console.error("Failed to send error notification via RTM:", sendError);
   }
 };
+
+
+
+
+/**
+ * Toggles the state of the override variable and handles the reset logic.
+ */
+export function toggleOverride(config) {
+  override = !override; // Toggle the boolean value
+
+  if (override) {
+    console.log("Override enabled. Resetting mute status for local user.");
+
+    const currentUserUid = config.uid; // Get the current user's UID
+    lastMutedStatuses[currentUserUid] = "no"; // Reset mute status to "no"
+
+    // Notify Bubble about the reset
+    if (typeof bubble_fn_systemmuted === "function") {
+      console.log(
+        `Sending to Bubble: bubble_fn_systemmuted("no") for UID ${currentUserUid}`
+      );
+      bubble_fn_systemmuted("no");
+    }
+  } else {
+    console.log("Override disabled. Normal mute detection logic will resume.");
+  }
+
+  console.log(`Override is now: ${override ? "enabled" : "disabled"}`);
+}
