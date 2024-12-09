@@ -19,27 +19,6 @@
     /* For Firefox: hides arrows and creates a minimalist scrollbar */
 }
 
-.video-stage.screenshare {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    align-items: center;
-    height: 100px;
-    justify-content: flex-start;
-    /* Default when overflowing */
-}
-
-/* When all fit, center them */
-.video-stage.screenshare.centered {
-    justify-content: center;
-}
-
-.video-stage.screenshare>div {
-    flex: 0 0 auto;
-    aspect-ratio: 16/9;
-    height: 100px;
-    min-width: 150px;
-}
 
 /* Hide scrollbar arrows for WebKit browsers */
 .video-stage::-webkit-scrollbar {
@@ -420,4 +399,27 @@
         width: 50px;
         height: 50px;
     }
+}
+
+
+.video-stage.screenshare {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    align-items: center;
+    height: 100px;
+    justify-content: flex-start;
+    /* Default when overflowing */
+}
+
+/* When all fit, center them */
+.video-stage.screenshare.centered {
+    justify-content: center;
+}
+
+.video-stage.screenshare>div {
+    flex: 0 0 auto;
+    aspect-ratio: 16/9;
+    height: 100px;
+    min-width: 150px;
 }
