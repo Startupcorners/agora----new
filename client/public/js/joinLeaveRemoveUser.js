@@ -115,35 +115,6 @@ export const handleUserLeft = async (user, config) => {
   try {
     console.log("Entered handleUserLeft:", user);
 
-    // Fetch user attributes from RTM
-    const userUid = user.uid.toString(); // Ensure UID is a string
-    const fetchedAttributes = await config.clientRTM.getUserAttributes(userUid);
-    console.log(`Fetched attributes for user ${userUid}:`, fetchedAttributes);
-
-    // Notify Bubble about the user's leave action
-    try {
-      const participantId = fetchedAttributes.participantId;
-      if (!participantId) {
-        console.warn(
-          `Participant ID missing for user ${userUid}. Skipping API call.`
-        );
-      } else {
-        const bubbleResponse = await axios.post(
-          "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
-          {
-            participantId: participantId,
-            action: "leave",
-          }
-        );
-        console.log(
-          "Participant enter/leave API response:",
-          bubbleResponse.data
-        );
-      }
-    } catch (apiError) {
-      console.error("Error notifying participantEnterLeave API:", apiError);
-    }
-
     // Handle special cases
     if (user.uid > 999999999) {
       console.log(`Skipping handling for screen share UID: ${user.uid}`);
@@ -160,6 +131,39 @@ export const handleUserLeft = async (user, config) => {
 
     // Remove the user's video wrapper and manage participants
     try {
+
+        const userUid = user.uid.toString(); // Ensure UID is a string
+        const fetchedAttributes = await config.clientRTM.getUserAttributes(
+          userUid
+        );
+        console.log(
+          `Fetched attributes for user ${userUid}:`,
+          fetchedAttributes
+        );
+
+        // Notify Bubble about the user's leave action
+        try {
+          const participantId = fetchedAttributes.participantId;
+          if (!participantId) {
+            console.warn(
+              `Participant ID missing for user ${userUid}. Skipping API call.`
+            );
+          } else {
+            const bubbleResponse = await axios.post(
+              "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
+              {
+                participantId: participantId,
+                action: "leave",
+              }
+            );
+            console.log(
+              "Participant enter/leave API response:",
+              bubbleResponse.data
+            );
+          }
+        } catch (apiError) {
+          console.error("Error notifying participantEnterLeave API:", apiError);
+        }
       console.log(`Removing UI elements for user ${user.uid}...`);
       await removeUserWrapper(user.uid); // Remove user's video UI
 
