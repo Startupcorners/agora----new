@@ -24,6 +24,7 @@
     flex-wrap: nowrap;
     overflow-x: auto;
     align-items: center;
+    height: 100px;
     justify-content: flex-start;
     /* Default when overflowing */
 }
