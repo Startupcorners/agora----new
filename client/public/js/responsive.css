@@ -414,8 +414,6 @@
 .video-stage.screenshare>div {
     flex: 0 0 auto !important;
     aspect-ratio: 16/9 !important;
-    height: 100px !important;
-    min-width: 150px !important;
 }
 
 /* When centered is applied with screenshare, override justify-content */
