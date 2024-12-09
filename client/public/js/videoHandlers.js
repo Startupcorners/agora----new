@@ -64,19 +64,13 @@ export const playStreamInDiv = (
 
 
 export const toggleStages = (isScreenSharing) => {
-  const videoStage = document.getElementById("video-stage");
   const screenShareStage = document.getElementById("screen-share-stage");
-
-  if (!videoStage || !screenShareStage) {
-    console.error(
-      "toggleStages: video or screen share stage element not found."
-    );
-    return; // Exit early if elements are not found
-  }
+  const videoStage = document.getElementById("video-stage");
 
   if (isScreenSharing) {
-    videoStage.classList.add("screenshare"); // Show screenshare layout
     screenShareStage.classList.remove("hidden"); // Show screen share stage
+    videoStage.classList.remove("video-stage");
+    videoStage.classList.add("video-stage-screenshare");
 
     const participants = document.querySelectorAll(".video-participant");
     participants.forEach((participant) => {
@@ -94,8 +88,9 @@ export const toggleStages = (isScreenSharing) => {
       userName.classList.add("user-name-screenshare");
     });
   } else {
-    videoStage.classList.remove("screenshare"); // Show normal video stage
     screenShareStage.classList.add("hidden"); // Hide screen share stage
+    videoStage.classList.remove("video-stage-screenshare");
+    videoStage.classList.add("video-stage");
 
     const participants = document.querySelectorAll(
       ".video-participant-screenshare"
