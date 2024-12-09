@@ -1,3 +1,10 @@
+#main-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* Take full available viewport height */
+    overflow: hidden;
+}
 /* Fullscreen wrapper for the screen share */
 .fullscreen-wrapper {
     width: 100%;
@@ -97,10 +104,13 @@
     margin-left: 5px;
 }
 
-/* Screen share stage */
 .screen-share-stage {
-    width: 100%;
-    height: 100%;
+    flex: 1 1 auto;
+    /* Fill remaining space */
+    min-height: 0;
+    /* Ensures it can shrink if needed */
+    overflow: auto;
+    /* Allows internal scrolling if content exceeds space */
     position: relative;
     z-index: 1;
 }
