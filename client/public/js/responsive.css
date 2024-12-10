@@ -131,25 +131,87 @@
 }
 
 /* When there's only 1 participant, center and limit max width */
-.video-stage-screenshare.child-count-1,
-.video-stage-screenshare.child-count-2,
-.video-stage-screenshare.child-count-3,
-.video-stage-screenshare.child-count-4,
-.video-stage-screenshare.child-count-5,
-.video-stage-screenshare.child-count-6,
-.video-stage-screenshare.child-count-7
- {
-    grid-template-columns: 1fr;
-    /* Full width grid */
-    grid-template-rows: 1fr;
-    /* Full height grid */
-    justify-content: center;
-    /* Center the child horizontally */
-    max-height: 130px;
-    /* Limit the width */
-    margin: 0 auto;
-    /* Center video stage horizontally */
-}
+.video-stage-screenshare.child-count-1{
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-height: 130px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
+.video-stage-screenshare.child-count-2{
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-height: 260px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
+.video-stage-screenshare.child-count-3{
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-height: 390px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
+.video-stage-screenshare.child-count-4{
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-height: 520px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
+.video-stage-screenshare.child-count-5{
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Center the child horizontally */
+        max-height: 650px;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
+.video-stage-screenshare.child-count-6{
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
+.video-stage-screenshare.child-count-7{
+        grid-template-columns: 1fr;
+        /* Full width grid */
+        grid-template-rows: 1fr;
+        /* Full height grid */
+        justify-content: center;
+        /* Limit the width */
+        margin: 0 auto;
+        /* Center video stage horizontally */
+    }
+ 
 
 .video-stage-screenshare {
     width: 180px;
