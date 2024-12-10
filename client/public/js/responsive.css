@@ -135,6 +135,8 @@
     /* Fixed width */
     height: 100%;
     /* Full height of the parent container */
+    max-height: 100%;
+    /* Prevent growing beyond the parent */
     display: grid;
     grid-template-columns: 1fr;
     /* Always one column */
@@ -154,7 +156,6 @@
     /* Smooth scrolling */
 }
 
-/* Ensure children have a consistent max height */
 .video-stage-screenshare>* {
     max-height: 110px;
     /* Maximum height per child */
