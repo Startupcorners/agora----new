@@ -146,7 +146,7 @@
 .video-stage-screenshare.child-count-2{
         grid-template-columns: 1fr;
         /* Full width grid */
-        grid-template-rows: 1fr;
+        grid-template-rows: 1fr 1fr;
         /* Full height grid */
         justify-content: center;
         /* Center the child horizontally */
@@ -158,7 +158,7 @@
 .video-stage-screenshare.child-count-3{
         grid-template-columns: 1fr;
         /* Full width grid */
-        grid-template-rows: 1fr;
+        grid-template-rows: 1fr 1fr 1fr;
         /* Full height grid */
         justify-content: center;
         /* Center the child horizontally */
@@ -170,7 +170,7 @@
 .video-stage-screenshare.child-count-4{
         grid-template-columns: 1fr;
         /* Full width grid */
-        grid-template-rows: 1fr;
+        grid-template-rows: 1fr 1fr 1fr 1fr;
         /* Full height grid */
         justify-content: center;
         /* Center the child horizontally */
@@ -182,7 +182,7 @@
 .video-stage-screenshare.child-count-5{
         grid-template-columns: 1fr;
         /* Full width grid */
-        grid-template-rows: 1fr;
+        grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
         /* Full height grid */
         justify-content: center;
         /* Center the child horizontally */
@@ -194,7 +194,7 @@
 .video-stage-screenshare.child-count-6{
         grid-template-columns: 1fr;
         /* Full width grid */
-        grid-template-rows: 1fr;
+        grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr;
         /* Full height grid */
         justify-content: center;
         /* Limit the width */
@@ -204,7 +204,7 @@
 .video-stage-screenshare.child-count-7{
         grid-template-columns: 1fr;
         /* Full width grid */
-        grid-template-rows: 1fr;
+        grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
         /* Full height grid */
         justify-content: center;
         /* Limit the width */
