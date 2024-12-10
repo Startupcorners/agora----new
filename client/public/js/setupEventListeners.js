@@ -857,28 +857,24 @@ export const leftSizeListener = document.getElementById("left");
 
 // Add an event listener to the window's resize event
 window.addEventListener("resize", () => {
-  // Initial Layout Check
   if (leftSizeListener) {
-    const width = leftSizeListener.getBoundingClientRect().width;
-    const layout = width < 600 ? "below" : "left";
-    editClasses(layout);
+    editClasses(); // Trigger layout adjustment on resize
   } else {
     console.error(
-      "Element with ID 'left' not found. Initial layout adjustment skipped."
+      "Element with ID 'left' not found. Layout adjustment skipped."
     );
   }
 });
 
-
 // Function to edit classes for different layouts
-export const editClasses = async (layout) => {
+export const editClasses = async () => {
   const videoStage = document.getElementById("video-stage");
   const mainContainer = document.getElementById("main-container");
   const sharingScreenUid = getSharingScreenUid(); // Check screen sharing status
 
-  if (!videoStage || !mainContainer) {
+  if (!videoStage || !mainContainer || !leftSizeListener) {
     console.error(
-      "Required elements not found: 'video-stage' or 'main-container'."
+      "Required elements not found: 'video-stage', 'main-container', or 'left'."
     );
     return;
   }
@@ -890,21 +886,25 @@ export const editClasses = async (layout) => {
     return; // Exit early if screen sharing is inactive
   }
 
-  // Simulate an asynchronous operation (e.g., animation, API call)
+  // Determine the layout based on the width of the left container
+  const width = leftSizeListener.getBoundingClientRect().width;
+  const layout = width < 600 ? "below" : "left";
+
+  // Simulate an asynchronous operation if needed (e.g., animation, API call)
   await new Promise((resolve) => setTimeout(resolve, 100));
 
+  // Apply the appropriate classes based on the layout
   if (layout === "below") {
+    console.log("Switching to below layout.");
     videoStage.classList.remove("video-stage-screenshare");
     videoStage.classList.add("video-stage-screenshare-below");
     mainContainer.classList.remove("main-container-left");
     mainContainer.classList.add("main-container-below");
-  } else if (layout === "left") {
+  } else {
+    console.log("Switching to left layout.");
     videoStage.classList.remove("video-stage-screenshare-below");
     videoStage.classList.add("video-stage-screenshare");
     mainContainer.classList.remove("main-container-below");
     mainContainer.classList.add("main-container-left");
-  } else {
-    console.warn("Unknown layout type:", layout);
   }
 };
-

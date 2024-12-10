@@ -70,10 +70,11 @@ export const toggleStages = async (isScreenSharing, userId) => {
   const screenShareStage = document.getElementById("screen-share-stage");
   const videoStage = document.getElementById("video-stage");
   const videoWrapper = document.getElementById(`video-wrapper-${userId}`);
+  const mainContainer = document.getElementById("main-container"); // Missing reference added
 
-  if (!screenShareStage || !videoStage || !videoWrapper) {
+  if (!screenShareStage || !videoStage || !videoWrapper || !mainContainer) {
     console.error(
-      "Required elements not found: 'screen-share-stage', 'video-stage', or 'video-wrapper'."
+      "Required elements not found: 'screen-share-stage', 'video-stage', 'video-wrapper', or 'main-container'."
     );
     return;
   }
@@ -82,19 +83,51 @@ export const toggleStages = async (isScreenSharing, userId) => {
     // Show screen share stage
     screenShareStage.classList.remove("hidden");
 
+    // Update user avatars and names for screen sharing
+    document.querySelectorAll(".user-avatar").forEach((userAvatar) => {
+      userAvatar.classList.remove("user-avatar");
+      userAvatar.classList.add("user-avatar-screenshare");
+    });
+
+    document.querySelectorAll(".user-name").forEach((userName) => {
+      userName.classList.remove("user-name");
+      userName.classList.add("user-name-screenshare");
+    });
+
     // Move video wrapper to the first child position if necessary
     if (videoStage.firstChild !== videoWrapper) {
       videoStage.insertBefore(videoWrapper, videoStage.firstChild);
     }
 
-    // Await layout adjustments if `editClasses` is asynchronous
-    await editClasses("below"); // Switch to "below" layout for screen sharing
+    // Await layout adjustments
+    await editClasses();
   } else {
     // Hide screen share stage
     screenShareStage.classList.add("hidden");
 
-    // Await layout adjustments if `editClasses` is asynchronous
-    await editClasses("left"); // Switch back to "left" layout
+    // Reset user avatars and names to default
+    document
+      .querySelectorAll(".user-avatar-screenshare")
+      .forEach((userAvatar) => {
+        userAvatar.classList.remove("user-avatar-screenshare");
+        userAvatar.classList.add("user-avatar");
+      });
+
+    document.querySelectorAll(".user-name-screenshare").forEach((userName) => {
+      userName.classList.remove("user-name-screenshare");
+      userName.classList.add("user-name");
+    });
+
+    // Directly reset classes only if necessary
+    videoStage.classList.remove("video-stage-screenshare", "video-stage-below");
+    videoStage.classList.add("video-stage");
+
+    mainContainer.classList.remove("main-container-below");
+    mainContainer.classList.add("main-container-left");
+
+    // Await layout adjustments
+    await editClasses();
   }
 };
+
 
