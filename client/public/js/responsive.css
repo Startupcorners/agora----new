@@ -130,74 +130,16 @@
     /* Slightly darker blue on hover */
 }
 
-/* When there's only 1 participant, center and limit max width */
-.video-stage-screenshare.child-count-1{
-        grid-template-columns: 1fr;
-        /* Full width grid */
-        grid-template-rows: 1fr;
-        /* Full height grid */
-        justify-content: center;
-        /* Center the child horizontally */
-        max-height: 130px;
-        /* Limit the width */
-        margin: 0 auto;
-        /* Center video stage horizontally */
-    }
-.video-stage-screenshare.child-count-2{
-        grid-template-columns: 1fr;
-        /* Full width grid */
-        grid-template-rows: 1fr 1fr;
-        /* Full height grid */
-        justify-content: center;
-        /* Center the child horizontally */
-        max-height: 260px;
-        /* Limit the width */
-        margin: 0 auto;
-        /* Center video stage horizontally */
-    }
-.video-stage-screenshare.child-count-3{
-        grid-template-columns: 1fr;
-        /* Full width grid */
-        grid-template-rows: 1fr 1fr 1fr;
-        /* Full height grid */
-        justify-content: center;
-        /* Center the child horizontally */
-        max-height: 390px;
-        /* Limit the width */
-        margin: 0 auto;
-        /* Center video stage horizontally */
-    }
-.video-stage-screenshare.child-count-4{
-        grid-template-columns: 1fr;
-        /* Full width grid */
-        grid-template-rows: 1fr 1fr 1fr 1fr;
-        /* Full height grid */
-        justify-content: center;
-        /* Center the child horizontally */
-        max-height: 520px;
-        /* Limit the width */
-        margin: 0 auto;
-        /* Center video stage horizontally */
-    }
-.video-stage-screenshare.child-count-5{
-        grid-template-columns: 1fr;
-        /* Full width grid */
-        grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
-        /* Full height grid */
-        justify-content: center;
-        /* Limit the width */
-        margin: 0 auto;
-        /* Center video stage horizontally */
-    } 
-
 .video-stage-screenshare {
     width: 180px;
-    /* Fixed width */
+    /* Limit maximum height for up to 10 children */
     height: 100%;
-    /* Full height of the parent container */
+    /* Full height of the parent container if children overflow */
     display: grid;
     grid-template-columns: 1fr;
-    /* Default: One column */
+    /* Always one column */
+    grid-auto-rows: minmax(0, 130px);
+    /* Maximum height per child is 130px */
     gap: 10px;
     /* Space between grid items */
     padding: 10px;
@@ -208,24 +150,14 @@
     /* Prevent horizontal scrolling */
     scrollbar-width: thin;
     /* Thin scrollbar for Firefox */
+    scroll-behavior: smooth;
+    /* Smooth scrolling */
 }
 
-/* For 8 to 14 children: Switch to 2 columns */
-.video-stage-screenshare.child-count-6,
-.video-stage-screenshare.child-count-7,
-.video-stage-screenshare.child-count-8,
-.video-stage-screenshare.child-count-9,
-.video-stage-screenshare.child-count-10{
-    grid-template-columns: 1fr 1fr;
-    /* Two columns */
-}
-
-/* For 15 or more children: 2 columns with scroll */
-.video-stage-screenshare.child-count-11 {
-    grid-template-columns: 1fr 1fr;
-    /* Two columns */
-    grid-auto-rows: minmax(100px, auto);
-    /* Adjust child height as needed */
-    overflow-y: auto;
-    /* Scrollable for large numbers */
+/* Ensure children have a consistent max height */
+.video-stage-screenshare>* {
+    max-height: 130px;
+    /* Maximum height per child */
+    overflow: hidden;
+    /* Prevent content overflow */
 }
