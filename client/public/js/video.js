@@ -356,6 +356,10 @@ export const startScreenShare = async (config) => {
     });
 
     // Toggle UI
+    sharingScreenUid = config.uid.toString(); // Set sharingScreenUid directly
+    generatedScreenShareId = screenShareUid;
+    bubble_fn_userSharingScreen(sharingScreenUid);
+
     await toggleStages(true, config.uid);
     playStreamInDiv(
       config,
@@ -372,10 +376,7 @@ export const startScreenShare = async (config) => {
     }
 
     // Update external variable with new screen share info
-    sharingScreenUid = config.uid.toString(); // Set sharingScreenUid directly
-    generatedScreenShareId = screenShareUid;
-    bubble_fn_userSharingScreen(sharingScreenUid);
-
+    
     console.log("Screen sharing started successfully.");
 } catch (error) {
   console.error("Error during screen share initialization:", error);
