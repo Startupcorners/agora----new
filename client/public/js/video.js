@@ -105,7 +105,7 @@ export const handleVideoPublished = async (user, userUid, config) => {
 
 
       // Toggle stage to screen share
-      toggleStages(true);
+      toggleStages(true, sharingScreenUid);
     } catch (error) {
       console.error("Error processing screen share:", error);
     }
@@ -356,7 +356,7 @@ export const startScreenShare = async (config) => {
     });
 
     // Toggle UI
-    toggleStages(true);
+    toggleStages(true, config.uid);
     playStreamInDiv(
       config,
       screenShareUid,
