@@ -851,19 +851,9 @@ export function toggleOverride(config) {
   console.log(`Override is now: ${override ? "enabled" : "disabled"}`);
 }
 
-
-// Get the DOM element with ID 'left'
-export const leftSizeListener = document.getElementById("left");
-
 // Add an event listener to the window's resize event
 window.addEventListener("resize", () => {
-  if (leftSizeListener) {
     editClasses(); // Trigger layout adjustment on resize
-  } else {
-    console.error(
-      "Element with ID 'left' not found. Layout adjustment skipped."
-    );
-  }
 });
 
 // Function to edit classes for different layouts
@@ -871,6 +861,7 @@ export const editClasses = async () => {
   const videoStage = document.getElementById("video-stage");
   const mainContainer = document.getElementById("main-container");
   const sharingScreenUid = getSharingScreenUid(); // Check screen sharing status
+  const leftSizeListener = document.getElementById("left");
 
   if (!videoStage || !mainContainer || !leftSizeListener) {
     console.error(
