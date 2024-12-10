@@ -65,9 +65,10 @@ export const playStreamInDiv = (
 
 
 
-export const toggleStages = (isScreenSharing) => {
+export const toggleStages = (isScreenSharing, userId) => {
   const screenShareStage = document.getElementById("screen-share-stage");
   const videoStage = document.getElementById("video-stage");
+  const videoWrapper = document.getElementById(`video-wrapper-${userId}`);
 
   if (isScreenSharing) {
     screenShareStage.classList.remove("hidden"); // Show screen share stage
@@ -83,6 +84,9 @@ export const toggleStages = (isScreenSharing) => {
       userName.classList.remove("user-name");
       userName.classList.add("user-name-screenshare");
     });
+    if (videoStage.firstChild !== videoWrapper) {
+      videoStage.insertBefore(videoWrapper, videoStage.firstChild);
+    }
     updateLayout("video-stage-screenshare");
   } else {
     screenShareStage.classList.add("hidden"); // Hide screen share stage
