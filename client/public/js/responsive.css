@@ -185,33 +185,10 @@
         grid-template-rows: 1fr 1fr 1fr 1fr 1fr;
         /* Full height grid */
         justify-content: center;
-        /* Center the child horizontally */
-        max-height: 650px;
         /* Limit the width */
         margin: 0 auto;
         /* Center video stage horizontally */
-    }
-.video-stage-screenshare.child-count-6{
-        grid-template-columns: 1fr;
-        /* Full width grid */
-        grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr;
-        /* Full height grid */
-        justify-content: center;
-        /* Limit the width */
-        margin: 0 auto;
-        /* Center video stage horizontally */
-    }
-.video-stage-screenshare.child-count-7{
-        grid-template-columns: 1fr;
-        /* Full width grid */
-        grid-template-rows: 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
-        /* Full height grid */
-        justify-content: center;
-        /* Limit the width */
-        margin: 0 auto;
-        /* Center video stage horizontally */
-    }
- 
+    } 
 
 .video-stage-screenshare {
     width: 180px;
@@ -234,19 +211,17 @@
 }
 
 /* For 8 to 14 children: Switch to 2 columns */
+.video-stage-screenshare.child-count-6,
+.video-stage-screenshare.child-count-7,
 .video-stage-screenshare.child-count-8,
 .video-stage-screenshare.child-count-9,
-.video-stage-screenshare.child-count-10,
-.video-stage-screenshare.child-count-11,
-.video-stage-screenshare.child-count-12,
-.video-stage-screenshare.child-count-13,
-.video-stage-screenshare.child-count-14 {
+.video-stage-screenshare.child-count-10{
     grid-template-columns: 1fr 1fr;
     /* Two columns */
 }
 
 /* For 15 or more children: 2 columns with scroll */
-.video-stage-screenshare.child-count-15 {
+.video-stage-screenshare.child-count-11 {
     grid-template-columns: 1fr 1fr;
     /* Two columns */
     grid-auto-rows: minmax(100px, auto);
