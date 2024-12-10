@@ -65,7 +65,7 @@ export const playStreamInDiv = (
 
 
 
-export const toggleStages = (isScreenSharing, userId) => {
+export const toggleStages = async (isScreenSharing, userId) => {
   const screenShareStage = document.getElementById("screen-share-stage");
   const videoStage = document.getElementById("video-stage");
 
@@ -101,6 +101,9 @@ export const toggleStages = (isScreenSharing, userId) => {
       userName.classList.add("user-name-screenshare");
     });
 
+    // Wait for DOM updates to be applied
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
     updateLayout("video-stage-screenshare");
   } else {
     // Hide screen share stage
@@ -134,6 +137,9 @@ export const toggleStages = (isScreenSharing, userId) => {
     allStreamDivs.forEach((div) => {
       div.classList.remove("stream-div-screenshare");
     });
+
+    // Wait for DOM updates to be applied
+    await new Promise((resolve) => requestAnimationFrame(resolve));
 
     updateLayout("video-stage");
   }
