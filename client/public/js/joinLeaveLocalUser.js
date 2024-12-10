@@ -216,8 +216,8 @@ export const leave = async (reason, config) => {
     console.log("Left RTC channel successfully");
 
     // Leave RTM if joined
-    await leaveRTM(config);
-    console.log("Left RTM channel successfully");
+    //await leaveRTM(config);
+    //console.log("Left RTM channel successfully");
 
     // Determine the appropriate reason
     const validReasons = ["left", "removed", "deniedAccess", "connectionIssue", "inactive"];
