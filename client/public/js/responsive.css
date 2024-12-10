@@ -129,7 +129,6 @@
     background: #1558c1;
     /* Slightly darker blue on hover */
 }
-
 .video-stage-screenshare {
     width: 180px;
     /* Fixed width */
@@ -140,8 +139,8 @@
     display: grid;
     grid-template-columns: 1fr;
     /* Always one column */
-    grid-auto-rows: minmax(110, 110px);
-    /* Maximum height per child is 110px */
+    grid-auto-rows: 110px;
+    /* Set each child's height to exactly 110px */
     gap: 10px;
     /* Space between grid items */
     padding: 10px;
@@ -157,8 +156,8 @@
 }
 
 .video-stage-screenshare>* {
-    max-height: 110px;
-    /* Maximum height per child */
+    height: 110px;
+    /* Fixed height for children */
     overflow: hidden;
     /* Prevent content overflow */
 }
