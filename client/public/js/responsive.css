@@ -131,7 +131,14 @@
 }
 
 /* When there's only 1 participant, center and limit max width */
-.video-stage-screenshare.child-count-1 {
+.video-stage-screenshare.child-count-1,
+.video-stage-screenshare.child-count-2,
+.video-stage-screenshare.child-count-3,
+.video-stage-screenshare.child-count-4,
+.video-stage-screenshare.child-count-5,
+.video-stage-screenshare.child-count-6,
+.video-stage-screenshare.child-count-7
+ {
     grid-template-columns: 1fr;
     /* Full width grid */
     grid-template-rows: 1fr;
