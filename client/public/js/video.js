@@ -424,13 +424,12 @@ export const stopScreenShare = async (config) => {
     console.warn("No screen share track found.");
   }
 
-  // Toggle UI
-  toggleStages(false);
-  // playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
-
   // Reset the sharing screen UID
   sharingScreenUid = null;
   generatedScreenShareId = null;
+  // Toggle UI
+  toggleStages(false);
+  // playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
 
   console.log("Screen share stopped and external variable updated.");
 };
