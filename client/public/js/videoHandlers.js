@@ -65,82 +65,44 @@ export const playStreamInDiv = (
 
 
 
-export const toggleStages = async (isScreenSharing, userId) => {
+export const toggleStages = (isScreenSharing) => {
   const screenShareStage = document.getElementById("screen-share-stage");
   const videoStage = document.getElementById("video-stage");
 
   if (isScreenSharing) {
-    const streamDiv = document.querySelector(`#video-wrapper-${userId}`); // Select the stream div by ID
-
-    if (!streamDiv) {
-      console.error(`Stream div with ID stream-${userId} not found.`);
-      return;
-    }
-
-    // Show screen share stage
-    screenShareStage.classList.remove("hidden");
+    screenShareStage.classList.remove("hidden"); // Show screen share stage
     videoStage.classList.remove("video-stage");
     videoStage.classList.add("video-stage-screenshare");
-
-    // Move streamDiv to be the first child of the screenShareStage and add a class
-    if (screenShareStage.firstChild !== streamDiv) {
-      screenShareStage.insertBefore(streamDiv, screenShareStage.firstChild);
-    }
-    streamDiv.classList.add("stream-div-screenshare"); // Add a specific class for screensharing
-
-    // Update user avatars and names for screensharing
-    const userAvatars = document.querySelectorAll(".user-avatar");
+      const userAvatars = document.querySelectorAll(".user-avatar");
     userAvatars.forEach((userAvatar) => {
       userAvatar.classList.remove("user-avatar");
       userAvatar.classList.add("user-avatar-screenshare");
     });
-
     const userNames = document.querySelectorAll(".user-name");
     userNames.forEach((userName) => {
       userName.classList.remove("user-name");
       userName.classList.add("user-name-screenshare");
     });
-
-    // Wait for DOM updates to be applied
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-
     updateLayout("video-stage-screenshare");
   } else {
-    // Hide screen share stage
-    screenShareStage.classList.add("hidden");
+    screenShareStage.classList.add("hidden"); // Hide screen share stage
     videoStage.classList.remove("video-stage-screenshare");
     videoStage.classList.add("video-stage");
 
-    // Reset participant, avatar, and name styles
     const participants = document.querySelectorAll(
       ".video-participant-screenshare"
     );
-    participants.forEach((participant) => {
-      participant.classList.remove("video-participant-screenshare");
-      participant.classList.add("video-participant");
-    });
-
     const userAvatars = document.querySelectorAll(".user-avatar-screenshare");
     userAvatars.forEach((userAvatar) => {
       userAvatar.classList.remove("user-avatar-screenshare");
       userAvatar.classList.add("user-avatar");
     });
-
     const userNames = document.querySelectorAll(".user-name-screenshare");
     userNames.forEach((userName) => {
       userName.classList.remove("user-name-screenshare");
       userName.classList.add("user-name");
     });
-
-    // Remove the screenshare-specific class from all stream divs
-    const allStreamDivs = document.querySelectorAll(".stream-div-screenshare");
-    allStreamDivs.forEach((div) => {
-      div.classList.remove("stream-div-screenshare");
-    });
-
-    // Wait for DOM updates to be applied
-    await new Promise((resolve) => requestAnimationFrame(resolve));
-
     updateLayout("video-stage");
   }
 };
+
