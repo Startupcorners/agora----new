@@ -1,4 +1,5 @@
 import { updateLayout } from "./wrappers.js";
+import { editClasses } from "./setupEventListeners.js";
 
 export const playStreamInDiv = (
   config,
@@ -65,48 +66,35 @@ export const playStreamInDiv = (
 
 
 
-export const toggleStages = (isScreenSharing, userId) => {
+export const toggleStages = async (isScreenSharing, userId) => {
   const screenShareStage = document.getElementById("screen-share-stage");
   const videoStage = document.getElementById("video-stage");
   const videoWrapper = document.getElementById(`video-wrapper-${userId}`);
 
+  if (!screenShareStage || !videoStage || !videoWrapper) {
+    console.error(
+      "Required elements not found: 'screen-share-stage', 'video-stage', or 'video-wrapper'."
+    );
+    return;
+  }
+
   if (isScreenSharing) {
-    screenShareStage.classList.remove("hidden"); // Show screen share stage
-    videoStage.classList.remove("video-stage");
-    videoStage.classList.add("video-stage-screenshare");
-      const userAvatars = document.querySelectorAll(".user-avatar");
-    userAvatars.forEach((userAvatar) => {
-      userAvatar.classList.remove("user-avatar");
-      userAvatar.classList.add("user-avatar-screenshare");
-    });
-    const userNames = document.querySelectorAll(".user-name");
-    userNames.forEach((userName) => {
-      userName.classList.remove("user-name");
-      userName.classList.add("user-name-screenshare");
-    });
+    // Show screen share stage
+    screenShareStage.classList.remove("hidden");
+
+    // Move video wrapper to the first child position if necessary
     if (videoStage.firstChild !== videoWrapper) {
       videoStage.insertBefore(videoWrapper, videoStage.firstChild);
     }
-    updateLayout("video-stage-screenshare");
-  } else {
-    screenShareStage.classList.add("hidden"); // Hide screen share stage
-    videoStage.classList.remove("video-stage-screenshare");
-    videoStage.classList.add("video-stage");
 
-    const participants = document.querySelectorAll(
-      ".video-participant-screenshare"
-    );
-    const userAvatars = document.querySelectorAll(".user-avatar-screenshare");
-    userAvatars.forEach((userAvatar) => {
-      userAvatar.classList.remove("user-avatar-screenshare");
-      userAvatar.classList.add("user-avatar");
-    });
-    const userNames = document.querySelectorAll(".user-name-screenshare");
-    userNames.forEach((userName) => {
-      userName.classList.remove("user-name-screenshare");
-      userName.classList.add("user-name");
-    });
-    updateLayout("video-stage");
+    // Await layout adjustments if `editClasses` is asynchronous
+    await editClasses("below"); // Switch to "below" layout for screen sharing
+  } else {
+    // Hide screen share stage
+    screenShareStage.classList.add("hidden");
+
+    // Await layout adjustments if `editClasses` is asynchronous
+    await editClasses("left"); // Switch back to "left" layout
   }
 };
 

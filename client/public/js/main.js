@@ -37,6 +37,7 @@ import {
   noHosts,
   hostJoined,
   toggleOverride,
+  leftSizeListener,
 } from "./setupEventListeners.js";
 
 export const newMainApp = async function (initConfig) {
@@ -145,6 +146,7 @@ export const newMainApp = async function (initConfig) {
   setupLeaveListener(config);
   checkMicrophonePermissions(config);
   updateSelectedDevices(config);
+  leftSizeListener();
   if (config.uid <= 999999999 && config.uid != 2) {
   initializeInactivityTracker(config);
   }

@@ -850,3 +850,51 @@ export function toggleOverride(config) {
 
   console.log(`Override is now: ${override ? "enabled" : "disabled"}`);
 }
+
+
+// Select the element whose width you want to track
+export const leftSizeListener = document.getElementById("left");
+
+// Add an event listener to the window's resize event
+window.addEventListener("resize", () => {
+  // Initial Layout Check
+  if (leftSizeListener) {
+    const width = leftSizeListener.getBoundingClientRect().width;
+    const layout = width < 600 ? "below" : "left";
+    editClasses(layout);
+  } else {
+    console.error(
+      "Element with ID 'left' not found. Initial layout adjustment skipped."
+    );
+  }
+});
+
+// Function to edit classes for different layouts
+export const editClasses = async (layout) => {
+  const videoStage = document.getElementById("video-stage");
+  const mainContainer = document.getElementById("main-container");
+
+  if (!videoStage || !mainContainer) {
+    console.error(
+      "Required elements not found: 'video-stage' or 'main-container'."
+    );
+    return;
+  }
+
+  // Simulate an asynchronous operation (e.g., animation, API call)
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
+  if (layout === "below") {
+    videoStage.classList.remove("video-stage-screenshare");
+    videoStage.classList.add("video-stage-screenshare-below");
+    mainContainer.classList.remove("main-container-left");
+    mainContainer.classList.add("main-container-below");
+  } else if (layout === "left") {
+    videoStage.classList.remove("video-stage-screenshare-below");
+    videoStage.classList.add("video-stage-screenshare");
+    mainContainer.classList.remove("main-container-below");
+    mainContainer.classList.add("main-container-left");
+  } else {
+    console.warn("Unknown layout type:", layout);
+  }
+};

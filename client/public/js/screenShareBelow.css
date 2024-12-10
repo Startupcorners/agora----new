@@ -1,0 +1,107 @@
+/* Style for the smaller user avatar inside screen-share-stage */
+.user-avatar-screenshare-below {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+}
+
+
+/* Style for the user name */
+.user-name-screenshare-below {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    font-size: 12px;
+    color: #fff;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 5px 10px;
+    border-radius: 4px;
+}
+
+.mic-icon-screenshare-below {
+    height: 1em;
+    width: auto;
+    vertical-align: middle;
+    display: inline-block;
+    margin-left: 5px;
+}
+
+/* Hide scrollbar arrows for WebKit browsers */
+.video-stage-screenshare-below::-webkit-scrollbar {
+    width: 8px;
+    /* Narrow scrollbar width */
+    height: 8px;
+    /* Narrow scrollbar height for horizontal scrolling */
+}
+
+/* Remove scrollbar arrows */
+.video-stage-screenshare-below::-webkit-scrollbar-button {
+    display: none;
+    /* Hides the up/down or left/right arrows */
+}
+
+/* WebKit browsers: scrollbar track */
+.video-stage-screenshare-below::-webkit-scrollbar-track {
+    background: transparent;
+    /* Transparent track for a cleaner look */
+}
+
+/* WebKit browsers: scrollbar thumb */
+.video-stage-screenshare-below::-webkit-scrollbar-thumb {
+    background: #1a73e8;
+    /* Thumb color */
+    border-radius: 50px;
+    /* Fully rounded thumb */
+}
+
+/* WebKit browsers: scrollbar thumb on hover */
+.video-stage-screenshare-below::-webkit-scrollbar-thumb:hover {
+    background: #1558c1;
+    /* Slightly darker blue on hover */
+}
+.video-stage-screenshare-below {
+    width: 100%;
+    /* Full width of the parent container */
+    height: 110px;
+    /* Fixed height for the row */
+    display: grid;
+    grid-template-rows: 1fr;
+    /* Always one row */
+    grid-auto-columns: 110px;
+    /* Set each child's width to exactly 110px */
+    grid-auto-flow: column;
+    gap: 10px;
+    /* Space between grid items */
+    padding: 10px;
+    box-sizing: border-box;
+    overflow-x: auto;
+    /* Enable horizontal scrolling if content overflows */
+    overflow-y: hidden;
+    /* Prevent vertical scrolling */
+    scrollbar-width: thin;
+    /* Thin scrollbar for Firefox */
+    scroll-behavior: smooth;
+    /* Smooth scrolling */
+    justify-content: center;
+    /* Center items horizontally when they fit */
+}
+
+.video-stage-screenshare-below>* {
+    width: 110px;
+    /* Fixed width for children */
+    height: 100%;
+    /* Match parent's height */
+    overflow: hidden;
+    /* Prevent content overflow */
+}
+
+/* Align items to the start when overflow happens */
+.video-stage-screenshare-below:has(> :not(:only-child)):not(:only-child) {
+    justify-content: start;
+}

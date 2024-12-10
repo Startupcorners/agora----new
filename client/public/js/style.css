@@ -1,7 +1,18 @@
-#main-container {
+.main-container-left {
     display: flex;
     flex-direction: row;
     /* Arrange child elements horizontally */
+    height: 100%;
+    /* Full viewport height */
+    overflow: hidden;
+    /* Prevent parent overflow */
+}
+
+
+.main-container-below {
+    display: flex;
+    flex-direction: column;
+    /* Arrange child elements vertically */
     height: 100%;
     /* Full viewport height */
     overflow: hidden;

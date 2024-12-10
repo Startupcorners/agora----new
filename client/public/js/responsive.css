@@ -129,6 +129,7 @@
     background: #1558c1;
     /* Slightly darker blue on hover */
 }
+
 .video-stage-screenshare {
     width: 180px;
     /* Fixed width */
@@ -153,6 +154,8 @@
     /* Thin scrollbar for Firefox */
     scroll-behavior: smooth;
     /* Smooth scrolling */
+    align-content: center;
+    /* Center items vertically when they fit */
 }
 
 .video-stage-screenshare>* {
@@ -162,11 +165,7 @@
     /* Prevent content overflow */
 }
 
-.stream-div-screenshare {
-    border: 3px solid gold;
-    /* Gold border */
-    box-shadow: 0 4px 8px rgba(255, 215, 0, 0.6);
-    /* Gold shadow with some transparency */
-    overflow: hidden;
-
+/* Align items to the top when overflow happens */
+.video-stage-screenshare:has(> :nth-last-child(n+2)) {
+    align-content: start;
 }
