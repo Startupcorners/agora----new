@@ -138,14 +138,14 @@
     /* Full height grid */
     justify-content: center;
     /* Center the child horizontally */
-    max-height: 160px;
+    max-height: 130px;
     /* Limit the width */
     margin: 0 auto;
     /* Center video stage horizontally */
 }
 
 .video-stage-screenshare {
-    width: 250px;
+    width: 180px;
     /* Fixed width */
     height: 100%;
     /* Full height of the parent container */
