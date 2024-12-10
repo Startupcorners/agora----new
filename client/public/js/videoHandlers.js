@@ -70,7 +70,7 @@ export const toggleStages = (isScreenSharing, userId) => {
   const videoStage = document.getElementById("video-stage");
 
   if (isScreenSharing) {
-    const streamDiv = document.querySelector(`#stream-${userId}`); // Select the stream div by ID
+    const streamDiv = document.querySelector(`#video-wrapper-${userId}`); // Select the stream div by ID
 
     if (!streamDiv) {
       console.error(`Stream div with ID stream-${userId} not found.`);

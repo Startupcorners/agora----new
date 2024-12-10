@@ -356,7 +356,7 @@ export const startScreenShare = async (config) => {
     });
 
     // Toggle UI
-    toggleStages(true, config.uid);
+    await toggleStages(true, config.uid);
     playStreamInDiv(
       config,
       screenShareUid,
