@@ -37,7 +37,6 @@ import {
   noHosts,
   hostJoined,
   toggleOverride,
-  initializeLeftListener,
 } from "./setupEventListeners.js";
 
 export const newMainApp = async function (initConfig) {
