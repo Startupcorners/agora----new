@@ -861,7 +861,6 @@ export const editClasses = async () => {
   const videoStage = document.getElementById("video-stage");
   const mainContainer = document.getElementById("main-container");
   const sharingScreenUid = getSharingScreenUid(); // Check screen sharing status
-  const leftSizeListener = document.getElementById("left");
 
   // Check for missing elements individually
   if (!videoStage) {
@@ -870,12 +869,9 @@ export const editClasses = async () => {
   if (!mainContainer) {
     console.error("Missing element: 'main-container' not found in the DOM.");
   }
-  if (!leftSizeListener) {
-    console.error("Missing element: 'left' not found in the DOM.");
-  }
 
   // If any required element is missing, exit early
-  if (!videoStage || !mainContainer || !leftSizeListener) {
+  if (!videoStage || !mainContainer) {
     console.error(
       "Required elements are missing. Cannot proceed with layout adjustments."
     );
@@ -891,7 +887,7 @@ export const editClasses = async () => {
   }
 
   // Determine the layout based on the width of the left container
-  const width = leftSizeListener.getBoundingClientRect().width;
+  const width = mainContainer.getBoundingClientRect().width;
   const layout = width < 600 ? "below" : "left";
 
   // Simulate an asynchronous operation if needed (e.g., animation, API call)
