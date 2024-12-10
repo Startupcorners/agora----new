@@ -863,13 +863,26 @@ export const editClasses = async () => {
   const sharingScreenUid = getSharingScreenUid(); // Check screen sharing status
   const leftSizeListener = document.getElementById("left");
 
+  // Check for missing elements individually
+  if (!videoStage) {
+    console.error("Missing element: 'video-stage' not found in the DOM.");
+  }
+  if (!mainContainer) {
+    console.error("Missing element: 'main-container' not found in the DOM.");
+  }
+  if (!leftSizeListener) {
+    console.error("Missing element: 'left' not found in the DOM.");
+  }
+
+  // If any required element is missing, exit early
   if (!videoStage || !mainContainer || !leftSizeListener) {
     console.error(
-      "Required elements not found: 'video-stage', 'main-container', or 'left'."
+      "Required elements are missing. Cannot proceed with layout adjustments."
     );
     return;
   }
 
+  // Check if screen sharing is active
   if (sharingScreenUid === null) {
     console.warn(
       "Screen sharing is not active. No layout changes will be applied."
@@ -901,3 +914,4 @@ export const editClasses = async () => {
     mainContainer.classList.add("main-container-left");
   }
 };
+
