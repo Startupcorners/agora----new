@@ -146,7 +146,6 @@ export const newMainApp = async function (initConfig) {
   setupLeaveListener(config);
   checkMicrophonePermissions(config);
   updateSelectedDevices(config);
-  initializeLeftListener();
   if (config.uid <= 999999999 && config.uid != 2) {
   initializeInactivityTracker(config);
   }

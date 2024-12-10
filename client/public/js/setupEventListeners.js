@@ -874,12 +874,20 @@ window.addEventListener("resize", () => {
 export const editClasses = async (layout) => {
   const videoStage = document.getElementById("video-stage");
   const mainContainer = document.getElementById("main-container");
+  const sharingScreenUid = getSharingScreenUid(); // Check screen sharing status
 
   if (!videoStage || !mainContainer) {
     console.error(
       "Required elements not found: 'video-stage' or 'main-container'."
     );
     return;
+  }
+
+  if (sharingScreenUid === null) {
+    console.warn(
+      "Screen sharing is not active. No layout changes will be applied."
+    );
+    return; // Exit early if screen sharing is inactive
   }
 
   // Simulate an asynchronous operation (e.g., animation, API call)
@@ -900,38 +908,3 @@ export const editClasses = async (layout) => {
   }
 };
 
-
-// Function to handle when the element becomes available
-export function initializeLeftListener() {
-  const leftSizeListener = document.getElementById("left");
-
-  if (leftSizeListener) {
-    console.log("Element 'left' is now available.");
-
-    // Perform initial layout check
-    const width = leftSizeListener.getBoundingClientRect().width;
-    const layout = width < 600 ? "below" : "left";
-    editClasses(layout); // Initial layout setup
-
-    // Add resize listener
-    window.addEventListener("resize", () => {
-      const width = leftSizeListener.getBoundingClientRect().width;
-      const layout = width < 600 ? "below" : "left";
-      editClasses(layout);
-    });
-
-    return true; // Successfully initialized
-  }
-
-  return false; // Element not found yet
-}
-
-// Set up a MutationObserver to watch for DOM changes
-const observer = new MutationObserver(() => {
-  if (initializeLeftListener()) {
-    observer.disconnect(); // Stop observing once the element is found
-  }
-});
-
-// Start observing the DOM
-observer.observe(document.body, { childList: true, subtree: true });
