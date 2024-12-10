@@ -891,6 +891,7 @@ export const editClasses = async () => {
     
     return; // Exit early if screen sharing is inactive
   }
+  console.warn("sharingScreenUid is:", sharingScreenUid);
 
   // Determine the layout based on the width of the left container
   const width = mainContainer.getBoundingClientRect().width;
