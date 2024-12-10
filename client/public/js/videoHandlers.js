@@ -69,17 +69,44 @@ export const playStreamInDiv = (
 export const toggleStages = async (isScreenSharing, userId) => {
   const screenShareStage = document.getElementById("screen-share-stage");
   const videoStage = document.getElementById("video-stage");
-  const videoWrapper = document.getElementById(`video-wrapper-${userId}`);
-  const mainContainer = document.getElementById("main-container"); // Missing reference added
+  const mainContainer = document.getElementById("main-container");
 
-  if (!screenShareStage || !videoStage || !videoWrapper || !mainContainer) {
+  // Check for elements required regardless of isScreenSharing
+  if (!screenShareStage) {
     console.error(
-      "Required elements not found: 'screen-share-stage', 'video-stage', 'video-wrapper', or 'main-container'."
+      "Missing element: 'screenShareStage' (ID 'screen-share-stage') is not found in the DOM."
+    );
+  }
+  if (!videoStage) {
+    console.error(
+      "Missing element: 'videoStage' (ID 'video-stage') is not found in the DOM."
+    );
+  }
+  if (!mainContainer) {
+    console.error(
+      "Missing element: 'mainContainer' (ID 'main-container') is not found in the DOM."
+    );
+  }
+
+  // Exit if critical elements are missing
+  if (!screenShareStage || !videoStage || !mainContainer) {
+    console.error(
+      "One or more required elements are missing. Cannot proceed with toggling stages."
     );
     return;
   }
 
   if (isScreenSharing) {
+    const videoWrapper = document.getElementById(`video-wrapper-${userId}`);
+
+    // Check for videoWrapper only when screen sharing
+    if (!videoWrapper) {
+      console.error(
+        `Missing element: 'videoWrapper' (ID 'video-wrapper-${userId}') is not found in the DOM.`
+      );
+      return; // Exit early if videoWrapper is required but missing
+    }
+
     // Show screen share stage
     screenShareStage.classList.remove("hidden");
 
@@ -118,7 +145,7 @@ export const toggleStages = async (isScreenSharing, userId) => {
       userName.classList.add("user-name");
     });
 
-    // Directly reset classes only if necessary
+    // Reset classes directly
     videoStage.classList.remove("video-stage-screenshare", "video-stage-below");
     videoStage.classList.add("video-stage");
 
@@ -129,5 +156,4 @@ export const toggleStages = async (isScreenSharing, userId) => {
     await editClasses();
   }
 };
-
 
