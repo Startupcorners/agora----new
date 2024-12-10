@@ -101,7 +101,7 @@ export const handleVideoPublished = async (user, userUid, config) => {
 
       // Play screen share track
       playStreamInDiv(config, userUid, "#screen-share-content");
-      playStreamInDiv(config, sharingScreenUid, "#pip-video-track"); 
+      // playStreamInDiv(config, sharingScreenUid, "#pip-video-track"); 
 
 
       // Toggle stage to screen share
@@ -122,11 +122,13 @@ export const handleVideoPublished = async (user, userUid, config) => {
     // Update the publishing list
     updatePublishingList(userUid.toString(), "video", "add");
 
-    if (sharingScreenUid) {
-      playStreamInDiv(config, userUid, "#pip-video-track");
-    } else {
-      playStreamInDiv(config, userUid, `#stream-${userUid}`);
-    }
+    // if (sharingScreenUid) {
+    //   playStreamInDiv(config, userUid, "#pip-video-track");
+    // } else {
+    //   playStreamInDiv(config, userUid, `#stream-${userUid}`);
+    // }
+
+    playStreamInDiv(config, userUid, `#stream-${userUid}`);
   } catch (error) {
     console.error(`Error subscribing to video for user ${userUid}:`, error);
   }
@@ -361,7 +363,7 @@ export const startScreenShare = async (config) => {
       "#screen-share-content",
       screenShareTrackExternal
     );
-    playStreamInDiv(config, uid, "#pip-video-track");
+    // playStreamInDiv(config, uid, "#pip-video-track");
 
     // Update PiP avatar
     const avatarElement = document.getElementById("pip-avatar");
@@ -412,7 +414,7 @@ export const stopScreenShare = async (config) => {
 
   // Toggle UI
   toggleStages(false);
-  playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
+  // playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
 
   // Reset the sharing screen UID
   sharingScreenUid = null;
@@ -492,11 +494,13 @@ export const startCamera = async (config) => {
     console.warn("VideoTrack after publish", videoTrack);
 
     // Update UI
-    if (sharingScreenUid === config.uid.toString()) {
-      await playStreamInDiv(config, config.uid, "#pip-video-track");
-    } else {
-      await playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
-    }
+    // if (sharingScreenUid === config.uid.toString()) {
+    //   await playStreamInDiv(config, config.uid, "#pip-video-track");
+    // } else {
+    //   await playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
+    // }
+
+    await playStreamInDiv(config, config.uid, `#stream-${config.uid}`);
 
     // Handle virtual background if enabled
     if (isVirtualBackGroundEnabled) {
