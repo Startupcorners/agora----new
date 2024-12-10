@@ -146,7 +146,13 @@ export const newMainApp = async function (initConfig) {
   setupLeaveListener(config);
   checkMicrophonePermissions(config);
   updateSelectedDevices(config);
-  leftSizeListener();
+  if (leftSizeListener) {
+    const width = leftSizeListener.getBoundingClientRect().width;
+    const layout = width < 600 ? "below" : "left";
+    editClasses(layout); // Initial layout setup
+  } else {
+    console.error("Element with ID 'left' not found.");
+  }
   if (config.uid <= 999999999 && config.uid != 2) {
   initializeInactivityTracker(config);
   }

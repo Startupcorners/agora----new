@@ -852,7 +852,7 @@ export function toggleOverride(config) {
 }
 
 
-// Select the element whose width you want to track
+// Get the DOM element with ID 'left'
 export const leftSizeListener = document.getElementById("left");
 
 // Add an event listener to the window's resize event
@@ -868,6 +868,7 @@ window.addEventListener("resize", () => {
     );
   }
 });
+
 
 // Function to edit classes for different layouts
 export const editClasses = async (layout) => {
