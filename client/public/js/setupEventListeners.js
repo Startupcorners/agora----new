@@ -887,12 +887,14 @@ export const editClasses = async () => {
   // Apply the appropriate classes based on the layout
   if (layout === "below") {
     console.log("Switching to below layout.");
+    videoStage.classList.remove("video-stage");
     videoStage.classList.remove("video-stage-screenshare");
     videoStage.classList.add("video-stage-screenshare-below");
     mainContainer.classList.remove("main-container-left");
     mainContainer.classList.add("main-container-below");
   } else {
     console.log("Switching to left layout.");
+    videoStage.classList.remove("video-stage");
     videoStage.classList.remove("video-stage-screenshare-below");
     videoStage.classList.add("video-stage-screenshare");
     mainContainer.classList.remove("main-container-below");
