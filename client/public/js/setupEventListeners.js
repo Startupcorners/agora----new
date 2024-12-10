@@ -11,7 +11,7 @@ import { switchCam, switchSpeaker, handleCameraDeactivation, handleMicDeactivati
 import { handleRaiseHandMessage } from "./uiHandlers.js";
 import { leave } from "./joinLeaveLocalUser.js";
 import { onRoleChange } from "./roleChange.js";
-import { toggleCamera, toggleScreenShare } from "./video.js";
+import { toggleCamera, toggleScreenShare, getSharingScreenUid } from "./video.js";
 import { toggleMic } from "./audio.js";
 import { sendRTMMessage } from "./helperFunctions.js";
 
@@ -348,17 +348,39 @@ switch (type) {
       "meetingParticipant",
       "audienceOnStage",
     ];
-
+    const sharingScreenUid = getSharingScreenUid();
     if (rolesRequiringWrapper.includes(newRoleInTheCall)) {
       console.log(
         `Role ${newRoleInTheCall} requires a video wrapper. Adding if necessary.`
       );
-      await addUserWrapper(userUid, config);
+
+      
+      if (sharingScreenUid === null) {
+        console.log(
+          "No screen sharing UID found, adding user without screen sharing."
+        );
+        await addUserWrapper(userUid, config, false);
+      } else {
+        console.log(
+          `Screen sharing UID found (${sharingScreenUid}), adding user with screen sharing.`
+        );
+        await addUserWrapper(userUid, config, true);
+      }
     } else {
       console.log(
         `Role ${newRoleInTheCall} does not require a video wrapper. Removing if exists.`
       );
-      removeUserWrapper(userUid);
+      if (sharingScreenUid === null) {
+        console.log(
+          "No screen sharing UID found, adding user without screen sharing."
+        );
+        await removeUserWrapper(userUid, false);
+      } else {
+        console.log(
+          `Screen sharing UID found (${sharingScreenUid}), adding user with screen sharing.`
+        );
+        await removeUserWrapper(userUid, true);
+      }
     }
     break;
 

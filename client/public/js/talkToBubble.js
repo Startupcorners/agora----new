@@ -51,7 +51,6 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
   console.warn(
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
-  updateLayout();
 
   // Log the participant list before update
   console.log(

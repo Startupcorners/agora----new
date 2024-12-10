@@ -44,7 +44,9 @@ export const newMainApp = async function (initConfig) {
   let config = {
     debugEnabled: true,
     callContainerSelector: "#video-stage",
+    callContainerSelectorScreenshare: "#video-stage-screenshare",
     participantPlayerContainer: templateVideoParticipant,
+    participantPlayerContainerScreenshare: templateVideoParticipantScreenShare,
     appId: "95e91980e5444a8e86b4e41c7f03b713",
     uid: null,
     user: {

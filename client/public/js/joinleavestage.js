@@ -2,7 +2,7 @@ import { updatePublishingList } from "./talkToBubble.js";
 import { updateMicStatusElement } from "./uiHandlers.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { startMic, endMic } from "./audio.js";
-import { stopCamera, stopScreenShare } from "./video.js";
+import { stopCamera, stopScreenShare, getSharingScreenUid } from "./video.js";
 
 
 
@@ -17,7 +17,18 @@ export const joinVideoStage = async (config) => {
 
     // Perform additional setup as a host
     console.log("User is host, performing additional setup...");
-    await addUserWrapper(config.uid, config);
+    const sharingScreenUid = getSharingScreenUid();
+    if (sharingScreenUid === null) {
+      console.log(
+        "No screen sharing UID found, adding user without screen sharing."
+      );
+      await addUserWrapper(config.uid, config, false);
+    } else {
+      console.log(
+        `Screen sharing UID found (${sharingScreenUid}), adding user with screen sharing.`
+      );
+      await addUserWrapper(config.uid, config, true);
+    }
 
     // Successfully joined the video stage
     console.log("Joined the video stage with audio status updated.");
@@ -25,6 +36,7 @@ export const joinVideoStage = async (config) => {
     console.error("Error in joinVideoStage:", error);
   }
 };
+
 
 
 
@@ -41,7 +53,18 @@ export const leaveVideoStage = async (config) => {
 
     // Remove user wrapper (UI cleanup)
     if (config.uid) {
-      await removeUserWrapper(config.uid);
+      const sharingScreenUid = getSharingScreenUid();
+      if (sharingScreenUid === null) {
+        console.log(
+          "No screen sharing UID found, adding user without screen sharing."
+        );
+        await removeUserWrapper(config.uid, false);
+      } else {
+        console.log(
+          `Screen sharing UID found (${sharingScreenUid}), adding user with screen sharing.`
+        );
+        await removeUserWrapper(config.uid, true);
+      }
       console.log(`Removed user wrapper for UID: ${config.uid}`);
     } else {
       console.warn("No UID provided for removeUserWrapper.");

@@ -1,3 +1,5 @@
+import { updateLayout } from "./wrappers.js";
+
 export const playStreamInDiv = (
   config,
   userId,
@@ -87,6 +89,7 @@ export const toggleStages = (isScreenSharing) => {
       userName.classList.remove("user-name");
       userName.classList.add("user-name-screenshare");
     });
+    updateLayout("video-stage-screenshare");
   } else {
     screenShareStage.classList.add("hidden"); // Hide screen share stage
     videoStage.classList.remove("video-stage-screenshare");
@@ -110,7 +113,7 @@ export const toggleStages = (isScreenSharing) => {
       userName.classList.remove("user-name-screenshare");
       userName.classList.add("user-name");
     });
-    updatelayout();
+    updateLayout("video-stage");
   }
 };
 

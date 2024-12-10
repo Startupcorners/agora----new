@@ -4,7 +4,7 @@ import { fetchTokens } from "./fetchTokens.js";
 import { sendRTMMessage } from "./helperFunctions.js";
 import { checkAndUpdateSelectedCam } from "./handleDevices.js"
 
-let sharingScreenUid = null; // Declare the sharingScreenUid outside of config
+
 let screenShareRTMClient = null;
 let screenShareRTCClient = null;
 let generatedScreenShareId = null;
@@ -12,6 +12,23 @@ let screenShareTrackExternal = null;
 let cameraToggleInProgress = false; // External variable to track camera toggle progress
 let isVirtualBackGroundEnabled = false; // External variable for virtual background enabled state
 let currentVirtualBackground = null; // External variable for the current virtual background
+
+let sharingScreenUid = null;
+
+/**
+ * Retrieve the current value of sharingScreenUid.
+ */
+export const getSharingScreenUid = () => sharingScreenUid;
+
+/**
+ * Update the value of sharingScreenUid.
+ * @param {string|null} uid - The new UID to set.
+ */
+export const setSharingScreenUid = (uid) => {
+  console.log(`Updating sharingScreenUid from ${sharingScreenUid} to ${uid}`);
+  sharingScreenUid = uid;
+};
+
 
 
 let processor = null;

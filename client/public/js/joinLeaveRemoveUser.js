@@ -2,6 +2,7 @@ import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { manageParticipants } from "./talkToBubble.js";
 import { hostJoined } from "./setupEventListeners.js";
 import { handleRaiseHandMessage } from "./uiHandlers.js";
+import { getSharingScreenUid } from "./video.js";
 
 export const handleUserJoined = async (user, userAttr = {}, config) => {
   console.log("User info:", user);
@@ -63,7 +64,19 @@ export const handleUserJoined = async (user, userAttr = {}, config) => {
         console.log(
           `No wrapper found for user ${userUid}, creating a new one.`
         );
-        await addUserWrapper(userUid, config);
+        const sharingScreenUid = getSharingScreenUid();
+        if (sharingScreenUid === null) {
+          console.log(
+            "No screen sharing UID found, adding user without screen sharing."
+          );
+          await addUserWrapper(userUid, config, false);
+        } else {
+          console.log(
+            `Screen sharing UID found (${sharingScreenUid}), adding user with screen sharing.`
+          );
+          await addUserWrapper(userUid, config, true);
+        }
+
         console.log(`Wrapper successfully created for user ${userUid}.`);
       } else {
         console.log(`Wrapper already exists for user ${userUid}.`);
@@ -165,7 +178,19 @@ export const handleUserLeft = async (user, config) => {
           console.error("Error notifying participantEnterLeave API:", apiError);
         }
       console.log(`Removing UI elements for user ${user.uid}...`);
-      await removeUserWrapper(user.uid); // Remove user's video UI
+
+      const sharingScreenUid = getSharingScreenUid();
+      if (sharingScreenUid === null) {
+        console.log(
+          "No screen sharing UID found, adding user without screen sharing."
+        );
+        await removeUserWrapper(user.uid, false);
+      } else {
+        console.log(
+          `Screen sharing UID found (${sharingScreenUid}), adding user with screen sharing.`
+        );
+        await removeUserWrapper(user.uid, true);
+      }
 
       console.log(`Updating participant list for user ${user.uid}...`);
       manageParticipants(user.uid, {}, "leave"); // Update participant management
