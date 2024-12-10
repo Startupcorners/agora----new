@@ -140,7 +140,7 @@
     display: grid;
     grid-template-columns: 1fr;
     /* Always one column */
-    grid-auto-rows: minmax(0, 110px);
+    grid-auto-rows: minmax(110, 110px);
     /* Maximum height per child is 110px */
     gap: 10px;
     /* Space between grid items */
