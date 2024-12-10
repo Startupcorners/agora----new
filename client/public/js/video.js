@@ -204,9 +204,6 @@ export const handleVideoUnpublished = async (user, userUid, config) => {
       //     `#stream-${sharingScreenUid}`
       //   );
       // }
-
-      await toggleStages(false);
-
       // Reset screen share tracking
       screenShareRTMClient = null;
       screenShareRTCClient = null;
@@ -214,6 +211,8 @@ export const handleVideoUnpublished = async (user, userUid, config) => {
       generatedScreenShareId = null;
       sharingScreenUid = null;
       bubble_fn_userSharingScreen(sharingScreenUid);
+
+      await toggleStages(false);
 
       console.log("External screen share cleanup complete.");
       return;
