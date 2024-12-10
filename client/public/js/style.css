@@ -2,10 +2,10 @@
     display: flex;
     flex-direction: row;
     /* Arrange child elements horizontally */
-    height: 100%;
+    height: 100vh;
     /* Full viewport height */
     overflow: hidden;
-    /* Prevent overflow */
+    /* Prevent parent overflow */
 }
 
 /* Fullscreen wrapper for the screen share */

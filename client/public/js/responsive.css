@@ -132,14 +132,14 @@
 
 .video-stage-screenshare {
     width: 180px;
-    /* Limit maximum height for up to 10 children */
+    /* Fixed width */
     height: 100%;
-    /* Full height of the parent container if children overflow */
+    /* Full height of the parent container */
     display: grid;
     grid-template-columns: 1fr;
     /* Always one column */
     grid-auto-rows: minmax(0, 110px);
-    /* Maximum height per child is 130px */
+    /* Maximum height per child is 110px */
     gap: 10px;
     /* Space between grid items */
     padding: 10px;
