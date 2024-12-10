@@ -65,8 +65,11 @@ export const playStreamInDiv = (
 };
 
 
-
 export const toggleStages = async (isScreenSharing, userId) => {
+  console.log(
+    `toggleStages called with isScreenSharing: ${isScreenSharing}, userId: ${userId}`
+  );
+
   const screenShareStage = document.getElementById("screen-share-stage");
   const videoStage = document.getElementById("video-stage");
   const mainContainer = document.getElementById("main-container");
@@ -97,6 +100,8 @@ export const toggleStages = async (isScreenSharing, userId) => {
   }
 
   if (isScreenSharing) {
+    console.log("Screen sharing is active. Preparing to update layout.");
+
     const videoWrapper = document.getElementById(`video-wrapper-${userId}`);
 
     // Check for videoWrapper only when screen sharing
@@ -108,9 +113,11 @@ export const toggleStages = async (isScreenSharing, userId) => {
     }
 
     // Show screen share stage
+    console.log("Making screenShareStage visible.");
     screenShareStage.classList.remove("hidden");
 
     // Update user avatars and names for screen sharing
+    console.log("Updating user avatars and names for screen sharing.");
     document.querySelectorAll(".user-avatar").forEach((userAvatar) => {
       userAvatar.classList.remove("user-avatar");
       userAvatar.classList.add("user-avatar-screenshare");
@@ -123,16 +130,24 @@ export const toggleStages = async (isScreenSharing, userId) => {
 
     // Move video wrapper to the first child position if necessary
     if (videoStage.firstChild !== videoWrapper) {
+      console.log(
+        `Moving videoWrapper (ID 'video-wrapper-${userId}') to the first position in videoStage.`
+      );
       videoStage.insertBefore(videoWrapper, videoStage.firstChild);
     }
 
     // Await layout adjustments
+    console.log("Calling editClasses to adjust layout for screen sharing.");
     await editClasses();
   } else {
+    console.log("Screen sharing is inactive. Resetting layout.");
+
     // Hide screen share stage
+    console.log("Hiding screenShareStage.");
     screenShareStage.classList.add("hidden");
 
     // Reset user avatars and names to default
+    console.log("Resetting user avatars and names to default.");
     document
       .querySelectorAll(".user-avatar-screenshare")
       .forEach((userAvatar) => {
@@ -146,6 +161,7 @@ export const toggleStages = async (isScreenSharing, userId) => {
     });
 
     // Reset classes directly
+    console.log("Resetting classes for videoStage and mainContainer.");
     videoStage.classList.remove("video-stage-screenshare", "video-stage-below");
     videoStage.classList.add("video-stage");
 
@@ -153,7 +169,9 @@ export const toggleStages = async (isScreenSharing, userId) => {
     mainContainer.classList.add("main-container-left");
 
     // Await layout adjustments
+    console.log("Calling editClasses to adjust layout for default view.");
     await editClasses();
   }
-};
 
+  console.log("toggleStages completed.");
+};
