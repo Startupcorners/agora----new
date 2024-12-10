@@ -128,7 +128,7 @@ export const removeUserWrapper = (uid, isScreenSharing) => {
 };
 
 
-export const updateLayout = (videoStage) => {
+export const updateLayout = (videoStageClass) => {
   const videoStage = document.querySelector(`.${videoStageClass}`);
   if (!videoStage) {
     console.log(
@@ -146,4 +146,4 @@ export const updateLayout = (videoStage) => {
     .replace(/\bchild-count-\d+\b/g, "")
     .trim();
   videoStage.classList.add(`child-count-${Math.min(participantCount, 9)}`);
-}
+};
