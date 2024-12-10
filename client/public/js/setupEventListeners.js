@@ -899,3 +899,39 @@ export const editClasses = async (layout) => {
     console.warn("Unknown layout type:", layout);
   }
 };
+
+
+// Function to handle when the element becomes available
+export function initializeLeftListener() {
+  const leftSizeListener = document.getElementById("left");
+
+  if (leftSizeListener) {
+    console.log("Element 'left' is now available.");
+
+    // Perform initial layout check
+    const width = leftSizeListener.getBoundingClientRect().width;
+    const layout = width < 600 ? "below" : "left";
+    editClasses(layout); // Initial layout setup
+
+    // Add resize listener
+    window.addEventListener("resize", () => {
+      const width = leftSizeListener.getBoundingClientRect().width;
+      const layout = width < 600 ? "below" : "left";
+      editClasses(layout);
+    });
+
+    return true; // Successfully initialized
+  }
+
+  return false; // Element not found yet
+}
+
+// Set up a MutationObserver to watch for DOM changes
+const observer = new MutationObserver(() => {
+  if (initializeLeftListener()) {
+    observer.disconnect(); // Stop observing once the element is found
+  }
+});
+
+// Start observing the DOM
+observer.observe(document.body, { childList: true, subtree: true });
