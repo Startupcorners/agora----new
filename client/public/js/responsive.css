@@ -138,7 +138,7 @@
     display: grid;
     grid-template-columns: 1fr;
     /* Always one column */
-    grid-auto-rows: minmax(0, 130px);
+    grid-auto-rows: minmax(0, 110px);
     /* Maximum height per child is 130px */
     gap: 10px;
     /* Space between grid items */
@@ -156,7 +156,7 @@
 
 /* Ensure children have a consistent max height */
 .video-stage-screenshare>* {
-    max-height: 130px;
+    max-height: 110px;
     /* Maximum height per child */
     overflow: hidden;
     /* Prevent content overflow */
