@@ -73,12 +73,6 @@ export const toggleStages = (isScreenSharing) => {
     screenShareStage.classList.remove("hidden"); // Show screen share stage
     videoStage.classList.remove("video-stage");
     videoStage.classList.add("video-stage-screenshare");
-
-    const participants = document.querySelectorAll(".video-participant");
-    participants.forEach((participant) => {
-      participant.classList.remove("video-participant");
-      participant.classList.add("video-participant-screenshare");
-    });
       const userAvatars = document.querySelectorAll(".user-avatar");
     userAvatars.forEach((userAvatar) => {
       userAvatar.classList.remove("user-avatar");
@@ -98,11 +92,6 @@ export const toggleStages = (isScreenSharing) => {
     const participants = document.querySelectorAll(
       ".video-participant-screenshare"
     );
-    participants.forEach((participant) => {
-      participant.classList.remove("video-participant-screenshare");
-      participant.classList.add("video-participant");
-    });
-
     const userAvatars = document.querySelectorAll(".user-avatar-screenshare");
     userAvatars.forEach((userAvatar) => {
       userAvatar.classList.remove("user-avatar-screenshare");
