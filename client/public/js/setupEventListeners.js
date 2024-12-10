@@ -883,6 +883,12 @@ export const editClasses = async () => {
     console.warn(
       "Screen sharing is not active. No layout changes will be applied."
     );
+    videoStage.classList.remove("video-stage-screenshare");
+    videoStage.classList.remove("video-stage-screenshare-below");
+    videoStage.classList.add("video-stage");
+    mainContainer.classList.remove("main-container-below");
+    mainContainer.classList.add("main-container-left");
+    
     return; // Exit early if screen sharing is inactive
   }
 

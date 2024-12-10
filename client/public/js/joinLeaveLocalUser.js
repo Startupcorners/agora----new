@@ -192,6 +192,11 @@ export const leave = async (reason, config) => {
 
   console.warn("leave function called with reason:", reason);
   triggeredReason = reason; // Set the triggered reason to prevent re-entry
+  if (typeof bubble_fn_leave === "function") {
+    bubble_fn_leave(finalReason);
+  } else {
+    console.warn("bubble_fn_leave is not defined or not a function");
+  }
   await stopScreenShare(config);
   await stopCamera(config);
   await endMic(config);
