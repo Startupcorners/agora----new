@@ -266,13 +266,13 @@ bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
     console.log("Generated value_list:", JSON.stringify(outputlist5, null, 2));
 
 
-    bubble_fn_hourss(
-      outputlist1,
-      outputlist2,
-      outputlist3,
-      outputlist4,
-      outputlist5
-    );
+    bubble_fn_hourss({
+      outputlist1: outputlist1,
+      outputlist2: outputlist2,
+      outputlist3: outputlist3,
+      outputlist4: outputlist4,
+      outputlist5: outputlist5,
+    });
   }
 
   function getDaysInMonth(dateString, timezone) {
