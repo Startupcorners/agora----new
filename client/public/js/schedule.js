@@ -6,6 +6,12 @@ export const schedule = async function () {
     const daysInAdvance = inputList[2];
     const excludeWeekendAndHolidays = inputList[3];
 
+    console.log(availabilityList);
+    console.log(currentUserDate);
+    console.log(daysInAdvance);
+    console.log(excludeWeekendAndHolidays);
+
+
     const uniqueDates = new Set();
     const currentMoment = moment.utc(currentUserDate);
     const minBookableDate = currentMoment
