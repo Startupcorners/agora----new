@@ -1,5 +1,3 @@
-import "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"
-import "https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.min.js"
 
 export const schedule = async function () {
   function generateUniqueDates(inputList) {
