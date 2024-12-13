@@ -262,7 +262,7 @@ bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
     console.log("Generated outputlist3:", JSON.stringify(outputlist3, null, 2));
     console.log("Generated outputlist4:", JSON.stringify(outputlist4, null, 2));
 
-    bubble_fn_hours(
+    bubble_fn_hourss(
       value_list,
       outputlist1,
       outputlist2,
