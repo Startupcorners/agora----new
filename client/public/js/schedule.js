@@ -93,7 +93,7 @@ function generateSlotsForDate(
   const outputlist4 = [];
   const outputlist5 = [];
 
-  // Parse viewerDate in viewer's timezone and get start of that local day
+  // Parse viewerDate in viewer's timezone and get start/end of that local day
   const viewerDateLocal = moment.tz(viewerDate, viewerTimeZone).startOf("day");
   if (!viewerDateLocal.isValid()) {
     console.error("Invalid viewerDate:", viewerDate);
@@ -106,18 +106,18 @@ function generateSlotsForDate(
     };
   }
 
-  // Convert this local date to UTC to get the corresponding UTC day
+  const localDayStart = viewerDateLocal.clone();
+  const localDayEnd = viewerDateLocal.clone().endOf("day");
+
+  // Convert this local date to UTC to get the corresponding UTC days
   const viewerDateUTC = viewerDateLocal.clone().utc();
   const viewerNextDateUTC = viewerDateUTC.clone().add(1, "day");
 
-  // Local day boundaries
-  const localDayStart = viewerDateLocal.clone(); // startOf('day') already done
-  const localDayEnd = viewerDateLocal.clone().endOf("day");
-
-  console.log("Local Day Start (viewer):", localDayStart.format());
-  console.log("Local Day End (viewer):", localDayEnd.format());
-  console.log("Viewer Date UTC:", viewerDateUTC.format());
-  console.log("Viewer Next Date UTC:", viewerNextDateUTC.format());
+  // Debugging logs (uncomment if needed)
+  // console.log("Local Day Start (viewer):", localDayStart.format(), "in UTC:", localDayStart.clone().utc().format());
+  // console.log("Local Day End (viewer):", localDayEnd.format(), "in UTC:", localDayEnd.clone().utc().format());
+  // console.log("Viewer Date UTC:", viewerDateUTC.format());
+  // console.log("Viewer Next Date UTC:", viewerNextDateUTC.format());
 
   availabilityList.forEach((availability) => {
     const startDate = moment.utc(availability.start_date).startOf("day");
@@ -141,7 +141,6 @@ function generateSlotsForDate(
       return; // The requested local day doesn't intersect with availability
     }
 
-    // A function to generate slots for a given UTC day (based on daily start/end times)
     function generateDailySlotsForUTCDate(utcDate) {
       const dailyStartTimeUTC = moment.utc(
         utcDate.format("YYYY-MM-DD") + " " + availability.daily_start_time,
@@ -152,25 +151,27 @@ function generateSlotsForDate(
         "YYYY-MM-DD HH:mm"
       );
 
-      console.log(
-        "Generating slots for UTC date:",
-        utcDate.format(),
-        "Daily Start UTC:",
-        dailyStartTimeUTC.format(),
-        "Daily End UTC:",
-        dailyEndTimeUTC.format()
-      );
+      // Debugging logs (uncomment if needed)
+      // console.log(
+      //   "Generating slots for UTC date:",
+      //   utcDate.format(),
+      //   "Daily Start UTC:",
+      //   dailyStartTimeUTC.format(),
+      //   "Daily End UTC:",
+      //   dailyEndTimeUTC.format()
+      // );
 
       // Convert to viewer's timezone
       const dailyStartTimeViewer = dailyStartTimeUTC.clone().tz(viewerTimeZone);
       const dailyEndTimeViewer = dailyEndTimeUTC.clone().tz(viewerTimeZone);
 
-      console.log(
-        "Daily Start Time (viewer):",
-        dailyStartTimeViewer.format(),
-        "Daily End Time (viewer):",
-        dailyEndTimeViewer.format()
-      );
+      // Debugging logs (uncomment if needed)
+      // console.log(
+      //   "Daily Start Time (viewer):",
+      //   dailyStartTimeViewer.format(),
+      //   "Daily End Time (viewer):",
+      //   dailyEndTimeViewer.format()
+      // );
 
       let currentTime = dailyStartTimeViewer.clone();
       while (currentTime.isBefore(dailyEndTimeViewer)) {
@@ -179,13 +180,14 @@ function generateSlotsForDate(
           .clone()
           .add(availability.slot_duration_minutes, "minutes");
 
-        // Break if endSlot surpasses the daily end time
+        // If slot extends beyond daily end time, break
         if (endSlot.isAfter(dailyEndTimeViewer)) {
           break;
         }
 
-        // Filter out slots not within the local requested day
-        if (endSlot.isBefore(localDayStart) || startSlot.isAfter(localDayEnd)) {
+        // Ensure the slot falls fully within the local day
+        // If it's outside the local day boundaries, skip it.
+        if (startSlot.isBefore(localDayStart) || endSlot.isAfter(localDayEnd)) {
           currentTime.add(availability.slot_duration_minutes, "minutes");
           continue;
         }
@@ -258,7 +260,6 @@ function generateSlotsForDate(
     }
 
     // Generate slots for the next UTC day if it also intersects the local day
-    // This covers late-evening local times mapping to the next UTC day
     if (includesNextDateUTC) {
       generateDailySlotsForUTCDate(viewerNextDateUTC);
     }
@@ -278,6 +279,7 @@ function generateSlotsForDate(
     outputlist5: outputlist5,
   });
 }
+
 
 
 
