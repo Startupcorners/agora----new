@@ -87,13 +87,13 @@ function generateUniqueDates(inputList) {
       };
     }
 
-
     const outputlist1 = [];
     const outputlist2 = [];
     const outputlist3 = [];
     const outputlist4 = [];
     const outputlist5 = [];
 
+    // Parse viewerDate into their local time zone
     const viewerDateMoment = moment
       .tz(viewerDate, viewerTimeZone)
       .startOf("day");
@@ -111,15 +111,11 @@ function generateUniqueDates(inputList) {
     console.log("Viewer Date Moment:", viewerDateMoment.format());
 
     availabilityList.forEach((availability) => {
-      const startDate = moment
-        .tz(availability.start_date, availability.time_zone)
-        .startOf("day");
-      const endDate = moment
-        .tz(availability.end_date, availability.time_zone)
-        .endOf("day");
-      const minBookableDate = moment
-        .tz(viewerTimeZone)
-        .startOf("day")
+      // Parse availability dates as UTC
+      const startDate = moment.utc(availability.start_date).startOf("day");
+      const endDate = moment.utc(availability.end_date).endOf("day");
+      const minBookableDate = viewerDateMoment
+        .clone()
         .add(availability.number_of_days_in_advance, "days");
 
       console.log(
@@ -131,12 +127,12 @@ function generateUniqueDates(inputList) {
       console.log("Minimum Bookable Date:", minBookableDate.format());
 
       const isInAdvanceRange = viewerDateMoment.isSameOrAfter(minBookableDate);
-      const isHoliday = availability.holidays.includes(
+      const isHoliday = availability.holidays?.includes(
         viewerDateMoment.format("YYYY-MM-DD")
       );
       const isWeekend = [0, 6].includes(viewerDateMoment.day());
 
-      // Check if the current date is within the availability period and after the minimum bookable date
+      // Check if the viewer's date is within the availability period and meets criteria
       if (
         viewerDateMoment.isBetween(startDate, endDate, "day", "[]") &&
         isInAdvanceRange
@@ -148,32 +144,30 @@ function generateUniqueDates(inputList) {
           return; // Skip this availability as it's a holiday or weekend
         }
 
-        // Adjust daily start and end times for the viewer's time zone
+        // Adjust daily start and end times to the viewer's time zone
         const dailyStartTime = moment
-          .tz(
+          .utc(
             `${viewerDateMoment.format("YYYY-MM-DD")} ${
               availability.daily_start_time
             }`,
-            "YYYY-MM-DD HH:mm",
-            availability.time_zone
+            "YYYY-MM-DD HH:mm"
           )
           .tz(viewerTimeZone);
-        let dailyEndTime =
+
+        const dailyEndTime =
           availability.daily_end_time === "24:00"
             ? moment
-                .tz(
+                .utc(
                   `${viewerDateMoment.format("YYYY-MM-DD")} 23:59`,
-                  "YYYY-MM-DD HH:mm",
-                  availability.time_zone
+                  "YYYY-MM-DD HH:mm"
                 )
                 .tz(viewerTimeZone)
             : moment
-                .tz(
+                .utc(
                   `${viewerDateMoment.format("YYYY-MM-DD")} ${
                     availability.daily_end_time
                   }`,
-                  "YYYY-MM-DD HH:mm",
-                  availability.time_zone
+                  "YYYY-MM-DD HH:mm"
                 )
                 .tz(viewerTimeZone);
 
@@ -206,7 +200,7 @@ function generateUniqueDates(inputList) {
             isModified: false,
           };
 
-          // Check for exact match with booked slots
+          // Check for booked slots
           alreadyBookedList.forEach((bookedSlot) => {
             const bookedStartDate = moment.utc(bookedSlot.start_date);
             const bookedEndDate = moment.utc(bookedSlot.end_date);
@@ -214,17 +208,13 @@ function generateUniqueDates(inputList) {
               (startSlot.isSame(bookedStartDate) &&
                 endSlot.isSame(bookedEndDate)) || // Exact match
               (startSlot.isBefore(bookedEndDate) &&
-                endSlot.isAfter(bookedStartDate) && // Overlapping
-                !(
-                  endSlot.isSame(bookedStartDate) ||
-                  startSlot.isSame(bookedEndDate)
-                )) // Not the exact end/start match
+                endSlot.isAfter(bookedStartDate)) // Overlapping
             ) {
               slotInfo.alreadyBooked = true;
             }
           });
 
-          // Check if the slot has modifications
+          // Check for modified slots
           modifiedSlots.forEach((modifiedSlot) => {
             const modifiedStartDate = moment.utc(modifiedSlot.start_date);
             const modifiedEndDate = moment.utc(modifiedSlot.end_date);
@@ -232,11 +222,7 @@ function generateUniqueDates(inputList) {
               (startSlot.isSame(modifiedStartDate) &&
                 endSlot.isSame(modifiedEndDate)) || // Exact match
               (startSlot.isBefore(modifiedEndDate) &&
-                endSlot.isAfter(modifiedStartDate) && // Overlapping
-                !(
-                  endSlot.isSame(modifiedStartDate) ||
-                  startSlot.isSame(modifiedEndDate)
-                )) // Not the exact end/start match
+                endSlot.isAfter(modifiedStartDate)) // Overlapping
             ) {
               slotInfo = {
                 ...slotInfo,
@@ -247,7 +233,6 @@ function generateUniqueDates(inputList) {
             }
           });
 
-          
           outputlist1.push(slotInfo.meetingLink);
           outputlist2.push(slotInfo.Address);
           outputlist3.push(slotInfo.alreadyBooked);
@@ -259,13 +244,11 @@ function generateUniqueDates(inputList) {
       }
     });
 
-    
     console.log("Generated outputlist1:", JSON.stringify(outputlist1, null, 2));
     console.log("Generated outputlist2:", JSON.stringify(outputlist2, null, 2));
     console.log("Generated outputlist3:", JSON.stringify(outputlist3, null, 2));
     console.log("Generated outputlist4:", JSON.stringify(outputlist4, null, 2));
-    console.log("Generated value_list:", JSON.stringify(outputlist5, null, 2));
-
+    console.log("Generated outputlist5:", JSON.stringify(outputlist5, null, 2));
 
     bubble_fn_hours({
       outputlist1: outputlist1,
@@ -275,6 +258,7 @@ function generateUniqueDates(inputList) {
       outputlist5: outputlist5,
     });
   }
+
 
   function getDaysInMonth(dateString, timezone) {
     // Parse the date string in the given timezone
