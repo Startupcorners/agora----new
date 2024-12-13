@@ -48,8 +48,11 @@ export const schedule = async function () {
         currentDate.add(1, "days");
       }
     });
-
-    return Array.from(uniqueDates).sort();
+    
+console.log("uniquedatestart");
+console.log(Array.from(uniqueDates).sort());
+console.log("uniquedateend");
+bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
   }
 
   function generateSlotsForDate(
@@ -261,13 +264,13 @@ export const schedule = async function () {
     console.log("Generated outputlist3:", JSON.stringify(outputlist3, null, 2));
     console.log("Generated outputlist4:", JSON.stringify(outputlist4, null, 2));
 
-    return {
+    bubble_fn_hours(
       value_list,
       outputlist1,
       outputlist2,
       outputlist3,
-      outputlist4,
-    };
+      outputlist4
+    );
   }
 
   function getDaysInMonth(dateString, timezone) {
@@ -318,7 +321,8 @@ export const schedule = async function () {
       days.push(day);
     }
 
-    return days;
+    console.log(days);
+    bubble_fn_daysInMonth(days);
   }
 
   function generateStartTimes(startTime, duration) {
@@ -345,7 +349,7 @@ export const schedule = async function () {
       console.log("Next start time in minutes:", currentTimeInMinutes);
     }
 
-    return times;
+    bubble_fn_startTime(times);
   }
 
   function generateEndTimes(startTime, duration) {
@@ -371,8 +375,7 @@ export const schedule = async function () {
       currentTimeInMinutes += duration;
       console.log("Next end time in minutes:", currentTimeInMinutes);
     }
-
-    return times;
+    bubble_fn_endTime(times);
   }
   return {
     generateUniqueDates,
