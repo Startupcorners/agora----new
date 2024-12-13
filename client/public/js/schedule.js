@@ -78,19 +78,20 @@ bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
     if (!Array.isArray(availabilityList)) {
       console.error("availabilityList should be an array");
       return {
-        value_list: [],
         outputlist1: [],
         outputlist2: [],
         outputlist3: [],
         outputlist4: [],
+        outputlist5: [],
       };
     }
 
-    const value_list = [];
+
     const outputlist1 = [];
     const outputlist2 = [];
     const outputlist3 = [];
     const outputlist4 = [];
+    const outputlist5 = [];
 
     const viewerDateMoment = moment
       .tz(viewerDate, viewerTimeZone)
@@ -98,11 +99,11 @@ bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
     if (!viewerDateMoment.isValid()) {
       console.error("Invalid viewerDate:", viewerDate);
       return {
-        value_list: [],
         outputlist1: [],
         outputlist2: [],
         outputlist3: [],
         outputlist4: [],
+        outputlist5: [],
       };
     }
 
@@ -245,29 +246,32 @@ bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
             }
           });
 
-          value_list.push(slotInfo.slotTimeRange);
+          
           outputlist1.push(slotInfo.meetingLink);
           outputlist2.push(slotInfo.Address);
           outputlist3.push(slotInfo.alreadyBooked);
           outputlist4.push(slotInfo.isModified);
+          outputlist5.push(slotInfo.slotTimeRange);
 
           currentTime.add(availability.slot_duration_minutes, "minutes");
         }
       }
     });
 
-    console.log("Generated value_list:", JSON.stringify(value_list, null, 2));
+    
     console.log("Generated outputlist1:", JSON.stringify(outputlist1, null, 2));
     console.log("Generated outputlist2:", JSON.stringify(outputlist2, null, 2));
     console.log("Generated outputlist3:", JSON.stringify(outputlist3, null, 2));
     console.log("Generated outputlist4:", JSON.stringify(outputlist4, null, 2));
+    console.log("Generated value_list:", JSON.stringify(outputlist5, null, 2));
+
 
     bubble_fn_hourss(
-      value_list,
       outputlist1,
       outputlist2,
       outputlist3,
-      outputlist4
+      outputlist4,
+      outputlist5
     );
   }
 
