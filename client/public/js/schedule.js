@@ -283,6 +283,8 @@ bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
 
   function getDaysInMonth(dateString, timezone) {
     // Parse the date string in the given timezone
+    console.log("dateString", dateString);
+    console.log("timezone", timezone);
     const date = moment.tz(dateString, timezone);
     const days = [];
 
