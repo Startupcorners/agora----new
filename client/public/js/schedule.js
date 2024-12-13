@@ -266,7 +266,7 @@ bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
     console.log("Generated value_list:", JSON.stringify(outputlist5, null, 2));
 
 
-    bubble_fn_hourss({
+    bubble_fn_hours({
       outputlist1: outputlist1,
       outputlist2: outputlist2,
       outputlist3: outputlist3,
