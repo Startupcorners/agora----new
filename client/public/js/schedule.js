@@ -148,98 +148,103 @@ function generateSlotsForDate(
         return; // Skip this availability as it's a holiday or weekend
       }
 
-      // Iterate over daily time blocks
-      availability.daily_time_blocks.forEach((timeBlock) => {
-        const dailyStartTime = moment.tz(
-          `${viewerDateMoment.format("YYYY-MM-DD")} ${timeBlock.start}`,
-          "YYYY-MM-DD HH:mm",
-          viewerTimeZone
-        );
+      // Adjust daily start and end times to the viewer's timezone boundaries
+      const dailyStartTime = moment.tz(
+        `${viewerDateMoment.format("YYYY-MM-DD")} ${
+          availability.daily_start_time
+        }`,
+        "YYYY-MM-DD HH:mm",
+        viewerTimeZone
+      );
 
-        const dailyEndTime =
-          timeBlock.end === "24:00"
-            ? moment.tz(
-                `${viewerDateMoment.format("YYYY-MM-DD")} 23:59`,
-                "YYYY-MM-DD HH:mm",
-                viewerTimeZone
-              )
-            : moment.tz(
-                `${viewerDateMoment.format("YYYY-MM-DD")} ${timeBlock.end}`,
-                "YYYY-MM-DD HH:mm",
-                viewerTimeZone
-              );
+      const dailyEndTime =
+        availability.daily_end_time === "24:00"
+          ? moment.tz(
+              `${viewerDateMoment.format("YYYY-MM-DD")} 23:59`,
+              "YYYY-MM-DD HH:mm",
+              viewerTimeZone
+            )
+          : moment.tz(
+              `${viewerDateMoment.format("YYYY-MM-DD")} ${
+                availability.daily_end_time
+              }`,
+              "YYYY-MM-DD HH:mm",
+              viewerTimeZone
+            );
 
-        console.log(
-          "Daily Start Time (in viewer's time zone):",
-          dailyStartTime.format(),
-          "Daily End Time (in viewer's time zone):",
-          dailyEndTime.format()
-        );
+      console.log(
+        "Daily Start Time (in viewer's time zone):",
+        dailyStartTime.format(),
+        "Daily End Time (in viewer's time zone):",
+        dailyEndTime.format()
+      );
 
-        let currentTime = dailyStartTime.clone();
-        while (currentTime.isBefore(dailyEndTime)) {
-          const startSlot = currentTime.clone();
-          const endSlot = startSlot
-            .clone()
-            .add(availability.slot_duration_minutes, "minutes");
+      let currentTime = dailyStartTime.clone();
+      while (currentTime.isBefore(dailyEndTime)) {
+        const startSlot = currentTime.clone();
+        const endSlot = startSlot
+          .clone()
+          .add(availability.slot_duration_minutes, "minutes");
 
-          const formattedStartSlot = startSlot
-            .utc()
-            .format("YYYY-MM-DDTHH:mm:ss[Z]");
-          const formattedEndSlot = endSlot
-            .utc()
-            .format("YYYY-MM-DDTHH:mm:ss[Z]");
+        const formattedStartSlot = startSlot
+          .utc()
+          .format("YYYY-MM-DDTHH:mm:ss[Z]");
+        const formattedEndSlot = endSlot.utc().format("YYYY-MM-DDTHH:mm:ss[Z]");
 
-          let slotInfo = {
-            slotTimeRange: [formattedStartSlot, formattedEndSlot],
-            meetingLink: availability.meetingLink,
-            Address: availability.Address,
-            alreadyBooked: false,
-            isModified: false,
-          };
-
-          // Check for booked slots
-          alreadyBookedList.forEach((bookedSlot) => {
-            const bookedStartDate = moment.utc(bookedSlot.start_date);
-            const bookedEndDate = moment.utc(bookedSlot.end_date);
-            if (
-              (startSlot.isSame(bookedStartDate) &&
-                endSlot.isSame(bookedEndDate)) ||
-              (startSlot.isBefore(bookedEndDate) &&
-                endSlot.isAfter(bookedStartDate))
-            ) {
-              slotInfo.alreadyBooked = true;
-            }
-          });
-
-          // Check for modified slots
-          modifiedSlots.forEach((modifiedSlot) => {
-            const modifiedStartDate = moment.utc(modifiedSlot.start_date);
-            const modifiedEndDate = moment.utc(modifiedSlot.end_date);
-            if (
-              (startSlot.isSame(modifiedStartDate) &&
-                endSlot.isSame(modifiedEndDate)) ||
-              (startSlot.isBefore(modifiedEndDate) &&
-                endSlot.isAfter(modifiedStartDate))
-            ) {
-              slotInfo = {
-                ...slotInfo,
-                meetingLink: modifiedSlot.meetingLink,
-                Address: modifiedSlot.Address,
-                isModified: true,
-              };
-            }
-          });
-
-          outputlist1.push(slotInfo.meetingLink);
-          outputlist2.push(slotInfo.Address);
-          outputlist3.push(slotInfo.alreadyBooked);
-          outputlist4.push(slotInfo.isModified);
-          outputlist5.push(slotInfo.slotTimeRange);
-
-          currentTime.add(availability.slot_duration_minutes, "minutes");
+        // Ensure slots remain within the same viewer date
+        if (endSlot.isAfter(dailyEndTime)) {
+          break;
         }
-      });
+
+        let slotInfo = {
+          slotTimeRange: [formattedStartSlot, formattedEndSlot],
+          meetingLink: availability.meetingLink,
+          Address: availability.Address,
+          alreadyBooked: false,
+          isModified: false,
+        };
+
+        // Check for booked slots
+        alreadyBookedList.forEach((bookedSlot) => {
+          const bookedStartDate = moment.utc(bookedSlot.start_date);
+          const bookedEndDate = moment.utc(bookedSlot.end_date);
+          if (
+            (startSlot.isSame(bookedStartDate) &&
+              endSlot.isSame(bookedEndDate)) ||
+            (startSlot.isBefore(bookedEndDate) &&
+              endSlot.isAfter(bookedStartDate))
+          ) {
+            slotInfo.alreadyBooked = true;
+          }
+        });
+
+        // Check for modified slots
+        modifiedSlots.forEach((modifiedSlot) => {
+          const modifiedStartDate = moment.utc(modifiedSlot.start_date);
+          const modifiedEndDate = moment.utc(modifiedSlot.end_date);
+          if (
+            (startSlot.isSame(modifiedStartDate) &&
+              endSlot.isSame(modifiedEndDate)) ||
+            (startSlot.isBefore(modifiedEndDate) &&
+              endSlot.isAfter(modifiedStartDate))
+          ) {
+            slotInfo = {
+              ...slotInfo,
+              meetingLink: modifiedSlot.meetingLink,
+              Address: modifiedSlot.Address,
+              isModified: true,
+            };
+          }
+        });
+
+        outputlist1.push(slotInfo.meetingLink);
+        outputlist2.push(slotInfo.Address);
+        outputlist3.push(slotInfo.alreadyBooked);
+        outputlist4.push(slotInfo.isModified);
+        outputlist5.push(slotInfo.slotTimeRange);
+
+        currentTime.add(availability.slot_duration_minutes, "minutes");
+      }
     }
   });
 
