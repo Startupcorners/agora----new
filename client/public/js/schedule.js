@@ -93,7 +93,7 @@ function generateSlotsForDate(
   const outputlist4 = [];
   const outputlist5 = [];
 
-  // Parse viewerDate into their local timezone
+  // Parse viewerDate into their local time zone (the date user wants slots for)
   const viewerDateMoment = moment.tz(viewerDate, viewerTimeZone).startOf("day");
   if (!viewerDateMoment.isValid()) {
     console.error("Invalid viewerDate:", viewerDate);
@@ -106,7 +106,7 @@ function generateSlotsForDate(
     };
   }
 
-  // Define "today" in the viewer's timezone
+  // Define "today" in the viewer's time zone
   const today = moment.tz(viewerTimeZone).startOf("day");
 
   console.log("Viewer Date Moment:", viewerDateMoment.format());
@@ -121,7 +121,6 @@ function generateSlotsForDate(
     const minBookableDate = today
       .clone()
       .add(availability.number_of_days_in_advance, "days");
-
     console.log(
       "Start Date:",
       startDate.format(),
@@ -148,29 +147,32 @@ function generateSlotsForDate(
         return; // Skip this availability as it's a holiday or weekend
       }
 
-      // Adjust daily start and end times to the viewer's timezone boundaries
-      const dailyStartTime = moment.tz(
-        `${viewerDateMoment.format("YYYY-MM-DD")} ${
-          availability.daily_start_time
-        }`,
-        "YYYY-MM-DD HH:mm",
-        viewerTimeZone
-      );
+      // Adjust daily start and end times to the viewer's time zone
+      const dailyStartTime = moment
+        .utc(
+          `${viewerDateMoment.format("YYYY-MM-DD")} ${
+            availability.daily_start_time
+          }`,
+          "YYYY-MM-DD HH:mm"
+        )
+        .tz(viewerTimeZone);
 
       const dailyEndTime =
         availability.daily_end_time === "24:00"
-          ? moment.tz(
-              `${viewerDateMoment.format("YYYY-MM-DD")} 23:59`,
-              "YYYY-MM-DD HH:mm",
-              viewerTimeZone
-            )
-          : moment.tz(
-              `${viewerDateMoment.format("YYYY-MM-DD")} ${
-                availability.daily_end_time
-              }`,
-              "YYYY-MM-DD HH:mm",
-              viewerTimeZone
-            );
+          ? moment
+              .utc(
+                `${viewerDateMoment.format("YYYY-MM-DD")} 23:59`,
+                "YYYY-MM-DD HH:mm"
+              )
+              .tz(viewerTimeZone)
+          : moment
+              .utc(
+                `${viewerDateMoment.format("YYYY-MM-DD")} ${
+                  availability.daily_end_time
+                }`,
+                "YYYY-MM-DD HH:mm"
+              )
+              .tz(viewerTimeZone);
 
       console.log(
         "Daily Start Time (in viewer's time zone):",
@@ -190,11 +192,6 @@ function generateSlotsForDate(
           .utc()
           .format("YYYY-MM-DDTHH:mm:ss[Z]");
         const formattedEndSlot = endSlot.utc().format("YYYY-MM-DDTHH:mm:ss[Z]");
-
-        // Ensure slots remain within the same viewer date
-        if (endSlot.isAfter(dailyEndTime)) {
-          break;
-        }
 
         let slotInfo = {
           slotTimeRange: [formattedStartSlot, formattedEndSlot],
