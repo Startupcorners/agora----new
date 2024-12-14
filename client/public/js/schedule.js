@@ -397,6 +397,7 @@ function generateSlotsForDate(
         outputlist4: [],
         outputlist5: [],
         outputlist6: [],
+        outputlist7: [],
       };
     }
 
@@ -405,10 +406,10 @@ function generateSlotsForDate(
     const outputlist3 = [];
     const outputlist4 = [];
     const outputlist5 = [];
-    const outputlist6 = []; // Will store the 7 days
+    const outputlist6 = [];
+    const outputlist7 = []; // Will contain all potential slots for the week
 
-    // Parse viewerStartDate in viewer's timezone and define local boundaries
-    // Add offset weeks to the start date
+    // Parse viewerStartDate in viewer's timezone and shift by offset weeks
     const startDateLocal = moment
       .tz(viewerStartDate, viewerTimeZone)
       .startOf("day")
@@ -423,30 +424,69 @@ function generateSlotsForDate(
         outputlist4: [],
         outputlist5: [],
         outputlist6: [],
+        outputlist7: [],
       };
     }
 
-    // Generate slots for 7 consecutive days starting from startDateLocal
+    // Determine baseline times for outputlist7 from the first availability if any
+    let baseDailyStart = null;
+    let baseDailyEnd = null;
+    let baseSlotDuration = null;
+    if (availabilityList.length > 0) {
+      const firstAvailability = availabilityList[0];
+      baseDailyStart = firstAvailability.daily_start_time;
+      baseDailyEnd = firstAvailability.daily_end_time;
+      baseSlotDuration = firstAvailability.slot_duration_minutes;
+    }
+
+    // Generate for 7 consecutive days
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const currentDayLocal = startDateLocal.clone().add(dayOffset, "days");
       const currentDayUTC = currentDayLocal.clone().utc();
-
-      // Push the current day into outputlist6 (in YYYY-MM-DDT00:00:00Z format)
       outputlist6.push(currentDayUTC.format("YYYY-MM-DDT00:00:00[Z]"));
 
-      // Local day start and end
+      // Local boundaries for the requested day
       const localDayStart = currentDayLocal.clone();
       const localDayEnd = currentDayLocal.clone().add(1, "day").startOf("day");
 
-      // UTC references
+      // UTC day references
       const currentDayStartUTC = currentDayUTC.clone();
       const nextDayStartUTC = currentDayUTC.clone().add(1, "day");
 
+      // Generate outputlist7 slots (full day's potential slots) if we have baseline times
+      if (baseDailyStart && baseDailyEnd && baseSlotDuration) {
+        const dailyStartTimeUTC = moment.utc(
+          currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
+          "YYYY-MM-DD HH:mm"
+        );
+        const dailyEndTimeUTC = moment.utc(
+          currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyEnd,
+          "YYYY-MM-DD HH:mm"
+        );
+
+        let currentTimeUTC = dailyStartTimeUTC.clone();
+        while (currentTimeUTC.isBefore(dailyEndTimeUTC)) {
+          const startSlotUTC = currentTimeUTC.clone();
+          const endSlotUTC = startSlotUTC
+            .clone()
+            .add(baseSlotDuration, "minutes");
+          if (endSlotUTC.isAfter(dailyEndTimeUTC)) break;
+
+          const slotRange = [
+            startSlotUTC.format("YYYY-MM-DDTHH:mm:ss[Z]"),
+            endSlotUTC.format("YYYY-MM-DDTHH:mm:ss[Z]"),
+          ];
+          outputlist7.push(slotRange);
+
+          currentTimeUTC.add(baseSlotDuration, "minutes");
+        }
+      }
+
+      // Now handle slots within availability date ranges
       availabilityList.forEach((availability) => {
         const startDate = moment.utc(availability.start_date).startOf("day");
         const endDate = moment.utc(availability.end_date).endOf("day");
 
-        // Check if currentDayUTC falls within the availability range
         const includesCurrentDayUTC = currentDayStartUTC.isBetween(
           startDate,
           endDate,
@@ -485,7 +525,7 @@ function generateSlotsForDate(
             // If slot would surpass daily end time, break
             if (endSlot.isAfter(dailyEndTimeViewer)) break;
 
-            // Ensure the slot falls fully within the local requested day [localDayStart, localDayEnd)
+            // Ensure the slot falls fully within the local requested day
             if (
               startSlot.isBefore(localDayStart) ||
               endSlot.isAfter(localDayEnd)
@@ -571,6 +611,7 @@ function generateSlotsForDate(
     console.log("Generated outputlist4:", JSON.stringify(outputlist4, null, 2));
     console.log("Generated outputlist5:", JSON.stringify(outputlist5, null, 2));
     console.log("Generated outputlist6:", JSON.stringify(outputlist6, null, 2));
+    console.log("Generated outputlist7:", JSON.stringify(outputlist7, null, 2));
 
     bubble_fn_hours({
       outputlist1: outputlist1,
@@ -579,8 +620,10 @@ function generateSlotsForDate(
       outputlist4: outputlist4,
       outputlist5: outputlist5,
       outputlist6: outputlist6,
+      outputlist7: outputlist7,
     });
   }
+
 
 
 
