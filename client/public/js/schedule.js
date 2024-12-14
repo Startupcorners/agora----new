@@ -407,7 +407,7 @@ function generateSlotsForDate(
     const outputlist4 = [];
     const outputlist5 = [];
     const outputlist6 = [];
-    const outputlist7 = []; // Will contain all potential slots for the week
+    const outputlist7 = []; // All potential slots (regardless of availability range)
 
     // Parse viewerStartDate in viewer's timezone and shift by offset weeks
     const startDateLocal = moment
@@ -439,21 +439,15 @@ function generateSlotsForDate(
       baseSlotDuration = firstAvailability.slot_duration_minutes;
     }
 
-    // Generate for 7 consecutive days
+    // Generate slots for 7 consecutive days starting from startDateLocal
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const currentDayLocal = startDateLocal.clone().add(dayOffset, "days");
       const currentDayUTC = currentDayLocal.clone().utc();
+
+      // Push the current day into outputlist6 (in YYYY-MM-DDT00:00:00Z format)
       outputlist6.push(currentDayUTC.format("YYYY-MM-DDT00:00:00[Z]"));
 
-      // Local boundaries for the requested day
-      const localDayStart = currentDayLocal.clone();
-      const localDayEnd = currentDayLocal.clone().add(1, "day").startOf("day");
-
-      // UTC day references
-      const currentDayStartUTC = currentDayUTC.clone();
-      const nextDayStartUTC = currentDayUTC.clone().add(1, "day");
-
-      // Generate outputlist7 slots (full day's potential slots) if we have baseline times
+      // If we have baseline times, generate outputlist7 for this day
       if (baseDailyStart && baseDailyEnd && baseSlotDuration) {
         const dailyStartTimeUTC = moment.utc(
           currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
@@ -482,7 +476,15 @@ function generateSlotsForDate(
         }
       }
 
-      // Now handle slots within availability date ranges
+      // Local day boundaries for actual availability-based slots
+      const localDayStart = currentDayLocal.clone();
+      const localDayEnd = currentDayLocal.clone().add(1, "day").startOf("day");
+
+      // UTC references
+      const currentDayStartUTC = currentDayUTC.clone();
+      const nextDayStartUTC = currentDayUTC.clone().add(1, "day");
+
+      // Now generate availability-based slots
       availabilityList.forEach((availability) => {
         const startDate = moment.utc(availability.start_date).startOf("day");
         const endDate = moment.utc(availability.end_date).endOf("day");
@@ -594,11 +596,11 @@ function generateSlotsForDate(
           }
         }
 
-        // Generate slots for current day if available
+        // Generate slots for current day if within availability date range
         if (includesCurrentDayUTC) {
           generateDailySlotsForUTCDate(currentDayStartUTC);
         }
-        // If you want to handle slots from availability spanning into the next day, you could include:
+        // If you'd like to handle slots that span into the next day, uncomment:
         // if (includesNextDayUTC) {
         //   generateDailySlotsForUTCDate(nextDayStartUTC);
         // }
