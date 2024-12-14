@@ -404,10 +404,10 @@ function generateSlotsForDate(
     const outputlist3 = [];
     const outputlist4 = [];
     const outputlist5 = [];
-    const outputlist6 = []; // Slots within availability date range (just time ranges)
-    const outputlist7 = []; // All slots for each day of the month (ignoring availability)
+    const outputlist6 = []; // Only slots that fall within availability date ranges
+    const outputlist7 = []; // Slots for every day of the month, regardless of availability
 
-    // Parse viewerStartDate in viewer's timezone and define local boundaries
+    // Parse viewerStartDate in viewer's timezone
     const startDateLocal = moment
       .tz(viewerStartDate, viewerTimeZone)
       .startOf("day");
@@ -424,12 +424,12 @@ function generateSlotsForDate(
       };
     }
 
-    // Determine the start and end of the month based on the viewerStartDate
+    // Determine the month from viewerStartDate
     const monthStart = startDateLocal.clone().startOf("month");
     const monthEnd = startDateLocal.clone().endOf("month");
     const daysInMonth = monthEnd.date(); // Number of days in the month
 
-    // If we have availability, take the first one for the baseline slot parameters for outputlist7
+    // Determine baseline times for outputlist7 from the first availability if any
     let baseDailyStart = null;
     let baseDailyEnd = null;
     let baseSlotDuration = null;
@@ -440,8 +440,7 @@ function generateSlotsForDate(
       baseSlotDuration = firstAvailability.slot_duration_minutes;
     }
 
-    // Generate outputlist7 for all days in the month, ignoring availability
-    // This requires that we have some baseline from at least one availability
+    // Generate outputlist7: all potential slots for every day in the month (no availability check)
     if (baseDailyStart && baseDailyEnd && baseSlotDuration) {
       for (let dayOffset = 0; dayOffset < daysInMonth; dayOffset++) {
         const currentDayLocal = monthStart.clone().add(dayOffset, "days");
@@ -473,7 +472,7 @@ function generateSlotsForDate(
       }
     }
 
-    // Now generate slots within availability range (outputlist1-5, and outputlist6)
+    // Now generate availability-based slots (outputlist1-5 & outputlist6)
     for (let dayOffset = 0; dayOffset < daysInMonth; dayOffset++) {
       const currentDayLocal = monthStart.clone().add(dayOffset, "days");
       const currentDayUTC = currentDayLocal.clone().utc();
@@ -529,7 +528,7 @@ function generateSlotsForDate(
             // If slot would surpass daily end time, break
             if (endSlot.isAfter(dailyEndTimeViewer)) break;
 
-            // Ensure the slot falls fully within the local requested day [localDayStart, localDayEnd)
+            // Ensure the slot falls fully within the local requested day
             if (
               startSlot.isBefore(localDayStart) ||
               endSlot.isAfter(localDayEnd)
@@ -595,7 +594,7 @@ function generateSlotsForDate(
             outputlist4.push(slotInfo.isModified);
             outputlist5.push(slotInfo.slotTimeRange);
 
-            // Also add to outputlist6 since this slot is inside the availability date range
+            // Add to outputlist6 because this slot is inside the availability date range
             outputlist6.push(slotInfo.slotTimeRange);
 
             currentTime.add(availability.slot_duration_minutes, "minutes");
@@ -632,6 +631,7 @@ function generateSlotsForDate(
       outputlist7: outputlist7,
     });
   }
+
 
 
 
