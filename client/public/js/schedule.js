@@ -364,7 +364,7 @@ function generateSlotsForDate(
     bubble_fn_endTime(times);
   }
 
-  function generateSlotsForWeek(
+  function generateSlotsForMonth(
     availabilityList,
     viewerStartDate,
     viewerTimeZone,
@@ -403,7 +403,7 @@ function generateSlotsForDate(
     const outputlist3 = [];
     const outputlist4 = [];
     const outputlist5 = [];
-    const outputlist6 = []; // Will store the 7 days
+    const outputlist6 = []; // Will store all the dates in the month
 
     // Parse viewerStartDate in viewer's timezone and define local boundaries
     const startDateLocal = moment
@@ -421,13 +421,21 @@ function generateSlotsForDate(
       };
     }
 
-    // Generate slots for 7 consecutive days starting from startDateLocal
-    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-      const currentDayLocal = startDateLocal.clone().add(dayOffset, "days");
+    // Determine the start and end of the month based on the viewerStartDate
+    const monthStart = startDateLocal.clone().startOf("month");
+    const monthEnd = startDateLocal.clone().endOf("month");
+    const daysInMonth = monthEnd.date(); // Number of days in the month
+
+    for (let dayOffset = 0; dayOffset < daysInMonth; dayOffset++) {
+      const currentDayLocal = monthStart.clone().add(dayOffset, "days");
       const currentDayUTC = currentDayLocal.clone().utc();
 
-      // Push the current day into outputlist6 (in YYYY-MM-DDT00:00:00Z format)
+      // Initially add the current day's date to outputlist6
+      // We'll change it later if no availability is found
       outputlist6.push(currentDayUTC.format("YYYY-MM-DDT00:00:00[Z]"));
+
+      // Track if any availability covers this day
+      let dateHasAvailability = false;
 
       // Local day start and end
       const localDayStart = currentDayLocal.clone();
@@ -471,6 +479,7 @@ function generateSlotsForDate(
           const dailyEndTimeViewer = dailyEndTimeUTC.clone().tz(viewerTimeZone);
 
           let currentTime = dailyStartTimeViewer.clone();
+          let slotsGenerated = false;
           while (currentTime.isBefore(dailyEndTimeViewer)) {
             const startSlot = currentTime.clone();
             const endSlot = startSlot
@@ -546,18 +555,33 @@ function generateSlotsForDate(
             outputlist5.push(slotInfo.slotTimeRange);
 
             currentTime.add(availability.slot_duration_minutes, "minutes");
+            slotsGenerated = true;
           }
+
+          return slotsGenerated;
         }
 
-        // Generate slots for current day if available
+        // Generate slots for current day if availability covers it
+        let foundSlots = false;
         if (includesCurrentDayUTC) {
-          generateDailySlotsForUTCDate(currentDayStartUTC);
+          foundSlots = generateDailySlotsForUTCDate(currentDayStartUTC);
         }
-        // If you want to handle slots from availability spanning into the next day, you could include:
+
+        // If you want to handle availability that starts one day and continues into the next,
+        // uncomment the following:
         // if (includesNextDayUTC) {
-        //   generateDailySlotsForUTCDate(nextDayStartUTC);
+        //   foundSlots = generateDailySlotsForUTCDate(nextDayStartUTC) || foundSlots;
         // }
+
+        if (foundSlots) {
+          dateHasAvailability = true;
+        }
       });
+
+      // If no availability was found for this date, change its date in outputlist6 to 1111-11-11
+      if (!dateHasAvailability) {
+        outputlist6[outputlist6.length - 1] = "1111-11-11T00:00:00Z";
+      }
     }
 
     console.log("Generated outputlist1:", JSON.stringify(outputlist1, null, 2));
@@ -576,6 +600,7 @@ function generateSlotsForDate(
       outputlist6: outputlist6,
     });
   }
+
 
 
   return {
