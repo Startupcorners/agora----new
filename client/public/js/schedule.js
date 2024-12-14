@@ -407,9 +407,8 @@ function generateSlotsForDate(
     const outputlist4 = [];
     const outputlist5 = [];
     const outputlist6 = [];
-    const outputlist7 = []; // All potential slots (regardless of availability range)
+    const outputlist7 = [];
 
-    // Parse viewerStartDate in viewer's timezone and shift by offset weeks
     const startDateLocal = moment
       .tz(viewerStartDate, viewerTimeZone)
       .startOf("day")
@@ -428,7 +427,6 @@ function generateSlotsForDate(
       };
     }
 
-    // Determine baseline times for outputlist7 from the first availability if any
     let baseDailyStart = null;
     let baseDailyEnd = null;
     let baseSlotDuration = null;
@@ -439,15 +437,21 @@ function generateSlotsForDate(
       baseSlotDuration = firstAvailability.slot_duration_minutes;
     }
 
-    // Generate slots for 7 consecutive days starting from startDateLocal
+    // If we have no baseline times, we cannot create outputlist7
+    if (!baseDailyStart || !baseDailyEnd || !baseSlotDuration) {
+      console.log("No baseline availability found, outputlist7 will be empty.");
+    }
+
+    // Prepare a structure to hold slots per day (index 0-6 for the 7 days)
+    // Each day gets a raw set of slots ignoring local boundaries
+    const weekSlots = Array.from({ length: 7 }, () => []);
+
+    // Generate the raw slots for outputlist7 (full set) and store them in weekSlots as raw
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const currentDayLocal = startDateLocal.clone().add(dayOffset, "days");
       const currentDayUTC = currentDayLocal.clone().utc();
-
-      // Push the current day into outputlist6 (in YYYY-MM-DDT00:00:00Z format)
       outputlist6.push(currentDayUTC.format("YYYY-MM-DDT00:00:00[Z]"));
 
-      // If we have baseline times, generate outputlist7 for this day
       if (baseDailyStart && baseDailyEnd && baseSlotDuration) {
         const dailyStartTimeUTC = moment.utc(
           currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
@@ -472,22 +476,78 @@ function generateSlotsForDate(
           ];
           outputlist7.push(slotRange);
 
+          // Store these raw slots in weekSlots
+          weekSlots[dayOffset].push({
+            slotTimeRange: slotRange,
+            // We'll fill slotInfo (meetingLink, Address, etc.) after adjusting boundaries
+            raw: true,
+          });
+
           currentTimeUTC.add(baseSlotDuration, "minutes");
         }
       }
+    }
 
-      // Local day boundaries for actual availability-based slots
+    // Now we have weekSlots with raw 8 (or so) slots per day ignoring local boundaries.
+    // Next, adjust for local boundaries by shifting slots to previous/next day if needed.
+    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+      const currentDayLocal = startDateLocal.clone().add(dayOffset, "days");
       const localDayStart = currentDayLocal.clone();
       const localDayEnd = currentDayLocal.clone().add(1, "day").startOf("day");
 
-      // UTC references
-      const currentDayStartUTC = currentDayUTC.clone();
-      const nextDayStartUTC = currentDayUTC.clone().add(1, "day");
+      // Check each slot if it fits into the local boundaries
+      // We'll create a new array for finalDaySlots after shifting
+      let finalDaySlots = [];
 
-      // Now generate availability-based slots
-      availabilityList.forEach((availability) => {
-        const startDate = moment.utc(availability.start_date).startOf("day");
-        const endDate = moment.utc(availability.end_date).endOf("day");
+      for (let i = 0; i < weekSlots[dayOffset].length; i++) {
+        const slot = weekSlots[dayOffset][i];
+        const [startUTC, endUTC] = slot.slotTimeRange;
+        const slotStart = moment.utc(startUTC).tz(viewerTimeZone);
+        const slotEnd = moment.utc(endUTC).tz(viewerTimeZone);
+
+        if (slotStart.isBefore(localDayStart)) {
+          // Move slot to previous day if possible
+          if (dayOffset > 0) {
+            weekSlots[dayOffset - 1].push(slot);
+          }
+          // If there's no previous day, we discard it (no perfect solution)
+        } else if (slotEnd.isAfter(localDayEnd)) {
+          // Move slot to next day if possible
+          if (dayOffset < 6) {
+            weekSlots[dayOffset + 1].push(slot);
+          }
+          // If no next day, discard it
+        } else {
+          // Fits in this day's local boundaries
+          finalDaySlots.push(slot);
+        }
+      }
+
+      // Replace day's slots with the filtered array
+      weekSlots[dayOffset] = finalDaySlots;
+    }
+
+    // After shifting, some days may have gained extra slots and some may have lost some.
+    // The instructions only said they "should still have 8 slots I assume?"
+    // Without strict rules on how to handle overflows/deficits,
+    // we can only preserve what we have:
+    // If a day got more slots than 8 due to shifts, we could truncate after 8.
+    // If fewer, we could add placeholder slots.
+    // Here, let's just keep them as is. If exact 8 slots per day are required,
+    // you'd need additional logic (e.g., truncation or placeholders).
+
+    // Now we fill outputlist1-5 from actual availability (only for slots that fall within availability range).
+    availabilityList.forEach((availability) => {
+      const startDate = moment.utc(availability.start_date).startOf("day");
+      const endDate = moment.utc(availability.end_date).endOf("day");
+
+      for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+        const currentDayUTC = startDateLocal
+          .clone()
+          .add(dayOffset, "days")
+          .utc();
+        const currentDayStartUTC = currentDayUTC.clone();
+        const nextDayStartUTC = currentDayUTC.clone().add(1, "day");
 
         const includesCurrentDayUTC = currentDayStartUTC.isBetween(
           startDate,
@@ -502,110 +562,58 @@ function generateSlotsForDate(
           "[]"
         );
 
-        function generateDailySlotsForUTCDate(utcDate) {
-          const dailyStartTimeUTC = moment.utc(
-            utcDate.format("YYYY-MM-DD") + " " + availability.daily_start_time,
-            "YYYY-MM-DD HH:mm"
-          );
-          const dailyEndTimeUTC = moment.utc(
-            utcDate.format("YYYY-MM-DD") + " " + availability.daily_end_time,
-            "YYYY-MM-DD HH:mm"
-          );
+        function processSlot(slot) {
+          let slotInfo = {
+            slotTimeRange: slot.slotTimeRange,
+            meetingLink: availability.meetingLink,
+            Address: availability.Address,
+            alreadyBooked: false,
+            isModified: false,
+          };
 
-          const dailyStartTimeViewer = dailyStartTimeUTC
-            .clone()
-            .tz(viewerTimeZone);
-          const dailyEndTimeViewer = dailyEndTimeUTC.clone().tz(viewerTimeZone);
-
-          let currentTime = dailyStartTimeViewer.clone();
-          while (currentTime.isBefore(dailyEndTimeViewer)) {
-            const startSlot = currentTime.clone();
-            const endSlot = startSlot
-              .clone()
-              .add(availability.slot_duration_minutes, "minutes");
-
-            // If slot would surpass daily end time, break
-            if (endSlot.isAfter(dailyEndTimeViewer)) break;
-
-            // Ensure the slot falls fully within the local requested day
+          // Check booked
+          alreadyBookedList.forEach((bookedSlot) => {
+            const bookedStart = moment.utc(bookedSlot.start_date);
+            const bookedEnd = moment.utc(bookedSlot.end_date);
+            const slotStart = moment.utc(slotInfo.slotTimeRange[0]);
+            const slotEnd = moment.utc(slotInfo.slotTimeRange[1]);
             if (
-              startSlot.isBefore(localDayStart) ||
-              endSlot.isAfter(localDayEnd)
+              (slotStart.isSame(bookedStart) && slotEnd.isSame(bookedEnd)) ||
+              (slotStart.isBefore(bookedEnd) && slotEnd.isAfter(bookedStart))
             ) {
-              currentTime.add(availability.slot_duration_minutes, "minutes");
-              continue;
+              slotInfo.alreadyBooked = true;
             }
+          });
 
-            const formattedStartSlotUTC = startSlot
-              .clone()
-              .utc()
-              .format("YYYY-MM-DDTHH:mm:ss[Z]");
-            const formattedEndSlotUTC = endSlot
-              .clone()
-              .utc()
-              .format("YYYY-MM-DDTHH:mm:ss[Z]");
+          // Check modified
+          modifiedSlots.forEach((modifiedSlot) => {
+            const modStart = moment.utc(modifiedSlot.start_date);
+            const modEnd = moment.utc(modifiedSlot.end_date);
+            const slotStart = moment.utc(slotInfo.slotTimeRange[0]);
+            const slotEnd = moment.utc(slotInfo.slotTimeRange[1]);
+            if (
+              (slotStart.isSame(modStart) && slotEnd.isSame(modEnd)) ||
+              (slotStart.isBefore(modEnd) && slotEnd.isAfter(modStart))
+            ) {
+              slotInfo.meetingLink = modifiedSlot.meetingLink;
+              slotInfo.Address = modifiedSlot.Address;
+              slotInfo.isModified = true;
+            }
+          });
 
-            let slotInfo = {
-              slotTimeRange: [formattedStartSlotUTC, formattedEndSlotUTC],
-              meetingLink: availability.meetingLink,
-              Address: availability.Address,
-              alreadyBooked: false,
-              isModified: false,
-            };
-
-            // Check booked slots
-            alreadyBookedList.forEach((bookedSlot) => {
-              const bookedStartDate = moment.utc(bookedSlot.start_date);
-              const bookedEndDate = moment.utc(bookedSlot.end_date);
-              if (
-                (startSlot.isSame(bookedStartDate) &&
-                  endSlot.isSame(bookedEndDate)) ||
-                (startSlot.isBefore(bookedEndDate) &&
-                  endSlot.isAfter(bookedStartDate))
-              ) {
-                slotInfo.alreadyBooked = true;
-              }
-            });
-
-            // Check modified slots
-            modifiedSlots.forEach((modifiedSlot) => {
-              const modifiedStartDate = moment.utc(modifiedSlot.start_date);
-              const modifiedEndDate = moment.utc(modifiedSlot.end_date);
-              if (
-                (startSlot.isSame(modifiedStartDate) &&
-                  endSlot.isSame(modifiedEndDate)) ||
-                (startSlot.isBefore(modifiedEndDate) &&
-                  endSlot.isAfter(modifiedStartDate))
-              ) {
-                slotInfo = {
-                  ...slotInfo,
-                  meetingLink: modifiedSlot.meetingLink,
-                  Address: modifiedSlot.Address,
-                  isModified: true,
-                };
-              }
-            });
-
-            outputlist1.push(slotInfo.meetingLink);
-            outputlist2.push(slotInfo.Address);
-            outputlist3.push(slotInfo.alreadyBooked);
-            outputlist4.push(slotInfo.isModified);
-            outputlist5.push(slotInfo.slotTimeRange);
-
-            currentTime.add(availability.slot_duration_minutes, "minutes");
-          }
+          outputlist1.push(slotInfo.meetingLink);
+          outputlist2.push(slotInfo.Address);
+          outputlist3.push(slotInfo.alreadyBooked);
+          outputlist4.push(slotInfo.isModified);
+          outputlist5.push(slotInfo.slotTimeRange);
         }
 
-        // Generate slots for current day if within availability date range
-        if (includesCurrentDayUTC) {
-          generateDailySlotsForUTCDate(currentDayStartUTC);
+        // For days within the availability range, process the slots
+        if (includesCurrentDayUTC || includesNextDayUTC) {
+          weekSlots[dayOffset].forEach(processSlot);
         }
-        // If you'd like to handle slots that span into the next day, uncomment:
-        // if (includesNextDayUTC) {
-        //   generateDailySlotsForUTCDate(nextDayStartUTC);
-        // }
-      });
-    }
+      }
+    });
 
     console.log("Generated outputlist1:", JSON.stringify(outputlist1, null, 2));
     console.log("Generated outputlist2:", JSON.stringify(outputlist2, null, 2));
@@ -616,15 +624,16 @@ function generateSlotsForDate(
     console.log("Generated outputlist7:", JSON.stringify(outputlist7, null, 2));
 
     bubble_fn_hours({
-      outputlist1: outputlist1,
-      outputlist2: outputlist2,
-      outputlist3: outputlist3,
-      outputlist4: outputlist4,
-      outputlist5: outputlist5,
-      outputlist6: outputlist6,
-      outputlist7: outputlist7,
+      outputlist1,
+      outputlist2,
+      outputlist3,
+      outputlist4,
+      outputlist5,
+      outputlist6,
+      outputlist7,
     });
   }
+
 
 
 
