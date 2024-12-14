@@ -394,6 +394,7 @@ function generateSlotsForDate(
         outputlist3: [],
         outputlist4: [],
         outputlist5: [],
+        outputlist6: [],
       };
     }
 
@@ -402,6 +403,7 @@ function generateSlotsForDate(
     const outputlist3 = [];
     const outputlist4 = [];
     const outputlist5 = [];
+    const outputlist6 = []; // Will store the 7 days
 
     // Parse viewerStartDate in viewer's timezone and define local boundaries
     const startDateLocal = moment
@@ -415,21 +417,25 @@ function generateSlotsForDate(
         outputlist3: [],
         outputlist4: [],
         outputlist5: [],
+        outputlist6: [],
       };
     }
 
-    // We will generate slots for 7 consecutive days starting from startDateLocal
+    // Generate slots for 7 consecutive days starting from startDateLocal
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const currentDayLocal = startDateLocal.clone().add(dayOffset, "days");
       const currentDayUTC = currentDayLocal.clone().utc();
+
+      // Push the current day into outputlist6 (in YYYY-MM-DDT00:00:00Z format)
+      outputlist6.push(currentDayUTC.format("YYYY-MM-DDT00:00:00[Z]"));
 
       // Local day start and end
       const localDayStart = currentDayLocal.clone();
       const localDayEnd = currentDayLocal.clone().add(1, "day").startOf("day");
 
       // UTC references
-      const currentDayStartUTC = currentDayUTC.clone(); // start of current day
-      const nextDayStartUTC = currentDayUTC.clone().add(1, "day"); // start of next day
+      const currentDayStartUTC = currentDayUTC.clone();
+      const nextDayStartUTC = currentDayUTC.clone().add(1, "day");
 
       availabilityList.forEach((availability) => {
         const startDate = moment.utc(availability.start_date).startOf("day");
@@ -448,13 +454,6 @@ function generateSlotsForDate(
           "day",
           "[]"
         );
-
-        // In a daily scenario, we were generating for the given date and the next date if needed.
-        // For simplicity, we only generate slots for the current day in the week scenario.
-        // If you want to handle crossing midnight boundaries differently, adjust accordingly.
-        if (!includesCurrentDayUTC && !includesNextDayUTC) {
-          return;
-        }
 
         function generateDailySlotsForUTCDate(utcDate) {
           const dailyStartTimeUTC = moment.utc(
@@ -554,7 +553,7 @@ function generateSlotsForDate(
         if (includesCurrentDayUTC) {
           generateDailySlotsForUTCDate(currentDayStartUTC);
         }
-        // If availability crosses into the next day and you want to handle that, uncomment:
+        // If you want to handle slots from availability spanning into the next day, you could include:
         // if (includesNextDayUTC) {
         //   generateDailySlotsForUTCDate(nextDayStartUTC);
         // }
@@ -566,6 +565,7 @@ function generateSlotsForDate(
     console.log("Generated outputlist3:", JSON.stringify(outputlist3, null, 2));
     console.log("Generated outputlist4:", JSON.stringify(outputlist4, null, 2));
     console.log("Generated outputlist5:", JSON.stringify(outputlist5, null, 2));
+    console.log("Generated outputlist6:", JSON.stringify(outputlist6, null, 2));
 
     bubble_fn_hours({
       outputlist1: outputlist1,
@@ -573,8 +573,10 @@ function generateSlotsForDate(
       outputlist3: outputlist3,
       outputlist4: outputlist4,
       outputlist5: outputlist5,
+      outputlist6: outputlist6,
     });
   }
+
 
   return {
     generateUniqueDates,
