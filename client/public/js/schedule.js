@@ -432,11 +432,14 @@ function generateSlotsForDate(
      baseSlotDuration
    );
 
+   // Use the first slot's start date/time as the base reference
+   const firstSlotStart = moment.utc(outputlist7[0][0]);
+
    // Assign meeting links, addresses, and booked flags to slots
    const { outputlist1, outputlist2, outputlist3, outputlist4 } =
      assignSlotInfo(
        weekSlots,
-       startDateUTC,
+       firstSlotStart, // using the first slot's start date instead of startDateUTC
        availabilityList,
        alreadyBookedList
      );
@@ -545,7 +548,7 @@ function generateSlotsForDate(
 
 
  function assignSlotInfo(
-   weekSlots,
+ weekSlots,
    startDateUTC,
    availabilityList,
    alreadyBookedList
