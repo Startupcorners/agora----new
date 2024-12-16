@@ -655,28 +655,23 @@ function assignSlotInfo(
   return { outputlist1, outputlist2, outputlist3, outputlist4 };
 }
 
-function filterSlotsByAvailabilityRange(
-  allSlots,
-  globalStart,
-  globalEnd,
-  userTimeZone
-) {
-  console.log("filterSlotsByAvailabilityRange:", globalStart, globalEnd);
+function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
   const outputlist5 = [];
   if (globalStart && globalEnd) {
     allSlots.forEach((slotRange) => {
-      const slotStart = moment.tz(slotRange[0], userTimeZone);
-      const slotEnd = moment.tz(slotRange[1], userTimeZone);
-      if (
-        slotStart.isSameOrAfter(globalStart) &&
-        slotEnd.isSameOrBefore(globalEnd)
-      ) {
+      const slotStart = moment.utc(slotRange[0]);
+      const slotEnd = moment.utc(slotRange[1]);
+
+      // Instead of requiring full containment, we now allow partial overlap.
+      // A slot overlaps the global range if it starts before globalEnd and ends after globalStart.
+      if (slotStart.isBefore(globalEnd) && slotEnd.isAfter(globalStart)) {
         outputlist5.push(slotRange);
       }
     });
   }
   return outputlist5;
 }
+
 
 
 
