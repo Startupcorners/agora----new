@@ -484,6 +484,10 @@ function generateSlotsForWeek(
     JSON.stringify(outputlist5, null, 2)
   );
   console.log(
+    "Generated outputlist6 :",
+    JSON.stringify(outputlist6, null, 2)
+  );
+  console.log(
     "Generated outputlist7 (All Slots for Full Week):",
     JSON.stringify(outputlist7, null, 2)
   );
