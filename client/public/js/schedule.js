@@ -570,70 +570,20 @@ function generateWeeklySlots(
       "YYYY-MM-DD HH:mm"
     );
 
-    console.log("Daily start time (UTC):", dailyStartTimeUTC.format());
-    console.log("Daily end time (UTC):", dailyEndTimeUTC.format());
-
     const dailyStartTimeLocal = dailyStartTimeUTC.clone().tz(userTimeZone);
     const dailyEndTimeLocal = dailyEndTimeUTC.clone().tz(userTimeZone);
 
     console.log("Daily start time (local):", dailyStartTimeLocal.format());
     console.log("Daily end time (local):", dailyEndTimeLocal.format());
 
-    // Check if the daily end time crosses midnight
-    if (dailyEndTimeLocal.isBefore(dailyStartTimeLocal)) {
-      console.log(
-        "Daily end time crosses midnight. Splitting into two intervals."
-      );
-
-      // Part 1: from dailyStartTimeLocal to the end of this local day
-      console.log(
-        "Interval 1 start:",
-        dailyStartTimeLocal.format(),
-        "to end of the day:",
-        dailyStartTimeLocal.clone().endOf("day").format()
-      );
-      outputlist7.push(
-        ...generateSlotsForInterval(
-          dailyStartTimeLocal,
-          dailyStartTimeLocal.clone().endOf("day"),
-          slotDuration
-        )
-      );
-
-      // Part 2: from start of next local day to dailyEndTimeLocal
-      const nextDayLocal = currentDayLocal
-        .clone()
-        .add(1, "days")
-        .startOf("day");
-      console.log(
-        "Interval 2 start:",
-        nextDayLocal.format(),
-        "to daily end:",
-        dailyEndTimeLocal.format()
-      );
-      outputlist7.push(
-        ...generateSlotsForInterval(
-          nextDayLocal,
-          dailyEndTimeLocal,
-          slotDuration
-        )
-      );
-    } else {
-      // Normal case: daily window fits into the same local calendar day
-      console.log(
-        "Daily window fits in the same day. Interval start:",
-        dailyStartTimeLocal.format(),
-        "to end:",
-        dailyEndTimeLocal.format()
-      );
-      outputlist7.push(
-        ...generateSlotsForInterval(
-          dailyStartTimeLocal,
-          dailyEndTimeLocal,
-          slotDuration
-        )
-      );
-    }
+    // Generate slots for the entire daily range
+    outputlist7.push(
+      ...generateSlotsForInterval(
+        dailyStartTimeLocal,
+        dailyEndTimeLocal,
+        slotDuration
+      )
+    );
   }
 
   // Filter all slots to only those within the entire week range
@@ -659,6 +609,7 @@ function generateWeeklySlots(
   console.log("Final slots:", filteredSlots);
   return filteredSlots;
 }
+
 
 
 function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
