@@ -418,6 +418,9 @@ function generateSlotsForWeek(
     return emptyOutput();
   }
 
+  const outputlist6 = generateDayBoundaries(startDateLocal);
+
+
   // Generate all slots for the full week
   const outputlist7 = generateWeeklySlots(
     startDateLocal,
@@ -491,7 +494,7 @@ function generateSlotsForWeek(
     outputlist3,
     outputlist4,
     outputlist5,
-    // outputlist6: [], // If you no longer need it, remove it entirely
+    outputlist6, // If you no longer need it, remove it entirely
     outputlist7,
   });
 }
@@ -503,10 +506,26 @@ function emptyOutput() {
     outputlist3: [],
     outputlist4: [],
     outputlist5: [],
-    // outputlist6: [],
+    outputlist6: [],
     outputlist7: [],
   };
 }
+
+
+function generateDayBoundaries(startDateLocal) {
+  const outputlist6 = [];
+  for (let i = 0; i < 7; i++) {
+    const currentDayLocal = startDateLocal.clone().add(i, "days");
+    const startOfDayLocal = currentDayLocal.clone().startOf("day");
+    const endOfDayLocal = currentDayLocal.clone().endOf("day");
+    outputlist6.push([
+      startOfDayLocal.format("YYYY-MM-DDT00:00:00Z"),
+      endOfDayLocal.format("YYYY-MM-DDT23:59:59Z"),
+    ]);
+  }
+  return outputlist6;
+}
+
 
 function generateWeeklySlots(
   startDateLocal,
