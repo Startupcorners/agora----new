@@ -410,7 +410,7 @@ function generateSlotsForDate(
     const startDateUTC = moment
       .utc(viewerStartDate)
       .startOf("day")
-      .add(offset * 7, "days"); // Start date of the week
+      .add(offset * 7, "days");
 
     if (!startDateUTC.isValid()) {
       console.error("Invalid viewerStartDate:", viewerStartDate);
@@ -450,7 +450,6 @@ function generateSlotsForDate(
 
     const weekSlots = Array.from({ length: 7 }, () => []);
 
-    // Generate slots for the entire week
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const currentDayUTC = startDateUTC.clone().add(dayOffset, "days");
       outputlist6.push(currentDayUTC.format("YYYY-MM-DDT00:00:00[Z]"));
@@ -482,15 +481,6 @@ function generateSlotsForDate(
       }
     }
 
-    // Add all slots to outputlist5
-    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-      const currentDaySlots = weekSlots[dayOffset];
-      currentDaySlots.forEach((slot) => {
-        outputlist5.push(slot.slotTimeRange);
-      });
-    }
-
-    // Check each generated slot against availability and booked/modified lists
     availabilityList.forEach((availability) => {
       const startDate = moment.utc(availability.start_date).startOf("day");
       const endDate = moment.utc(availability.end_date).endOf("day");
@@ -514,41 +504,23 @@ function generateSlotsForDate(
               isModified: false,
             };
 
-            // Check against alreadyBookedList
             alreadyBookedList.forEach((bookedSlot) => {
               const bookedStart = moment.utc(bookedSlot.start_date);
               const bookedEnd = moment.utc(bookedSlot.end_date);
               const slotStart = moment.utc(slotInfo.slotTimeRange[0]);
               const slotEnd = moment.utc(slotInfo.slotTimeRange[1]);
 
-              // Check for overlap
               if (
+                slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
+                slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
                 (slotStart.isSame(bookedStart) && slotEnd.isSame(bookedEnd)) ||
-                (slotStart.isBefore(bookedEnd) && slotEnd.isAfter(bookedStart))
+                (bookedStart.isBetween(slotStart, slotEnd, null, "[)") &&
+                  bookedEnd.isBetween(slotStart, slotEnd, null, "(]"))
               ) {
                 slotInfo.alreadyBooked = true;
               }
             });
 
-            // Check against modifiedSlots
-            modifiedSlots.forEach((modifiedSlot) => {
-              const modStart = moment.utc(modifiedSlot.start_date);
-              const modEnd = moment.utc(modifiedSlot.end_date);
-              const slotStart = moment.utc(slotInfo.slotTimeRange[0]);
-              const slotEnd = moment.utc(slotInfo.slotTimeRange[1]);
-
-              // Check for overlap
-              if (
-                (slotStart.isSame(modStart) && slotEnd.isSame(modEnd)) ||
-                (slotStart.isBefore(modEnd) && slotEnd.isAfter(modStart))
-              ) {
-                slotInfo.meetingLink = modifiedSlot.meetingLink;
-                slotInfo.Address = modifiedSlot.Address;
-                slotInfo.isModified = true;
-              }
-            });
-
-            // Push results to respective lists
             outputlist1.push(slotInfo.meetingLink);
             outputlist2.push(slotInfo.Address);
             outputlist3.push(slotInfo.alreadyBooked);
@@ -558,15 +530,8 @@ function generateSlotsForDate(
       }
     });
 
-    console.log("Generated outputlist1:", JSON.stringify(outputlist1, null, 2));
-    console.log("Generated outputlist2:", JSON.stringify(outputlist2, null, 2));
     console.log("Generated outputlist3:", JSON.stringify(outputlist3, null, 2));
-    console.log("Generated outputlist4:", JSON.stringify(outputlist4, null, 2));
-    console.log("Generated outputlist5:", JSON.stringify(outputlist5, null, 2));
-    console.log("Generated outputlist6:", JSON.stringify(outputlist6, null, 2));
-    console.log("Generated outputlist7:", JSON.stringify(outputlist7, null, 2));
-
-    bubble_fn_hours({
+    return {
       outputlist1,
       outputlist2,
       outputlist3,
@@ -574,14 +539,8 @@ function generateSlotsForDate(
       outputlist5,
       outputlist6,
       outputlist7,
-    });
+    };
   }
-
-
-
-
-
-
 
 
   return {
