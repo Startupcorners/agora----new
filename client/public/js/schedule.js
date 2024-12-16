@@ -367,7 +367,6 @@ function generateSlotsForDate(
   function generateSlotsForWeek(
     availabilityList,
     viewerStartDate,
-    viewerTimeZone,
     alreadyBookedList,
     modifiedSlots,
     offset = 0
@@ -377,7 +376,6 @@ function generateSlotsForDate(
       JSON.stringify(availabilityList, null, 2)
     );
     console.log("Received viewerStartDate:", viewerStartDate);
-    console.log("Received viewerTimeZone:", viewerTimeZone);
     console.log(
       "Received alreadyBookedList:",
       JSON.stringify(alreadyBookedList, null, 2)
@@ -409,12 +407,12 @@ function generateSlotsForDate(
     const outputlist6 = [];
     const outputlist7 = [];
 
-    const startDateLocal = moment
-      .tz(viewerStartDate, viewerTimeZone)
+    const startDateUTC = moment
+      .utc(viewerStartDate)
       .startOf("day")
       .add(offset * 7, "days");
 
-    if (!startDateLocal.isValid()) {
+    if (!startDateUTC.isValid()) {
       console.error("Invalid viewerStartDate:", viewerStartDate);
       return {
         outputlist1: [],
@@ -453,7 +451,7 @@ function generateSlotsForDate(
     const weekSlots = Array.from({ length: 7 }, () => []);
 
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-      const currentDayUTC = startDateLocal.clone().add(dayOffset, "days").utc();
+      const currentDayUTC = startDateUTC.clone().add(dayOffset, "days");
       outputlist6.push(currentDayUTC.format("YYYY-MM-DDT00:00:00[Z]"));
 
       const dailyStartTimeUTC = moment.utc(
@@ -485,8 +483,6 @@ function generateSlotsForDate(
 
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const currentDaySlots = weekSlots[dayOffset];
-
-      // Directly include all slots without filtering by local boundaries
       currentDaySlots.forEach((slot) => {
         outputlist5.push(slot.slotTimeRange);
       });
@@ -497,10 +493,7 @@ function generateSlotsForDate(
       const endDate = moment.utc(availability.end_date).endOf("day");
 
       for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
-        const currentDayUTC = startDateLocal
-          .clone()
-          .add(dayOffset, "days")
-          .utc();
+        const currentDayUTC = startDateUTC.clone().add(dayOffset, "days");
         const includesCurrentDayUTC = currentDayUTC.isBetween(
           startDate,
           endDate,
@@ -573,6 +566,7 @@ function generateSlotsForDate(
       outputlist7,
     });
   }
+
 
 
 
