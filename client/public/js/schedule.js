@@ -448,8 +448,18 @@ function generateSlotsForDate(
      };
    }
 
+   // Determine global availability date range
+   // For multiple availabilities, we take the min start_date and max end_date
+   const globalStart = availabilityList.length
+     ? moment.min(availabilityList.map((a) => moment.utc(a.start_date)))
+     : null;
+   const globalEnd = availabilityList.length
+     ? moment.max(availabilityList.map((a) => moment.utc(a.end_date)))
+     : null;
+
    const weekSlots = Array.from({ length: 7 }, () => []);
 
+   // Generate all slots for the entire week (full coverage)
    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
      const currentDayUTC = startDateUTC.clone().add(dayOffset, "days");
      outputlist6.push(currentDayUTC.format("YYYY-MM-DDT00:00:00[Z]"));
@@ -473,12 +483,16 @@ function generateSlotsForDate(
          startSlotUTC.format("YYYY-MM-DDTHH:mm:ss[Z]"),
          endSlotUTC.format("YYYY-MM-DDTHH:mm:ss[Z]"),
        ];
+
+       // Add to outputlist7 (full week's slots)
        outputlist7.push(slotRange);
+
        weekSlots[dayOffset].push({ slotTimeRange: slotRange });
        currentTimeUTC.add(baseSlotDuration, "minutes");
      }
    }
 
+   // For each availability, we mark booked slots and add slot info.
    availabilityList.forEach((availability) => {
      const startDate = moment.utc(availability.start_date).startOf("day");
      const endDate = moment.utc(availability.end_date).endOf("day");
@@ -528,6 +542,25 @@ function generateSlotsForDate(
      }
    });
 
+   // Now populate outputlist5 with slots that are within the global availability range
+   // This should only happen if we have a valid globalStart and globalEnd
+   if (globalStart && globalEnd) {
+     // We already have all slots in outputlist7, which represents the full week's slots.
+     // We must filter those that fit entirely within globalStart and globalEnd.
+     outputlist7.forEach((slotRange) => {
+       const slotStart = moment.utc(slotRange[0]);
+       const slotEnd = moment.utc(slotRange[1]);
+
+       // Only add to outputlist5 if the slot is entirely within global availability range
+       if (
+         slotStart.isSameOrAfter(globalStart) &&
+         slotEnd.isSameOrBefore(globalEnd)
+       ) {
+         outputlist5.push(slotRange);
+       }
+     });
+   }
+
    // Log all generated outputs for debugging
    console.log(
      "Generated outputlist1 (Meeting Links):",
@@ -546,7 +579,7 @@ function generateSlotsForDate(
      JSON.stringify(outputlist4, null, 2)
    );
    console.log(
-     "Generated outputlist5 (All Slot Ranges):",
+     "Generated outputlist5 (Slots Within Availability Range):",
      JSON.stringify(outputlist5, null, 2)
    );
    console.log(
@@ -554,7 +587,7 @@ function generateSlotsForDate(
      JSON.stringify(outputlist6, null, 2)
    );
    console.log(
-     "Generated outputlist7 (Detailed Slots):",
+     "Generated outputlist7 (All Slots for Full Week):",
      JSON.stringify(outputlist7, null, 2)
    );
 
@@ -568,6 +601,7 @@ function generateSlotsForDate(
      outputlist7,
    });
  }
+
 
 
   return {
