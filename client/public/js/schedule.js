@@ -611,22 +611,40 @@ function generateWeeklySlots(
 }
 
 
-
 function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   const result = [];
   let current = startTimeLocal.clone();
 
+  console.log("Generating slots...");
+  console.log(
+    "Start time (local):",
+    startTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ")
+  );
+  console.log("End time (local):", endTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ"));
+  console.log("Slot duration (minutes):", duration);
+
   while (current.isBefore(endTimeLocal)) {
     const slotEnd = current.clone().add(duration, "minutes");
+
+    console.log(
+      "Generated slot:",
+      current.format("YYYY-MM-DDTHH:mm:ssZ"),
+      "to",
+      slotEnd.format("YYYY-MM-DDTHH:mm:ssZ")
+    );
+
     result.push([
       current.format("YYYY-MM-DDTHH:mm:ssZ"),
       slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
     ]);
+
     current.add(duration, "minutes");
   }
 
+  console.log("Total slots generated:", result.length);
   return result;
 }
+
 
 
 function assignSlotInfo(
