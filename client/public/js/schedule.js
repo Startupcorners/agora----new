@@ -546,15 +546,15 @@ function generateWeeklySlots(
   console.log("Base daily end time:", baseDailyEnd);
   console.log("Slot duration (minutes):", slotDuration);
 
-  // Determine the entire week's start and end in local time
-  const weekStartLocal = startDateLocal.clone(); // already start of day
-  const weekEndLocal = weekStartLocal.clone().add(6, "days").endOf("day");
+  // Determine the entire week's start and end in local time, plus one day before and after
+  const extendedStartLocal = startDateLocal.clone().subtract(1, "day");
+  const extendedEndLocal = startDateLocal.clone().add(7, "days").endOf("day");
 
-  console.log("Week start (local):", weekStartLocal.format());
-  console.log("Week end (local):", weekEndLocal.format());
+  console.log("Extended week start (local):", extendedStartLocal.format());
+  console.log("Extended week end (local):", extendedEndLocal.format());
 
-  for (let i = 0; i < 7; i++) {
-    const currentDayLocal = weekStartLocal.clone().add(i, "days");
+  for (let i = -1; i <= 7; i++) {
+    const currentDayLocal = startDateLocal.clone().add(i, "days");
     console.log(`\nProcessing day ${i + 1}: ${currentDayLocal.format()}`);
 
     // Convert daily start/end times to local for this day
@@ -586,29 +586,32 @@ function generateWeeklySlots(
     );
   }
 
-  // Filter all slots to only those within the entire week range
-  console.log("Filtering slots to ensure they fit within the weekly range.");
+  // Filter all slots to only those within the extended range
+  console.log(
+    "Filtering slots to ensure they fit within the extended weekly range."
+  );
   const filteredSlots = outputlist7.filter((slotRange) => {
     const slotStart = moment.tz(slotRange[0], userTimeZone);
     const slotEnd = moment.tz(slotRange[1], userTimeZone);
-    const isInWeekRange =
-      slotStart.isSameOrAfter(weekStartLocal) &&
-      slotEnd.isSameOrBefore(weekEndLocal);
-    if (!isInWeekRange) {
+    const isInExtendedRange =
+      slotStart.isSameOrAfter(extendedStartLocal) &&
+      slotEnd.isSameOrBefore(extendedEndLocal);
+    if (!isInExtendedRange) {
       console.log(
         "Excluding slot:",
         slotStart.format(),
         "to",
         slotEnd.format(),
-        "(outside weekly range)"
+        "(outside extended weekly range)"
       );
     }
-    return isInWeekRange;
+    return isInExtendedRange;
   });
 
-  console.log("Final slots:", filteredSlots);
+  console.log("Final slots (with extra days):", filteredSlots);
   return filteredSlots;
 }
+
 
 
 function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
