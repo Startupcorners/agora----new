@@ -534,50 +534,80 @@ function generateSlotsWithinBoundaries(
   outputlist6,
   baseDailyStart,
   baseDailyEnd,
-  baseSlotDuration,
+  slotDuration,
   userTimeZone
 ) {
   const outputlist7 = [];
 
+  // Parse the daily start/end times as UTC references
+  const dailyStartParts = baseDailyStart.split(":"); // e.g. "00:00"
+  const dailyEndParts = baseDailyEnd.split(":"); // e.g. "08:00"
+  const dailyStartHour = parseInt(dailyStartParts[0], 10);
+  const dailyStartMinute = parseInt(dailyStartParts[1], 10);
+  const dailyEndHour = parseInt(dailyEndParts[0], 10);
+  const dailyEndMinute = parseInt(dailyEndParts[1], 10);
+
   outputlist6.forEach((dayRange) => {
-    const dayStartLocal = moment.tz(dayRange[0], userTimeZone);
-    const dayEndLocal = moment.tz(dayRange[1], userTimeZone);
+    const dayStartLocal = moment(dayRange[0]); // already local w/ offset in string
+    const dayEndLocal = moment(dayRange[1]);
 
-    // Convert daily_start_time and daily_end_time (UTC) to local times for this day
-    const currentDayUTC = dayStartLocal.clone().utc();
-    const dailyStartTimeUTC = moment.utc(
-      currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
-      "YYYY-MM-DD HH:mm"
-    );
-    const dailyEndTimeUTC = moment.utc(
-      currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyEnd,
-      "YYYY-MM-DD HH:mm"
-    );
+    // Convert dayStartLocal to UTC date to anchor the day
+    const dayStartUTC = dayStartLocal.clone().utc().startOf("day");
 
-    const dailyStartTimeLocal = dailyStartTimeUTC.clone().tz(userTimeZone);
-    const dailyEndTimeLocal = dailyEndTimeUTC.clone().tz(userTimeZone);
+    // Now generate slots in UTC from daily_start_time to daily_end_time
+    // For example: 00:00 UTC to 08:00 UTC of that day
+    let currentUTC = dayStartUTC
+      .clone()
+      .hour(dailyStartHour)
+      .minute(dailyStartMinute)
+      .second(0);
+    const endUTC = dayStartUTC
+      .clone()
+      .hour(dailyEndHour)
+      .minute(dailyEndMinute)
+      .second(0);
 
-    // Ensure the slots fit within the day boundaries defined by outputlist6
-    const slotStartBoundary = moment.max(dayStartLocal, dailyStartTimeLocal);
-    const slotEndBoundary = moment.min(dayEndLocal, dailyEndTimeLocal);
+    while (currentUTC.isBefore(endUTC)) {
+      const slotEndUTC = currentUTC.clone().add(slotDuration, "minutes");
+      if (slotEndUTC.isAfter(endUTC)) break;
 
-    // Generate slots that fit entirely inside slotStartBoundary and slotEndBoundary
-    let currentTime = slotStartBoundary.clone();
-    while (currentTime.isBefore(slotEndBoundary)) {
-      const endTime = currentTime.clone().add(baseSlotDuration, "minutes");
-      if (endTime.isAfter(slotEndBoundary)) break; // no partial slots if desired
+      // Convert to local time
+      const slotStartLocal = currentUTC.clone().tz(userTimeZone);
+      const slotEndLocal = slotEndUTC.clone().tz(userTimeZone);
 
-      const slotRange = [
-        currentTime.format("YYYY-MM-DDTHH:mm:ssZ"),
-        endTime.format("YYYY-MM-DDTHH:mm:ssZ"),
-      ];
-      outputlist7.push(slotRange);
-      currentTime.add(baseSlotDuration, "minutes");
+      // Check if slot fits fully into the dayRange (outputlist6 boundaries)
+      if (
+        slotStartLocal.isSameOrAfter(dayStartLocal) &&
+        slotEndLocal.isSameOrBefore(dayEndLocal)
+      ) {
+        outputlist7.push([
+          slotStartLocal.format("YYYY-MM-DDTHH:mm:ssZ"),
+          slotEndLocal.format("YYYY-MM-DDTHH:mm:ssZ"),
+        ]);
+      }
+
+      currentUTC.add(slotDuration, "minutes");
     }
   });
 
   return outputlist7;
 }
+
+function generateSlotsForInterval(startTime, endTime, duration, outputList) {
+  let current = startTime.clone();
+  while (current.isBefore(endTime)) {
+    const slotEnd = current.clone().add(duration, "minutes");
+    if (slotEnd.isAfter(endTime)) break;
+
+    const slotRange = [
+      current.format("YYYY-MM-DDTHH:mm:ssZ"),
+      slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+    ];
+    outputList.push(slotRange);
+    current.add(duration, "minutes");
+  }
+}
+
 
 function assignSlotInfo(
   outputlist7,
