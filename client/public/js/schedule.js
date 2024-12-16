@@ -410,7 +410,7 @@ function generateSlotsForDate(
     const startDateUTC = moment
       .utc(viewerStartDate)
       .startOf("day")
-      .add(offset * 7, "days");
+      .add(offset * 7, "days"); // Start date of the week
 
     if (!startDateUTC.isValid()) {
       console.error("Invalid viewerStartDate:", viewerStartDate);
@@ -450,6 +450,7 @@ function generateSlotsForDate(
 
     const weekSlots = Array.from({ length: 7 }, () => []);
 
+    // Generate slots for the entire week
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const currentDayUTC = startDateUTC.clone().add(dayOffset, "days");
       outputlist6.push(currentDayUTC.format("YYYY-MM-DDT00:00:00[Z]"));
@@ -481,6 +482,7 @@ function generateSlotsForDate(
       }
     }
 
+    // Add all slots to outputlist5
     for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
       const currentDaySlots = weekSlots[dayOffset];
       currentDaySlots.forEach((slot) => {
@@ -488,6 +490,7 @@ function generateSlotsForDate(
       });
     }
 
+    // Check each generated slot against availability and booked/modified lists
     availabilityList.forEach((availability) => {
       const startDate = moment.utc(availability.start_date).startOf("day");
       const endDate = moment.utc(availability.end_date).endOf("day");
@@ -511,11 +514,14 @@ function generateSlotsForDate(
               isModified: false,
             };
 
+            // Check against alreadyBookedList
             alreadyBookedList.forEach((bookedSlot) => {
               const bookedStart = moment.utc(bookedSlot.start_date);
               const bookedEnd = moment.utc(bookedSlot.end_date);
               const slotStart = moment.utc(slotInfo.slotTimeRange[0]);
               const slotEnd = moment.utc(slotInfo.slotTimeRange[1]);
+
+              // Check for overlap
               if (
                 (slotStart.isSame(bookedStart) && slotEnd.isSame(bookedEnd)) ||
                 (slotStart.isBefore(bookedEnd) && slotEnd.isAfter(bookedStart))
@@ -524,11 +530,14 @@ function generateSlotsForDate(
               }
             });
 
+            // Check against modifiedSlots
             modifiedSlots.forEach((modifiedSlot) => {
               const modStart = moment.utc(modifiedSlot.start_date);
               const modEnd = moment.utc(modifiedSlot.end_date);
               const slotStart = moment.utc(slotInfo.slotTimeRange[0]);
               const slotEnd = moment.utc(slotInfo.slotTimeRange[1]);
+
+              // Check for overlap
               if (
                 (slotStart.isSame(modStart) && slotEnd.isSame(modEnd)) ||
                 (slotStart.isBefore(modEnd) && slotEnd.isAfter(modStart))
@@ -539,6 +548,7 @@ function generateSlotsForDate(
               }
             });
 
+            // Push results to respective lists
             outputlist1.push(slotInfo.meetingLink);
             outputlist2.push(slotInfo.Address);
             outputlist3.push(slotInfo.alreadyBooked);
@@ -566,6 +576,7 @@ function generateSlotsForDate(
       outputlist7,
     });
   }
+
 
 
 
