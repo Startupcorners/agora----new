@@ -388,24 +388,8 @@ function generateSlotsForDate(
 
    if (!Array.isArray(availabilityList)) {
      console.error("availabilityList should be an array");
-     return {
-       outputlist1: [],
-       outputlist2: [],
-       outputlist3: [],
-       outputlist4: [],
-       outputlist5: [],
-       outputlist6: [],
-       outputlist7: [],
-     };
+     return emptyOutput();
    }
-
-   const outputlist1 = [];
-   const outputlist2 = [];
-   const outputlist3 = [];
-   const outputlist4 = [];
-   const outputlist5 = [];
-   const outputlist6 = [];
-   const outputlist7 = [];
 
    const startDateUTC = moment
      .utc(viewerStartDate)
@@ -414,15 +398,7 @@ function generateSlotsForDate(
 
    if (!startDateUTC.isValid()) {
      console.error("Invalid viewerStartDate:", viewerStartDate);
-     return {
-       outputlist1: [],
-       outputlist2: [],
-       outputlist3: [],
-       outputlist4: [],
-       outputlist5: [],
-       outputlist6: [],
-       outputlist7: [],
-     };
+     return emptyOutput();
    }
 
    let baseDailyStart = null;
@@ -436,20 +412,11 @@ function generateSlotsForDate(
    }
 
    if (!baseDailyStart || !baseDailyEnd || !baseSlotDuration) {
-     console.log("No baseline availability found, outputlist7 will be empty.");
-     return {
-       outputlist1,
-       outputlist2,
-       outputlist3,
-       outputlist4,
-       outputlist5,
-       outputlist6,
-       outputlist7,
-     };
+     console.log("No baseline availability found.");
+     return emptyOutput();
    }
 
    // Determine global availability date range
-   // For multiple availabilities, we take the min start_date and max end_date
    const globalStart = availabilityList.length
      ? moment.min(availabilityList.map((a) => moment.utc(a.start_date)))
      : null;
@@ -457,9 +424,93 @@ function generateSlotsForDate(
      ? moment.max(availabilityList.map((a) => moment.utc(a.end_date)))
      : null;
 
-   const weekSlots = Array.from({ length: 7 }, () => []);
+   // Generate all slots for the full week
+   const { weekSlots, outputlist6, outputlist7 } = generateWeekSlots(
+     startDateUTC,
+     baseDailyStart,
+     baseDailyEnd,
+     baseSlotDuration
+   );
 
-   // Generate all slots for the entire week (full coverage)
+   // Assign meeting links, addresses, and booked flags to slots
+   const { outputlist1, outputlist2, outputlist3, outputlist4 } =
+     assignSlotInfo(
+       weekSlots,
+       startDateUTC,
+       availabilityList,
+       alreadyBookedList
+     );
+
+   // Filter slots within the global availability range
+   const outputlist5 = filterSlotsByAvailabilityRange(
+     outputlist7,
+     globalStart,
+     globalEnd
+   );
+
+   // Log all generated outputs for debugging
+   console.log(
+     "Generated outputlist1 (Meeting Links):",
+     JSON.stringify(outputlist1, null, 2)
+   );
+   console.log(
+     "Generated outputlist2 (Addresses):",
+     JSON.stringify(outputlist2, null, 2)
+   );
+   console.log(
+     "Generated outputlist3 (Already Booked):",
+     JSON.stringify(outputlist3, null, 2)
+   );
+   console.log(
+     "Generated outputlist4 (Modified Slots):",
+     JSON.stringify(outputlist4, null, 2)
+   );
+   console.log(
+     "Generated outputlist5 (Slots Within Availability Range):",
+     JSON.stringify(outputlist5, null, 2)
+   );
+   console.log(
+     "Generated outputlist6 (Days in Range):",
+     JSON.stringify(outputlist6, null, 2)
+   );
+   console.log(
+     "Generated outputlist7 (All Slots for Full Week):",
+     JSON.stringify(outputlist7, null, 2)
+   );
+
+   bubble_fn_hours({
+     outputlist1,
+     outputlist2,
+     outputlist3,
+     outputlist4,
+     outputlist5,
+     outputlist6,
+     outputlist7,
+   });
+ }
+
+ function emptyOutput() {
+   return {
+     outputlist1: [],
+     outputlist2: [],
+     outputlist3: [],
+     outputlist4: [],
+     outputlist5: [],
+     outputlist6: [],
+     outputlist7: [],
+   };
+ }
+
+ function generateWeekSlots(
+   startDateUTC,
+   baseDailyStart,
+   baseDailyEnd,
+   baseSlotDuration
+ ) {
+   const weekSlots = Array.from({ length: 7 }, () => []);
+   const outputlist6 = [];
+   const outputlist7 = [];
+
    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
      const currentDayUTC = startDateUTC.clone().add(dayOffset, "days");
      outputlist6.push(currentDayUTC.format("YYYY-MM-DDT00:00:00[Z]"));
@@ -483,16 +534,27 @@ function generateSlotsForDate(
          startSlotUTC.format("YYYY-MM-DDTHH:mm:ss[Z]"),
          endSlotUTC.format("YYYY-MM-DDTHH:mm:ss[Z]"),
        ];
-
-       // Add to outputlist7 (full week's slots)
        outputlist7.push(slotRange);
-
        weekSlots[dayOffset].push({ slotTimeRange: slotRange });
        currentTimeUTC.add(baseSlotDuration, "minutes");
      }
    }
 
-   // For each availability, we mark booked slots and add slot info.
+   return { weekSlots, outputlist6, outputlist7 };
+ }
+
+
+ function assignSlotInfo(
+   weekSlots,
+   startDateUTC,
+   availabilityList,
+   alreadyBookedList
+ ) {
+   const outputlist1 = [];
+   const outputlist2 = [];
+   const outputlist3 = [];
+   const outputlist4 = [];
+
    availabilityList.forEach((availability) => {
      const startDate = moment.utc(availability.start_date).startOf("day");
      const endDate = moment.utc(availability.end_date).endOf("day");
@@ -542,16 +604,20 @@ function generateSlotsForDate(
      }
    });
 
-   // Now populate outputlist5 with slots that are within the global availability range
-   // This should only happen if we have a valid globalStart and globalEnd
+   return { outputlist1, outputlist2, outputlist3, outputlist4 };
+ }
+
+ /**
+  * Filters the full week's slots (outputlist7) to only those that lie within the global availability range.
+  * Returns:
+  * - outputlist5: Slots fully within the global availability range
+  */
+ function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
+   const outputlist5 = [];
    if (globalStart && globalEnd) {
-     // We already have all slots in outputlist7, which represents the full week's slots.
-     // We must filter those that fit entirely within globalStart and globalEnd.
-     outputlist7.forEach((slotRange) => {
+     allSlots.forEach((slotRange) => {
        const slotStart = moment.utc(slotRange[0]);
        const slotEnd = moment.utc(slotRange[1]);
-
-       // Only add to outputlist5 if the slot is entirely within global availability range
        if (
          slotStart.isSameOrAfter(globalStart) &&
          slotEnd.isSameOrBefore(globalEnd)
@@ -560,47 +626,9 @@ function generateSlotsForDate(
        }
      });
    }
-
-   // Log all generated outputs for debugging
-   console.log(
-     "Generated outputlist1 (Meeting Links):",
-     JSON.stringify(outputlist1, null, 2)
-   );
-   console.log(
-     "Generated outputlist2 (Addresses):",
-     JSON.stringify(outputlist2, null, 2)
-   );
-   console.log(
-     "Generated outputlist3 (Already Booked):",
-     JSON.stringify(outputlist3, null, 2)
-   );
-   console.log(
-     "Generated outputlist4 (Modified Slots):",
-     JSON.stringify(outputlist4, null, 2)
-   );
-   console.log(
-     "Generated outputlist5 (Slots Within Availability Range):",
-     JSON.stringify(outputlist5, null, 2)
-   );
-   console.log(
-     "Generated outputlist6 (Days in Range):",
-     JSON.stringify(outputlist6, null, 2)
-   );
-   console.log(
-     "Generated outputlist7 (All Slots for Full Week):",
-     JSON.stringify(outputlist7, null, 2)
-   );
-
-   bubble_fn_hours({
-     outputlist1,
-     outputlist2,
-     outputlist3,
-     outputlist4,
-     outputlist5,
-     outputlist6,
-     outputlist7,
-   });
+   return outputlist5;
  }
+
 
 
 
