@@ -529,7 +529,6 @@ function generateWeekSlots(
   for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
     const currentDayLocal = startDateLocal.clone().add(dayOffset, "days");
 
-    // For outputlist6: We'll still represent the day in local time
     const startOfDayLocal = currentDayLocal.clone().startOf("day");
     const endOfDayLocal = currentDayLocal.clone().endOf("day");
     outputlist6.push([
@@ -537,11 +536,7 @@ function generateWeekSlots(
       endOfDayLocal.format("YYYY-MM-DDT23:59:59Z"),
     ]);
 
-    // Now, we must interpret baseDailyStart and baseDailyEnd as UTC times of the given day.
-    // First, find the UTC equivalent of the current day:
     const currentDayUTC = currentDayLocal.clone().utc();
-
-    // Parse daily times as UTC
     const dailyStartTimeUTC = moment.utc(
       currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
       "YYYY-MM-DD HH:mm"
@@ -550,19 +545,28 @@ function generateWeekSlots(
       currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyEnd,
       "YYYY-MM-DD HH:mm"
     );
-
-    // Convert these UTC times to the user's local time zone
     const dailyStartTimeLocal = dailyStartTimeUTC.clone().tz(userTimeZone);
     const dailyEndTimeLocal = dailyEndTimeUTC.clone().tz(userTimeZone);
 
-    // Now dailyStartTimeLocal will be, for example, 03:00+03:00 if baseDailyStart was 00:00 UTC.
     let currentTimeLocal = dailyStartTimeLocal.clone();
     while (currentTimeLocal.isBefore(dailyEndTimeLocal)) {
       const startSlotLocal = currentTimeLocal.clone();
       const endSlotLocal = startSlotLocal
         .clone()
         .add(baseSlotDuration, "minutes");
-      if (endSlotLocal.isAfter(dailyEndTimeLocal)) break;
+
+      if (endSlotLocal.isAfter(dailyEndTimeLocal)) {
+        // Allow partial slot if it starts before dailyEndTimeLocal
+        if (startSlotLocal.isBefore(dailyEndTimeLocal)) {
+          const truncatedSlotRange = [
+            startSlotLocal.format("YYYY-MM-DDTHH:mm:ssZ"),
+            dailyEndTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ"),
+          ];
+          outputlist7.push(truncatedSlotRange);
+          weekSlots[dayOffset].push({ slotTimeRange: truncatedSlotRange });
+        }
+        break;
+      }
 
       const slotRange = [
         startSlotLocal.format("YYYY-MM-DDTHH:mm:ssZ"),
@@ -576,6 +580,7 @@ function generateWeekSlots(
 
   return { weekSlots, outputlist6, outputlist7 };
 }
+
 
 
 function assignSlotInfo(
