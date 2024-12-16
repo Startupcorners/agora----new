@@ -607,12 +607,10 @@ function generateSlotsForDate(
    return { outputlist1, outputlist2, outputlist3, outputlist4 };
  }
 
- /**
-  * Filters the full week's slots (outputlist7) to only those that lie within the global availability range.
-  * Returns:
-  * - outputlist5: Slots fully within the global availability range
-  */
+
  function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
+
+   console.log("filterSlotsByAvailabilityRange:", globalStart, globalEnd); 
    const outputlist5 = [];
    if (globalStart && globalEnd) {
      allSlots.forEach((slotRange) => {
