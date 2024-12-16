@@ -540,15 +540,27 @@ function generateWeeklySlots(
 ) {
   const outputlist7 = [];
 
+  console.log("Start date local:", startDateLocal.format());
+  console.log("User time zone:", userTimeZone);
+  console.log("Base daily start time:", baseDailyStart);
+  console.log("Base daily end time:", baseDailyEnd);
+  console.log("Slot duration (minutes):", slotDuration);
+
   // Determine the entire week's start and end in local time
   const weekStartLocal = startDateLocal.clone(); // already start of day
   const weekEndLocal = weekStartLocal.clone().add(6, "days").endOf("day");
 
+  console.log("Week start (local):", weekStartLocal.format());
+  console.log("Week end (local):", weekEndLocal.format());
+
   for (let i = 0; i < 7; i++) {
     const currentDayLocal = weekStartLocal.clone().add(i, "days");
+    console.log(`\nProcessing day ${i + 1}: ${currentDayLocal.format()}`);
 
     // Convert daily start/end times to local for this day
     const currentDayUTC = currentDayLocal.clone().utc();
+    console.log("Current day (UTC):", currentDayUTC.format());
+
     const dailyStartTimeUTC = moment.utc(
       currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
       "YYYY-MM-DD HH:mm"
@@ -558,13 +570,28 @@ function generateWeeklySlots(
       "YYYY-MM-DD HH:mm"
     );
 
+    console.log("Daily start time (UTC):", dailyStartTimeUTC.format());
+    console.log("Daily end time (UTC):", dailyEndTimeUTC.format());
+
     const dailyStartTimeLocal = dailyStartTimeUTC.clone().tz(userTimeZone);
     const dailyEndTimeLocal = dailyEndTimeUTC.clone().tz(userTimeZone);
 
-    // If daily end time is before daily start time locally, it crosses midnight.
-    // That means part of availability is before midnight and part after.
+    console.log("Daily start time (local):", dailyStartTimeLocal.format());
+    console.log("Daily end time (local):", dailyEndTimeLocal.format());
+
+    // Check if the daily end time crosses midnight
     if (dailyEndTimeLocal.isBefore(dailyStartTimeLocal)) {
+      console.log(
+        "Daily end time crosses midnight. Splitting into two intervals."
+      );
+
       // Part 1: from dailyStartTimeLocal to the end of this local day
+      console.log(
+        "Interval 1 start:",
+        dailyStartTimeLocal.format(),
+        "to end of the day:",
+        dailyStartTimeLocal.clone().endOf("day").format()
+      );
       outputlist7.push(
         ...generateSlotsForInterval(
           dailyStartTimeLocal,
@@ -578,6 +605,12 @@ function generateWeeklySlots(
         .clone()
         .add(1, "days")
         .startOf("day");
+      console.log(
+        "Interval 2 start:",
+        nextDayLocal.format(),
+        "to daily end:",
+        dailyEndTimeLocal.format()
+      );
       outputlist7.push(
         ...generateSlotsForInterval(
           nextDayLocal,
@@ -587,6 +620,12 @@ function generateWeeklySlots(
       );
     } else {
       // Normal case: daily window fits into the same local calendar day
+      console.log(
+        "Daily window fits in the same day. Interval start:",
+        dailyStartTimeLocal.format(),
+        "to end:",
+        dailyEndTimeLocal.format()
+      );
       outputlist7.push(
         ...generateSlotsForInterval(
           dailyStartTimeLocal,
@@ -598,15 +637,29 @@ function generateWeeklySlots(
   }
 
   // Filter all slots to only those within the entire week range
-  return outputlist7.filter((slotRange) => {
+  console.log("Filtering slots to ensure they fit within the weekly range.");
+  const filteredSlots = outputlist7.filter((slotRange) => {
     const slotStart = moment.tz(slotRange[0], userTimeZone);
     const slotEnd = moment.tz(slotRange[1], userTimeZone);
-    return (
+    const isInWeekRange =
       slotStart.isSameOrAfter(weekStartLocal) &&
-      slotEnd.isSameOrBefore(weekEndLocal)
-    );
+      slotEnd.isSameOrBefore(weekEndLocal);
+    if (!isInWeekRange) {
+      console.log(
+        "Excluding slot:",
+        slotStart.format(),
+        "to",
+        slotEnd.format(),
+        "(outside weekly range)"
+      );
+    }
+    return isInWeekRange;
   });
+
+  console.log("Final slots:", filteredSlots);
+  return filteredSlots;
 }
+
 
 function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   const result = [];
