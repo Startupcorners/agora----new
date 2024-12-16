@@ -615,17 +615,19 @@ function generateWeeklySlots(
 function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   const result = [];
   let current = startTimeLocal.clone();
+
   while (current.isBefore(endTimeLocal)) {
     const slotEnd = current.clone().add(duration, "minutes");
-    if (slotEnd.isAfter(endTimeLocal)) break;
     result.push([
       current.format("YYYY-MM-DDTHH:mm:ssZ"),
       slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
     ]);
     current.add(duration, "minutes");
   }
+
   return result;
 }
+
 
 function assignSlotInfo(
   outputlist7,
