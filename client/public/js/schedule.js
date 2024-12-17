@@ -722,7 +722,7 @@ function assignSlotInfo(
         outputlist2.push(slotInfo.Address);
         outputlist3.push(slotInfo.alreadyBooked);
         outputlist4.push(slotInfo.isModified);
-        outputlist8.push(slotInfo.isModified);
+        outputlist8.push(slotInfo.bubbleId);
       }
     });
   });
