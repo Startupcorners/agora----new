@@ -679,6 +679,7 @@ function assignSlotInfo(
       .utc(availability.end_date)
       .tz(userTimeZone)
       .endOf("day");
+    const bubbleId = availability.bubbleId;
       
 
     outputlist7.forEach((slotRange) => {
@@ -691,6 +692,7 @@ function assignSlotInfo(
         "[]"
       );
 
+
       if (includesCurrentDayLocal) {
         let slotInfo = {
           slotTimeRange: slotRange,
@@ -698,7 +700,7 @@ function assignSlotInfo(
           Address: availability.Address,
           alreadyBooked: false,
           isModified: false,
-          bubbleId: availability.bubbleId, 
+          bubbleId: bubbleId, 
         };
 
         alreadyBookedList.forEach((bookedSlot) => {
