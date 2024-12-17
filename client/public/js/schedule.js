@@ -523,8 +523,8 @@ function generateDayBoundaries(startDateLocal) {
     const startOfDayLocal = currentDayLocal.clone().startOf("day");
     const endOfDayLocal = currentDayLocal.clone().endOf("day");
     outputlist6.push([
-      startOfDayLocal.format("YYYY-MM-DDT00:00:00Z"),
-      endOfDayLocal.format("YYYY-MM-DDT23:59:59Z"),
+      startOfDayLocal.format("YYYY-MM-DDT00:00:00[Z]"),
+      endOfDayLocal.format("YYYY-MM-DDT23:59:59[Z]"),
     ]);
   }
   return outputlist6;
@@ -621,9 +621,9 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   console.log("Generating slots...");
   console.log(
     "Start time (local):",
-    startTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ")
+    startTimeLocal.format("YYYY-MM-DDTHH:mm:ss[Z]")
   );
-  console.log("End time (local):", endTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ"));
+  console.log("End time (local):", endTimeLocal.format("YYYY-MM-DDTHH:mm:ss[Z]"));
   console.log("Slot duration (minutes):", duration);
 
   while (current.isBefore(endTimeLocal)) {
