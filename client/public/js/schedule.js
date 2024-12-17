@@ -437,14 +437,14 @@ function generateSlotsForWeek(
       : startDateLocal.clone();
 
   // Assign meeting links, addresses, and booked flags to slots
-  const { outputlist1, outputlist2, outputlist3, outputlist4 } = assignSlotInfo(
-    outputlist7,
-    firstSlotStart,
-    availabilityList,
-    alreadyBookedList,
-    userTimeZone,
-    outputlist8
-  );
+  const { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 } =
+    assignSlotInfo(
+      outputlist7,
+      firstSlotStart,
+      availabilityList,
+      alreadyBookedList,
+      userTimeZone
+    );
 
   // Determine global availability range and filter
   const globalStartUTC = availabilityList.length
