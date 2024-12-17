@@ -743,6 +743,17 @@ function filterSlotsByAvailabilityRange(
   return outputlist5;
 }
 
+function emptyOutput() {
+  return {
+    outputlist1: [],
+    outputlist2: [],
+    outputlist3: [],
+    outputlist4: [],
+    outputlist5: [],
+    outputlist6: [],
+    outputlist7: [],
+  };
+}
 
   return {
     generateUniqueDates,
