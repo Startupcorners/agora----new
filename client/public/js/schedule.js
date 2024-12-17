@@ -680,6 +680,7 @@ function assignSlotInfo(
       .tz(userTimeZone)
       .endOf("day");
     const bubbleId = availability.bubbleId;
+    console.log("availability.bubbleId",availability.bubbleId);
       
 
     outputlist7.forEach((slotRange) => {
