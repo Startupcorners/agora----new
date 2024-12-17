@@ -442,7 +442,8 @@ function generateSlotsForWeek(
     firstSlotStart,
     availabilityList,
     alreadyBookedList,
-    userTimeZone
+    userTimeZone,
+    outputlist8
   );
 
   // Determine global availability range and filter
@@ -490,6 +491,10 @@ function generateSlotsForWeek(
   console.log(
     "Generated outputlist7 (All Slots for Full Week):",
     JSON.stringify(outputlist7, null, 2)
+  );
+  console.log(
+    "Generated outputlist8",
+    JSON.stringify(outputlist8, null, 2)
   );
 
   bubble_fn_hours({
