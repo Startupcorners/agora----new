@@ -2,34 +2,6 @@
 export const schedule = async function () {
 
 
-    function sendTimeZonesToBubble() {
-      const timeZones = moment.tz.names(); // List of time zone names
-      const currentTimestamp = moment(); // Current timestamp for offsets
-
-      // Arrays to hold time zone names and their offsets
-      const outputlist1 = []; // Time zone names
-      const outputlist2 = []; // Offsets
-
-      // Populate the lists
-      timeZones.forEach((timeZone) => {
-        const offsetMinutes = moment.tz.zone(timeZone).offset(currentTimestamp); // Offset in minutes
-        const offsetHours = -(offsetMinutes / 60); // Convert to hours and adjust sign
-        const offsetFormatted = `UTC${
-          offsetHours >= 0 ? "+" : ""
-        }${offsetHours}`;
-
-        outputlist1.push(timeZone); // Add time zone name
-        outputlist2.push(offsetFormatted); // Add formatted offset
-      });
-
-      // Send the lists to Bubble
-      console.log("Sending time zones and offsets to Bubble...");
-      bubble_fn_timeZones({ outputlist1, outputlist2 });
-    }
-
-    // Call the function
-    sendTimeZonesToBubble();
-
 function generateUniqueDates(inputList) {
   const availabilityList = inputList[0];
   const currentUserDate = inputList[1];
@@ -777,7 +749,6 @@ function filterSlotsByAvailabilityRange(
     generateSlotsForDate,
     getDaysInMonth,
     generateStartTimes,
-    sendTimeZonesToBubble,
     generateEndTimes,
     generateSlotsForWeek
   };
