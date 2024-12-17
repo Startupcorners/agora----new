@@ -498,8 +498,9 @@ function generateSlotsForWeek(
     outputlist3,
     outputlist4,
     outputlist5,
-    outputlist6, // If you no longer need it, remove it entirely
+    outputlist6, 
     outputlist7,
+    outputlist8,
   });
 }
 
@@ -512,6 +513,7 @@ function emptyOutput() {
     outputlist5: [],
     outputlist6: [],
     outputlist7: [],
+    outputlist8: [],
   };
 }
 
@@ -661,6 +663,7 @@ function assignSlotInfo(
   const outputlist2 = [];
   const outputlist3 = [];
   const outputlist4 = [];
+  const outputlist8 = [];
 
   availabilityList.forEach((availability) => {
     const startDate = moment
@@ -671,6 +674,7 @@ function assignSlotInfo(
       .utc(availability.end_date)
       .tz(userTimeZone)
       .endOf("day");
+      
 
     outputlist7.forEach((slotRange) => {
       const slotStart = moment.tz(slotRange[0], userTimeZone);
@@ -689,6 +693,7 @@ function assignSlotInfo(
           Address: availability.Address,
           alreadyBooked: false,
           isModified: false,
+          bubbleId: availability.bubbleId, 
         };
 
         alreadyBookedList.forEach((bookedSlot) => {
@@ -712,11 +717,12 @@ function assignSlotInfo(
         outputlist2.push(slotInfo.Address);
         outputlist3.push(slotInfo.alreadyBooked);
         outputlist4.push(slotInfo.isModified);
+        outputlist8.push(slotInfo.isModified);
       }
     });
   });
 
-  return { outputlist1, outputlist2, outputlist3, outputlist4 };
+  return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 };
 }
 
 function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
