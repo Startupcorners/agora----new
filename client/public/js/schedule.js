@@ -437,14 +437,13 @@ function generateSlotsForWeek(
       : startDateLocal.clone();
 
   // Assign meeting links, addresses, and booked flags to slots
-  const { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 } =
-    assignSlotInfo(
-      outputlist7,
-      firstSlotStart,
-      availabilityList,
-      alreadyBookedList,
-      userTimeZone
-    );
+  const { outputlist1, outputlist2, outputlist3, outputlist4 } = assignSlotInfo(
+    outputlist7,
+    firstSlotStart,
+    availabilityList,
+    alreadyBookedList,
+    userTimeZone
+  );
 
   // Determine global availability range and filter
   const globalStartUTC = availabilityList.length
@@ -492,10 +491,6 @@ function generateSlotsForWeek(
     "Generated outputlist7 (All Slots for Full Week):",
     JSON.stringify(outputlist7, null, 2)
   );
-  console.log(
-    "Generated outputlist8",
-    JSON.stringify(outputlist8, null, 2)
-  );
 
   bubble_fn_hours({
     outputlist1,
@@ -503,9 +498,8 @@ function generateSlotsForWeek(
     outputlist3,
     outputlist4,
     outputlist5,
-    outputlist6, 
+    outputlist6, // If you no longer need it, remove it entirely
     outputlist7,
-    outputlist8,
   });
 }
 
@@ -518,7 +512,6 @@ function emptyOutput() {
     outputlist5: [],
     outputlist6: [],
     outputlist7: [],
-    outputlist8: [],
   };
 }
 
@@ -638,14 +631,14 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
 
     console.log(
       "Generated slot:",
-      current.format("YYYY-MM-DDTHH:mm:ssZ"),
+      current.format("YYYY-MM-DDTHH:mm:ss[Z]"),
       "to",
-      slotEnd.format("YYYY-MM-DDTHH:mm:ssZ")
+      slotEnd.format("YYYY-MM-DDTHH:mm:ss[Z]")
     );
 
     result.push([
-      current.format("YYYY-MM-DDTHH:mm:ssZ"),
-      slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+      current.format("YYYY-MM-DDTHH:mm:ss[Z]"),
+      slotEnd.format("YYYY-MM-DDTHH:mm:ss[Z]"),
     ]);
 
     current.add(duration, "minutes");
@@ -668,7 +661,6 @@ function assignSlotInfo(
   const outputlist2 = [];
   const outputlist3 = [];
   const outputlist4 = [];
-  const outputlist8 = [];
 
   availabilityList.forEach((availability) => {
     const startDate = moment
@@ -679,9 +671,6 @@ function assignSlotInfo(
       .utc(availability.end_date)
       .tz(userTimeZone)
       .endOf("day");
-    const bubbleId = availability.bubbleId;
-    console.log("availability.bubbleId",availability.bubbleId);
-      
 
     outputlist7.forEach((slotRange) => {
       const slotStart = moment.tz(slotRange[0], userTimeZone);
@@ -693,7 +682,6 @@ function assignSlotInfo(
         "[]"
       );
 
-
       if (includesCurrentDayLocal) {
         let slotInfo = {
           slotTimeRange: slotRange,
@@ -701,7 +689,6 @@ function assignSlotInfo(
           Address: availability.Address,
           alreadyBooked: false,
           isModified: false,
-          bubbleId: bubbleId, 
         };
 
         alreadyBookedList.forEach((bookedSlot) => {
@@ -725,12 +712,11 @@ function assignSlotInfo(
         outputlist2.push(slotInfo.Address);
         outputlist3.push(slotInfo.alreadyBooked);
         outputlist4.push(slotInfo.isModified);
-        outputlist8.push(slotInfo.bubbleId);
       }
     });
   });
 
-  return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 };
+  return { outputlist1, outputlist2, outputlist3, outputlist4 };
 }
 
 function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
