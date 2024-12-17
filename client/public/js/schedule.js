@@ -561,17 +561,174 @@ function generateDayBoundaries(startDateLocal) {
 }
 
 
+function generateSlotsForWeek(
+  availabilityList,
+  viewerStartDate,
+  alreadyBookedList,
+  modifiedSlots,
+  offset = 0,
+  userOffsetInSeconds = 0
+) {
+  console.log(
+    "Received availabilityList:",
+    JSON.stringify(availabilityList, null, 2)
+  );
+  console.log("Received viewerStartDate:", viewerStartDate);
+  console.log(
+    "Received alreadyBookedList:",
+    JSON.stringify(alreadyBookedList, null, 2)
+  );
+  console.log(
+    "Received modifiedSlots:",
+    JSON.stringify(modifiedSlots, null, 2)
+  );
+  console.log("Received offset:", offset);
+  console.log("Received userOffsetInSeconds:", userOffsetInSeconds);
+
+  if (!Array.isArray(availabilityList)) {
+    console.error("availabilityList should be an array");
+    return emptyOutput();
+  }
+
+  const userOffsetInMinutes = userOffsetInSeconds / 60;
+
+  const startDateLocal = moment
+    .utc(viewerStartDate)
+    .utcOffset(userOffsetInMinutes)
+    .startOf("day")
+    .add(offset * 7, "days");
+
+  if (!startDateLocal.isValid()) {
+    console.error("Invalid viewerStartDate:", viewerStartDate);
+    return emptyOutput();
+  }
+
+  let baseDailyStart = null;
+  let baseDailyEnd = null;
+  let baseSlotDuration = null;
+  if (availabilityList.length > 0) {
+    const firstAvailability = availabilityList[0];
+    baseDailyStart = firstAvailability.daily_start_time; // UTC time e.g. "00:00"
+    baseDailyEnd = firstAvailability.daily_end_time; // UTC time e.g. "08:00"
+    baseSlotDuration = firstAvailability.slot_duration_minutes;
+  }
+
+  if (!baseDailyStart || !baseDailyEnd || !baseSlotDuration) {
+    console.log("No baseline availability found.");
+    return emptyOutput();
+  }
+
+  const outputlist6 = generateDayBoundaries(startDateLocal);
+
+  // Generate all slots for the full week
+  const outputlist7 = generateWeeklySlots(
+    startDateLocal,
+    baseDailyStart,
+    baseDailyEnd,
+    baseSlotDuration,
+    userOffsetInSeconds
+  );
+
+  // Use the first slot's start date/time as the base reference, if available
+  const firstSlotStart =
+    outputlist7.length > 0
+      ? moment.utc(outputlist7[0][0]).utcOffset(userOffsetInMinutes)
+      : startDateLocal.clone();
+
+  // Assign meeting links, addresses, and booked flags to slots
+  const { outputlist1, outputlist2, outputlist3, outputlist4 } = assignSlotInfo(
+    outputlist7,
+    firstSlotStart,
+    availabilityList,
+    alreadyBookedList,
+    userOffsetInSeconds
+  );
+
+  // Determine global availability range and filter
+  const globalStartUTC = availabilityList.length
+    ? moment.min(availabilityList.map((a) => moment.utc(a.start_date)))
+    : null;
+  const globalEndUTC = availabilityList.length
+    ? moment.max(availabilityList.map((a) => moment.utc(a.end_date)))
+    : null;
+
+  const globalStart = globalStartUTC
+    ? globalStartUTC.clone().utcOffset(userOffsetInMinutes)
+    : null;
+  const globalEnd = globalEndUTC
+    ? globalEndUTC.clone().utcOffset(userOffsetInMinutes)
+    : null;
+
+  const outputlist5 = filterSlotsByAvailabilityRange(
+    outputlist7,
+    globalStart,
+    globalEnd,
+    userOffsetInSeconds
+  );
+
+  console.log(
+    "Generated outputlist1 (Meeting Links):",
+    JSON.stringify(outputlist1, null, 2)
+  );
+  console.log(
+    "Generated outputlist2 (Addresses):",
+    JSON.stringify(outputlist2, null, 2)
+  );
+  console.log(
+    "Generated outputlist3 (Already Booked):",
+    JSON.stringify(outputlist3, null, 2)
+  );
+  console.log(
+    "Generated outputlist4 (Modified Slots):",
+    JSON.stringify(outputlist4, null, 2)
+  );
+  console.log(
+    "Generated outputlist5 (Slots Within Availability Range):",
+    JSON.stringify(outputlist5, null, 2)
+  );
+  console.log("Generated outputlist6 :", JSON.stringify(outputlist6, null, 2));
+  console.log(
+    "Generated outputlist7 (All Slots for Full Week):",
+    JSON.stringify(outputlist7, null, 2)
+  );
+
+  bubble_fn_hours({
+    outputlist1,
+    outputlist2,
+    outputlist3,
+    outputlist4,
+    outputlist5,
+    outputlist6, // If you no longer need it, remove it entirely
+    outputlist7,
+  });
+}
+
+function generateDayBoundaries(startDateLocal) {
+  const outputlist6 = [];
+  for (let i = 0; i < 7; i++) {
+    const currentDayLocal = startDateLocal.clone().add(i, "days");
+    const startOfDayLocal = currentDayLocal.clone().startOf("day");
+    const endOfDayLocal = currentDayLocal.clone().endOf("day");
+    outputlist6.push([
+      startOfDayLocal.format("YYYY-MM-DDT00:00:00Z"),
+      endOfDayLocal.format("YYYY-MM-DDT23:59:59Z"),
+    ]);
+  }
+  return outputlist6;
+}
+
 function generateWeeklySlots(
   startDateLocal,
   baseDailyStart,
   baseDailyEnd,
   slotDuration,
-  userTimeZone
+  userOffsetInSeconds
 ) {
+  const userOffsetInMinutes = userOffsetInSeconds / 60;
   const outputlist7 = [];
 
   console.log("Start date local:", startDateLocal.format());
-  console.log("User time zone:", userTimeZone);
+  console.log("User offset (seconds):", userOffsetInSeconds);
   console.log("Base daily start time:", baseDailyStart);
   console.log("Base daily end time:", baseDailyEnd);
   console.log("Slot duration (minutes):", slotDuration);
@@ -587,7 +744,7 @@ function generateWeeklySlots(
     const currentDayLocal = startDateLocal.clone().add(i, "days");
     console.log(`\nProcessing day ${i + 1}: ${currentDayLocal.format()}`);
 
-    // Convert daily start/end times to local for this day
+    // Convert daily start/end times to UTC and then apply offset
     const currentDayUTC = currentDayLocal.clone().utc();
     console.log("Current day (UTC):", currentDayUTC.format());
 
@@ -600,11 +757,22 @@ function generateWeeklySlots(
       "YYYY-MM-DD HH:mm"
     );
 
-    const dailyStartTimeLocal = dailyStartTimeUTC.clone().tz(userTimeZone);
-    const dailyEndTimeLocal = dailyEndTimeUTC.clone().tz(userTimeZone);
+    // Apply user offset
+    const dailyStartTimeLocal = dailyStartTimeUTC
+      .clone()
+      .utcOffset(userOffsetInMinutes);
+    const dailyEndTimeLocal = dailyEndTimeUTC
+      .clone()
+      .utcOffset(userOffsetInMinutes);
 
-    console.log("Daily start time (local):", dailyStartTimeLocal.format());
-    console.log("Daily end time (local):", dailyEndTimeLocal.format());
+    console.log(
+      "Daily start time (local w/ offset):",
+      dailyStartTimeLocal.format()
+    );
+    console.log(
+      "Daily end time (local w/ offset):",
+      dailyEndTimeLocal.format()
+    );
 
     // Generate slots for the entire daily range
     outputlist7.push(
@@ -621,8 +789,8 @@ function generateWeeklySlots(
     "Filtering slots to ensure they fit within the extended weekly range."
   );
   const filteredSlots = outputlist7.filter((slotRange) => {
-    const slotStart = moment.tz(slotRange[0], userTimeZone);
-    const slotEnd = moment.tz(slotRange[1], userTimeZone);
+    const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
+    const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
     const isInExtendedRange =
       slotStart.isSameOrAfter(extendedStartLocal) &&
       slotEnd.isSameOrBefore(extendedEndLocal);
@@ -641,8 +809,6 @@ function generateWeeklySlots(
   console.log("Final slots (with extra days):", filteredSlots);
   return filteredSlots;
 }
-
-
 
 function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   const result = [];
@@ -678,15 +844,14 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   return result;
 }
 
-
-
 function assignSlotInfo(
   outputlist7,
   startDateLocal,
   availabilityList,
   alreadyBookedList,
-  userTimeZone
+  userOffsetInSeconds
 ) {
+  const userOffsetInMinutes = userOffsetInSeconds / 60;
   const outputlist1 = [];
   const outputlist2 = [];
   const outputlist3 = [];
@@ -695,16 +860,16 @@ function assignSlotInfo(
   availabilityList.forEach((availability) => {
     const startDate = moment
       .utc(availability.start_date)
-      .tz(userTimeZone)
+      .utcOffset(userOffsetInMinutes)
       .startOf("day");
     const endDate = moment
       .utc(availability.end_date)
-      .tz(userTimeZone)
+      .utcOffset(userOffsetInMinutes)
       .endOf("day");
 
     outputlist7.forEach((slotRange) => {
-      const slotStart = moment.tz(slotRange[0], userTimeZone);
-      const slotEnd = moment.tz(slotRange[1], userTimeZone);
+      const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
+      const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
       const includesCurrentDayLocal = slotStart.isBetween(
         startDate,
         endDate,
@@ -724,8 +889,10 @@ function assignSlotInfo(
         alreadyBookedList.forEach((bookedSlot) => {
           const bookedStart = moment
             .utc(bookedSlot.start_date)
-            .tz(userTimeZone);
-          const bookedEnd = moment.utc(bookedSlot.end_date).tz(userTimeZone);
+            .utcOffset(userOffsetInMinutes);
+          const bookedEnd = moment
+            .utc(bookedSlot.end_date)
+            .utcOffset(userOffsetInMinutes);
 
           if (
             slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
@@ -749,12 +916,18 @@ function assignSlotInfo(
   return { outputlist1, outputlist2, outputlist3, outputlist4 };
 }
 
-function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
+function filterSlotsByAvailabilityRange(
+  allSlots,
+  globalStart,
+  globalEnd,
+  userOffsetInSeconds
+) {
+  const userOffsetInMinutes = userOffsetInSeconds / 60;
   const outputlist5 = [];
   if (globalStart && globalEnd) {
     allSlots.forEach((slotRange) => {
-      const slotStart = moment.utc(slotRange[0]);
-      const slotEnd = moment.utc(slotRange[1]);
+      const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
+      const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
 
       if (slotStart.isBefore(globalEnd) && slotEnd.isAfter(globalStart)) {
         outputlist5.push(slotRange);
@@ -763,10 +936,6 @@ function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
   }
   return outputlist5;
 }
-
-
-
-
 
 
   return {
