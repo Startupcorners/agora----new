@@ -373,7 +373,8 @@ function generateSlotsForWeek(
   alreadyBookedList,
  modifiedSlots,
   offset = 0,
-  userOffsetInSeconds = 0
+  userOffsetInSeconds = 0,
+  blockedByUserList,
 ) {
   console.log(
     "Received availabilityList:",
@@ -390,6 +391,10 @@ function generateSlotsForWeek(
   );
   console.log("Received offset:", offset);
   console.log("Received userOffsetInSeconds:", userOffsetInSeconds);
+  console.log(
+    "Received blockedByUserList:",
+    JSON.stringify(blockedByUserList, null, 2)
+  );
 
   if (!Array.isArray(availabilityList)) {
     console.error("availabilityList should be an array");
@@ -442,12 +447,13 @@ function generateSlotsForWeek(
       : startDateLocal.clone();
 
   // Assign meeting links, addresses, and booked flags to slots
-  const { outputlist1, outputlist2, outputlist3, outputlist4 } = assignSlotInfo(
+  const { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 } = assignSlotInfo(
     outputlist7,
     firstSlotStart,
     availabilityList,
     alreadyBookedList,
-    userOffsetInSeconds
+    userOffsetInSeconds,
+    blockedByUserList,
   );
 
   // Determine global availability range and filter
@@ -497,6 +503,10 @@ function generateSlotsForWeek(
     "Generated outputlist7 (All Slots for Full Week):",
     JSON.stringify(outputlist7, null, 2)
   );
+  console.log(
+    "Generated outputlist8 (Blocked by user):",
+    JSON.stringify(outputlist8, null, 2)
+  );
 
   bubble_fn_hours({
     outputlist1,
@@ -504,8 +514,9 @@ function generateSlotsForWeek(
     outputlist3,
     outputlist4,
     outputlist5,
-    outputlist6, // If you no longer need it, remove it entirely
+    outputlist6, 
     outputlist7,
+    outputlist8,
   });
 }
 
@@ -655,13 +666,15 @@ function assignSlotInfo(
   startDateLocal,
   availabilityList,
   alreadyBookedList,
-  userOffsetInSeconds
+  userOffsetInSeconds,
+  blockedByUserList
 ) {
   const userOffsetInMinutes = userOffsetInSeconds / 60;
   const outputlist1 = [];
   const outputlist2 = [];
   const outputlist3 = [];
   const outputlist4 = [];
+  const outputlist8 = [];
 
   availabilityList.forEach((availability) => {
     const startDate = moment
@@ -690,8 +703,10 @@ function assignSlotInfo(
           Address: availability.Address,
           alreadyBooked: false,
           isModified: false,
+          blockedByUser: false, // Default value for blockedByUser
         };
 
+        // Check against already booked slots
         alreadyBookedList.forEach((bookedSlot) => {
           const bookedStart = moment
             .utc(bookedSlot.start_date)
@@ -711,16 +726,39 @@ function assignSlotInfo(
           }
         });
 
+        // Check against blocked by user slots
+        blockedByUserList.forEach((blockedSlot) => {
+          const blockedStart = moment
+            .utc(blockedSlot.start_date)
+            .utcOffset(userOffsetInMinutes);
+          const blockedEnd = moment
+            .utc(blockedSlot.end_date)
+            .utcOffset(userOffsetInMinutes);
+
+          if (
+            slotStart.isBetween(blockedStart, blockedEnd, null, "[)") ||
+            slotEnd.isBetween(blockedStart, blockedEnd, null, "(]") ||
+            (slotStart.isSame(blockedStart) && slotEnd.isSame(blockedEnd)) ||
+            (blockedStart.isBetween(slotStart, slotEnd, null, "[)") &&
+              blockedEnd.isBetween(slotStart, slotEnd, null, "(]"))
+          ) {
+            slotInfo.blockedByUser = true;
+          }
+        });
+
+        // Push slot info to the corresponding lists
         outputlist1.push(slotInfo.meetingLink);
         outputlist2.push(slotInfo.Address);
         outputlist3.push(slotInfo.alreadyBooked);
         outputlist4.push(slotInfo.isModified);
+        outputlist8.push(slotInfo.blockedByUser);
       }
     });
   });
 
-  return { outputlist1, outputlist2, outputlist3, outputlist4 };
+  return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 };
 }
+
 
 function filterSlotsByAvailabilityRange(
   allSlots,
