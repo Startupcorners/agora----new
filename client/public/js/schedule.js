@@ -480,33 +480,45 @@ function generateSlotsForWeek(
 
   console.log(
     "Generated outputlist1 (Meeting Links):",
-    JSON.stringify(outputlist1, null, 2)
+    JSON.stringify(outputlist1, null, 2),
+    `\nItem count: ${outputlist1.length}`
   );
   console.log(
     "Generated outputlist2 (Addresses):",
-    JSON.stringify(outputlist2, null, 2)
+    JSON.stringify(outputlist2, null, 2),
+    `\nItem count: ${outputlist2.length}`
   );
   console.log(
     "Generated outputlist3 (Already Booked):",
-    JSON.stringify(outputlist3, null, 2)
+    JSON.stringify(outputlist3, null, 2),
+    `\nItem count: ${outputlist3.length}`
   );
   console.log(
     "Generated outputlist4 (Modified Slots):",
-    JSON.stringify(outputlist4, null, 2)
+    JSON.stringify(outputlist4, null, 2),
+    `\nItem count: ${outputlist4.length}`
   );
   console.log(
     "Generated outputlist5 (Slots Within Availability Range):",
-    JSON.stringify(outputlist5, null, 2)
+    JSON.stringify(outputlist5, null, 2),
+    `\nItem count: ${outputlist5.length}`
   );
-  console.log("Generated outputlist6 :", JSON.stringify(outputlist6, null, 2));
+  console.log(
+    "Generated outputlist6 :",
+    JSON.stringify(outputlist6, null, 2),
+    `\nItem count: ${outputlist6.length}`
+  );
   console.log(
     "Generated outputlist7 (All Slots for Full Week):",
-    JSON.stringify(outputlist7, null, 2)
+    JSON.stringify(outputlist7, null, 2),
+    `\nItem count: ${outputlist7.length}`
   );
   console.log(
     "Generated outputlist8 (Blocked by user):",
-    JSON.stringify(outputlist8, null, 2)
+    JSON.stringify(outputlist8, null, 2),
+    `\nItem count: ${outputlist8.length}`
   );
+
 
   bubble_fn_hours({
     outputlist1,
