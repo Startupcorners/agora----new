@@ -569,7 +569,7 @@ function generateWeeklySlots(
 
   console.log(
     "Extended week start (local):",
-    startDateLocalextendedStartLocal.format()
+    extendedStartLocal.format()
   );
   console.log("Extended week end (local):", extendedEndLocal.format());
 
