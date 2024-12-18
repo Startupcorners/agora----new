@@ -688,6 +688,8 @@ function assignSlotInfo(
   blockedByUserList,
   modifiedSlots
 ) {
+
+    console.log("modifiedSlots", modifiedSlots);
   const userOffsetInMinutes = userOffsetInSeconds / 60;
   const outputlist1 = [];
   const outputlist2 = [];
@@ -781,7 +783,7 @@ function assignSlotInfo(
             (modifiedStart.isBetween(slotStart, slotEnd, null, "[)") &&
               modifiedEnd.isBetween(slotStart, slotEnd, null, "(]"))
           ) {
-            slotInfo.isModified = modifiedSlot.bubbleId || true; // Assign bubbleId or fallback to true
+            slotInfo.isModified = modifiedSlot.bubbleId // Assign bubbleId or fallback to true
           }
         });
 
