@@ -573,7 +573,7 @@ function generateWeeklySlots(
   );
   console.log("Extended week end (local):", extendedEndLocal.format());
 
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 8; i++) {
     const currentDayLocal = startDateLocal.clone().add(i, "days");
     console.log(`\nProcessing day ${i + 1}: ${currentDayLocal.format()}`);
 
