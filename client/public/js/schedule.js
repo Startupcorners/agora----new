@@ -563,10 +563,14 @@ function generateWeeklySlots(
   console.log("Slot duration (minutes):", slotDuration);
 
   // Determine the entire week's start and end in local time, plus one day before and after
+  const endDateLocal = startDateLocal.clone().add(7, "days").endOf("day");
   const extendedStartLocal = startDateLocal.clone().subtract(1, "day");
   const extendedEndLocal = startDateLocal.clone().add(7, "days").endOf("day");
 
-  console.log("Extended week start (local):", extendedStartLocal.format());
+  console.log(
+    "Extended week start (local):",
+    startDateLocalextendedStartLocal.format()
+  );
   console.log("Extended week end (local):", extendedEndLocal.format());
 
   for (let i = 0; i < 7; i++) {
@@ -621,8 +625,8 @@ function generateWeeklySlots(
     const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
     const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
     const isInExtendedRange =
-      slotStart.isSameOrAfter(extendedStartLocal) &&
-      slotEnd.isSameOrBefore(extendedEndLocal);
+      slotStart.isSameOrAfter(startDateLocal) &&
+      slotEnd.isSameOrBefore(endDateLocal);
     if (!isInExtendedRange) {
       console.log(
         "Excluding slot:",
