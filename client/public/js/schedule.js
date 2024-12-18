@@ -447,14 +447,16 @@ function generateSlotsForWeek(
       : startDateLocal.clone();
 
   // Assign meeting links, addresses, and booked flags to slots
-  const { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 } = assignSlotInfo(
-    outputlist7,
-    firstSlotStart,
-    availabilityList,
-    alreadyBookedList,
-    userOffsetInSeconds,
-    blockedByUserList,
-  );
+  const { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 } =
+    assignSlotInfo(
+      outputlist7,
+      firstSlotStart,
+      availabilityList,
+      alreadyBookedList,
+      userOffsetInSeconds,
+      blockedByUserList,
+      modifiedSlots,
+    );
 
   // Determine global availability range and filter
   const globalStartUTC = availabilityList.length
@@ -683,7 +685,8 @@ function assignSlotInfo(
   availabilityList,
   alreadyBookedList,
   userOffsetInSeconds,
-  blockedByUserList
+  blockedByUserList,
+  modifiedSlots
 ) {
   const userOffsetInMinutes = userOffsetInSeconds / 60;
   const outputlist1 = [];
@@ -718,7 +721,7 @@ function assignSlotInfo(
           meetingLink: availability.meetingLink,
           Address: availability.Address,
           alreadyBooked: false,
-          isModified: false,
+          isModified: false, // Default value for isModified
           blockedByUser: false, // Default value for blockedByUser
         };
 
@@ -762,6 +765,26 @@ function assignSlotInfo(
           }
         });
 
+        // Check against modified slots
+        modifiedSlots.forEach((modifiedSlot) => {
+          const modifiedStart = moment
+            .utc(modifiedSlot.start_date)
+            .utcOffset(userOffsetInMinutes);
+          const modifiedEnd = moment
+            .utc(modifiedSlot.end_date)
+            .utcOffset(userOffsetInMinutes);
+
+          if (
+            slotStart.isBetween(modifiedStart, modifiedEnd, null, "[)") ||
+            slotEnd.isBetween(modifiedStart, modifiedEnd, null, "(]") ||
+            (slotStart.isSame(modifiedStart) && slotEnd.isSame(modifiedEnd)) ||
+            (modifiedStart.isBetween(slotStart, slotEnd, null, "[)") &&
+              modifiedEnd.isBetween(slotStart, slotEnd, null, "(]"))
+          ) {
+            slotInfo.isModified = modifiedSlot.bubbleId || true; // Assign bubbleId or fallback to true
+          }
+        });
+
         // Push slot info to the corresponding lists
         outputlist1.push(slotInfo.meetingLink);
         outputlist2.push(slotInfo.Address);
@@ -774,6 +797,7 @@ function assignSlotInfo(
 
   return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 };
 }
+
 
 
 function filterSlotsByAvailabilityRange(
