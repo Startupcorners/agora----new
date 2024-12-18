@@ -723,7 +723,7 @@ function assignSlotInfo(
           meetingLink: availability.meetingLink,
           Address: availability.Address,
           alreadyBooked: false,
-          isModified: false, // Default value for isModified
+          isModified: null,
           blockedByUser: false, // Default value for blockedByUser
         };
 
