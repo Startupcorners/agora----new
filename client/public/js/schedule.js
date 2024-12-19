@@ -925,6 +925,8 @@ function findOverlappingTimeRanges(availabilities) {
     return [];
   }
 
+  console.log(availabilities);
+
   const userIds = [...new Set(availabilities.map((a) => a.userid))];
 
   // Single User Case: Return all bubbleids if only one user is present
