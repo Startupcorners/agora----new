@@ -925,6 +925,19 @@ function findOverlappingTimeRanges(availabilities) {
     return [];
   }
 
+  const userIds = [...new Set(availabilities.map((a) => a.userid))];
+
+  // Single User Case: Return all bubbleids if only one user is present
+  if (userIds.length === 1) {
+    console.log(
+      "All availabilities belong to a single user. Returning all bubbleids."
+    );
+    const bubbleIds = availabilities.map((a) => a.bubbleid);
+    bubble_fn_overlapAvailabilities(bubbleIds);
+    return bubbleIds;
+  }
+
+  // Multiple Users Case
   const overlappingBubbleIds = new Set();
 
   // Compare each availability with all others
@@ -933,8 +946,15 @@ function findOverlappingTimeRanges(availabilities) {
     const start1 = moment.utc(availability1.start_date);
     const end1 = moment.utc(availability1.end_date);
 
-    const dailyStart1 = moment.utc(start1.format("YYYY-MM-DD") + "T" + availability1.daily_start_time + ":00Z");
-    const dailyEnd1 = moment.utc(start1.format("YYYY-MM-DD") + "T" + availability1.daily_end_time + ":00Z");
+    const dailyStart1 = moment.utc(
+      start1.format("YYYY-MM-DD") +
+        "T" +
+        availability1.daily_start_time +
+        ":00Z"
+    );
+    const dailyEnd1 = moment.utc(
+      start1.format("YYYY-MM-DD") + "T" + availability1.daily_end_time + ":00Z"
+    );
 
     // Adjust for crossing midnight
     if (dailyEnd1.isBefore(dailyStart1)) {
@@ -943,37 +963,58 @@ function findOverlappingTimeRanges(availabilities) {
 
     for (let j = i + 1; j < availabilities.length; j++) {
       const availability2 = availabilities[j];
-      const start2 = moment.utc(availability2.start_date);
-      const end2 = moment.utc(availability2.end_date);
 
-      const dailyStart2 = moment.utc(start2.format("YYYY-MM-DD") + "T" + availability2.daily_start_time + ":00Z");
-      const dailyEnd2 = moment.utc(start2.format("YYYY-MM-DD") + "T" + availability2.daily_end_time + ":00Z");
+      // Ensure we're only comparing availabilities of different users
+      if (availability1.userid !== availability2.userid) {
+        const start2 = moment.utc(availability2.start_date);
+        const end2 = moment.utc(availability2.end_date);
 
-      // Adjust for crossing midnight
-      if (dailyEnd2.isBefore(dailyStart2)) {
-        dailyEnd2.add(1, "day");
-      }
-
-      // Check if availability1 overlaps with its daily range
-      const isInRange1 = start1.isBefore(dailyEnd1) && end1.isAfter(dailyStart1);
-
-      // Check if availability2 overlaps with its daily range
-      const isInRange2 = start2.isBefore(dailyEnd2) && end2.isAfter(dailyStart2);
-
-      // Check if the filtered ranges overlap
-      const isOverlapping = isInRange1 && isInRange2 && start1.isBefore(end2) && start2.isBefore(end1);
-
-      if (isOverlapping) {
-        console.log(
-          `Overlap found between Bubble IDs ${availability1.bubbleid} and ${availability2.bubbleid}`
+        const dailyStart2 = moment.utc(
+          start2.format("YYYY-MM-DD") +
+            "T" +
+            availability2.daily_start_time +
+            ":00Z"
         );
-        overlappingBubbleIds.add(availability1.bubbleid);
-        overlappingBubbleIds.add(availability2.bubbleid);
+        const dailyEnd2 = moment.utc(
+          start2.format("YYYY-MM-DD") +
+            "T" +
+            availability2.daily_end_time +
+            ":00Z"
+        );
+
+        // Adjust for crossing midnight
+        if (dailyEnd2.isBefore(dailyStart2)) {
+          dailyEnd2.add(1, "day");
+        }
+
+        // Check if availability1 overlaps with its daily range
+        const isInRange1 =
+          start1.isBefore(dailyEnd1) && end1.isAfter(dailyStart1);
+
+        // Check if availability2 overlaps with its daily range
+        const isInRange2 =
+          start2.isBefore(dailyEnd2) && end2.isAfter(dailyStart2);
+
+        // Check if the filtered ranges overlap
+        const isOverlapping =
+          isInRange1 &&
+          isInRange2 &&
+          start1.isBefore(end2) &&
+          start2.isBefore(end1);
+
+        if (isOverlapping) {
+          console.log(
+            `Overlap found between Bubble IDs ${availability1.bubbleid} and ${availability2.bubbleid}`
+          );
+          overlappingBubbleIds.add(availability1.bubbleid);
+          overlappingBubbleIds.add(availability2.bubbleid);
+        }
       }
     }
   }
-    bubble_fn_overlapAvailabilities(overlappingBubbleIds);
+  bubble_fn_overlapAvailabilities(overlappingBubbleIdsArray);
 }
+
 
 
 
