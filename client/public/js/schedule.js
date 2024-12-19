@@ -1012,6 +1012,7 @@ function findOverlappingTimeRanges(availabilities) {
       }
     }
   }
+  const overlappingBubbleIdsArray = Array.from(overlappingBubbleIds);
   bubble_fn_overlapAvailabilities(overlappingBubbleIdsArray);
 }
 
