@@ -919,6 +919,10 @@ export const schedule = async function () {
 
 
 function findOverlappingTimeRanges(availabilities) {
+    console.log(
+      "Received Avavailabilities",
+      availabilities
+    );
   // Validate input
   if (!Array.isArray(availabilities)) {
     console.error("Invalid input: availabilities should be an array.");
