@@ -1004,7 +1004,12 @@ function findOverlappingTimeRanges(availabilities) {
   // Convert sets to arrays
   const overlappingUserIdsArray = Array.from(overlappingUserIds);
 
-  console.log("Final iteration completed. Sending results to Bubble.");
+  console.log(
+    "Final iteration completed. Sending results to Bubble.",
+    overlappingBubbleIdsArray,
+    overlappingUserIdsArray,
+    nonOverlappingUserIds
+  );
 
   // Send to bubble in a similar format as requested
   bubble_fn_overlapAvailabilities({
