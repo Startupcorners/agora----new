@@ -521,7 +521,6 @@ export const schedule = async function () {
 
     if (iteration === 1) {
       console.log("First iteration detected. Storing baseline outputs.");
-      // Store baseline results for later iterations
       baselineOutput1 = [...outputlist1];
       baselineOutput2 = [...outputlist2];
       baselineOutput3 = [...outputlist3];
@@ -552,9 +551,28 @@ export const schedule = async function () {
       }
     } else {
       console.log(
-        `Processing iteration ${iteration} and filtering baseline outputs.`
+        `Processing iteration ${iteration} and filtering baseline outputs, considering booked slots.`
       );
-      const currentSlots = new Set(outputlist5.map((slot) => slot.join("|")));
+      const currentSlots = new Set(
+        outputlist5
+          .filter((slot) => {
+            // Exclude slots already booked
+            return !alreadyBookedList.some((booked) => {
+              const bookedStart = moment.utc(booked.start_date);
+              const bookedEnd = moment.utc(booked.end_date);
+              const slotStart = moment.utc(slot[0]);
+              const slotEnd = moment.utc(slot[1]);
+
+              return (
+                slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
+                slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
+                bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
+                bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
+              );
+            });
+          })
+          .map((slot) => slot.join("|"))
+      );
 
       const newBaselineIndices = [];
       baselineOutput5.forEach((slot, index) => {
@@ -598,6 +616,7 @@ export const schedule = async function () {
     console.log("======== Function End ========");
     bubble_fn_ready();
   }
+
 
 
   function generateDayBoundaries(startDateLocal) {
