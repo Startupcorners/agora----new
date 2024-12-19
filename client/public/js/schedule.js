@@ -384,12 +384,12 @@ export const schedule = async function () {
     offset = 0,
     userOffsetInSeconds = 0,
     blockedByUserList,
-    userids,
+    availabilityids,
     iteration
   ) {
     console.log("======== Function Start ========");
     console.log("Received iteration:", iteration);
-    console.log("User IDs count:", userids.length);
+    console.log("User IDs count:", availabilityids.length);
 
     const userOffsetInMinutes = userOffsetInSeconds / 60;
 
@@ -530,12 +530,9 @@ export const schedule = async function () {
       baselineOutput7 = [...outputlist7];
       baselineOutput8 = [...outputlist8];
 
-      if (iteration < userids.length) {
+      if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
-        bubble_fn_next({
-          userids,
-          iteration: iteration + 1,
-        });
+        bubble_fn_next(iteration + 1);
       } else {
         console.log("Only one user detected. Sending final results to Bubble.");
         bubble_fn_hours({
@@ -592,12 +589,9 @@ export const schedule = async function () {
       baselineOutput7 = newBaselineIndices.map((i) => baselineOutput7[i]);
       baselineOutput8 = newBaselineIndices.map((i) => baselineOutput8[i]);
 
-      if (iteration < userids.length) {
+      if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
-        bubble_fn_next({
-          userids,
-          iteration: iteration + 1,
-        });
+        bubble_fn_next(iteration + 1);
       } else {
         console.log("Final iteration completed. Sending results to Bubble.");
         bubble_fn_hours({
