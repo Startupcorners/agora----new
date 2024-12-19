@@ -592,11 +592,11 @@ export const schedule = async function () {
           outputlist7: baselineOutput7,
           outputlist8: baselineOutput8,
         });
-        bubble_fn_ready();
       }
     }
 
     console.log("======== Function End ========");
+    bubble_fn_ready();
   }
 
 
