@@ -918,11 +918,9 @@ export const schedule = async function () {
 
 
 
-function findOverlappingTimeRanges(availabilities) {
-    console.log(
-      "Received Avavailabilities",
-      availabilities
-    );
+function findOverlappingTimeRanges(availabilities, userids) {
+  console.log("Received Availabilities:", availabilities);
+
   // Validate input
   if (!Array.isArray(availabilities)) {
     console.error("Invalid input: availabilities should be an array.");
@@ -1000,9 +998,17 @@ function findOverlappingTimeRanges(availabilities) {
     overlappingBubbleIdsArray.map((bid) => bubbleToUser[bid])
   );
 
-  // Determine user IDs that do not overlap
+  // Determine user IDs that do not overlap (among those who had availabilities)
   const nonOverlappingUserIds = Array.from(allUserIds).filter(
     (uid) => !overlappingUserIds.has(uid)
+  );
+
+  // Find user IDs that have no availabilities at all
+  const noAvailabilityUserIds = userids.filter((uid) => !allUserIds.has(uid));
+
+  // Combine non-overlapping with no-availability user IDs
+  const finalNonOverlappingUserIds = nonOverlappingUserIds.concat(
+    noAvailabilityUserIds
   );
 
   // Convert sets to arrays
@@ -1012,18 +1018,19 @@ function findOverlappingTimeRanges(availabilities) {
     "Final iteration completed. Sending results to Bubble.",
     overlappingBubbleIdsArray,
     overlappingUserIdsArray,
-    nonOverlappingUserIds
+    finalNonOverlappingUserIds
   );
 
   // Send to bubble in a similar format as requested
   bubble_fn_overlapAvailabilities({
     outputlist1: overlappingBubbleIdsArray,
     outputlist2: overlappingUserIdsArray,
-    outputlist3: nonOverlappingUserIds,
+    outputlist3: finalNonOverlappingUserIds,
   });
 
   return overlappingBubbleIdsArray;
 }
+
 
 
 
