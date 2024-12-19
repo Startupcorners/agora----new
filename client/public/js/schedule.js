@@ -925,6 +925,18 @@ function findOverlappingTimeRanges(availabilities) {
     return [];
   }
 
+  // Map bubbleids to userids
+  const bubbleToUser = {};
+  const allUserIds = new Set();
+  for (const a of availabilities) {
+    if (!a.bubbleid || !a.userid) {
+      console.error("Invalid availability object: missing bubbleid or userid.");
+      return [];
+    }
+    bubbleToUser[a.bubbleid] = a.userid;
+    allUserIds.add(a.userid);
+  }
+
   const overlappingBubbleIds = new Set();
 
   // Compare each availability with all others
@@ -978,9 +990,32 @@ function findOverlappingTimeRanges(availabilities) {
   }
 
   const overlappingBubbleIdsArray = Array.from(overlappingBubbleIds);
-  bubble_fn_overlapAvailabilities(overlappingBubbleIdsArray);
+
+  // Determine which user IDs overlap
+  const overlappingUserIds = new Set(
+    overlappingBubbleIdsArray.map((bid) => bubbleToUser[bid])
+  );
+
+  // Determine user IDs that do not overlap
+  const nonOverlappingUserIds = Array.from(allUserIds).filter(
+    (uid) => !overlappingUserIds.has(uid)
+  );
+
+  // Convert sets to arrays
+  const overlappingUserIdsArray = Array.from(overlappingUserIds);
+
+  console.log("Final iteration completed. Sending results to Bubble.");
+
+  // Send to bubble in a similar format as requested
+  bubble_fn_overlapAvailabilities({
+    outputlist1: overlappingBubbleIdsArray,
+    outputlist2: overlappingUserIdsArray,
+    outputlist3: nonOverlappingUserIds,
+  });
+
   return overlappingBubbleIdsArray;
 }
+
 
 
 
