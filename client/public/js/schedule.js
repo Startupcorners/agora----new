@@ -120,319 +120,238 @@ export const schedule = async function () {
   let baselineOutput8 = [];
   let baselineOutput9 = [];
 
-  function generateSlotsForWeek(
-    availabilityList,
+function generateSlotsForWeek(
+  availabilityList,
+  viewerStartDate,
+  alreadyBookedList,
+  modifiedSlots,
+  offset = 0,
+  userOffsetInSeconds = 0,
+  blockedByUserList,
+  availabilityids,
+  iteration
+) {
+  // Early exit for invalid viewerStartDate
+  const startDateLocal = calculateStartDate(
     viewerStartDate,
-    alreadyBookedList,
-    modifiedSlots,
-    offset = 0,
-    userOffsetInSeconds = 0,
-    blockedByUserList,
-    availabilityids,
-    iteration
-  ) {
-    console.log("======== Function Start ========");
-    console.log("Received iteration:", iteration);
-    console.log("User IDs count:", availabilityids.length);
+    userOffsetInSeconds,
+    offset
+  );
+  if (!startDateLocal) return emptyOutput();
 
-    const userOffsetInMinutes = userOffsetInSeconds / 60;
-
-    console.log("User offset (in seconds):", userOffsetInSeconds);
-    console.log("User offset (in minutes):", userOffsetInMinutes);
-
-    const startDateLocal = moment
-      .utc(viewerStartDate)
-      .utcOffset(userOffsetInMinutes)
-      .startOf("day")
-      .add(offset * 7, "days");
-
-    console.log("Start date local:", startDateLocal.format());
-
-    if (!startDateLocal.isValid()) {
-      console.error("Invalid viewerStartDate:", viewerStartDate);
-      return emptyOutput();
-    }
-
-    let baseDailyStart = null;
-    let baseDailyEnd = null;
-    let baseSlotDuration = null;
-
-    if (availabilityList.length > 0) {
-      const firstAvailability = availabilityList[0];
-      baseDailyStart = firstAvailability.daily_start_time;
-      baseDailyEnd = firstAvailability.daily_end_time;
-      baseSlotDuration = firstAvailability.slot_duration_minutes;
-
-      console.log("Base daily start time:", baseDailyStart);
-      console.log("Base daily end time:", baseDailyEnd);
-      console.log("Base slot duration (minutes):", baseSlotDuration);
-    } else {
-      console.log("Availability list is empty.");
-    }
-
-    if (!baseDailyStart || !baseDailyEnd || !baseSlotDuration) {
-      console.log("No baseline availability found. Exiting function.");
-      return emptyOutput();
-    }
-
-    const outputlist6 = generateDayBoundaries(startDateLocal);
-    console.log(
-      "Generated outputlist6 (Day Boundaries):",
-      JSON.stringify(outputlist6, null, 2)
-    );
-
-    const outputlist7 = generateWeeklySlots(
-      startDateLocal,
-      baseDailyStart,
-      baseDailyEnd,
-      baseSlotDuration,
-      userOffsetInSeconds
-    );
-
-    console.log(
-      "Generated outputlist7 (All Weekly Slots):",
-      JSON.stringify(outputlist7, null, 2)
-    );
-
-    const firstSlotStart =
-      outputlist7.length > 0
-        ? moment.utc(outputlist7[0][0]).utcOffset(userOffsetInMinutes)
-        : startDateLocal.clone();
-
-    console.log("First slot start time (local):", firstSlotStart.format());
-
-    let {
-      outputlist1,
-      outputlist2,
-      outputlist3,
-      outputlist4,
-      outputlist8,
-      outputlist9,
-    } = assignSlotInfo(
-      outputlist7,
-      firstSlotStart,
+  if (iteration === 1) {
+    // First iteration: Generate baselines and all outputs
+    const baselineData = initializeBaselines(
       availabilityList,
-      alreadyBookedList,
+      startDateLocal,
       userOffsetInSeconds,
+      alreadyBookedList,
       blockedByUserList,
       modifiedSlots
     );
-
-    const globalStartUTC = availabilityList.length
-      ? moment.min(availabilityList.map((a) => moment.utc(a.start_date)))
-      : null;
-    const globalEndUTC = availabilityList.length
-      ? moment.max(availabilityList.map((a) => moment.utc(a.end_date)))
-      : null;
-
-    console.log("Global availability range UTC:");
-    console.log("  Start:", globalStartUTC ? globalStartUTC.format() : "null");
-    console.log("  End:", globalEndUTC ? globalEndUTC.format() : "null");
-
-    const globalStart = globalStartUTC
-      ? globalStartUTC.clone().utcOffset(userOffsetInMinutes)
-      : null;
-    const globalEnd = globalEndUTC
-      ? globalEndUTC.clone().utcOffset(userOffsetInMinutes)
-      : null;
-
-    const outputlist5 = filterSlotsByAvailabilityRange(
-      outputlist7,
-      globalStart,
-      globalEnd,
-      userOffsetInSeconds
-    );
-
-    console.log(
-      "Filtered outputlist5 (Slots Within Availability Range):",
-      JSON.stringify(outputlist5, null, 2)
-    );
-
-    if (iteration === 1) {
-      console.log("First iteration detected. Storing baseline outputs.");
-      baselineOutput1 = [...outputlist1];
-      baselineOutput2 = [...outputlist2];
-      baselineOutput3 = [...outputlist3];
-      baselineOutput4 = [...outputlist4];
-      baselineOutput5 = [...outputlist5];
-      baselineOutput6 = [...outputlist6];
-      baselineOutput7 = [...outputlist7];
-      baselineOutput8 = [...outputlist8];
-      baselineOutput9 = [...outputlist9];
-
-      if (iteration < availabilityids.length) {
-        console.log("Moving to next iteration:", iteration + 1);
-        bubble_fn_next(iteration + 1);
-      } else {
-        console.log("Only one user detected. Sending final results to Bubble.");
-        bubble_fn_hours({
-          outputlist1,
-          outputlist2,
-          outputlist3,
-          outputlist4,
-          outputlist5,
-          outputlist6,
-          outputlist7,
-          outputlist8,
-          outputlist9,
-        });
-
-        console.log(
-          "Generated outputlist1 (Meeting Links):",
-          JSON.stringify(outputlist1, null, 2)
-        );
-        console.log(
-          "Generated outputlist2 (Addresses):",
-          JSON.stringify(outputlist2, null, 2)
-        );
-        console.log("Generated outputlist3 (Already Booked):", outputlist3);
-        console.log(
-          "Generated outputlist4 (Modified Slots):",
-          JSON.stringify(outputlist4, null, 2)
-        );
-        console.log(
-          "Generated outputlist8 (Blocked by User):",
-          JSON.stringify(outputlist8, null, 2)
-        );
-        console.log(
-          "Generated outputlist9 (isStartupCorners):",
-          JSON.stringify(outputlist9, null, 2)
-        );
-      }
+    if (iteration < availabilityids.length) {
+      bubble_fn_next(iteration + 1);
     } else {
-      console.log(
-        `Processing iteration ${iteration} and updating baseline outputs, reflecting booked slots.`
-      );
-
-      // Map to store current booked slots
-      const currentSlotsMap = {};
-      outputlist7.forEach((slot) => {
-        const slotKey = slot.join("|");
-
-        // Find all booked entries for this slot
-        const bookedEntries = alreadyBookedList.filter((booked) => {
-          const bookedStart = moment.utc(booked.start_date);
-          const bookedEnd = moment.utc(booked.end_date);
-          const slotStart = moment.utc(slot[0]);
-          const slotEnd = moment.utc(slot[1]);
-
-          return (
-            slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
-            slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
-            bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
-            bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
-          );
-        });
-
-        const bookedBubbleIds = bookedEntries.map((entry) => entry.bubbleId);
-        currentSlotsMap[slotKey] = { slot, bookedBubbleIds };
-      });
-
-      // Update baseline outputs without reducing slot count
-      // Debugging: Verify alignment between outputlist7 and currentSlotsMap
-      console.log(`Iteration ${iteration} - Starting baselineOutput3 update`);
-      outputlist7.forEach((slot, index) => {
-        const slotKey = slot.join("|");
-        console.log(`Index ${index} - SlotKey: ${slotKey}`);
-        if (!currentSlotsMap[slotKey]) {
-          console.error(`Missing SlotKey in currentSlotsMap: ${slotKey}`);
-        }
-      });
-
-      // Update baselineOutput3
-      outputlist7.forEach((slot, index) => {
-        const slotKey = slot.join("|");
-        const entry = currentSlotsMap[slotKey];
-
-        if (entry) {
-          if (entry.bookedBubbleIds.length > 0) {
-            let currentVal = baselineOutput3[index] || "";
-            let currentIds = currentVal ? currentVal.split("_") : [];
-            entry.bookedBubbleIds.forEach((bid) => {
-              if (!currentIds.includes(bid)) {
-                currentIds.push(bid);
-              }
-            });
-            baselineOutput3[index] = currentIds.length
-              ? currentIds.join("_")
-              : null;
-          }
-        }
-      });
-
-      console.log(
-        `Iteration ${iteration} - Updated baselineOutput3:`,
-        baselineOutput3
-      );
-
-      // Ensure all outputs maintain the full set of weekly slots
-      baselineOutput1 = [...outputlist1]; // Meeting links
-      baselineOutput2 = [...outputlist2]; // Addresses
-      baselineOutput3 = [...baselineOutput3]; // Already booked
-      baselineOutput4 = [...outputlist4]; // Modified slots
-      baselineOutput5 = filterSlotsByAvailabilityRange(
-        outputlist7,
-        globalStart,
-        globalEnd,
-        userOffsetInSeconds
-      ); // Filtered by availability
-      baselineOutput6 = [...outputlist6]; // Day boundaries
-      baselineOutput7 = [...outputlist7]; // All weekly slots
-      baselineOutput8 = [...outputlist8]; // Blocked by user
-      baselineOutput9 = [...outputlist9]; // isStartupCorners
-
-      if (iteration < availabilityids.length) {
-        console.log("Moving to next iteration:", iteration + 1);
-        bubble_fn_next(iteration + 1);
-      } else {
-        console.log("Final iteration completed. Sending results to Bubble.");
-        bubble_fn_hours({
-          outputlist1: baselineOutput1,
-          outputlist2: baselineOutput2,
-          outputlist3: baselineOutput3,
-          outputlist4: baselineOutput4,
-          outputlist5: baselineOutput5, // Only filtered list
-          outputlist6: baselineOutput6,
-          outputlist7: baselineOutput7,
-          outputlist8: baselineOutput8,
-          outputlist9: baselineOutput9,
-        });
-
-        console.log(
-          "Generated outputlist1 (Meeting Links):",
-          JSON.stringify(outputlist1, null, 2)
-        );
-        console.log(
-          "Generated outputlist2 (Addresses):",
-          JSON.stringify(outputlist2, null, 2)
-        );
-        console.log("Generated outputlist3 (Already Booked):", outputlist3);
-        console.log(
-          "Generated outputlist4 (Modified Slots):",
-          JSON.stringify(outputlist4, null, 2)
-        );
-        console.log(
-          "Generated outputlist5 (Filtered Slots):",
-          JSON.stringify(outputlist5, null, 2)
-        );
-        console.log(
-          "Generated outputlist8 (Blocked by User):",
-          JSON.stringify(outputlist8, null, 2)
-        );
-        console.log(
-          "Generated outputlist7 (All Weekly Slots):",
-          JSON.stringify(outputlist7, null, 2)
-        );
-      }
+      sendFinalOutputs(baselineData);
     }
-
-
-    console.log("======== Function End ========");
-    // Add a 3-second delay before calling bubble_fn_ready
-    setTimeout(() => {
-      bubble_fn_ready();
-    }, 3000);
+  } else {
+    // Update only baselineOutput3 for iterations > 1
+    updateBaselineOutput3(baselineOutput3, baselineOutput7, alreadyBookedList);
+    if (iteration < availabilityids.length) {
+      bubble_fn_next(iteration + 1);
+    } else {
+      sendFinalOutputs({
+        outputlist1: baselineOutput1,
+        outputlist2: baselineOutput2,
+        outputlist3: baselineOutput3,
+        outputlist4: baselineOutput4,
+        outputlist5: baselineOutput5,
+        outputlist6: baselineOutput6,
+        outputlist7: baselineOutput7,
+        outputlist8: baselineOutput8,
+        outputlist9: baselineOutput9,
+      });
+    }
   }
+
+  setTimeout(() => bubble_fn_ready(), 3000);
+}
+
+function calculateStartDate(viewerStartDate, userOffsetInSeconds, offset) {
+  const userOffsetInMinutes = userOffsetInSeconds / 60;
+  const startDateLocal = moment
+    .utc(viewerStartDate)
+    .utcOffset(userOffsetInMinutes)
+    .startOf("day")
+    .add(offset * 7, "days");
+  return startDateLocal.isValid() ? startDateLocal : null;
+}
+
+function initializeBaselines(
+  availabilityList,
+  startDateLocal,
+  userOffsetInSeconds,
+  alreadyBookedList,
+  blockedByUserList,
+  modifiedSlots
+) {
+  if (!availabilityList.length) return emptyOutput();
+
+  const { dailyStart, dailyEnd, slotDuration } =
+    getAvailabilityDetails(availabilityList);
+  if (!dailyStart || !dailyEnd || !slotDuration) return emptyOutput();
+
+  const outputlist6 = generateDayBoundaries(startDateLocal);
+  const outputlist7 = generateWeeklySlots(
+    startDateLocal,
+    dailyStart,
+    dailyEnd,
+    slotDuration,
+    userOffsetInSeconds
+  );
+
+  const firstSlotStart = outputlist7.length
+    ? moment.utc(outputlist7[0][0]).utcOffset(userOffsetInSeconds / 60)
+    : startDateLocal.clone();
+
+  const assignedOutputs = assignSlotInfo(
+    outputlist7,
+    firstSlotStart,
+    availabilityList,
+    alreadyBookedList,
+    userOffsetInSeconds,
+    blockedByUserList,
+    modifiedSlots
+  );
+
+  const {
+    outputlist1,
+    outputlist2,
+    outputlist3,
+    outputlist4,
+    outputlist8,
+    outputlist9,
+  } = assignedOutputs;
+
+  const outputlist5 = filterSlotsByAvailabilityRange(
+    outputlist7,
+    calculateGlobalRange(availabilityList, userOffsetInSeconds)
+  );
+
+  // Save baselines
+  baselineOutput1 = [...outputlist1];
+  baselineOutput2 = [...outputlist2];
+  baselineOutput3 = [...outputlist3];
+  baselineOutput4 = [...outputlist4];
+  baselineOutput5 = [...outputlist5];
+  baselineOutput6 = [...outputlist6];
+  baselineOutput7 = [...outputlist7];
+  baselineOutput8 = [...outputlist8];
+  baselineOutput9 = [...outputlist9];
+
+  return {
+    outputlist1,
+    outputlist2,
+    outputlist3,
+    outputlist4,
+    outputlist5,
+    outputlist6,
+    outputlist7,
+    outputlist8,
+    outputlist9,
+  };
+}
+
+function getAvailabilityDetails(availabilityList) {
+  const firstAvailability = availabilityList[0];
+  return {
+    dailyStart: firstAvailability.daily_start_time,
+    dailyEnd: firstAvailability.daily_end_time,
+    slotDuration: firstAvailability.slot_duration_minutes,
+  };
+}
+
+function calculateGlobalRange(availabilityList, userOffsetInSeconds) {
+  const globalStartUTC = moment.min(
+    availabilityList.map((a) => moment.utc(a.start_date))
+  );
+  const globalEndUTC = moment.max(
+    availabilityList.map((a) => moment.utc(a.end_date))
+  );
+  const userOffsetInMinutes = userOffsetInSeconds / 60;
+  return {
+    start: globalStartUTC
+      ? globalStartUTC.clone().utcOffset(userOffsetInMinutes)
+      : null,
+    end: globalEndUTC
+      ? globalEndUTC.clone().utcOffset(userOffsetInMinutes)
+      : null,
+  };
+}
+
+function updateBaselineOutput3(
+  baselineOutput3,
+  baselineOutput7,
+  alreadyBookedList
+) {
+  const currentSlotsMap = {};
+  baselineOutput7.forEach((slot) => {
+    const slotKey = slot.join("|");
+    const bookedEntries = alreadyBookedList.filter((booked) => {
+      const bookedStart = moment.utc(booked.start_date);
+      const bookedEnd = moment.utc(booked.end_date);
+      const slotStart = moment.utc(slot[0]);
+      const slotEnd = moment.utc(slot[1]);
+      return (
+        slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
+        slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
+        bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
+        bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
+      );
+    });
+    currentSlotsMap[slotKey] = bookedEntries.map((entry) => entry.bubbleId);
+  });
+
+  baselineOutput7.forEach((slot, index) => {
+    const slotKey = slot.join("|");
+    const bookedBubbleIds = currentSlotsMap[slotKey] || [];
+    const currentIds = baselineOutput3[index]?.split("_") || [];
+    const updatedIds = [...new Set([...currentIds, ...bookedBubbleIds])];
+    baselineOutput3[index] = updatedIds.length ? updatedIds.join("_") : null;
+  });
+}
+
+function sendFinalOutputs(data) {
+  bubble_fn_hours(data);
+  logFinalOutputs(data);
+}
+
+
+
+function logFinalOutputs({
+  outputlist1,
+  outputlist2,
+  outputlist3,
+  outputlist4,
+  outputlist5,
+  outputlist6,
+  outputlist7,
+  outputlist8,
+  outputlist9,
+}) {
+  console.log("Final Outputs:");
+  console.log("outputlist1 (Meeting Links):", outputlist1);
+  console.log("outputlist2 (Addresses):", outputlist2);
+  console.log("outputlist3 (Already Booked):", outputlist3);
+  console.log("outputlist4 (Modified Slots):", outputlist4);
+  console.log("outputlist5 (Filtered Slots):", outputlist5);
+  console.log("outputlist6 (Day Boundaries):", outputlist6);
+  console.log("outputlist7 (All Weekly Slots):", outputlist7);
+  console.log("outputlist8 (Blocked by User):", outputlist8);
+  console.log("outputlist9 (isStartupCorners):", outputlist9);
+}
+
+
 
 
 
@@ -581,139 +500,117 @@ export const schedule = async function () {
     return result;
   }
 
-  function assignSlotInfo(
-    outputlist7,
-    startDateLocal,
-    availabilityList,
-    alreadyBookedList,
-    userOffsetInSeconds,
-    blockedByUserList,
-    modifiedSlots
-  ) {
-    console.log("modifiedSlots", modifiedSlots);
-    const userOffsetInMinutes = userOffsetInSeconds / 60;
-    const outputlist1 = [];
-    const outputlist2 = [];
-    const outputlist3 = [];
-    const outputlist4 = [];
-    const outputlist8 = [];
-    const outputlist9 = [];
+function assignSlotInfo(
+  outputlist7,
+  startDateLocal,
+  availabilityList,
+  alreadyBookedList,
+  userOffsetInSeconds,
+  blockedByUserList,
+  modifiedSlots
+) {
+  const userOffsetInMinutes = userOffsetInSeconds / 60;
+  const outputlist1 = [];
+  const outputlist2 = [];
+  const outputlist3 = [];
+  const outputlist4 = [];
+  const outputlist8 = [];
+  const outputlist9 = [];
 
+  // Helper function to check if a slot overlaps with a range
+  const doesOverlap = (slotStart, slotEnd, rangeStart, rangeEnd) => {
+    return (
+      slotStart.isBetween(rangeStart, rangeEnd, null, "[)") ||
+      slotEnd.isBetween(rangeStart, rangeEnd, null, "(]") ||
+      (rangeStart.isBetween(slotStart, slotEnd, null, "[)") &&
+        rangeEnd.isBetween(slotStart, slotEnd, null, "(]")) ||
+      (slotStart.isSame(rangeStart) && slotEnd.isSame(rangeEnd))
+    );
+  };
+
+  // Process each slot
+  outputlist7.forEach((slotRange) => {
+    const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
+    const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
+
+    // Process each availability
     availabilityList.forEach((availability) => {
-      const startDate = moment
+      const availabilityStart = moment
         .utc(availability.start_date)
         .utcOffset(userOffsetInMinutes)
         .startOf("day");
-      const endDate = moment
+      const availabilityEnd = moment
         .utc(availability.end_date)
         .utcOffset(userOffsetInMinutes)
         .endOf("day");
 
-      outputlist7.forEach((slotRange) => {
-        const slotStart = moment
-          .utc(slotRange[0])
-          .utcOffset(userOffsetInMinutes);
-        const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
-        const includesCurrentDayLocal = slotStart.isBetween(
-          startDate,
-          endDate,
-          null,
-          "[]"
-        );
+      // Check if slot is within the current availability range
+      if (slotStart.isBetween(availabilityStart, availabilityEnd, null, "[]")) {
+        let slotInfo = {
+          slotTimeRange: slotRange,
+          meetingLink: availability.meetingLink,
+          Address: availability.Address,
+          alreadyBooked: null,
+          isModified: null,
+          blockedByUser: false,
+          isStartupCorners: availability.isStartupCorners,
+        };
 
-        if (includesCurrentDayLocal) {
-          let slotInfo = {
-            slotTimeRange: slotRange,
-            meetingLink: availability.meetingLink,
-            Address: availability.Address,
-            alreadyBooked: null,
-            isModified: null,
-            blockedByUser: false,
-            isStartupCorners: availability.isStartupCorners,
-          };
-
-          // Collect bubbleIds for overlapping booked slots
-          const bookedBubbleIds = [];
-          alreadyBookedList.forEach((bookedSlot) => {
+        // Collect overlapping booked slots
+        slotInfo.alreadyBooked = alreadyBookedList
+          .filter((bookedSlot) => {
             const bookedStart = moment
               .utc(bookedSlot.start_date)
               .utcOffset(userOffsetInMinutes);
             const bookedEnd = moment
               .utc(bookedSlot.end_date)
               .utcOffset(userOffsetInMinutes);
+            return doesOverlap(slotStart, slotEnd, bookedStart, bookedEnd);
+          })
+          .map((bookedSlot) => bookedSlot.bubbleId)
+          .join("_") || null;
 
-            if (
-              slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
-              slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
-              (slotStart.isSame(bookedStart) && slotEnd.isSame(bookedEnd)) ||
-              (bookedStart.isBetween(slotStart, slotEnd, null, "[)") &&
-                bookedEnd.isBetween(slotStart, slotEnd, null, "(]"))
-            ) {
-              bookedBubbleIds.push(bookedSlot.bubbleId);
-            }
-          });
+        // Check if blocked by user
+        slotInfo.blockedByUser = blockedByUserList.some((blockedSlot) => {
+          const blockedStart = moment
+            .utc(blockedSlot.start_date)
+            .utcOffset(userOffsetInMinutes);
+          const blockedEnd = moment
+            .utc(blockedSlot.end_date)
+            .utcOffset(userOffsetInMinutes);
+          return doesOverlap(slotStart, slotEnd, blockedStart, blockedEnd);
+        });
 
-          // Assign concatenated bubbleIds or null
-          slotInfo.alreadyBooked =
-            bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
+        // Check if modified
+        modifiedSlots.forEach((modifiedSlot) => {
+          const modifiedStart = moment
+            .utc(modifiedSlot.start_date)
+            .utcOffset(userOffsetInMinutes);
+          const modifiedEnd = moment
+            .utc(modifiedSlot.end_date)
+            .utcOffset(userOffsetInMinutes);
+          if (doesOverlap(slotStart, slotEnd, modifiedStart, modifiedEnd)) {
+            slotInfo.isModified = modifiedSlot.bubbleId;
+            slotInfo.meetingLink = modifiedSlot.meetingLink;
+            slotInfo.Address = modifiedSlot.Address;
+            slotInfo.isStartupCorners = modifiedSlot.isStartupcorners;
+          }
+        });
 
-          // Check against blocked by user slots
-          blockedByUserList.forEach((blockedSlot) => {
-            const blockedStart = moment
-              .utc(blockedSlot.start_date)
-              .utcOffset(userOffsetInMinutes);
-            const blockedEnd = moment
-              .utc(blockedSlot.end_date)
-              .utcOffset(userOffsetInMinutes);
-
-            if (
-              slotStart.isBetween(blockedStart, blockedEnd, null, "[)") ||
-              slotEnd.isBetween(blockedStart, blockedEnd, null, "(]") ||
-              (slotStart.isSame(blockedStart) && slotEnd.isSame(blockedEnd)) ||
-              (blockedStart.isBetween(slotStart, slotEnd, null, "[)") &&
-                blockedEnd.isBetween(slotStart, slotEnd, null, "(]"))
-            ) {
-              slotInfo.blockedByUser = true;
-            }
-          });
-
-          // Check against modified slots
-          modifiedSlots.forEach((modifiedSlot) => {
-            const modifiedStart = moment
-              .utc(modifiedSlot.start_date)
-              .utcOffset(userOffsetInMinutes);
-            const modifiedEnd = moment
-              .utc(modifiedSlot.end_date)
-              .utcOffset(userOffsetInMinutes);
-
-            if (
-              slotStart.isBetween(modifiedStart, modifiedEnd, null, "[)") ||
-              slotEnd.isBetween(modifiedStart, modifiedEnd, null, "(]") ||
-              (slotStart.isSame(modifiedStart) &&
-                slotEnd.isSame(modifiedEnd)) ||
-              (modifiedStart.isBetween(slotStart, slotEnd, null, "[)") &&
-                modifiedEnd.isBetween(slotStart, slotEnd, null, "(]"))
-            ) {
-              slotInfo.isModified = modifiedSlot.bubbleId; 
-              slotInfo.meetingLink = modifiedSlot.meetingLink;
-              slotInfo.Address = modifiedSlot.Address;
-              slotInfo.isStartupCorners = modifiedSlot.isStartupcorners;
-            }
-          });
-
-          // Push slot info to the corresponding lists
-          outputlist1.push(slotInfo.meetingLink);
-          outputlist2.push(slotInfo.Address);
-          outputlist3.push(slotInfo.alreadyBooked); // Push null or concatenated string
-          outputlist4.push(slotInfo.isModified);
-          outputlist8.push(slotInfo.blockedByUser);
-          outputlist9.push(slotInfo.isStartupCorners);
-        }
-      });
+        // Push slot info to corresponding lists
+        outputlist1.push(slotInfo.meetingLink);
+        outputlist2.push(slotInfo.Address);
+        outputlist3.push(slotInfo.alreadyBooked);
+        outputlist4.push(slotInfo.isModified);
+        outputlist8.push(slotInfo.blockedByUser);
+        outputlist9.push(slotInfo.isStartupCorners);
+      }
     });
+  });
 
-    return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8, outputlist9 };
-  }
+  return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8, outputlist9 };
+}
+
 
 
 
