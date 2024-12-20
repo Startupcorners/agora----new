@@ -526,7 +526,7 @@ export const schedule = async function () {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     const outputlist1 = [];
     const outputlist2 = [];
-    const outputlist3 = [];
+    let outputlist3 = [];
     const outputlist4 = [];
     const outputlist8 = [];
 
