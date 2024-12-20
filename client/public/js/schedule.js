@@ -377,136 +377,81 @@ export const schedule = async function () {
     return outputlist6;
   }
 
-  function generateWeeklySlots(
-    startDateLocal,
-    baseDailyStart,
-    baseDailyEnd,
-    slotDuration,
-    userOffsetInSeconds
-  ) {
-    const userOffsetInMinutes = userOffsetInSeconds / 60;
-    const outputlist7 = [];
+ function generateWeeklySlots(
+   startDateLocal,
+   baseDailyStart,
+   baseDailyEnd,
+   slotDuration,
+   userOffsetInSeconds
+ ) {
+   const userOffsetInMinutes = userOffsetInSeconds / 60;
+   const outputlist7 = [];
 
-    console.log("Start date local:", startDateLocal.format());
-    console.log("User offset (seconds):", userOffsetInSeconds);
-    console.log("Base daily start time:", baseDailyStart);
-    console.log("Base daily end time:", baseDailyEnd);
-    console.log("Slot duration (minutes):", slotDuration);
+   // Determine the entire week's start and end in local time, plus one day before and after
+   const endDateLocal = startDateLocal.clone().add(7, "days").endOf("day");
+   const extendedStartLocal = startDateLocal.clone().subtract(1, "day");
+   const extendedEndLocal = startDateLocal.clone().add(7, "days").endOf("day");
 
-    // Determine the entire week's start and end in local time, plus one day before and after
-    const endDateLocal = startDateLocal.clone().add(7, "days").endOf("day");
-    const extendedStartLocal = startDateLocal.clone().subtract(1, "day");
-    const extendedEndLocal = startDateLocal.clone().add(7, "days").endOf("day");
+   for (let i = 0; i < 8; i++) {
+     const currentDayLocal = startDateLocal.clone().add(i, "days");
 
-    console.log("Extended week start (local):", extendedStartLocal.format());
-    console.log("Extended week end (local):", extendedEndLocal.format());
+     // Convert daily start/end times to UTC and then apply offset
+     const currentDayUTC = currentDayLocal.clone().utc();
+     const dailyStartTimeUTC = moment.utc(
+       currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
+       "YYYY-MM-DD HH:mm"
+     );
+     const dailyEndTimeUTC = moment.utc(
+       currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyEnd,
+       "YYYY-MM-DD HH:mm"
+     );
 
-    for (let i = 0; i < 8; i++) {
-      const currentDayLocal = startDateLocal.clone().add(i, "days");
-      console.log(`\nProcessing day ${i + 1}: ${currentDayLocal.format()}`);
+     // Apply user offset
+     const dailyStartTimeLocal = dailyStartTimeUTC
+       .clone()
+       .utcOffset(userOffsetInMinutes);
+     const dailyEndTimeLocal = dailyEndTimeUTC
+       .clone()
+       .utcOffset(userOffsetInMinutes);
 
-      // Convert daily start/end times to UTC and then apply offset
-      const currentDayUTC = currentDayLocal.clone().utc();
-      console.log("Current day (UTC):", currentDayUTC.format());
+     // Generate slots for the entire daily range
+     outputlist7.push(
+       ...generateSlotsForInterval(
+         dailyStartTimeLocal,
+         dailyEndTimeLocal,
+         slotDuration
+       )
+     );
+   }
 
-      const dailyStartTimeUTC = moment.utc(
-        currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
-        "YYYY-MM-DD HH:mm"
-      );
-      const dailyEndTimeUTC = moment.utc(
-        currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyEnd,
-        "YYYY-MM-DD HH:mm"
-      );
+   // Filter all slots to only those within the extended range
+   const filteredSlots = outputlist7.filter((slotRange) => {
+     const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
+     const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
+     return (
+       slotStart.isSameOrAfter(startDateLocal) &&
+       slotEnd.isSameOrBefore(endDateLocal)
+     );
+   });
 
-      // Apply user offset
-      const dailyStartTimeLocal = dailyStartTimeUTC
-        .clone()
-        .utcOffset(userOffsetInMinutes);
-      const dailyEndTimeLocal = dailyEndTimeUTC
-        .clone()
-        .utcOffset(userOffsetInMinutes);
+   return filteredSlots;
+ }
 
-      console.log(
-        "Daily start time (local w/ offset):",
-        dailyStartTimeLocal.format()
-      );
-      console.log(
-        "Daily end time (local w/ offset):",
-        dailyEndTimeLocal.format()
-      );
+ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
+   const result = [];
+   let current = startTimeLocal.clone();
 
-      // Generate slots for the entire daily range
-      outputlist7.push(
-        ...generateSlotsForInterval(
-          dailyStartTimeLocal,
-          dailyEndTimeLocal,
-          slotDuration
-        )
-      );
-    }
+   while (current.isBefore(endTimeLocal)) {
+     const slotEnd = current.clone().add(duration, "minutes");
+     result.push([
+       current.format("YYYY-MM-DDTHH:mm:ssZ"),
+       slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+     ]);
+     current.add(duration, "minutes");
+   }
 
-    // Filter all slots to only those within the extended range
-    console.log(
-      "Filtering slots to ensure they fit within the extended weekly range."
-    );
-    const filteredSlots = outputlist7.filter((slotRange) => {
-      const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
-      const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
-      const isInExtendedRange =
-        slotStart.isSameOrAfter(startDateLocal) &&
-        slotEnd.isSameOrBefore(endDateLocal);
-      if (!isInExtendedRange) {
-        console.log(
-          "Excluding slot:",
-          slotStart.format(),
-          "to",
-          slotEnd.format(),
-          "(outside extended weekly range)"
-        );
-      }
-      return isInExtendedRange;
-    });
-
-    console.log("Final slots (with extra days):", filteredSlots);
-    return filteredSlots;
-  }
-
-  function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
-    const result = [];
-    let current = startTimeLocal.clone();
-
-    console.log("Generating slots...");
-    console.log(
-      "Start time (local):",
-      startTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ")
-    );
-    console.log(
-      "End time (local):",
-      endTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ")
-    );
-    console.log("Slot duration (minutes):", duration);
-
-    while (current.isBefore(endTimeLocal)) {
-      const slotEnd = current.clone().add(duration, "minutes");
-
-      console.log(
-        "Generated slot:",
-        current.format("YYYY-MM-DDTHH:mm:ssZ"),
-        "to",
-        slotEnd.format("YYYY-MM-DDTHH:mm:ssZ")
-      );
-
-      result.push([
-        current.format("YYYY-MM-DDTHH:mm:ssZ"),
-        slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
-      ]);
-
-      current.add(duration, "minutes");
-    }
-
-    console.log("Total slots generated:", result.length);
-    return result;
-  }
+   return result;
+ }
 
   function assignSlotInfo(
     outputlist7,
@@ -517,7 +462,6 @@ export const schedule = async function () {
     blockedByUserList,
     modifiedSlots
   ) {
-    console.log("modifiedSlots", modifiedSlots);
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     const outputlist1 = [];
     const outputlist2 = [];
@@ -621,7 +565,7 @@ export const schedule = async function () {
               (modifiedStart.isBetween(slotStart, slotEnd, null, "[)") &&
                 modifiedEnd.isBetween(slotStart, slotEnd, null, "(]"))
             ) {
-              slotInfo.isModified = modifiedSlot.bubbleId; 
+              slotInfo.isModified = modifiedSlot.bubbleId;
               slotInfo.meetingLink = modifiedSlot.meetingLink;
               slotInfo.Address = modifiedSlot.Address;
               slotInfo.isStartupCorners = modifiedSlot.isStartupcorners;
@@ -639,8 +583,16 @@ export const schedule = async function () {
       });
     });
 
-    return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8, outputlist9 };
+    return {
+      outputlist1,
+      outputlist2,
+      outputlist3,
+      outputlist4,
+      outputlist8,
+      outputlist9,
+    };
   }
+
 
 
 
