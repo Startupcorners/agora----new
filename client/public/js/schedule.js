@@ -120,6 +120,7 @@ export const schedule = async function () {
     blockedByUserList
   ) {
     console.log("======== Function Start ========");
+    console.log("allAvailabilityLists", allAvailabilityLists);
 
     const userOffsetInMinutes = userOffsetInSeconds / 60;
 
