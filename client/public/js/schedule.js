@@ -221,11 +221,7 @@ export const schedule = async function () {
     );
     console.log(
       "Generated outputlist3 (Already Booked):",
-      JSON.stringify(
-        outputlist3,
-        (key, value) => (value === undefined ? null : value),
-        2
-      )
+      outputlist3
     );
     console.log(
       "Generated outputlist4 (Modified Slots):",
