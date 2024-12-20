@@ -364,7 +364,7 @@ export const schedule = async function () {
       baselineOutput3 = newBaselineIndices.map((i) => baselineOutput3[i]);
       baselineOutput4 = newBaselineIndices.map((i) => baselineOutput4[i]);
       baselineOutput5 = newBaselineIndices.map((i) => baselineOutput5[i]);
-      baselineOutput7 = newBaselineIndices.map((i) => baselineOutput7[i]);
+      //baselineOutput7 = newBaselineIndices.map((i) => baselineOutput7[i]);
       baselineOutput8 = newBaselineIndices.map((i) => baselineOutput8[i]);
 
       if (iteration < availabilityids.length) {
@@ -379,7 +379,7 @@ export const schedule = async function () {
           outputlist4: baselineOutput4,
           outputlist5: baselineOutput5,
           outputlist6: baselineOutput6,
-          outputlist7: baselineOutput7,
+          //outputlist7: baselineOutput7,
           outputlist8: baselineOutput8,
           outputlist9: baselineOutput9,
         });
