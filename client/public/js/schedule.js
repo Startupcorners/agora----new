@@ -200,7 +200,7 @@ export const schedule = async function () {
 
     console.log("First slot start time (local):", firstSlotStart.format());
 
-    const { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 } =
+    let { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 } =
       assignSlotInfo(
         outputlist7,
         firstSlotStart,
@@ -526,7 +526,7 @@ export const schedule = async function () {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     const outputlist1 = [];
     const outputlist2 = [];
-    let outputlist3 = [];
+    const outputlist3 = [];
     const outputlist4 = [];
     const outputlist8 = [];
 
