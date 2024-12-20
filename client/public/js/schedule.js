@@ -565,7 +565,6 @@ export const schedule = async function () {
     userOffsetInSeconds,
     blockedByUserList,
     modifiedSlots,
-    startupCornersList // Assuming this is a new parameter for startupCorners slots
   ) {
     console.log("modifiedSlots", modifiedSlots);
     const userOffsetInMinutes = userOffsetInSeconds / 60;
