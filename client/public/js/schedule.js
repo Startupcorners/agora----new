@@ -202,30 +202,50 @@ export const schedule = async function () {
       );
 
     // Generate outputlist3 (all booked slots)
-    const outputlist3 = outputlist7.map((slot) => {
-      // Convert slot start and end to UTC
-      const slotStart = moment.utc(slot[0]);
-      const slotEnd = moment.utc(slot[1]);
+    const outputlist3 = outputlist7.map((slot, index) => {
+      // Convert slot start and end (already in viewer's timezone)
+      const slotStart = moment(slot[0]);
+      const slotEnd = moment(slot[1]);
+
+      console.log(
+        `Checking Slot ${index}:`,
+        slotStart.format(),
+        "to",
+        slotEnd.format()
+      );
 
       const bookedBubbleIds = alreadyBookedList
         .filter((booked) => {
-          // Convert booked start and end to UTC
-          const bookedStart = moment.utc(booked.start_date);
-          const bookedEnd = moment.utc(booked.end_date);
+          // Convert booked start and end from UTC to viewer's timezone
+          const bookedStart = moment
+            .utc(booked.start_date)
+            .utcOffset(userOffsetInSeconds / 60);
+          const bookedEnd = moment
+            .utc(booked.end_date)
+            .utcOffset(userOffsetInSeconds / 60);
+
+          console.log(
+            `  Against Booked (Viewer Timezone): ${bookedStart.format()} to ${bookedEnd.format()}`
+          );
 
           // Check for overlap
-          return (
+          const isOverlapping =
             slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
             slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
             bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
-            bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
-          );
+            bookedEnd.isBetween(slotStart, slotEnd, null, "(]");
+
+          console.log(`    Overlap: ${isOverlapping}`);
+          return isOverlapping;
         })
         .map((booked) => booked.bubbleId);
+
+      console.log(`  Matched Bubble IDs: ${bookedBubbleIds}`);
 
       // Return concatenated bubble IDs if any, or null otherwise
       return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
     });
+
 
 
     
