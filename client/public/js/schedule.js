@@ -201,9 +201,12 @@ export const schedule = async function () {
       userOffsetInSeconds
     );
 
+    // Declare baselineOutputMap if not already declared
     if (iteration === 1) {
+      var baselineOutputMap = {}; // Ensure baselineOutputMap is declared here
+      baselineOutput7 = [...outputlist7]; // Initialize baselineOutput7 for later iterations
+
       // Set up baseline outputs using a mapping by slot keys
-      baselineOutputMap = {};
       outputlist7.forEach((slot, index) => {
         const slotKey = slot.join("|");
         baselineOutputMap[slotKey] = {
@@ -218,7 +221,6 @@ export const schedule = async function () {
 
       baselineOutput5 = [...outputlist5];
       baselineOutput6 = [...outputlist6];
-      baselineOutput7 = [...outputlist7];
 
       if (iteration < availabilityids.length) {
         bubble_fn_next(iteration + 1);
@@ -237,7 +239,7 @@ export const schedule = async function () {
       }
     } else {
       // Update baseline outputs
-      outputlist7.forEach((slot) => {
+      baselineOutput7.forEach((slot) => {
         const slotKey = slot.join("|");
         const bookedEntries = alreadyBookedList.filter((booked) => {
           const bookedStart = moment.utc(booked.start_date);
@@ -268,12 +270,11 @@ export const schedule = async function () {
       });
 
       baselineOutput5 = filterSlotsByAvailabilityRange(
-        outputlist7,
+        baselineOutput7,
         globalStart,
         globalEnd,
         userOffsetInSeconds
       );
-      baselineOutput7 = [...outputlist7];
 
       if (iteration < availabilityids.length) {
         bubble_fn_next(iteration + 1);
