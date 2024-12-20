@@ -291,47 +291,41 @@ export const schedule = async function () {
       }
     } else {
       console.log(
-        `Processing iteration ${iteration} and filtering baseline outputs, considering booked slots.`
-      );
-      const currentSlots = new Set(
-        outputlist5
-          .filter((slot) => {
-            // Exclude slots already booked
-            return !alreadyBookedList.some((booked) => {
-              const bookedStart = moment.utc(booked.start_date);
-              const bookedEnd = moment.utc(booked.end_date);
-              const slotStart = moment.utc(slot[0]);
-              const slotEnd = moment.utc(slot[1]);
-
-              return (
-                slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
-                slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
-                bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
-                bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
-              );
-            });
-          })
-          .map((slot) => slot.join("|"))
+        `Processing iteration ${iteration} and updating outputlist3 with already booked slot IDs.`
       );
 
-      const newBaselineIndices = [];
-      baselineOutput5.forEach((slot, index) => {
-        const slotKey = slot.join("|");
-        if (currentSlots.has(slotKey)) {
-          newBaselineIndices.push(index);
-        }
+      // Iterate over outputlist5 and update corresponding items in outputlist3
+      outputlist5.forEach((slot, index) => {
+        const slotStart = moment.utc(slot[0]);
+        const slotEnd = moment.utc(slot[1]);
+
+        // Collect IDs of overlapping booked slots
+        const bookedBubbleIds = [];
+        alreadyBookedList.forEach((bookedSlot) => {
+          const bookedStart = moment.utc(bookedSlot.start_date);
+          const bookedEnd = moment.utc(bookedSlot.end_date);
+
+          if (
+            slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
+            slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
+            bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
+            bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
+          ) {
+            bookedBubbleIds.push(bookedSlot.bubbleId);
+          }
+        });
+
+        // Assign concatenated booked IDs or null to the correct index in outputlist3
+        outputlist3[index] =
+          bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
       });
 
-      console.log("New baseline indices after filtering:", newBaselineIndices);
+      console.log(
+        "Updated outputlist3 with booked slot IDs:",
+        JSON.stringify(outputlist3, null, 2)
+      );
 
-      baselineOutput1 = newBaselineIndices.map((i) => baselineOutput1[i]);
-      baselineOutput2 = newBaselineIndices.map((i) => baselineOutput2[i]);
-      baselineOutput3 = newBaselineIndices.map((i) => baselineOutput3[i]);
-      baselineOutput4 = newBaselineIndices.map((i) => baselineOutput4[i]);
-      baselineOutput5 = newBaselineIndices.map((i) => baselineOutput5[i]);
-      baselineOutput7 = newBaselineIndices.map((i) => baselineOutput7[i]);
-      baselineOutput8 = newBaselineIndices.map((i) => baselineOutput8[i]);
-
+      // Proceed to the next iteration or finalize results
       if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
         bubble_fn_next(iteration + 1);
@@ -340,7 +334,7 @@ export const schedule = async function () {
         bubble_fn_hours({
           outputlist1: baselineOutput1,
           outputlist2: baselineOutput2,
-          outputlist3: baselineOutput3,
+          outputlist3, // Include the updated outputlist3
           outputlist4: baselineOutput4,
           outputlist5: baselineOutput5,
           outputlist6: baselineOutput6,
