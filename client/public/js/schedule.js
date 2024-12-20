@@ -329,27 +329,21 @@ export const schedule = async function () {
       });
 
       // Update baseline outputs without reducing slot count
+      // Debugging: Verify alignment between outputlist7 and currentSlotsMap
       console.log(`Iteration ${iteration} - Starting baselineOutput3 update`);
+      outputlist7.forEach((slot, index) => {
+        const slotKey = slot.join("|");
+        console.log(`Index ${index} - SlotKey: ${slotKey}`);
+        if (!currentSlotsMap[slotKey]) {
+          console.error(`Missing SlotKey in currentSlotsMap: ${slotKey}`);
+        }
+      });
 
-      // Ensure `baselineOutput3` matches `outputlist7` in length
-      if (baselineOutput3.length !== outputlist7.length) {
-        console.log(
-          `Adjusting baselineOutput3 size from ${baselineOutput3.length} to ${outputlist7.length}`
-        );
-        baselineOutput3 = Array(outputlist7.length)
-          .fill(null)
-          .map((_, i) => baselineOutput3[i] || null);
-      }
-
-      console.log(`Iteration ${iteration} - Length alignment complete`);
-      console.log(
-        `outputlist7 length: ${outputlist7.length}, baselineOutput3 length: ${baselineOutput3.length}`
-      );
-
-      // Update `baselineOutput3` without adding new entries
+      // Update baselineOutput3
       outputlist7.forEach((slot, index) => {
         const slotKey = slot.join("|");
         const entry = currentSlotsMap[slotKey];
+
         if (entry) {
           if (entry.bookedBubbleIds.length > 0) {
             let currentVal = baselineOutput3[index] || "";
@@ -367,10 +361,9 @@ export const schedule = async function () {
       });
 
       console.log(
-        `Iteration ${iteration} - Updated baselineOutput3`,
+        `Iteration ${iteration} - Updated baselineOutput3:`,
         baselineOutput3
       );
-
 
       // Ensure all outputs maintain the full set of weekly slots
       baselineOutput1 = [...outputlist1]; // Meeting links
