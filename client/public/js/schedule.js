@@ -210,6 +210,11 @@ export const schedule = async function () {
       userOffsetInSeconds
     );
 
+    console.log(
+      `Iteration ${iteration}: outputlist5:`,
+      JSON.stringify(outputlist5, null, 2)
+    );
+
     if (iteration === 1) {
       // Store baseline outputs
       baselineOutput1 = [...outputlist1];
@@ -305,6 +310,11 @@ export const schedule = async function () {
         );
       });
 
+      console.log(
+        `Iteration ${iteration}: Updated baselineOutput5:`,
+        JSON.stringify(baselineOutput5, null, 2)
+      );
+
       if (iteration < availabilityids.length) {
         bubble_fn_next(iteration + 1);
       } else {
@@ -345,6 +355,7 @@ export const schedule = async function () {
       console.log(`${key}:`, JSON.stringify(outputs[key], null, 2));
     });
   }
+
 
 
 
