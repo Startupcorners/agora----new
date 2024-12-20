@@ -606,7 +606,7 @@ export const schedule = async function () {
             alreadyBooked: null,
             isModified: null,
             blockedByUser: false, // Default value for blockedByUser
-            isStartupCorners: false, // Default value for isStartupCorners
+            isStartupCorners: "no", // Default value for isStartupCorners
           };
 
           // Collect bubbleIds for overlapping booked slots
@@ -691,7 +691,7 @@ export const schedule = async function () {
               (startupStart.isBetween(slotStart, slotEnd, null, "[)") &&
                 startupEnd.isBetween(slotStart, slotEnd, null, "(]"))
             ) {
-              slotInfo.isStartupCorners = true;
+              slotInfo.isStartupCorners = "yes";
             }
           });
 
