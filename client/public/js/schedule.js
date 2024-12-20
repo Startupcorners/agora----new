@@ -405,6 +405,10 @@ export const schedule = async function () {
           "Generated outputlist9 (isStartupCorners):",
           JSON.stringify(outputlist9, null, 2)
         );
+        console.log(
+          "Generated outputlist7:",
+          outputlist7
+        );
       }
     }
 
