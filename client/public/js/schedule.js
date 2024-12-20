@@ -149,24 +149,26 @@ export const schedule = async function () {
     let slotDuration = null;
 
     allAvailabilityLists.forEach((availability) => {
-      // Convert daily start and end times explicitly assuming they are in UTC
+      // Parse daily start and end times as local times relative to the start date
       const dailyStart = moment
-        .utc(
-          `${availability.start_date.split("T")[0]}T${
-            availability.daily_start_time
-          }`,
-          "YYYY-MM-DDTHH:mm"
-        )
-        .utcOffset(userOffsetInMinutes); // Convert to viewer's local time
+        .utc(availability.start_date)
+        .utcOffset(0) // Interpret start_date as UTC
+        .startOf("day") // Reset to midnight of the start date
+        .set({
+          hour: parseInt(availability.daily_start_time.split(":")[0], 10),
+          minute: parseInt(availability.daily_start_time.split(":")[1], 10),
+        })
+        .utcOffset(userOffsetInMinutes); // Convert to viewer's timezone
 
       const dailyEnd = moment
-        .utc(
-          `${availability.start_date.split("T")[0]}T${
-            availability.daily_end_time
-          }`,
-          "YYYY-MM-DDTHH:mm"
-        )
-        .utcOffset(userOffsetInMinutes); // Convert to viewer's local time
+        .utc(availability.start_date)
+        .utcOffset(0) // Interpret start_date as UTC
+        .startOf("day") // Reset to midnight of the start date
+        .set({
+          hour: parseInt(availability.daily_end_time.split(":")[0], 10),
+          minute: parseInt(availability.daily_end_time.split(":")[1], 10),
+        })
+        .utcOffset(userOffsetInMinutes); // Convert to viewer's timezone
 
       console.log("Converted Daily Start:", dailyStart.format());
       console.log("Converted Daily End:", dailyEnd.format());
@@ -179,6 +181,7 @@ export const schedule = async function () {
       }
       slotDuration = availability.slot_duration_minutes;
     });
+
 
 
     if (!commonDailyStart || !commonDailyEnd || !slotDuration) {
