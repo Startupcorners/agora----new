@@ -201,16 +201,22 @@ export const schedule = async function () {
 
     console.log("First slot start time (local):", firstSlotStart.format());
 
-    let { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8, outputlist9 } =
-      assignSlotInfo(
-        outputlist7,
-        firstSlotStart,
-        availabilityList,
-        alreadyBookedList,
-        userOffsetInSeconds,
-        blockedByUserList,
-        modifiedSlots
-      );
+    let {
+      outputlist1,
+      outputlist2,
+      outputlist3,
+      outputlist4,
+      outputlist8,
+      outputlist9,
+    } = assignSlotInfo(
+      outputlist7,
+      firstSlotStart,
+      availabilityList,
+      alreadyBookedList,
+      userOffsetInSeconds,
+      blockedByUserList,
+      modifiedSlots
+    );
 
     const globalStartUTC = availabilityList.length
       ? moment.min(availabilityList.map((a) => moment.utc(a.start_date)))
@@ -268,7 +274,7 @@ export const schedule = async function () {
           outputlist6,
           outputlist7,
           outputlist8,
-          outputlist9
+          outputlist9,
         });
 
         console.log(
@@ -399,15 +405,14 @@ export const schedule = async function () {
           "Generated outputlist9 (isStartupCorners):",
           JSON.stringify(outputlist9, null, 2)
         );
-        
       }
     }
 
-    
-
-
     console.log("======== Function End ========");
-    bubble_fn_ready();
+    // Add a 3-second delay before calling bubble_fn_ready
+    setTimeout(() => {
+      bubble_fn_ready();
+    }, 3000);
   }
 
 
