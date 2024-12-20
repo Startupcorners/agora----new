@@ -604,8 +604,8 @@ export const schedule = async function () {
             Address: availability.Address,
             alreadyBooked: null,
             isModified: null,
-            blockedByUser: false, // Default value for blockedByUser
-            isStartupCorners: "no"
+            blockedByUser: false,
+            isStartupCorners: availability.isStartupCorners,
           };
 
           // Collect bubbleIds for overlapping booked slots
