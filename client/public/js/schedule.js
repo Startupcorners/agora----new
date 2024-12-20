@@ -291,46 +291,53 @@ export const schedule = async function () {
       }
     } else {
       console.log(
-        `Processing iteration ${iteration} and filtering baseline outputs, considering booked slots.`
+        `Processing iteration ${iteration} and updating baseline outputs, reflecting booked slots.`
       );
 
-      const currentSlots = outputlist5.filter((slot) => {
-        const slotStart = moment.utc(slot[0]);
-        const slotEnd = moment.utc(slot[1]);
+      // Build a map of current slots from this iteration
+      // Instead of filtering out booked slots, we keep them and record their booked status.
+      const currentSlotsMap = {};
+      outputlist5.forEach((slot) => {
+        const slotKey = slot.join("|");
+        const isBooked = alreadyBookedList.some((booked) => {
+          const bookedStart = moment.utc(booked.start_date);
+          const bookedEnd = moment.utc(booked.end_date);
+          const slotStart = moment.utc(slot[0]);
+          const slotEnd = moment.utc(slot[1]);
 
-        // Check for overlap with already booked slots
-        const bookedBubbleIds = [];
-        alreadyBookedList.forEach((bookedSlot) => {
-          const bookedStart = moment.utc(bookedSlot.start_date);
-          const bookedEnd = moment.utc(bookedSlot.end_date);
-
-          if (
+          return (
             slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
             slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
             bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
             bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
-          ) {
-            bookedBubbleIds.push(bookedSlot.bubbleId);
-          }
+          );
         });
 
-        // Update outputlist3 at the correct index
-        const index = outputlist5.indexOf(slot);
-        outputlist3[index] =
-          bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
-
-        // Include slot in filtered list only if it matches base daily availability
-        return bookedBubbleIds.length === 0; // Adjust this to include booked slots if desired
+        currentSlotsMap[slotKey] = { slot, isBooked };
       });
 
-      console.log("Filtered currentSlots (within daily period):", currentSlots);
+      // Now we determine the intersection by looking at the baselineOutput5 (from previous iterations)
+      // and only keeping slots that appear in currentSlotsMap.
+      const newBaselineIndices = [];
+      baselineOutput5.forEach((slot, index) => {
+        const slotKey = slot.join("|");
+        if (currentSlotsMap[slotKey]) {
+          // If the slot is booked in this iteration, update outputlist3 accordingly.
+          if (currentSlotsMap[slotKey].isBooked) {
+            baselineOutput3[index] = "BOOKED_SLOT";
+            // Or append something to the existing value:
+            // baselineOutput3[index] = (baselineOutput3[index] || "") + "_BOOKED";
+          }
+          newBaselineIndices.push(index);
+        }
+      });
 
-      const newBaselineIndices = currentSlots.map((slot) =>
-        outputlist5.indexOf(slot)
+      console.log(
+        "New baseline indices after intersection:",
+        newBaselineIndices
       );
 
-      console.log("New baseline indices after filtering:", newBaselineIndices);
-
+      // Update all baseline arrays to reflect the intersection
       baselineOutput1 = newBaselineIndices.map((i) => baselineOutput1[i]);
       baselineOutput2 = newBaselineIndices.map((i) => baselineOutput2[i]);
       baselineOutput3 = newBaselineIndices.map((i) => baselineOutput3[i]);
@@ -347,7 +354,7 @@ export const schedule = async function () {
         bubble_fn_hours({
           outputlist1: baselineOutput1,
           outputlist2: baselineOutput2,
-          outputlist3, // Include the updated outputlist3
+          outputlist3: baselineOutput3,
           outputlist4: baselineOutput4,
           outputlist5: baselineOutput5,
           outputlist6: baselineOutput6,
