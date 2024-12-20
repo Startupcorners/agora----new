@@ -165,14 +165,19 @@ export const schedule = async function () {
       slotDuration = availability.slot_duration_minutes;
     });
 
-
     if (!commonDailyStart || !commonDailyEnd || !slotDuration) {
       console.error("No overlapping availability found.");
       return emptyOutput();
     }
 
-    console.log("Common daily start time:", commonDailyStart.format("HH:mm"));
-    console.log("Common daily end time:", commonDailyEnd.format("HH:mm"));
+    console.log(
+      "Common daily start time (Viewer's Local Time):",
+      commonDailyStart.format("HH:mm")
+    );
+    console.log(
+      "Common daily end time (Viewer's Local Time):",
+      commonDailyEnd.format("HH:mm")
+    );
     console.log("Slot duration (minutes):", slotDuration);
 
     // Generate outputlist7 (all weekly slots)
@@ -203,9 +208,8 @@ export const schedule = async function () {
 
     // Generate outputlist3 (all booked slots)
     const outputlist3 = outputlist7.map((slot, index) => {
-      // Slot times are already in the viewer's timezone (userOffsetInSeconds applied)
-      const slotStart = moment(slot[0]);
-      const slotEnd = moment(slot[1]);
+      const slotStart = moment(slot[0]).utcOffset(userOffsetInMinutes);
+      const slotEnd = moment(slot[1]).utcOffset(userOffsetInMinutes);
 
       console.log(
         `Checking Slot ${index}:`,
@@ -216,39 +220,29 @@ export const schedule = async function () {
 
       const bookedBubbleIds = alreadyBookedList
         .filter((booked) => {
-          // Convert booked times using the user offset
           const bookedStart = moment
             .utc(booked.start_date)
-            .utcOffset(userOffsetInSeconds / 60);
+            .utcOffset(userOffsetInMinutes);
           const bookedEnd = moment
             .utc(booked.end_date)
-            .utcOffset(userOffsetInSeconds / 60);
+            .utcOffset(userOffsetInMinutes);
 
           console.log(
-            `  Against Booked (User Offset Applied): ${bookedStart.format()} to ${bookedEnd.format()}`
+            `  Against Booked: ${bookedStart.format()} to ${bookedEnd.format()}`
           );
 
-          // Check for overlap
-          const isOverlapping =
+          return (
             slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
             slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
             bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
-            bookedEnd.isBetween(slotStart, slotEnd, null, "(]");
-
-          console.log(`    Overlap: ${isOverlapping}`);
-          return isOverlapping;
+            bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
+          );
         })
         .map((booked) => booked.bubbleId);
 
       console.log(`  Matched Bubble IDs: ${bookedBubbleIds}`);
-
-      // Return concatenated bubble IDs if any, or null otherwise
       return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
     });
-
-
-
-    
 
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
@@ -286,13 +280,13 @@ export const schedule = async function () {
       outputlist9,
     });
 
-    // Call bubble_fn_ready if necessary
     setTimeout(() => {
       bubble_fn_ready();
     }, 3000);
 
     return result;
   }
+
 
 
 
