@@ -326,40 +326,43 @@ function generateWeeklySlots(
   let globalEnd = null;
 
   const endDateLocal = startDateLocal.clone().add(7, "days").endOf("day");
-  const extendedStartLocal = startDateLocal.clone().subtract(1, "day");
 
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 7; i++) {
     const currentDayLocal = startDateLocal.clone().add(i, "days");
 
-    const currentDayUTC = currentDayLocal.clone().utc();
-
-    const dailyStartTimeUTC = moment.utc(
-      currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
-      "YYYY-MM-DD HH:mm"
-    );
-    const dailyEndTimeUTC = moment.utc(
-      currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyEnd,
-      "YYYY-MM-DD HH:mm"
-    );
-
-    const dailyStartTimeLocal = dailyStartTimeUTC
+    // Calculate daily start and end times adjusted to user offset
+    const dailyStartTime = currentDayLocal
       .clone()
-      .utcOffset(userOffsetInMinutes);
-    const dailyEndTimeLocal = dailyEndTimeUTC
-      .clone()
+      .set({
+        hour: parseInt(baseDailyStart.split(":")[0], 10),
+        minute: parseInt(baseDailyStart.split(":")[1], 10),
+        second: 0,
+        millisecond: 0,
+      })
       .utcOffset(userOffsetInMinutes);
 
-    const dailySlots = generateSlotsForInterval(
-      dailyStartTimeLocal,
-      dailyEndTimeLocal,
+    const dailyEndTime = currentDayLocal
+      .clone()
+      .set({
+        hour: parseInt(baseDailyEnd.split(":")[0], 10),
+        minute: parseInt(baseDailyEnd.split(":")[1], 10),
+        second: 0,
+        millisecond: 0,
+      })
+      .utcOffset(userOffsetInMinutes);
+
+    // Generate slots for this day
+    const daySlots = generateSlotsForInterval(
+      dailyStartTime,
+      dailyEndTime,
       slotDuration
     );
 
-    dailySlots.forEach((slotRange) => {
-      const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
-      const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
+    // Update global start and end times for main availability range
+    daySlots.forEach((slot) => {
+      const slotStart = moment.utc(slot[0]).utcOffset(userOffsetInMinutes);
+      const slotEnd = moment.utc(slot[1]).utcOffset(userOffsetInMinutes);
 
-      // Check if the slot falls within the main availability
       mainAvailabilityList.forEach((availability) => {
         const availabilityStart = moment
           .utc(availability.start_date)
@@ -369,38 +372,25 @@ function generateWeeklySlots(
           .utcOffset(userOffsetInMinutes);
 
         if (
-          slotStart.isBetween(availabilityStart, availabilityEnd, null, "[)") ||
+          slotStart.isBetween(availabilityStart, availabilityEnd, null, "[)") &&
           slotEnd.isBetween(availabilityStart, availabilityEnd, null, "(]")
         ) {
-          // Update globalStart and globalEnd
-          if (!globalStart || slotStart.isBefore(globalStart)) {
+          if (!globalStart) {
             globalStart = slotStart.clone();
           }
-          if (!globalEnd || slotEnd.isAfter(globalEnd)) {
-            globalEnd = slotEnd.clone();
-          }
+          globalEnd = slotEnd.clone();
         }
       });
     });
 
-    outputlist7.push(...dailySlots);
+    outputlist7.push(...daySlots);
   }
 
-  const filteredSlots = outputlist7.filter((slotRange) => {
-    const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
-    const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
-    return (
-      slotStart.isSameOrAfter(startDateLocal) &&
-      slotEnd.isSameOrBefore(endDateLocal)
-    );
-  });
+  console.log("Generated Global Start:", globalStart?.format());
+  console.log("Generated Global End:", globalEnd?.format());
 
-  console.log("Global Start (During Generation):", globalStart?.format());
-  console.log("Global End (During Generation):", globalEnd?.format());
-
-  return { filteredSlots, globalStart, globalEnd };
+  return { filteredSlots: outputlist7, globalStart, globalEnd };
 }
-
 
 function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   const result = [];
@@ -408,17 +398,13 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
 
   while (current.isBefore(endTimeLocal)) {
     const slotEnd = current.clone().add(duration, "minutes");
-
-    result.push([
-      current.format("YYYY-MM-DDTHH:mm:ssZ"),
-      slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
-    ]);
-
+    result.push([current.format(), slotEnd.format()]);
     current.add(duration, "minutes");
   }
 
   return result;
 }
+
 
 
   function assignSlotInfo(
