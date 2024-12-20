@@ -55,263 +55,6 @@ export const schedule = async function () {
     bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
   }
 
-  function generateSlotsForDate(
-    availabilityList,
-    viewerDate,
-    viewerTimeZone,
-    alreadyBookedList,
-    modifiedSlots
-  ) {
-    console.log(
-      "Received availabilityList:",
-      JSON.stringify(availabilityList, null, 2)
-    );
-    console.log("Received viewerDate:", viewerDate);
-    console.log("Received viewerTimeZone:", viewerTimeZone);
-    console.log(
-      "Received alreadyBookedList:",
-      JSON.stringify(alreadyBookedList, null, 2)
-    );
-    console.log(
-      "Received modifiedSlots:",
-      JSON.stringify(modifiedSlots, null, 2)
-    );
-
-    if (!Array.isArray(availabilityList)) {
-      console.error("availabilityList should be an array");
-      return {
-        outputlist1: [],
-        outputlist2: [],
-        outputlist3: [],
-        outputlist4: [],
-        outputlist5: [],
-      };
-    }
-
-    const outputlist1 = [];
-    const outputlist2 = [];
-    const outputlist3 = [];
-    const outputlist4 = [];
-    const outputlist5 = [];
-
-    // Parse viewerDate in viewer's timezone and define local boundaries
-    const viewerDateLocal = moment
-      .tz(viewerDate, viewerTimeZone)
-      .startOf("day");
-    if (!viewerDateLocal.isValid()) {
-      console.error("Invalid viewerDate:", viewerDate);
-      return {
-        outputlist1: [],
-        outputlist2: [],
-        outputlist3: [],
-        outputlist4: [],
-        outputlist5: [],
-      };
-    }
-
-    // Local day start: e.g. 2024-12-15T00:00:00 local time
-    const localDayStart = viewerDateLocal.clone();
-    // Local day end: use the start of the next day (not endOf('day')) for a clean boundary
-    // e.g. 2024-12-16T00:00:00 local time
-    const localDayEnd = viewerDateLocal.clone().add(1, "day").startOf("day");
-
-    // Convert local day start to UTC day reference
-    const viewerDateUTC = viewerDateLocal.clone().utc();
-    const viewerNextDateUTC = viewerDateUTC.clone().add(1, "day");
-
-    availabilityList.forEach((availability) => {
-      const startDate = moment.utc(availability.start_date).startOf("day");
-      const endDate = moment.utc(availability.end_date).endOf("day");
-
-      // Check if either current or next UTC date intersects availability
-      const includesCurrentDateUTC = viewerDateUTC.isBetween(
-        startDate,
-        endDate,
-        "day",
-        "[]"
-      );
-      const includesNextDateUTC = viewerNextDateUTC.isBetween(
-        startDate,
-        endDate,
-        "day",
-        "[]"
-      );
-
-      if (!includesCurrentDateUTC && !includesNextDateUTC) {
-        return;
-      }
-
-      function generateDailySlotsForUTCDate(utcDate) {
-        const dailyStartTimeUTC = moment.utc(
-          utcDate.format("YYYY-MM-DD") + " " + availability.daily_start_time,
-          "YYYY-MM-DD HH:mm"
-        );
-        const dailyEndTimeUTC = moment.utc(
-          utcDate.format("YYYY-MM-DD") + " " + availability.daily_end_time,
-          "YYYY-MM-DD HH:mm"
-        );
-
-        const dailyStartTimeViewer = dailyStartTimeUTC
-          .clone()
-          .tz(viewerTimeZone);
-        const dailyEndTimeViewer = dailyEndTimeUTC.clone().tz(viewerTimeZone);
-
-        let currentTime = dailyStartTimeViewer.clone();
-        while (currentTime.isBefore(dailyEndTimeViewer)) {
-          const startSlot = currentTime.clone();
-          const endSlot = startSlot
-            .clone()
-            .add(availability.slot_duration_minutes, "minutes");
-
-          // If slot would surpass daily end time, break
-          if (endSlot.isAfter(dailyEndTimeViewer)) break;
-
-          // Ensure the slot falls fully within the local requested day [localDayStart, localDayEnd)
-          // Since localDayEnd is midnight of the next day, a slot ending exactly at localDayEnd is allowed.
-          if (
-            startSlot.isBefore(localDayStart) ||
-            endSlot.isAfter(localDayEnd)
-          ) {
-            currentTime.add(availability.slot_duration_minutes, "minutes");
-            continue;
-          }
-
-          const formattedStartSlotUTC = startSlot
-            .clone()
-            .utc()
-            .format("YYYY-MM-DDTHH:mm:ss[Z]");
-          const formattedEndSlotUTC = endSlot
-            .clone()
-            .utc()
-            .format("YYYY-MM-DDTHH:mm:ss[Z]");
-
-          let slotInfo = {
-            slotTimeRange: [formattedStartSlotUTC, formattedEndSlotUTC],
-            meetingLink: availability.meetingLink,
-            Address: availability.Address,
-            alreadyBooked: false,
-            isModified: false,
-          };
-
-          // Check booked slots
-          alreadyBookedList.forEach((bookedSlot) => {
-            const bookedStartDate = moment.utc(bookedSlot.start_date);
-            const bookedEndDate = moment.utc(bookedSlot.end_date);
-            if (
-              (startSlot.isSame(bookedStartDate) &&
-                endSlot.isSame(bookedEndDate)) ||
-              (startSlot.isBefore(bookedEndDate) &&
-                endSlot.isAfter(bookedStartDate))
-            ) {
-              slotInfo.alreadyBooked = true;
-            }
-          });
-
-          // Check modified slots
-          modifiedSlots.forEach((modifiedSlot) => {
-            const modifiedStartDate = moment.utc(modifiedSlot.start_date);
-            const modifiedEndDate = moment.utc(modifiedSlot.end_date);
-            if (
-              (startSlot.isSame(modifiedStartDate) &&
-                endSlot.isSame(modifiedEndDate)) ||
-              (startSlot.isBefore(modifiedEndDate) &&
-                endSlot.isAfter(modifiedStartDate))
-            ) {
-              slotInfo = {
-                ...slotInfo,
-                meetingLink: modifiedSlot.meetingLink,
-                Address: modifiedSlot.Address,
-                isModified: true,
-              };
-            }
-          });
-
-          outputlist1.push(slotInfo.meetingLink);
-          outputlist2.push(slotInfo.Address);
-          outputlist3.push(slotInfo.alreadyBooked);
-          outputlist4.push(slotInfo.isModified);
-          outputlist5.push(slotInfo.slotTimeRange);
-
-          currentTime.add(availability.slot_duration_minutes, "minutes");
-        }
-      }
-
-      if (includesCurrentDateUTC) {
-        generateDailySlotsForUTCDate(viewerDateUTC);
-      }
-      if (includesNextDateUTC) {
-        generateDailySlotsForUTCDate(viewerNextDateUTC);
-      }
-    });
-
-    console.log("Generated outputlist1:", JSON.stringify(outputlist1, null, 2));
-    console.log("Generated outputlist2:", JSON.stringify(outputlist2, null, 2));
-    console.log("Generated outputlist3:", JSON.stringify(outputlist3, null, 2));
-    console.log("Generated outputlist4:", JSON.stringify(outputlist4, null, 2));
-    console.log("Generated outputlist5:", JSON.stringify(outputlist5, null, 2));
-
-    bubble_fn_hours({
-      outputlist1: outputlist1,
-      outputlist2: outputlist2,
-      outputlist3: outputlist3,
-      outputlist4: outputlist4,
-      outputlist5: outputlist5,
-    });
-  }
-
-  function getDaysInMonth(dateString, timezone) {
-    // Parse the date string in the given timezone
-    console.log("dateString", dateString);
-    console.log("timezone", timezone);
-    const date = moment.tz(dateString, timezone);
-    const days = [];
-
-    // Get the first and last days of the month in the given timezone
-    const firstDayOfMonth = date.clone().startOf("month");
-    const lastDayOfMonth = date.clone().endOf("month");
-
-    // Adjusting the start day of the week (Sunday)
-    const startDayOfWeek = firstDayOfMonth.day();
-
-    // Fill in the days before the first day of the month
-    for (let i = 0; i < startDayOfWeek; i++) {
-      const day = firstDayOfMonth
-        .clone()
-        .subtract(startDayOfWeek - i, "days")
-        .tz(timezone)
-        .toDate();
-      days.push(day);
-    }
-
-    // Fill in the days of the month
-    for (
-      let d = firstDayOfMonth.clone();
-      d.isSameOrBefore(lastDayOfMonth, "day");
-      d.add(1, "day")
-    ) {
-      const day = d.tz(timezone).toDate();
-      days.push(day);
-    }
-
-    // Adjusting the end day of the week (Saturday)
-    const endDayOfWeek = lastDayOfMonth.day();
-
-    // Fill in the days after the last day of the month to complete the week
-    for (let i = 1; i <= 6 - endDayOfWeek; i++) {
-      const day = lastDayOfMonth.clone().add(i, "days").tz(timezone).toDate();
-      days.push(day);
-    }
-
-    // Ensure the days array length is a multiple of 7 (to complete the calendar grid)
-    while (days.length % 7 !== 0) {
-      const lastDay = days[days.length - 1];
-      const day = moment(lastDay).clone().add(1, "day").tz(timezone).toDate();
-      days.push(day);
-    }
-
-    console.log(days);
-    bubble_fn_daysInMonth(days);
-  }
 
   function generateStartTimes(startTime, duration) {
     const times = [];
@@ -385,7 +128,8 @@ export const schedule = async function () {
     userOffsetInSeconds = 0,
     blockedByUserList,
     availabilityids,
-    iteration
+    iteration,
+    alreadyBookedListByCurrentUser // <-- new parameter
   ) {
     console.log("======== Function Start ========");
     console.log("Received iteration:", iteration);
@@ -457,16 +201,23 @@ export const schedule = async function () {
 
     console.log("First slot start time (local):", firstSlotStart.format());
 
-    const { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 } =
-      assignSlotInfo(
-        outputlist7,
-        firstSlotStart,
-        availabilityList,
-        alreadyBookedList,
-        userOffsetInSeconds,
-        blockedByUserList,
-        modifiedSlots
-      );
+    const {
+      outputlist1,
+      outputlist2,
+      outputlist3,
+      outputlist4,
+      outputlist8,
+      outputlist9, // new outputlist for current user's booked slots
+    } = assignSlotInfo(
+      outputlist7,
+      firstSlotStart,
+      availabilityList,
+      alreadyBookedList,
+      alreadyBookedListByCurrentUser, // pass the current user's booked list
+      userOffsetInSeconds,
+      blockedByUserList,
+      modifiedSlots
+    );
 
     console.log(
       "Generated outputlist1 (Meeting Links):",
@@ -487,6 +238,10 @@ export const schedule = async function () {
     console.log(
       "Generated outputlist8 (Blocked by User):",
       JSON.stringify(outputlist8, null, 2)
+    );
+    console.log(
+      "Generated outputlist9 (Booked by Current User):",
+      JSON.stringify(outputlist9, null, 2)
     );
 
     const globalStartUTC = availabilityList.length
@@ -529,6 +284,7 @@ export const schedule = async function () {
       baselineOutput6 = [...outputlist6];
       baselineOutput7 = [...outputlist7];
       baselineOutput8 = [...outputlist8];
+      baselineOutput9 = [...outputlist9]; // store baseline for outputlist9
 
       if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
@@ -544,6 +300,7 @@ export const schedule = async function () {
           outputlist6,
           outputlist7,
           outputlist8,
+          outputlist9, // include outputlist9 in final results
         });
       }
     } else {
@@ -588,6 +345,7 @@ export const schedule = async function () {
       baselineOutput5 = newBaselineIndices.map((i) => baselineOutput5[i]);
       baselineOutput7 = newBaselineIndices.map((i) => baselineOutput7[i]);
       baselineOutput8 = newBaselineIndices.map((i) => baselineOutput8[i]);
+      baselineOutput9 = newBaselineIndices.map((i) => baselineOutput9[i]);
 
       if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
@@ -603,6 +361,7 @@ export const schedule = async function () {
           outputlist6: baselineOutput6,
           outputlist7: baselineOutput7,
           outputlist8: baselineOutput8,
+          outputlist9: baselineOutput9, // include in final results
         });
       }
     }
@@ -643,7 +402,7 @@ export const schedule = async function () {
     console.log("Base daily end time:", baseDailyEnd);
     console.log("Slot duration (minutes):", slotDuration);
 
-    // Determine the entire week's start and end in local time, plus one day before and after
+    // Determine the entire week's start and end in local time
     const endDateLocal = startDateLocal.clone().add(7, "days").endOf("day");
     const extendedStartLocal = startDateLocal.clone().subtract(1, "day");
     const extendedEndLocal = startDateLocal.clone().add(7, "days").endOf("day");
@@ -655,7 +414,6 @@ export const schedule = async function () {
       const currentDayLocal = startDateLocal.clone().add(i, "days");
       console.log(`\nProcessing day ${i + 1}: ${currentDayLocal.format()}`);
 
-      // Convert daily start/end times to UTC and then apply offset
       const currentDayUTC = currentDayLocal.clone().utc();
       console.log("Current day (UTC):", currentDayUTC.format());
 
@@ -668,7 +426,6 @@ export const schedule = async function () {
         "YYYY-MM-DD HH:mm"
       );
 
-      // Apply user offset
       const dailyStartTimeLocal = dailyStartTimeUTC
         .clone()
         .utcOffset(userOffsetInMinutes);
@@ -763,6 +520,7 @@ export const schedule = async function () {
     startDateLocal,
     availabilityList,
     alreadyBookedList,
+    alreadyBookedListByCurrentUser, // new parameter
     userOffsetInSeconds,
     blockedByUserList,
     modifiedSlots
@@ -774,6 +532,7 @@ export const schedule = async function () {
     const outputlist3 = [];
     const outputlist4 = [];
     const outputlist8 = [];
+    const outputlist9 = []; // new array for current user's booked slots
 
     availabilityList.forEach((availability) => {
       const startDate = moment
@@ -804,7 +563,8 @@ export const schedule = async function () {
             Address: availability.Address,
             alreadyBooked: false,
             isModified: null,
-            blockedByUser: false, // Default value for blockedByUser
+            blockedByUser: false,
+            bookedByCurrentUser: false, // new flag
           };
 
           // Check against already booked slots
@@ -824,6 +584,26 @@ export const schedule = async function () {
                 bookedEnd.isBetween(slotStart, slotEnd, null, "(]"))
             ) {
               slotInfo.alreadyBooked = true;
+            }
+          });
+
+          // Check against already booked by current user slots
+          alreadyBookedListByCurrentUser.forEach((bookedSlot) => {
+            const bookedStart = moment
+              .utc(bookedSlot.start_date)
+              .utcOffset(userOffsetInMinutes);
+            const bookedEnd = moment
+              .utc(bookedSlot.end_date)
+              .utcOffset(userOffsetInMinutes);
+
+            if (
+              slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
+              slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
+              (slotStart.isSame(bookedStart) && slotEnd.isSame(bookedEnd)) ||
+              (bookedStart.isBetween(slotStart, slotEnd, null, "[)") &&
+                bookedEnd.isBetween(slotStart, slotEnd, null, "(]"))
+            ) {
+              slotInfo.bookedByCurrentUser = true;
             }
           });
 
@@ -874,11 +654,19 @@ export const schedule = async function () {
           outputlist3.push(slotInfo.alreadyBooked);
           outputlist4.push(slotInfo.isModified);
           outputlist8.push(slotInfo.blockedByUser);
+          outputlist9.push(slotInfo.bookedByCurrentUser); // new outputlist for current user's booked status
         }
       });
     });
 
-    return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 };
+    return {
+      outputlist1,
+      outputlist2,
+      outputlist3,
+      outputlist4,
+      outputlist8,
+      outputlist9,
+    };
   }
 
   function filterSlotsByAvailabilityRange(
@@ -915,6 +703,7 @@ export const schedule = async function () {
       outputlist7: [],
     };
   }
+
 
 
 
@@ -1049,8 +838,6 @@ function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
 
   return {
     generateUniqueDates,
-    generateSlotsForDate,
-    getDaysInMonth,
     generateStartTimes,
     generateEndTimes,
     generateSlotsForWeek,
@@ -1059,3 +846,257 @@ function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
 };
 
 window["schedule"] = schedule;
+
+
+
+
+// function generateSlotsForDate(
+//   availabilityList,
+//   viewerDate,
+//   viewerTimeZone,
+//   alreadyBookedList,
+//   modifiedSlots
+// ) {
+//   console.log(
+//     "Received availabilityList:",
+//     JSON.stringify(availabilityList, null, 2)
+//   );
+//   console.log("Received viewerDate:", viewerDate);
+//   console.log("Received viewerTimeZone:", viewerTimeZone);
+//   console.log(
+//     "Received alreadyBookedList:",
+//     JSON.stringify(alreadyBookedList, null, 2)
+//   );
+//   console.log(
+//     "Received modifiedSlots:",
+//     JSON.stringify(modifiedSlots, null, 2)
+//   );
+
+//   if (!Array.isArray(availabilityList)) {
+//     console.error("availabilityList should be an array");
+//     return {
+//       outputlist1: [],
+//       outputlist2: [],
+//       outputlist3: [],
+//       outputlist4: [],
+//       outputlist5: [],
+//     };
+//   }
+
+//   const outputlist1 = [];
+//   const outputlist2 = [];
+//   const outputlist3 = [];
+//   const outputlist4 = [];
+//   const outputlist5 = [];
+
+//   // Parse viewerDate in viewer's timezone and define local boundaries
+//   const viewerDateLocal = moment.tz(viewerDate, viewerTimeZone).startOf("day");
+//   if (!viewerDateLocal.isValid()) {
+//     console.error("Invalid viewerDate:", viewerDate);
+//     return {
+//       outputlist1: [],
+//       outputlist2: [],
+//       outputlist3: [],
+//       outputlist4: [],
+//       outputlist5: [],
+//     };
+//   }
+
+//   // Local day start: e.g. 2024-12-15T00:00:00 local time
+//   const localDayStart = viewerDateLocal.clone();
+//   // Local day end: use the start of the next day (not endOf('day')) for a clean boundary
+//   // e.g. 2024-12-16T00:00:00 local time
+//   const localDayEnd = viewerDateLocal.clone().add(1, "day").startOf("day");
+
+//   // Convert local day start to UTC day reference
+//   const viewerDateUTC = viewerDateLocal.clone().utc();
+//   const viewerNextDateUTC = viewerDateUTC.clone().add(1, "day");
+
+//   availabilityList.forEach((availability) => {
+//     const startDate = moment.utc(availability.start_date).startOf("day");
+//     const endDate = moment.utc(availability.end_date).endOf("day");
+
+//     // Check if either current or next UTC date intersects availability
+//     const includesCurrentDateUTC = viewerDateUTC.isBetween(
+//       startDate,
+//       endDate,
+//       "day",
+//       "[]"
+//     );
+//     const includesNextDateUTC = viewerNextDateUTC.isBetween(
+//       startDate,
+//       endDate,
+//       "day",
+//       "[]"
+//     );
+
+//     if (!includesCurrentDateUTC && !includesNextDateUTC) {
+//       return;
+//     }
+
+//     function generateDailySlotsForUTCDate(utcDate) {
+//       const dailyStartTimeUTC = moment.utc(
+//         utcDate.format("YYYY-MM-DD") + " " + availability.daily_start_time,
+//         "YYYY-MM-DD HH:mm"
+//       );
+//       const dailyEndTimeUTC = moment.utc(
+//         utcDate.format("YYYY-MM-DD") + " " + availability.daily_end_time,
+//         "YYYY-MM-DD HH:mm"
+//       );
+
+//       const dailyStartTimeViewer = dailyStartTimeUTC.clone().tz(viewerTimeZone);
+//       const dailyEndTimeViewer = dailyEndTimeUTC.clone().tz(viewerTimeZone);
+
+//       let currentTime = dailyStartTimeViewer.clone();
+//       while (currentTime.isBefore(dailyEndTimeViewer)) {
+//         const startSlot = currentTime.clone();
+//         const endSlot = startSlot
+//           .clone()
+//           .add(availability.slot_duration_minutes, "minutes");
+
+//         // If slot would surpass daily end time, break
+//         if (endSlot.isAfter(dailyEndTimeViewer)) break;
+
+//         // Ensure the slot falls fully within the local requested day [localDayStart, localDayEnd)
+//         // Since localDayEnd is midnight of the next day, a slot ending exactly at localDayEnd is allowed.
+//         if (startSlot.isBefore(localDayStart) || endSlot.isAfter(localDayEnd)) {
+//           currentTime.add(availability.slot_duration_minutes, "minutes");
+//           continue;
+//         }
+
+//         const formattedStartSlotUTC = startSlot
+//           .clone()
+//           .utc()
+//           .format("YYYY-MM-DDTHH:mm:ss[Z]");
+//         const formattedEndSlotUTC = endSlot
+//           .clone()
+//           .utc()
+//           .format("YYYY-MM-DDTHH:mm:ss[Z]");
+
+//         let slotInfo = {
+//           slotTimeRange: [formattedStartSlotUTC, formattedEndSlotUTC],
+//           meetingLink: availability.meetingLink,
+//           Address: availability.Address,
+//           alreadyBooked: false,
+//           isModified: false,
+//         };
+
+//         // Check booked slots
+//         alreadyBookedList.forEach((bookedSlot) => {
+//           const bookedStartDate = moment.utc(bookedSlot.start_date);
+//           const bookedEndDate = moment.utc(bookedSlot.end_date);
+//           if (
+//             (startSlot.isSame(bookedStartDate) &&
+//               endSlot.isSame(bookedEndDate)) ||
+//             (startSlot.isBefore(bookedEndDate) &&
+//               endSlot.isAfter(bookedStartDate))
+//           ) {
+//             slotInfo.alreadyBooked = true;
+//           }
+//         });
+
+//         // Check modified slots
+//         modifiedSlots.forEach((modifiedSlot) => {
+//           const modifiedStartDate = moment.utc(modifiedSlot.start_date);
+//           const modifiedEndDate = moment.utc(modifiedSlot.end_date);
+//           if (
+//             (startSlot.isSame(modifiedStartDate) &&
+//               endSlot.isSame(modifiedEndDate)) ||
+//             (startSlot.isBefore(modifiedEndDate) &&
+//               endSlot.isAfter(modifiedStartDate))
+//           ) {
+//             slotInfo = {
+//               ...slotInfo,
+//               meetingLink: modifiedSlot.meetingLink,
+//               Address: modifiedSlot.Address,
+//               isModified: true,
+//             };
+//           }
+//         });
+
+//         outputlist1.push(slotInfo.meetingLink);
+//         outputlist2.push(slotInfo.Address);
+//         outputlist3.push(slotInfo.alreadyBooked);
+//         outputlist4.push(slotInfo.isModified);
+//         outputlist5.push(slotInfo.slotTimeRange);
+
+//         currentTime.add(availability.slot_duration_minutes, "minutes");
+//       }
+//     }
+
+//     if (includesCurrentDateUTC) {
+//       generateDailySlotsForUTCDate(viewerDateUTC);
+//     }
+//     if (includesNextDateUTC) {
+//       generateDailySlotsForUTCDate(viewerNextDateUTC);
+//     }
+//   });
+
+//   console.log("Generated outputlist1:", JSON.stringify(outputlist1, null, 2));
+//   console.log("Generated outputlist2:", JSON.stringify(outputlist2, null, 2));
+//   console.log("Generated outputlist3:", JSON.stringify(outputlist3, null, 2));
+//   console.log("Generated outputlist4:", JSON.stringify(outputlist4, null, 2));
+//   console.log("Generated outputlist5:", JSON.stringify(outputlist5, null, 2));
+
+//   bubble_fn_hours({
+//     outputlist1: outputlist1,
+//     outputlist2: outputlist2,
+//     outputlist3: outputlist3,
+//     outputlist4: outputlist4,
+//     outputlist5: outputlist5,
+//   });
+// }
+
+// function getDaysInMonth(dateString, timezone) {
+//   // Parse the date string in the given timezone
+//   console.log("dateString", dateString);
+//   console.log("timezone", timezone);
+//   const date = moment.tz(dateString, timezone);
+//   const days = [];
+
+//   // Get the first and last days of the month in the given timezone
+//   const firstDayOfMonth = date.clone().startOf("month");
+//   const lastDayOfMonth = date.clone().endOf("month");
+
+//   // Adjusting the start day of the week (Sunday)
+//   const startDayOfWeek = firstDayOfMonth.day();
+
+//   // Fill in the days before the first day of the month
+//   for (let i = 0; i < startDayOfWeek; i++) {
+//     const day = firstDayOfMonth
+//       .clone()
+//       .subtract(startDayOfWeek - i, "days")
+//       .tz(timezone)
+//       .toDate();
+//     days.push(day);
+//   }
+
+//   // Fill in the days of the month
+//   for (
+//     let d = firstDayOfMonth.clone();
+//     d.isSameOrBefore(lastDayOfMonth, "day");
+//     d.add(1, "day")
+//   ) {
+//     const day = d.tz(timezone).toDate();
+//     days.push(day);
+//   }
+
+//   // Adjusting the end day of the week (Saturday)
+//   const endDayOfWeek = lastDayOfMonth.day();
+
+//   // Fill in the days after the last day of the month to complete the week
+//   for (let i = 1; i <= 6 - endDayOfWeek; i++) {
+//     const day = lastDayOfMonth.clone().add(i, "days").tz(timezone).toDate();
+//     days.push(day);
+//   }
+
+//   // Ensure the days array length is a multiple of 7 (to complete the calendar grid)
+//   while (days.length % 7 !== 0) {
+//     const lastDay = days[days.length - 1];
+//     const day = moment(lastDay).clone().add(1, "day").tz(timezone).toDate();
+//     days.push(day);
+//   }
+
+//   console.log(days);
+//   bubble_fn_daysInMonth(days);
+// }
