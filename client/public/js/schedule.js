@@ -118,6 +118,7 @@ export const schedule = async function () {
   let baselineOutput6 = [];
   let baselineOutput7 = [];
   let baselineOutput8 = [];
+  let baselineOutput9 = [];
 
   function generateSlotsForWeek(
     availabilityList,
