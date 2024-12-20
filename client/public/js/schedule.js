@@ -175,7 +175,11 @@ export const schedule = async function () {
     console.log("Slot duration (minutes):", slotDuration);
 
     // Generate outputlist7 (all weekly slots)
-    const outputlist7 = generateWeeklySlots(
+    const {
+      filteredSlots: outputlist7,
+      globalStart,
+      globalEnd,
+    } = generateWeeklySlots(
       startDateLocal,
       commonDailyStart.format("HH:mm"),
       commonDailyEnd.format("HH:mm"),
@@ -183,6 +187,7 @@ export const schedule = async function () {
       userOffsetInSeconds,
       mainAvailabilityList
     );
+
     console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
 
     // Assign slot information (excluding outputlist3)
