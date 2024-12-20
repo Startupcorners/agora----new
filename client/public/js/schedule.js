@@ -293,8 +293,8 @@ export const schedule = async function () {
         }
       });
 
-      // Update baselineOutput5
-      baselineOutput5 = baselineOutput7.filter((slot) => {
+      // Filter and update baselineOutput5 with overlapping slots only
+      baselineOutput5 = baselineOutput5.filter((slot) => {
         const slotStart = moment
           .utc(slot[0])
           .utcOffset(userOffsetInSeconds / 60);
@@ -345,6 +345,7 @@ export const schedule = async function () {
       console.log(`${key}:`, JSON.stringify(outputs[key], null, 2));
     });
   }
+
 
 
 
