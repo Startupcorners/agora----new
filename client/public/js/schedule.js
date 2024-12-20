@@ -131,6 +131,8 @@ export const schedule = async function () {
     availabilityids,
     iteration
   ) {
+
+    console.log(availabilityList)
     const userOffsetInMinutes = userOffsetInSeconds / 60;
 
     const startDateLocal = moment
@@ -241,17 +243,17 @@ export const schedule = async function () {
           outputlist8,
           outputlist9,
         });
-        logFinalOutputs({
-          outputlist1,
-          outputlist2,
-          outputlist3,
-          outputlist4,
-          outputlist5,
-          outputlist6,
-          outputlist7,
-          outputlist8,
-          outputlist9,
-        });
+        // logFinalOutputs({
+        //   outputlist1,
+        //   outputlist2,
+        //   outputlist3,
+        //   outputlist4,
+        //   outputlist5,
+        //   outputlist6,
+        //   outputlist7,
+        //   outputlist8,
+        //   outputlist9,
+        // });
       }
     } else {
       // Map current booked slots
@@ -329,17 +331,17 @@ export const schedule = async function () {
           outputlist8: baselineOutput8,
           outputlist9: baselineOutput9,
         });
-        logFinalOutputs({
-          outputlist1: baselineOutput1,
-          outputlist2: baselineOutput2,
-          outputlist3: baselineOutput3,
-          outputlist4: baselineOutput4,
-          outputlist5: baselineOutput5,
-          outputlist6: baselineOutput6,
-          outputlist7: baselineOutput7,
-          outputlist8: baselineOutput8,
-          outputlist9: baselineOutput9,
-        });
+        // logFinalOutputs({
+        //   outputlist1: baselineOutput1,
+        //   outputlist2: baselineOutput2,
+        //   outputlist3: baselineOutput3,
+        //   outputlist4: baselineOutput4,
+        //   outputlist5: baselineOutput5,
+        //   outputlist6: baselineOutput6,
+        //   outputlist7: baselineOutput7,
+        //   outputlist8: baselineOutput8,
+        //   outputlist9: baselineOutput9,
+        // });
       }
     }
 
