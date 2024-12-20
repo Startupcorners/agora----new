@@ -295,11 +295,12 @@ export const schedule = async function () {
       );
 
       // Build a map of current slots from this iteration
-      // Instead of filtering out booked slots, we keep them and record their booked status.
       const currentSlotsMap = {};
       outputlist5.forEach((slot) => {
         const slotKey = slot.join("|");
-        const isBooked = alreadyBookedList.some((booked) => {
+
+        // Identify all booked entries for this slot
+        const bookedEntries = alreadyBookedList.filter((booked) => {
           const bookedStart = moment.utc(booked.start_date);
           const bookedEnd = moment.utc(booked.end_date);
           const slotStart = moment.utc(slot[0]);
@@ -313,20 +314,26 @@ export const schedule = async function () {
           );
         });
 
-        currentSlotsMap[slotKey] = { slot, isBooked };
+        const bookedBubbleIds = bookedEntries.map((entry) => entry.bubbleid);
+
+        currentSlotsMap[slotKey] = { slot, bookedBubbleIds };
       });
 
-      // Now we determine the intersection by looking at the baselineOutput5 (from previous iterations)
-      // and only keeping slots that appear in currentSlotsMap.
+      // Determine the intersection while updating baselineOutput3 as needed
       const newBaselineIndices = [];
       baselineOutput5.forEach((slot, index) => {
         const slotKey = slot.join("|");
-        if (currentSlotsMap[slotKey]) {
-          // If the slot is booked in this iteration, update outputlist3 accordingly.
-          if (currentSlotsMap[slotKey].isBooked) {
-            baselineOutput3[index] = "BOOKED_SLOT";
-            // Or append something to the existing value:
-            // baselineOutput3[index] = (baselineOutput3[index] || "") + "_BOOKED";
+        const entry = currentSlotsMap[slotKey];
+        if (entry) {
+          // If there are bookedBubbleIds, append them to baselineOutput3[index]
+          if (entry.bookedBubbleIds.length > 0) {
+            // If baselineOutput3[index] is null or empty, start with the first bubbleid
+            // Otherwise, append each bubbleid with an underscore
+            let currentVal = baselineOutput3[index] || "";
+            entry.bookedBubbleIds.forEach((bid) => {
+              currentVal = currentVal ? currentVal + "_" + bid : bid;
+            });
+            baselineOutput3[index] = currentVal;
           }
           newBaselineIndices.push(index);
         }
