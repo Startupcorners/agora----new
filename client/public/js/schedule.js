@@ -247,6 +247,7 @@ export const schedule = async function () {
 
     console.log("Final output:", result);
     console.log("======== Function End ========");
+    bubble_fn_ready();
     return result;
   }
 
