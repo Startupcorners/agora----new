@@ -118,6 +118,7 @@ export const schedule = async function () {
   let baselineOutput6 = [];
   let baselineOutput7 = [];
   let baselineOutput8 = [];
+  let baselineOutput9 = [];
 
   function generateSlotsForWeek(
     availabilityList,
@@ -200,7 +201,7 @@ export const schedule = async function () {
 
     console.log("First slot start time (local):", firstSlotStart.format());
 
-    let { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 } =
+    let { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8, outputlist9 } =
       assignSlotInfo(
         outputlist7,
         firstSlotStart,
@@ -251,6 +252,7 @@ export const schedule = async function () {
       baselineOutput6 = [...outputlist6];
       baselineOutput7 = [...outputlist7];
       baselineOutput8 = [...outputlist8];
+      baselineOutput9 = [...outputlist9];
 
       if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
@@ -266,6 +268,7 @@ export const schedule = async function () {
           outputlist6,
           outputlist7,
           outputlist8,
+          outputlist9
         });
 
         console.log(
@@ -284,6 +287,10 @@ export const schedule = async function () {
         console.log(
           "Generated outputlist8 (Blocked by User):",
           JSON.stringify(outputlist8, null, 2)
+        );
+        console.log(
+          "Generated outputlist9 (isStartupCorners):",
+          JSON.stringify(outputlist9, null, 2)
         );
       }
     } else {
@@ -353,6 +360,7 @@ export const schedule = async function () {
       baselineOutput5 = newBaselineIndices.map((i) => baselineOutput5[i]);
       baselineOutput7 = newBaselineIndices.map((i) => baselineOutput7[i]);
       baselineOutput8 = newBaselineIndices.map((i) => baselineOutput8[i]);
+      baselineOutput9 = newBaselineIndices.map((i) => baselineOutput9[i]);
 
       if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
@@ -368,6 +376,7 @@ export const schedule = async function () {
           outputlist6: baselineOutput6,
           outputlist7: baselineOutput7,
           outputlist8: baselineOutput8,
+          outputlist9: baselineOutput9,
         });
 
         console.log(
@@ -386,6 +395,10 @@ export const schedule = async function () {
         console.log(
           "Generated outputlist8 (Blocked by User):",
           JSON.stringify(outputlist8, null, 2)
+        );
+        console.log(
+          "Generated outputlist9 (isStartupCorners):",
+          JSON.stringify(outputlist9, null, 2)
         );
       }
     }
@@ -551,7 +564,8 @@ export const schedule = async function () {
     alreadyBookedList,
     userOffsetInSeconds,
     blockedByUserList,
-    modifiedSlots
+    modifiedSlots,
+    startupCornersList // Assuming this is a new parameter for startupCorners slots
   ) {
     console.log("modifiedSlots", modifiedSlots);
     const userOffsetInMinutes = userOffsetInSeconds / 60;
@@ -560,6 +574,7 @@ export const schedule = async function () {
     const outputlist3 = [];
     const outputlist4 = [];
     const outputlist8 = [];
+    const outputlist9 = []; // New list for isStartupCorners
 
     availabilityList.forEach((availability) => {
       const startDate = moment
@@ -591,6 +606,7 @@ export const schedule = async function () {
             alreadyBooked: null,
             isModified: null,
             blockedByUser: false, // Default value for blockedByUser
+            isStartupCorners: false, // Default value for isStartupCorners
           };
 
           // Collect bubbleIds for overlapping booked slots
@@ -659,18 +675,47 @@ export const schedule = async function () {
             }
           });
 
+          // Check against startupCorners slots
+          startupCornersList.forEach((startupSlot) => {
+            const startupStart = moment
+              .utc(startupSlot.start_date)
+              .utcOffset(userOffsetInMinutes);
+            const startupEnd = moment
+              .utc(startupSlot.end_date)
+              .utcOffset(userOffsetInMinutes);
+
+            if (
+              slotStart.isBetween(startupStart, startupEnd, null, "[)") ||
+              slotEnd.isBetween(startupStart, startupEnd, null, "(]") ||
+              (slotStart.isSame(startupStart) && slotEnd.isSame(startupEnd)) ||
+              (startupStart.isBetween(slotStart, slotEnd, null, "[)") &&
+                startupEnd.isBetween(slotStart, slotEnd, null, "(]"))
+            ) {
+              slotInfo.isStartupCorners = true;
+            }
+          });
+
           // Push slot info to the corresponding lists
           outputlist1.push(slotInfo.meetingLink);
           outputlist2.push(slotInfo.Address);
           outputlist3.push(slotInfo.alreadyBooked); // Push null or concatenated string
           outputlist4.push(slotInfo.isModified);
           outputlist8.push(slotInfo.blockedByUser);
+          outputlist9.push(slotInfo.isStartupCorners); // Push boolean for startupCorners
         }
       });
     });
 
-    return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 };
+    return {
+      outputlist1,
+      outputlist2,
+      outputlist3,
+      outputlist4,
+      outputlist8,
+      outputlist9, // Include new outputlist9 in the return object
+    };
   }
+
 
 
 
@@ -706,6 +751,7 @@ export const schedule = async function () {
       outputlist5: [],
       outputlist6: [],
       outputlist7: [],
+      outputlist9: [],
     };
   }
 
