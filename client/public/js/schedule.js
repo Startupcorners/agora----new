@@ -394,6 +394,8 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
           };
 
           // Check against blocked by user slots
+          console.log("blockedByUserList before forEach:", blockedByUserList);
+
           blockedByUserList.forEach((blockedSlot) => {
             const blockedStart = moment
               .utc(blockedSlot.start_date)
