@@ -203,7 +203,7 @@ export const schedule = async function () {
 
     // Generate outputlist3 (all booked slots)
     const outputlist3 = outputlist7.map((slot, index) => {
-      // Convert slot start and end (already in viewer's timezone)
+      // Slot times are already in the viewer's timezone (userOffsetInSeconds applied)
       const slotStart = moment(slot[0]);
       const slotEnd = moment(slot[1]);
 
@@ -216,7 +216,7 @@ export const schedule = async function () {
 
       const bookedBubbleIds = alreadyBookedList
         .filter((booked) => {
-          // Convert booked start and end from UTC to viewer's timezone
+          // Convert booked times using the user offset
           const bookedStart = moment
             .utc(booked.start_date)
             .utcOffset(userOffsetInSeconds / 60);
@@ -225,7 +225,7 @@ export const schedule = async function () {
             .utcOffset(userOffsetInSeconds / 60);
 
           console.log(
-            `  Against Booked (Viewer Timezone): ${bookedStart.format()} to ${bookedEnd.format()}`
+            `  Against Booked (User Offset Applied): ${bookedStart.format()} to ${bookedEnd.format()}`
           );
 
           // Check for overlap
