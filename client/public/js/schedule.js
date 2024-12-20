@@ -55,7 +55,6 @@ export const schedule = async function () {
     bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
   }
 
-
   function generateStartTimes(startTime, duration) {
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
@@ -119,6 +118,9 @@ export const schedule = async function () {
   let baselineOutput7 = [];
   let baselineOutput8 = [];
   let baselineOutput9 = [];
+
+  // Declare `baselineOutputMap` globally or outside the function to persist across iterations
+  let baselineOutputMap = {};
 
   function generateSlotsForWeek(
     availabilityList,
@@ -201,9 +203,9 @@ export const schedule = async function () {
       userOffsetInSeconds
     );
 
-    // Declare baselineOutputMap if not already declared
     if (iteration === 1) {
-      var baselineOutputMap = {}; // Ensure baselineOutputMap is declared here
+      // Initialize the `baselineOutputMap`
+      baselineOutputMap = {}; // Reset for a new session
       baselineOutput7 = [...outputlist7]; // Initialize baselineOutput7 for later iterations
 
       // Set up baseline outputs using a mapping by slot keys
@@ -239,7 +241,7 @@ export const schedule = async function () {
       }
     } else {
       // Update baseline outputs
-      baselineOutput7.forEach((slot) => {
+      outputlist7.forEach((slot) => {
         const slotKey = slot.join("|");
         const bookedEntries = alreadyBookedList.filter((booked) => {
           const bookedStart = moment.utc(booked.start_date);
@@ -270,7 +272,7 @@ export const schedule = async function () {
       });
 
       baselineOutput5 = filterSlotsByAvailabilityRange(
-        baselineOutput7,
+        outputlist7,
         globalStart,
         globalEnd,
         userOffsetInSeconds
@@ -310,11 +312,6 @@ export const schedule = async function () {
 
     setTimeout(bubble_fn_ready, 3000);
   }
-
-
-
-
-
 
   function generateDayBoundaries(startDateLocal) {
     const outputlist6 = [];
@@ -391,7 +388,6 @@ export const schedule = async function () {
     return filteredSlots;
   }
 
-
   function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
     const result = [];
     let current = startTimeLocal.clone();
@@ -409,7 +405,6 @@ export const schedule = async function () {
 
     return result;
   }
-
 
   function assignSlotInfo(
     outputlist7,
@@ -551,9 +546,6 @@ export const schedule = async function () {
     };
   }
 
-
-
-
   function filterSlotsByAvailabilityRange(
     allSlots,
     globalStart,
@@ -590,136 +582,129 @@ export const schedule = async function () {
     };
   }
 
+  function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
+    console.log("Received Availabilities:", availabilities);
 
-
-function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
-  console.log("Received Availabilities:", availabilities);
-
-  // Validate input
-  if (!Array.isArray(availabilities)) {
-    console.error("Invalid input: availabilities should be an array.");
-    return [];
-  }
-
-  // Map bubbleids to userids
-  const bubbleToUser = {};
-  const allUserIds = new Set();
-  for (const a of availabilities) {
-    if (!a.bubbleid || !a.userid) {
-      console.error("Invalid availability object: missing bubbleid or userid.");
+    // Validate input
+    if (!Array.isArray(availabilities)) {
+      console.error("Invalid input: availabilities should be an array.");
       return [];
     }
-    bubbleToUser[a.bubbleid] = a.userid;
-    allUserIds.add(a.userid);
-  }
 
-  const overlappingBubbleIds = new Set();
-
-  // Compare each availability with all others
-  for (let i = 0; i < availabilities.length; i++) {
-    const availability1 = availabilities[i];
-    const dateStart1 = moment.utc(availability1.start_date);
-    const dateEnd1 = moment.utc(availability1.end_date);
-
-    for (let j = i + 1; j < availabilities.length; j++) {
-      const availability2 = availabilities[j];
-      const dateStart2 = moment.utc(availability2.start_date);
-      const dateEnd2 = moment.utc(availability2.end_date);
-
-      // Check if the date ranges overlap
-      const dateOverlap =
-        dateStart1.isBefore(dateEnd2) && dateStart2.isBefore(dateEnd1);
-
-      if (!dateOverlap) {
-        continue; // Skip if no date overlap
-      }
-
-      // Check daily time ranges for overlap
-      const dailyStart1 = moment.utc(
-        "1970-01-01T" + availability1.daily_start_time + ":00Z"
-      );
-      const dailyEnd1 = moment.utc(
-        "1970-01-01T" + availability1.daily_end_time + ":00Z"
-      );
-      const dailyStart2 = moment.utc(
-        "1970-01-01T" + availability2.daily_start_time + ":00Z"
-      );
-      const dailyEnd2 = moment.utc(
-        "1970-01-01T" + availability2.daily_end_time + ":00Z"
-      );
-
-      // Adjust for crossing midnight
-      if (dailyEnd1.isBefore(dailyStart1)) dailyEnd1.add(1, "day");
-      if (dailyEnd2.isBefore(dailyStart2)) dailyEnd2.add(1, "day");
-
-      const dailyOverlap =
-        dailyStart1.isBefore(dailyEnd2) && dailyStart2.isBefore(dailyEnd1);
-
-      if (dailyOverlap) {
-        console.log(
-          `Overlap found between Bubble IDs ${availability1.bubbleid} and ${availability2.bubbleid}`
+    // Map bubbleids to userids
+    const bubbleToUser = {};
+    const allUserIds = new Set();
+    for (const a of availabilities) {
+      if (!a.bubbleid || !a.userid) {
+        console.error(
+          "Invalid availability object: missing bubbleid or userid."
         );
-        overlappingBubbleIds.add(availability1.bubbleid);
-        overlappingBubbleIds.add(availability2.bubbleid);
+        return [];
+      }
+      bubbleToUser[a.bubbleid] = a.userid;
+      allUserIds.add(a.userid);
+    }
+
+    const overlappingBubbleIds = new Set();
+
+    // Compare each availability with all others
+    for (let i = 0; i < availabilities.length; i++) {
+      const availability1 = availabilities[i];
+      const dateStart1 = moment.utc(availability1.start_date);
+      const dateEnd1 = moment.utc(availability1.end_date);
+
+      for (let j = i + 1; j < availabilities.length; j++) {
+        const availability2 = availabilities[j];
+        const dateStart2 = moment.utc(availability2.start_date);
+        const dateEnd2 = moment.utc(availability2.end_date);
+
+        // Check if the date ranges overlap
+        const dateOverlap =
+          dateStart1.isBefore(dateEnd2) && dateStart2.isBefore(dateEnd1);
+
+        if (!dateOverlap) {
+          continue; // Skip if no date overlap
+        }
+
+        // Check daily time ranges for overlap
+        const dailyStart1 = moment.utc(
+          "1970-01-01T" + availability1.daily_start_time + ":00Z"
+        );
+        const dailyEnd1 = moment.utc(
+          "1970-01-01T" + availability1.daily_end_time + ":00Z"
+        );
+        const dailyStart2 = moment.utc(
+          "1970-01-01T" + availability2.daily_start_time + ":00Z"
+        );
+        const dailyEnd2 = moment.utc(
+          "1970-01-01T" + availability2.daily_end_time + ":00Z"
+        );
+
+        // Adjust for crossing midnight
+        if (dailyEnd1.isBefore(dailyStart1)) dailyEnd1.add(1, "day");
+        if (dailyEnd2.isBefore(dailyStart2)) dailyEnd2.add(1, "day");
+
+        const dailyOverlap =
+          dailyStart1.isBefore(dailyEnd2) && dailyStart2.isBefore(dailyEnd1);
+
+        if (dailyOverlap) {
+          console.log(
+            `Overlap found between Bubble IDs ${availability1.bubbleid} and ${availability2.bubbleid}`
+          );
+          overlappingBubbleIds.add(availability1.bubbleid);
+          overlappingBubbleIds.add(availability2.bubbleid);
+        }
       }
     }
+
+    const overlappingBubbleIdsArray = Array.from(overlappingBubbleIds);
+
+    // Determine which user IDs overlap
+    const overlappingUserIds = new Set(
+      overlappingBubbleIdsArray.map((bid) => bubbleToUser[bid])
+    );
+
+    // Determine user IDs that do not overlap (among those who had availabilities)
+    const nonOverlappingUserIds = Array.from(allUserIds).filter(
+      (uid) => !overlappingUserIds.has(uid)
+    );
+
+    // Find user IDs that have no availabilities at all
+    const noAvailabilityUserIds = userids.filter((uid) => !allUserIds.has(uid));
+
+    // Combine non-overlapping with no-availability user IDs
+    const finalNonOverlappingUserIds = nonOverlappingUserIds.concat(
+      noAvailabilityUserIds
+    );
+
+    // Convert sets to arrays
+    const overlappingUserIdsArray = Array.from(overlappingUserIds);
+
+    // Special case: Only one userid or no overlaps
+    let finalOutputList1 = overlappingBubbleIdsArray;
+    if (userids.length === 1 || overlappingBubbleIdsArray.length === 0) {
+      // Include all availabilities of mainuserid
+      finalOutputList1 = availabilities
+        .filter((a) => a.userid === mainuserid)
+        .map((a) => a.bubbleid);
+    }
+
+    console.log(
+      "Final iteration completed. Sending results to Bubble.",
+      finalOutputList1,
+      overlappingUserIdsArray,
+      finalNonOverlappingUserIds
+    );
+
+    // Send to bubble in a similar format as requested
+    bubble_fn_overlapAvailabilities({
+      outputlist1: finalOutputList1,
+      outputlist2: overlappingUserIdsArray,
+      outputlist3: finalNonOverlappingUserIds,
+    });
+
+    return finalOutputList1;
   }
-
-  const overlappingBubbleIdsArray = Array.from(overlappingBubbleIds);
-
-  // Determine which user IDs overlap
-  const overlappingUserIds = new Set(
-    overlappingBubbleIdsArray.map((bid) => bubbleToUser[bid])
-  );
-
-  // Determine user IDs that do not overlap (among those who had availabilities)
-  const nonOverlappingUserIds = Array.from(allUserIds).filter(
-    (uid) => !overlappingUserIds.has(uid)
-  );
-
-  // Find user IDs that have no availabilities at all
-  const noAvailabilityUserIds = userids.filter((uid) => !allUserIds.has(uid));
-
-  // Combine non-overlapping with no-availability user IDs
-  const finalNonOverlappingUserIds = nonOverlappingUserIds.concat(
-    noAvailabilityUserIds
-  );
-
-  // Convert sets to arrays
-  const overlappingUserIdsArray = Array.from(overlappingUserIds);
-
-  // Special case: Only one userid or no overlaps
-  let finalOutputList1 = overlappingBubbleIdsArray;
-  if (userids.length === 1 || overlappingBubbleIdsArray.length === 0) {
-    // Include all availabilities of mainuserid
-    finalOutputList1 = availabilities
-      .filter((a) => a.userid === mainuserid)
-      .map((a) => a.bubbleid);
-  }
-
-  console.log(
-    "Final iteration completed. Sending results to Bubble.",
-    finalOutputList1,
-    overlappingUserIdsArray,
-    finalNonOverlappingUserIds
-  );
-
-  // Send to bubble in a similar format as requested
-  bubble_fn_overlapAvailabilities({
-    outputlist1: finalOutputList1,
-    outputlist2: overlappingUserIdsArray,
-    outputlist3: finalNonOverlappingUserIds,
-  });
-
-  return finalOutputList1;
-}
-
-
-
-
-
-
-
 
   return {
     generateUniqueDates,
