@@ -226,19 +226,20 @@ export const schedule = async function () {
       millisecond: 0,
     });
 
+    const outputlist5 = filterSlotsByAvailabilityRange(
+      outputlist7,
+      globalStart,
+      globalEnd,
+      userOffsetInSeconds
+    );
 
-    // Return the final output
+    // Final output object
     const result = {
       outputlist1,
       outputlist2,
       outputlist3,
       outputlist4,
-      outputlist5: filterSlotsByAvailabilityRange(
-        outputlist7,
-        globalStart,
-        globalEnd,
-        userOffsetInSeconds
-      ),
+      outputlist5,
       outputlist6,
       outputlist7,
       outputlist8,
@@ -247,9 +248,28 @@ export const schedule = async function () {
 
     console.log("Final output:", result);
     console.log("======== Function End ========");
-    bubble_fn_ready();
+
+    // Send the result to Bubble
+    bubble_fn_hours({
+      outputlist1,
+      outputlist2,
+      outputlist3,
+      outputlist4,
+      outputlist5,
+      outputlist6,
+      outputlist7,
+      outputlist8,
+      outputlist9,
+    });
+
+    // Call bubble_fn_ready if necessary
+    setTimeout(() => {
+      bubble_fn_ready();
+    }, 3000);
+
     return result;
   }
+
 
 
 
