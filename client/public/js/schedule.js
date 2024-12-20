@@ -182,9 +182,6 @@ export const schedule = async function () {
     const { outputlist1, outputlist2, outputlist4, outputlist8, outputlist9 } =
       assignSlotInfo(
         outputlist7,
-        startDateLocal,
-        mainAvailabilityList,
-        alreadyBookedList,
         userOffsetInSeconds,
         blockedByUserList,
         modifiedSlots
@@ -345,8 +342,6 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
 
   function assignSlotInfo(
     outputlist7,
-    startDateLocal,
-    availabilityList,
     userOffsetInSeconds,
     blockedByUserList,
     modifiedSlots
