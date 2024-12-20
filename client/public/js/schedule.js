@@ -55,6 +55,7 @@ export const schedule = async function () {
     bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
   }
 
+
   function generateStartTimes(startTime, duration) {
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
@@ -119,9 +120,6 @@ export const schedule = async function () {
   let baselineOutput8 = [];
   let baselineOutput9 = [];
 
-  // Declare `baselineOutputMap` globally or outside the function to persist across iterations
-  let baselineOutputMap = {};
-
   function generateSlotsForWeek(
     availabilityList,
     viewerStartDate,
@@ -133,27 +131,56 @@ export const schedule = async function () {
     availabilityids,
     iteration
   ) {
+    console.log("======== Function Start ========");
+    console.log("Received iteration:", iteration);
+    console.log("User IDs count:", availabilityids.length);
+
     const userOffsetInMinutes = userOffsetInSeconds / 60;
+
+    console.log("User offset (in seconds):", userOffsetInSeconds);
+    console.log("User offset (in minutes):", userOffsetInMinutes);
+
     const startDateLocal = moment
       .utc(viewerStartDate)
       .utcOffset(userOffsetInMinutes)
       .startOf("day")
       .add(offset * 7, "days");
 
-    if (!startDateLocal.isValid()) return emptyOutput();
+    console.log("Start date local:", startDateLocal.format());
 
-    if (availabilityList.length === 0) return emptyOutput();
-
-    const {
-      daily_start_time: baseDailyStart,
-      daily_end_time: baseDailyEnd,
-      slot_duration_minutes: baseSlotDuration,
-    } = availabilityList[0];
-
-    if (!baseDailyStart || !baseDailyEnd || !baseSlotDuration)
+    if (!startDateLocal.isValid()) {
+      console.error("Invalid viewerStartDate:", viewerStartDate);
       return emptyOutput();
+    }
+
+    let baseDailyStart = null;
+    let baseDailyEnd = null;
+    let baseSlotDuration = null;
+
+    if (availabilityList.length > 0) {
+      const firstAvailability = availabilityList[0];
+      baseDailyStart = firstAvailability.daily_start_time;
+      baseDailyEnd = firstAvailability.daily_end_time;
+      baseSlotDuration = firstAvailability.slot_duration_minutes;
+
+      console.log("Base daily start time:", baseDailyStart);
+      console.log("Base daily end time:", baseDailyEnd);
+      console.log("Base slot duration (minutes):", baseSlotDuration);
+    } else {
+      console.log("Availability list is empty.");
+    }
+
+    if (!baseDailyStart || !baseDailyEnd || !baseSlotDuration) {
+      console.log("No baseline availability found. Exiting function.");
+      return emptyOutput();
+    }
 
     const outputlist6 = generateDayBoundaries(startDateLocal);
+    console.log(
+      "Generated outputlist6 (Day Boundaries):",
+      JSON.stringify(outputlist6, null, 2)
+    );
+
     const outputlist7 = generateWeeklySlots(
       startDateLocal,
       baseDailyStart,
@@ -162,10 +189,17 @@ export const schedule = async function () {
       userOffsetInSeconds
     );
 
+    console.log(
+      "Generated outputlist7 (All Weekly Slots):",
+      JSON.stringify(outputlist7, null, 2)
+    );
+
     const firstSlotStart =
       outputlist7.length > 0
         ? moment.utc(outputlist7[0][0]).utcOffset(userOffsetInMinutes)
         : startDateLocal.clone();
+
+    console.log("First slot start time (local):", firstSlotStart.format());
 
     let {
       outputlist1,
@@ -191,10 +225,16 @@ export const schedule = async function () {
       ? moment.max(availabilityList.map((a) => moment.utc(a.end_date)))
       : null;
 
-    const globalStart =
-      globalStartUTC?.clone().utcOffset(userOffsetInMinutes) || null;
-    const globalEnd =
-      globalEndUTC?.clone().utcOffset(userOffsetInMinutes) || null;
+    console.log("Global availability range UTC:");
+    console.log("  Start:", globalStartUTC ? globalStartUTC.format() : "null");
+    console.log("  End:", globalEndUTC ? globalEndUTC.format() : "null");
+
+    const globalStart = globalStartUTC
+      ? globalStartUTC.clone().utcOffset(userOffsetInMinutes)
+      : null;
+    const globalEnd = globalEndUTC
+      ? globalEndUTC.clone().utcOffset(userOffsetInMinutes)
+      : null;
 
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
@@ -203,30 +243,28 @@ export const schedule = async function () {
       userOffsetInSeconds
     );
 
+    console.log(
+      "Filtered outputlist5 (Slots Within Availability Range):",
+      JSON.stringify(outputlist5, null, 2)
+    );
+
     if (iteration === 1) {
-      // Initialize the `baselineOutputMap`
-      baselineOutputMap = {}; // Reset for a new session
-      baselineOutput7 = [...outputlist7]; // Initialize baselineOutput7 for later iterations
-
-      // Set up baseline outputs using a mapping by slot keys
-      outputlist7.forEach((slot, index) => {
-        const slotKey = slot.join("|");
-        baselineOutputMap[slotKey] = {
-          meetingLink: outputlist1[index],
-          address: outputlist2[index],
-          alreadyBooked: outputlist3[index],
-          isModified: outputlist4[index],
-          blockedByUser: outputlist8[index],
-          isStartupCorners: outputlist9[index],
-        };
-      });
-
+      console.log("First iteration detected. Storing baseline outputs.");
+      baselineOutput1 = [...outputlist1];
+      baselineOutput2 = [...outputlist2];
+      baselineOutput3 = [...outputlist3];
+      baselineOutput4 = [...outputlist4];
       baselineOutput5 = [...outputlist5];
       baselineOutput6 = [...outputlist6];
+      baselineOutput7 = [...outputlist7];
+      baselineOutput8 = [...outputlist8];
+      baselineOutput9 = [...outputlist9];
 
       if (iteration < availabilityids.length) {
+        console.log("Moving to next iteration:", iteration + 1);
         bubble_fn_next(iteration + 1);
       } else {
+        console.log("Only one user detected. Sending final results to Bubble.");
         bubble_fn_hours({
           outputlist1,
           outputlist2,
@@ -238,11 +276,40 @@ export const schedule = async function () {
           outputlist8,
           outputlist9,
         });
+
+        console.log(
+          "Generated outputlist1 (Meeting Links):",
+          JSON.stringify(outputlist1, null, 2)
+        );
+        console.log(
+          "Generated outputlist2 (Addresses):",
+          JSON.stringify(outputlist2, null, 2)
+        );
+        console.log("Generated outputlist3 (Already Booked):", outputlist3);
+        console.log(
+          "Generated outputlist4 (Modified Slots):",
+          JSON.stringify(outputlist4, null, 2)
+        );
+        console.log(
+          "Generated outputlist8 (Blocked by User):",
+          JSON.stringify(outputlist8, null, 2)
+        );
+        console.log(
+          "Generated outputlist9 (isStartupCorners):",
+          JSON.stringify(outputlist9, null, 2)
+        );
       }
     } else {
-      // Update baseline outputs
+      console.log(
+        `Processing iteration ${iteration} and updating baseline outputs, reflecting booked slots.`
+      );
+
+      // Map to store current booked slots
+      const currentSlotsMap = {};
       outputlist7.forEach((slot) => {
         const slotKey = slot.join("|");
+
+        // Find all booked entries for this slot
         const bookedEntries = alreadyBookedList.filter((booked) => {
           const bookedStart = moment.utc(booked.start_date);
           const bookedEnd = moment.utc(booked.end_date);
@@ -258,60 +325,116 @@ export const schedule = async function () {
         });
 
         const bookedBubbleIds = bookedEntries.map((entry) => entry.bubbleId);
-        if (!baselineOutputMap[slotKey]) {
-          baselineOutputMap[slotKey] = {
-            alreadyBooked: null,
-          };
-        }
-        const currentBooked = baselineOutputMap[slotKey].alreadyBooked
-          ? baselineOutputMap[slotKey].alreadyBooked.split("_").filter(Boolean)
-          : [];
-        baselineOutputMap[slotKey].alreadyBooked = [
-          ...new Set([...currentBooked, ...bookedBubbleIds]),
-        ].join("_");
+        currentSlotsMap[slotKey] = { slot, bookedBubbleIds };
       });
 
+      // Update baseline outputs without reducing slot count
+      // Debugging: Verify alignment between outputlist7 and currentSlotsMap
+      console.log(`Iteration ${iteration} - Starting baselineOutput3 update`);
+      outputlist7.forEach((slot, index) => {
+        const slotKey = slot.join("|");
+        console.log(`Index ${index} - SlotKey: ${slotKey}`);
+        if (!currentSlotsMap[slotKey]) {
+          console.error(`Missing SlotKey in currentSlotsMap: ${slotKey}`);
+        }
+      });
+
+      // Update baselineOutput3
+      outputlist7.forEach((slot, index) => {
+        const slotKey = slot.join("|");
+        const entry = currentSlotsMap[slotKey];
+
+        if (entry) {
+          if (entry.bookedBubbleIds.length > 0) {
+            let currentVal = baselineOutput3[index] || "";
+            let currentIds = currentVal ? currentVal.split("_") : [];
+            entry.bookedBubbleIds.forEach((bid) => {
+              if (!currentIds.includes(bid)) {
+                currentIds.push(bid);
+              }
+            });
+            baselineOutput3[index] = currentIds.length
+              ? currentIds.join("_")
+              : null;
+          }
+        }
+      });
+
+      console.log(
+        `Iteration ${iteration} - Updated baselineOutput3:`,
+        baselineOutput3
+      );
+
+      // Ensure all outputs maintain the full set of weekly slots
+      baselineOutput1 = [...outputlist1]; // Meeting links
+      baselineOutput2 = [...outputlist2]; // Addresses
+      baselineOutput3 = [...baselineOutput3]; // Already booked
+      baselineOutput4 = [...outputlist4]; // Modified slots
       baselineOutput5 = filterSlotsByAvailabilityRange(
         outputlist7,
         globalStart,
         globalEnd,
         userOffsetInSeconds
-      );
+      ); // Filtered by availability
+      baselineOutput6 = [...outputlist6]; // Day boundaries
+      baselineOutput7 = [...outputlist7]; // All weekly slots
+      baselineOutput8 = [...outputlist8]; // Blocked by user
+      baselineOutput9 = [...outputlist9]; // isStartupCorners
 
       if (iteration < availabilityids.length) {
+        console.log("Moving to next iteration:", iteration + 1);
         bubble_fn_next(iteration + 1);
       } else {
-        const finalOutput = {
-          outputlist1: [],
-          outputlist2: [],
-          outputlist3: [],
-          outputlist4: [],
-          outputlist5: baselineOutput5,
+        console.log("Final iteration completed. Sending results to Bubble.");
+        bubble_fn_hours({
+          outputlist1: baselineOutput1,
+          outputlist2: baselineOutput2,
+          outputlist3: baselineOutput3,
+          outputlist4: baselineOutput4,
+          outputlist5: baselineOutput5, // Only filtered list
           outputlist6: baselineOutput6,
           outputlist7: baselineOutput7,
-          outputlist8: [],
-          outputlist9: [],
-        };
-
-        baselineOutput7.forEach((slot) => {
-          const slotKey = slot.join("|");
-          const slotInfo = baselineOutputMap[slotKey];
-          if (slotInfo) {
-            finalOutput.outputlist1.push(slotInfo.meetingLink || null);
-            finalOutput.outputlist2.push(slotInfo.address || null);
-            finalOutput.outputlist3.push(slotInfo.alreadyBooked || null);
-            finalOutput.outputlist4.push(slotInfo.isModified || null);
-            finalOutput.outputlist8.push(slotInfo.blockedByUser || null);
-            finalOutput.outputlist9.push(slotInfo.isStartupCorners || null);
-          }
+          outputlist8: baselineOutput8,
+          outputlist9: baselineOutput9,
         });
 
-        bubble_fn_hours(finalOutput);
+        console.log(
+          "Generated outputlist1 (Meeting Links):",
+          JSON.stringify(outputlist1, null, 2)
+        );
+        console.log(
+          "Generated outputlist2 (Addresses):",
+          JSON.stringify(outputlist2, null, 2)
+        );
+        console.log("Generated outputlist3 (Already Booked):", outputlist3);
+        console.log(
+          "Generated outputlist4 (Modified Slots):",
+          JSON.stringify(outputlist4, null, 2)
+        );
+        console.log(
+          "Generated outputlist5 (Filtered Slots):",
+          JSON.stringify(outputlist5, null, 2)
+        );
+        console.log(
+          "Generated outputlist8 (Blocked by User):",
+          JSON.stringify(outputlist8, null, 2)
+        );
+        console.log(
+          "Generated outputlist7 (All Weekly Slots):",
+          JSON.stringify(outputlist7, null, 2)
+        );
       }
     }
 
-    setTimeout(bubble_fn_ready, 3000);
+
+    console.log("======== Function End ========");
+    // Add a 3-second delay before calling bubble_fn_ready
+    setTimeout(() => {
+      bubble_fn_ready();
+    }, 3000);
   }
+
+
 
   function generateDayBoundaries(startDateLocal) {
     const outputlist6 = [];
@@ -337,16 +460,27 @@ export const schedule = async function () {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     const outputlist7 = [];
 
+    console.log("Start date local:", startDateLocal.format());
+    console.log("User offset (seconds):", userOffsetInSeconds);
+    console.log("Base daily start time:", baseDailyStart);
+    console.log("Base daily end time:", baseDailyEnd);
+    console.log("Slot duration (minutes):", slotDuration);
+
     // Determine the entire week's start and end in local time, plus one day before and after
     const endDateLocal = startDateLocal.clone().add(7, "days").endOf("day");
     const extendedStartLocal = startDateLocal.clone().subtract(1, "day");
     const extendedEndLocal = startDateLocal.clone().add(7, "days").endOf("day");
 
+    console.log("Extended week start (local):", extendedStartLocal.format());
+    console.log("Extended week end (local):", extendedEndLocal.format());
+
     for (let i = 0; i < 8; i++) {
       const currentDayLocal = startDateLocal.clone().add(i, "days");
+      console.log(`\nProcessing day ${i + 1}: ${currentDayLocal.format()}`);
 
       // Convert daily start/end times to UTC and then apply offset
       const currentDayUTC = currentDayLocal.clone().utc();
+      console.log("Current day (UTC):", currentDayUTC.format());
 
       const dailyStartTimeUTC = moment.utc(
         currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
@@ -365,6 +499,15 @@ export const schedule = async function () {
         .clone()
         .utcOffset(userOffsetInMinutes);
 
+      console.log(
+        "Daily start time (local w/ offset):",
+        dailyStartTimeLocal.format()
+      );
+      console.log(
+        "Daily end time (local w/ offset):",
+        dailyEndTimeLocal.format()
+      );
+
       // Generate slots for the entire daily range
       outputlist7.push(
         ...generateSlotsForInterval(
@@ -376,15 +519,28 @@ export const schedule = async function () {
     }
 
     // Filter all slots to only those within the extended range
+    console.log(
+      "Filtering slots to ensure they fit within the extended weekly range."
+    );
     const filteredSlots = outputlist7.filter((slotRange) => {
       const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
       const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
-      return (
+      const isInExtendedRange =
         slotStart.isSameOrAfter(startDateLocal) &&
-        slotEnd.isSameOrBefore(endDateLocal)
-      );
+        slotEnd.isSameOrBefore(endDateLocal);
+      if (!isInExtendedRange) {
+        console.log(
+          "Excluding slot:",
+          slotStart.format(),
+          "to",
+          slotEnd.format(),
+          "(outside extended weekly range)"
+        );
+      }
+      return isInExtendedRange;
     });
 
+    console.log("Final slots (with extra days):", filteredSlots);
     return filteredSlots;
   }
 
@@ -392,8 +548,26 @@ export const schedule = async function () {
     const result = [];
     let current = startTimeLocal.clone();
 
+    console.log("Generating slots...");
+    console.log(
+      "Start time (local):",
+      startTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ")
+    );
+    console.log(
+      "End time (local):",
+      endTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ")
+    );
+    console.log("Slot duration (minutes):", duration);
+
     while (current.isBefore(endTimeLocal)) {
       const slotEnd = current.clone().add(duration, "minutes");
+
+      console.log(
+        "Generated slot:",
+        current.format("YYYY-MM-DDTHH:mm:ssZ"),
+        "to",
+        slotEnd.format("YYYY-MM-DDTHH:mm:ssZ")
+      );
 
       result.push([
         current.format("YYYY-MM-DDTHH:mm:ssZ"),
@@ -403,6 +577,7 @@ export const schedule = async function () {
       current.add(duration, "minutes");
     }
 
+    console.log("Total slots generated:", result.length);
     return result;
   }
 
@@ -415,6 +590,7 @@ export const schedule = async function () {
     blockedByUserList,
     modifiedSlots
   ) {
+    console.log("modifiedSlots", modifiedSlots);
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     const outputlist1 = [];
     const outputlist2 = [];
@@ -518,7 +694,7 @@ export const schedule = async function () {
               (modifiedStart.isBetween(slotStart, slotEnd, null, "[)") &&
                 modifiedEnd.isBetween(slotStart, slotEnd, null, "(]"))
             ) {
-              slotInfo.isModified = modifiedSlot.bubbleId;
+              slotInfo.isModified = modifiedSlot.bubbleId; 
               slotInfo.meetingLink = modifiedSlot.meetingLink;
               slotInfo.Address = modifiedSlot.Address;
               slotInfo.isStartupCorners = modifiedSlot.isStartupcorners;
@@ -536,15 +712,10 @@ export const schedule = async function () {
       });
     });
 
-    return {
-      outputlist1,
-      outputlist2,
-      outputlist3,
-      outputlist4,
-      outputlist8,
-      outputlist9,
-    };
+    return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8, outputlist9 };
   }
+
+
 
   function filterSlotsByAvailabilityRange(
     allSlots,
@@ -582,129 +753,136 @@ export const schedule = async function () {
     };
   }
 
-  function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
-    console.log("Received Availabilities:", availabilities);
 
-    // Validate input
-    if (!Array.isArray(availabilities)) {
-      console.error("Invalid input: availabilities should be an array.");
+
+function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
+  console.log("Received Availabilities:", availabilities);
+
+  // Validate input
+  if (!Array.isArray(availabilities)) {
+    console.error("Invalid input: availabilities should be an array.");
+    return [];
+  }
+
+  // Map bubbleids to userids
+  const bubbleToUser = {};
+  const allUserIds = new Set();
+  for (const a of availabilities) {
+    if (!a.bubbleid || !a.userid) {
+      console.error("Invalid availability object: missing bubbleid or userid.");
       return [];
     }
-
-    // Map bubbleids to userids
-    const bubbleToUser = {};
-    const allUserIds = new Set();
-    for (const a of availabilities) {
-      if (!a.bubbleid || !a.userid) {
-        console.error(
-          "Invalid availability object: missing bubbleid or userid."
-        );
-        return [];
-      }
-      bubbleToUser[a.bubbleid] = a.userid;
-      allUserIds.add(a.userid);
-    }
-
-    const overlappingBubbleIds = new Set();
-
-    // Compare each availability with all others
-    for (let i = 0; i < availabilities.length; i++) {
-      const availability1 = availabilities[i];
-      const dateStart1 = moment.utc(availability1.start_date);
-      const dateEnd1 = moment.utc(availability1.end_date);
-
-      for (let j = i + 1; j < availabilities.length; j++) {
-        const availability2 = availabilities[j];
-        const dateStart2 = moment.utc(availability2.start_date);
-        const dateEnd2 = moment.utc(availability2.end_date);
-
-        // Check if the date ranges overlap
-        const dateOverlap =
-          dateStart1.isBefore(dateEnd2) && dateStart2.isBefore(dateEnd1);
-
-        if (!dateOverlap) {
-          continue; // Skip if no date overlap
-        }
-
-        // Check daily time ranges for overlap
-        const dailyStart1 = moment.utc(
-          "1970-01-01T" + availability1.daily_start_time + ":00Z"
-        );
-        const dailyEnd1 = moment.utc(
-          "1970-01-01T" + availability1.daily_end_time + ":00Z"
-        );
-        const dailyStart2 = moment.utc(
-          "1970-01-01T" + availability2.daily_start_time + ":00Z"
-        );
-        const dailyEnd2 = moment.utc(
-          "1970-01-01T" + availability2.daily_end_time + ":00Z"
-        );
-
-        // Adjust for crossing midnight
-        if (dailyEnd1.isBefore(dailyStart1)) dailyEnd1.add(1, "day");
-        if (dailyEnd2.isBefore(dailyStart2)) dailyEnd2.add(1, "day");
-
-        const dailyOverlap =
-          dailyStart1.isBefore(dailyEnd2) && dailyStart2.isBefore(dailyEnd1);
-
-        if (dailyOverlap) {
-          console.log(
-            `Overlap found between Bubble IDs ${availability1.bubbleid} and ${availability2.bubbleid}`
-          );
-          overlappingBubbleIds.add(availability1.bubbleid);
-          overlappingBubbleIds.add(availability2.bubbleid);
-        }
-      }
-    }
-
-    const overlappingBubbleIdsArray = Array.from(overlappingBubbleIds);
-
-    // Determine which user IDs overlap
-    const overlappingUserIds = new Set(
-      overlappingBubbleIdsArray.map((bid) => bubbleToUser[bid])
-    );
-
-    // Determine user IDs that do not overlap (among those who had availabilities)
-    const nonOverlappingUserIds = Array.from(allUserIds).filter(
-      (uid) => !overlappingUserIds.has(uid)
-    );
-
-    // Find user IDs that have no availabilities at all
-    const noAvailabilityUserIds = userids.filter((uid) => !allUserIds.has(uid));
-
-    // Combine non-overlapping with no-availability user IDs
-    const finalNonOverlappingUserIds = nonOverlappingUserIds.concat(
-      noAvailabilityUserIds
-    );
-
-    // Convert sets to arrays
-    const overlappingUserIdsArray = Array.from(overlappingUserIds);
-
-    // Special case: Only one userid or no overlaps
-    let finalOutputList1 = overlappingBubbleIdsArray;
-    if (userids.length === 1 || overlappingBubbleIdsArray.length === 0) {
-      // Include all availabilities of mainuserid
-      finalOutputList1 = availabilities
-        .filter((a) => a.userid === mainuserid)
-        .map((a) => a.bubbleid);
-    }
-
-    console.log(
-      "Final iteration completed. Sending results to Bubble.",
-      finalOutputList1,
-      overlappingUserIdsArray,
-      finalNonOverlappingUserIds
-    );
-
-    // Send to bubble in a similar format as requested
-    bubble_fn_overlapAvailabilities({
-      outputlist1: finalOutputList1,
-      outputlist2: overlappingUserIdsArray,
-      outputlist3: finalNonOverlappingUserIds,
-    });
-
-    return finalOutputList1;
+    bubbleToUser[a.bubbleid] = a.userid;
+    allUserIds.add(a.userid);
   }
+
+  const overlappingBubbleIds = new Set();
+
+  // Compare each availability with all others
+  for (let i = 0; i < availabilities.length; i++) {
+    const availability1 = availabilities[i];
+    const dateStart1 = moment.utc(availability1.start_date);
+    const dateEnd1 = moment.utc(availability1.end_date);
+
+    for (let j = i + 1; j < availabilities.length; j++) {
+      const availability2 = availabilities[j];
+      const dateStart2 = moment.utc(availability2.start_date);
+      const dateEnd2 = moment.utc(availability2.end_date);
+
+      // Check if the date ranges overlap
+      const dateOverlap =
+        dateStart1.isBefore(dateEnd2) && dateStart2.isBefore(dateEnd1);
+
+      if (!dateOverlap) {
+        continue; // Skip if no date overlap
+      }
+
+      // Check daily time ranges for overlap
+      const dailyStart1 = moment.utc(
+        "1970-01-01T" + availability1.daily_start_time + ":00Z"
+      );
+      const dailyEnd1 = moment.utc(
+        "1970-01-01T" + availability1.daily_end_time + ":00Z"
+      );
+      const dailyStart2 = moment.utc(
+        "1970-01-01T" + availability2.daily_start_time + ":00Z"
+      );
+      const dailyEnd2 = moment.utc(
+        "1970-01-01T" + availability2.daily_end_time + ":00Z"
+      );
+
+      // Adjust for crossing midnight
+      if (dailyEnd1.isBefore(dailyStart1)) dailyEnd1.add(1, "day");
+      if (dailyEnd2.isBefore(dailyStart2)) dailyEnd2.add(1, "day");
+
+      const dailyOverlap =
+        dailyStart1.isBefore(dailyEnd2) && dailyStart2.isBefore(dailyEnd1);
+
+      if (dailyOverlap) {
+        console.log(
+          `Overlap found between Bubble IDs ${availability1.bubbleid} and ${availability2.bubbleid}`
+        );
+        overlappingBubbleIds.add(availability1.bubbleid);
+        overlappingBubbleIds.add(availability2.bubbleid);
+      }
+    }
+  }
+
+  const overlappingBubbleIdsArray = Array.from(overlappingBubbleIds);
+
+  // Determine which user IDs overlap
+  const overlappingUserIds = new Set(
+    overlappingBubbleIdsArray.map((bid) => bubbleToUser[bid])
+  );
+
+  // Determine user IDs that do not overlap (among those who had availabilities)
+  const nonOverlappingUserIds = Array.from(allUserIds).filter(
+    (uid) => !overlappingUserIds.has(uid)
+  );
+
+  // Find user IDs that have no availabilities at all
+  const noAvailabilityUserIds = userids.filter((uid) => !allUserIds.has(uid));
+
+  // Combine non-overlapping with no-availability user IDs
+  const finalNonOverlappingUserIds = nonOverlappingUserIds.concat(
+    noAvailabilityUserIds
+  );
+
+  // Convert sets to arrays
+  const overlappingUserIdsArray = Array.from(overlappingUserIds);
+
+  // Special case: Only one userid or no overlaps
+  let finalOutputList1 = overlappingBubbleIdsArray;
+  if (userids.length === 1 || overlappingBubbleIdsArray.length === 0) {
+    // Include all availabilities of mainuserid
+    finalOutputList1 = availabilities
+      .filter((a) => a.userid === mainuserid)
+      .map((a) => a.bubbleid);
+  }
+
+  console.log(
+    "Final iteration completed. Sending results to Bubble.",
+    finalOutputList1,
+    overlappingUserIdsArray,
+    finalNonOverlappingUserIds
+  );
+
+  // Send to bubble in a similar format as requested
+  bubble_fn_overlapAvailabilities({
+    outputlist1: finalOutputList1,
+    outputlist2: overlappingUserIdsArray,
+    outputlist3: finalNonOverlappingUserIds,
+  });
+
+  return finalOutputList1;
+}
+
+
+
+
+
+
+
 
   return {
     generateUniqueDates,
