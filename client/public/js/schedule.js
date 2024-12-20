@@ -128,8 +128,7 @@ export const schedule = async function () {
     userOffsetInSeconds = 0,
     blockedByUserList,
     availabilityids,
-    iteration,
-    alreadyBookedListByCurrentUser // <-- new parameter
+    iteration
   ) {
     console.log("======== Function Start ========");
     console.log("Received iteration:", iteration);
@@ -201,23 +200,16 @@ export const schedule = async function () {
 
     console.log("First slot start time (local):", firstSlotStart.format());
 
-    const {
-      outputlist1,
-      outputlist2,
-      outputlist3,
-      outputlist4,
-      outputlist8,
-      outputlist9, // new outputlist for current user's booked slots
-    } = assignSlotInfo(
-      outputlist7,
-      firstSlotStart,
-      availabilityList,
-      alreadyBookedList,
-      alreadyBookedListByCurrentUser, // pass the current user's booked list
-      userOffsetInSeconds,
-      blockedByUserList,
-      modifiedSlots
-    );
+    const { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 } =
+      assignSlotInfo(
+        outputlist7,
+        firstSlotStart,
+        availabilityList,
+        alreadyBookedList,
+        userOffsetInSeconds,
+        blockedByUserList,
+        modifiedSlots
+      );
 
     console.log(
       "Generated outputlist1 (Meeting Links):",
@@ -238,10 +230,6 @@ export const schedule = async function () {
     console.log(
       "Generated outputlist8 (Blocked by User):",
       JSON.stringify(outputlist8, null, 2)
-    );
-    console.log(
-      "Generated outputlist9 (Booked by Current User):",
-      JSON.stringify(outputlist9, null, 2)
     );
 
     const globalStartUTC = availabilityList.length
@@ -284,7 +272,6 @@ export const schedule = async function () {
       baselineOutput6 = [...outputlist6];
       baselineOutput7 = [...outputlist7];
       baselineOutput8 = [...outputlist8];
-      baselineOutput9 = [...outputlist9]; // store baseline for outputlist9
 
       if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
@@ -300,7 +287,6 @@ export const schedule = async function () {
           outputlist6,
           outputlist7,
           outputlist8,
-          outputlist9, // include outputlist9 in final results
         });
       }
     } else {
@@ -345,7 +331,6 @@ export const schedule = async function () {
       baselineOutput5 = newBaselineIndices.map((i) => baselineOutput5[i]);
       baselineOutput7 = newBaselineIndices.map((i) => baselineOutput7[i]);
       baselineOutput8 = newBaselineIndices.map((i) => baselineOutput8[i]);
-      baselineOutput9 = newBaselineIndices.map((i) => baselineOutput9[i]);
 
       if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
@@ -361,7 +346,6 @@ export const schedule = async function () {
           outputlist6: baselineOutput6,
           outputlist7: baselineOutput7,
           outputlist8: baselineOutput8,
-          outputlist9: baselineOutput9, // include in final results
         });
       }
     }
@@ -402,7 +386,7 @@ export const schedule = async function () {
     console.log("Base daily end time:", baseDailyEnd);
     console.log("Slot duration (minutes):", slotDuration);
 
-    // Determine the entire week's start and end in local time
+    // Determine the entire week's start and end in local time, plus one day before and after
     const endDateLocal = startDateLocal.clone().add(7, "days").endOf("day");
     const extendedStartLocal = startDateLocal.clone().subtract(1, "day");
     const extendedEndLocal = startDateLocal.clone().add(7, "days").endOf("day");
@@ -414,6 +398,7 @@ export const schedule = async function () {
       const currentDayLocal = startDateLocal.clone().add(i, "days");
       console.log(`\nProcessing day ${i + 1}: ${currentDayLocal.format()}`);
 
+      // Convert daily start/end times to UTC and then apply offset
       const currentDayUTC = currentDayLocal.clone().utc();
       console.log("Current day (UTC):", currentDayUTC.format());
 
@@ -426,6 +411,7 @@ export const schedule = async function () {
         "YYYY-MM-DD HH:mm"
       );
 
+      // Apply user offset
       const dailyStartTimeLocal = dailyStartTimeUTC
         .clone()
         .utcOffset(userOffsetInMinutes);
@@ -520,7 +506,6 @@ export const schedule = async function () {
     startDateLocal,
     availabilityList,
     alreadyBookedList,
-    alreadyBookedListByCurrentUser, // new parameter
     userOffsetInSeconds,
     blockedByUserList,
     modifiedSlots
@@ -532,7 +517,6 @@ export const schedule = async function () {
     const outputlist3 = [];
     const outputlist4 = [];
     const outputlist8 = [];
-    const outputlist9 = []; // new array for current user's booked slots
 
     availabilityList.forEach((availability) => {
       const startDate = moment
@@ -561,10 +545,9 @@ export const schedule = async function () {
             slotTimeRange: slotRange,
             meetingLink: availability.meetingLink,
             Address: availability.Address,
-            alreadyBooked: false,
+            alreadyBooked: null,
             isModified: null,
-            blockedByUser: false,
-            bookedByCurrentUser: false, // new flag
+            blockedByUser: false, // Default value for blockedByUser
           };
 
           // Check against already booked slots
@@ -583,27 +566,7 @@ export const schedule = async function () {
               (bookedStart.isBetween(slotStart, slotEnd, null, "[)") &&
                 bookedEnd.isBetween(slotStart, slotEnd, null, "(]"))
             ) {
-              slotInfo.alreadyBooked = true;
-            }
-          });
-
-          // Check against already booked by current user slots
-          alreadyBookedListByCurrentUser.forEach((bookedSlot) => {
-            const bookedStart = moment
-              .utc(bookedSlot.start_date)
-              .utcOffset(userOffsetInMinutes);
-            const bookedEnd = moment
-              .utc(bookedSlot.end_date)
-              .utcOffset(userOffsetInMinutes);
-
-            if (
-              slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
-              slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
-              (slotStart.isSame(bookedStart) && slotEnd.isSame(bookedEnd)) ||
-              (bookedStart.isBetween(slotStart, slotEnd, null, "[)") &&
-                bookedEnd.isBetween(slotStart, slotEnd, null, "(]"))
-            ) {
-              slotInfo.bookedByCurrentUser = true;
+              slotInfo.alreadyBooked = bookedSlot.bubbleId;
             }
           });
 
@@ -651,23 +614,25 @@ export const schedule = async function () {
           // Push slot info to the corresponding lists
           outputlist1.push(slotInfo.meetingLink);
           outputlist2.push(slotInfo.Address);
-          outputlist3.push(slotInfo.alreadyBooked);
+          if (slotInfo.alreadyBooked) outputlist3.push(slotInfo.alreadyBooked); // Collect bubble IDs
           outputlist4.push(slotInfo.isModified);
           outputlist8.push(slotInfo.blockedByUser);
-          outputlist9.push(slotInfo.bookedByCurrentUser); // new outputlist for current user's booked status
         }
       });
     });
 
+    // Concatenate outputlist3 into a single string
+    const outputlist3String = outputlist3.join("_");
+
     return {
       outputlist1,
       outputlist2,
-      outputlist3,
+      outputlist3: outputlist3String,
       outputlist4,
       outputlist8,
-      outputlist9,
     };
   }
+
 
   function filterSlotsByAvailabilityRange(
     allSlots,
@@ -703,7 +668,6 @@ export const schedule = async function () {
       outputlist7: [],
     };
   }
-
 
 
 
