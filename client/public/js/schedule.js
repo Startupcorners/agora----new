@@ -218,27 +218,7 @@ export const schedule = async function () {
 
     console.log("Generated outputlist3 (Already Booked):", outputlist3);
 
-    const globalStart = startDateLocal.clone().set({
-      hour: commonDailyStart.hours(),
-      minute: commonDailyStart.minutes(),
-      second: 0,
-      millisecond: 0,
-    });
-
-    const globalEnd = startDateLocal
-      .clone()
-      .add(7, "days") // Extend the range by a full week
-      .set({
-        hour: commonDailyEnd.hours(),
-        minute: commonDailyEnd.minutes(),
-        second: 0,
-        millisecond: 0,
-      });
-
-    console.log("Global Start (Adjusted):", globalStart.format());
-    console.log("Global End (Adjusted):", globalEnd.format());
-
-
+    
 
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
@@ -307,10 +287,13 @@ function generateWeeklySlots(
   baseDailyStart,
   baseDailyEnd,
   slotDuration,
-  userOffsetInSeconds
+  userOffsetInSeconds,
+  mainAvailabilityList
 ) {
   const userOffsetInMinutes = userOffsetInSeconds / 60;
   const outputlist7 = [];
+  let globalStart = null;
+  let globalEnd = null;
 
   const endDateLocal = startDateLocal.clone().add(7, "days").endOf("day");
   const extendedStartLocal = startDateLocal.clone().subtract(1, "day");
@@ -336,13 +319,41 @@ function generateWeeklySlots(
       .clone()
       .utcOffset(userOffsetInMinutes);
 
-    outputlist7.push(
-      ...generateSlotsForInterval(
-        dailyStartTimeLocal,
-        dailyEndTimeLocal,
-        slotDuration
-      )
+    const dailySlots = generateSlotsForInterval(
+      dailyStartTimeLocal,
+      dailyEndTimeLocal,
+      slotDuration
     );
+
+    dailySlots.forEach((slotRange) => {
+      const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
+      const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
+
+      // Check if the slot falls within the main availability
+      mainAvailabilityList.forEach((availability) => {
+        const availabilityStart = moment
+          .utc(availability.start_date)
+          .utcOffset(userOffsetInMinutes);
+        const availabilityEnd = moment
+          .utc(availability.end_date)
+          .utcOffset(userOffsetInMinutes);
+
+        if (
+          slotStart.isBetween(availabilityStart, availabilityEnd, null, "[)") ||
+          slotEnd.isBetween(availabilityStart, availabilityEnd, null, "(]")
+        ) {
+          // Update globalStart and globalEnd
+          if (!globalStart || slotStart.isBefore(globalStart)) {
+            globalStart = slotStart.clone();
+          }
+          if (!globalEnd || slotEnd.isAfter(globalEnd)) {
+            globalEnd = slotEnd.clone();
+          }
+        }
+      });
+    });
+
+    outputlist7.push(...dailySlots);
   }
 
   const filteredSlots = outputlist7.filter((slotRange) => {
@@ -354,9 +365,12 @@ function generateWeeklySlots(
     );
   });
 
+  console.log("Global Start (During Generation):", globalStart?.format());
+  console.log("Global End (During Generation):", globalEnd?.format());
 
-  return filteredSlots;
+  return { filteredSlots, globalStart, globalEnd };
 }
+
 
 function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   const result = [];
