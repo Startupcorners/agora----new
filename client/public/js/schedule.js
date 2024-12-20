@@ -211,27 +211,6 @@ export const schedule = async function () {
         modifiedSlots
       );
 
-    console.log(
-      "Generated outputlist1 (Meeting Links):",
-      JSON.stringify(outputlist1, null, 2)
-    );
-    console.log(
-      "Generated outputlist2 (Addresses):",
-      JSON.stringify(outputlist2, null, 2)
-    );
-    console.log(
-      "Generated outputlist3 (Already Booked):",
-      outputlist3
-    );
-    console.log(
-      "Generated outputlist4 (Modified Slots):",
-      JSON.stringify(outputlist4, null, 2)
-    );
-    console.log(
-      "Generated outputlist8 (Blocked by User):",
-      JSON.stringify(outputlist8, null, 2)
-    );
-
     const globalStartUTC = availabilityList.length
       ? moment.min(availabilityList.map((a) => moment.utc(a.start_date)))
       : null;
@@ -370,6 +349,23 @@ export const schedule = async function () {
         });
       }
     }
+    console.log(
+      "Generated outputlist1 (Meeting Links):",
+      JSON.stringify(outputlist1, null, 2)
+    );
+    console.log(
+      "Generated outputlist2 (Addresses):",
+      JSON.stringify(outputlist2, null, 2)
+    );
+    console.log("Generated outputlist3 (Already Booked):", outputlist3);
+    console.log(
+      "Generated outputlist4 (Modified Slots):",
+      JSON.stringify(outputlist4, null, 2)
+    );
+    console.log(
+      "Generated outputlist8 (Blocked by User):",
+      JSON.stringify(outputlist8, null, 2)
+    );
 
 
     console.log("======== Function End ========");
