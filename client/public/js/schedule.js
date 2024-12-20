@@ -487,20 +487,47 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   ) {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     const outputlist5 = [];
+
+    console.log("FilterSlotsByAvailabilityRange Called");
+    console.log("Global Start:", globalStart ? globalStart.format() : "null");
+    console.log("Global End:", globalEnd ? globalEnd.format() : "null");
+    console.log("All Slots:", JSON.stringify(allSlots, null, 2));
+
     if (globalStart && globalEnd) {
-      allSlots.forEach((slotRange) => {
+      allSlots.forEach((slotRange, index) => {
         const slotStart = moment
           .utc(slotRange[0])
           .utcOffset(userOffsetInMinutes);
         const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
 
-        if (slotStart.isBefore(globalEnd) && slotEnd.isAfter(globalStart)) {
+        console.log(`\nProcessing Slot ${index + 1}:`);
+        console.log("  Slot Start:", slotStart.format());
+        console.log("  Slot End:", slotEnd.format());
+
+        const isBeforeEnd = slotStart.isBefore(globalEnd);
+        const isAfterStart = slotEnd.isAfter(globalStart);
+
+        console.log("  Is Slot Start Before Global End?", isBeforeEnd);
+        console.log("  Is Slot End After Global Start?", isAfterStart);
+
+        if (isBeforeEnd && isAfterStart) {
+          console.log("  Slot is within range. Adding to outputlist5.");
           outputlist5.push(slotRange);
+        } else {
+          console.log("  Slot is outside range. Excluding.");
         }
       });
+    } else {
+      console.log("Global Start or Global End is invalid.");
     }
+
+    console.log(
+      "Filtered Slots (outputlist5):",
+      JSON.stringify(outputlist5, null, 2)
+    );
     return outputlist5;
   }
+
 
   function emptyOutput() {
     return {
