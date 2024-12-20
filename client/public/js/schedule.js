@@ -203,14 +203,17 @@ export const schedule = async function () {
 
     // Generate outputlist3 (all booked slots)
     const outputlist3 = outputlist7.map((slot) => {
+      // Convert slot start and end to UTC
       const slotStart = moment.utc(slot[0]);
       const slotEnd = moment.utc(slot[1]);
 
       const bookedBubbleIds = alreadyBookedList
         .filter((booked) => {
+          // Convert booked start and end to UTC
           const bookedStart = moment.utc(booked.start_date);
           const bookedEnd = moment.utc(booked.end_date);
 
+          // Check for overlap
           return (
             slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
             slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
@@ -220,10 +223,10 @@ export const schedule = async function () {
         })
         .map((booked) => booked.bubbleId);
 
+      // Return concatenated bubble IDs if any, or null otherwise
       return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
     });
 
-    console.log("Generated outputlist3 (Already Booked):", outputlist3);
 
     
 
