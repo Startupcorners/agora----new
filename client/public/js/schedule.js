@@ -146,19 +146,17 @@ export const schedule = async function () {
     let commonDailyEnd = null;
     let slotDuration = null;
 
-    allAvailabilityLists.forEach((availabilityList) => {
-      availabilityList.forEach((availability) => {
-        const dailyStart = moment.utc(availability.daily_start_time, "HH:mm");
-        const dailyEnd = moment.utc(availability.daily_end_time, "HH:mm");
+    allAvailabilityLists.forEach((availability) => {
+      const dailyStart = moment.utc(availability.daily_start_time, "HH:mm");
+      const dailyEnd = moment.utc(availability.daily_end_time, "HH:mm");
 
-        if (!commonDailyStart || dailyStart.isAfter(commonDailyStart)) {
-          commonDailyStart = dailyStart;
-        }
-        if (!commonDailyEnd || dailyEnd.isBefore(commonDailyEnd)) {
-          commonDailyEnd = dailyEnd;
-        }
-        slotDuration = availability.slot_duration_minutes;
-      });
+      if (!commonDailyStart || dailyStart.isAfter(commonDailyStart)) {
+        commonDailyStart = dailyStart;
+      }
+      if (!commonDailyEnd || dailyEnd.isBefore(commonDailyEnd)) {
+        commonDailyEnd = dailyEnd;
+      }
+      slotDuration = availability.slot_duration_minutes;
     });
 
     if (!commonDailyStart || !commonDailyEnd || !slotDuration) {
