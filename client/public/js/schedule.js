@@ -118,7 +118,6 @@ export const schedule = async function () {
   let baselineOutput6 = [];
   let baselineOutput7 = [];
   let baselineOutput8 = [];
-  let baselineOutput9 = [];
 
   function generateSlotsForWeek(
     availabilityList,
@@ -360,7 +359,6 @@ export const schedule = async function () {
       baselineOutput5 = newBaselineIndices.map((i) => baselineOutput5[i]);
       baselineOutput7 = newBaselineIndices.map((i) => baselineOutput7[i]);
       baselineOutput8 = newBaselineIndices.map((i) => baselineOutput8[i]);
-      baselineOutput9 = newBaselineIndices.map((i) => baselineOutput9[i]);
 
       if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
@@ -400,6 +398,7 @@ export const schedule = async function () {
           "Generated outputlist9 (isStartupCorners):",
           JSON.stringify(outputlist9, null, 2)
         );
+        
       }
     }
 
@@ -564,7 +563,7 @@ export const schedule = async function () {
     alreadyBookedList,
     userOffsetInSeconds,
     blockedByUserList,
-    modifiedSlots,
+    modifiedSlots
   ) {
     console.log("modifiedSlots", modifiedSlots);
     const userOffsetInMinutes = userOffsetInSeconds / 60;
@@ -573,7 +572,7 @@ export const schedule = async function () {
     const outputlist3 = [];
     const outputlist4 = [];
     const outputlist8 = [];
-    const outputlist9 = []; // New list for isStartupCorners
+    const outputlist9 = [];
 
     availabilityList.forEach((availability) => {
       const startDate = moment
@@ -605,7 +604,7 @@ export const schedule = async function () {
             alreadyBooked: null,
             isModified: null,
             blockedByUser: false, // Default value for blockedByUser
-            isStartupCorners: "no", // Default value for isStartupCorners
+            isStartupCorners: "no"
           };
 
           // Collect bubbleIds for overlapping booked slots
@@ -674,47 +673,19 @@ export const schedule = async function () {
             }
           });
 
-          // Check against startupCorners slots
-          startupCornersList.forEach((startupSlot) => {
-            const startupStart = moment
-              .utc(startupSlot.start_date)
-              .utcOffset(userOffsetInMinutes);
-            const startupEnd = moment
-              .utc(startupSlot.end_date)
-              .utcOffset(userOffsetInMinutes);
-
-            if (
-              slotStart.isBetween(startupStart, startupEnd, null, "[)") ||
-              slotEnd.isBetween(startupStart, startupEnd, null, "(]") ||
-              (slotStart.isSame(startupStart) && slotEnd.isSame(startupEnd)) ||
-              (startupStart.isBetween(slotStart, slotEnd, null, "[)") &&
-                startupEnd.isBetween(slotStart, slotEnd, null, "(]"))
-            ) {
-              slotInfo.isStartupCorners = "yes";
-            }
-          });
-
           // Push slot info to the corresponding lists
           outputlist1.push(slotInfo.meetingLink);
           outputlist2.push(slotInfo.Address);
           outputlist3.push(slotInfo.alreadyBooked); // Push null or concatenated string
           outputlist4.push(slotInfo.isModified);
           outputlist8.push(slotInfo.blockedByUser);
-          outputlist9.push(slotInfo.isStartupCorners); // Push boolean for startupCorners
+          outputlist9.push(slotInfo.isStartupCorners);
         }
       });
     });
 
-    return {
-      outputlist1,
-      outputlist2,
-      outputlist3,
-      outputlist4,
-      outputlist8,
-      outputlist9, // Include new outputlist9 in the return object
-    };
+    return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8, outputlist9 };
   }
-
 
 
 
