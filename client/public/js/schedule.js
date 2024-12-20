@@ -550,7 +550,8 @@ export const schedule = async function () {
             blockedByUser: false, // Default value for blockedByUser
           };
 
-          // Check against already booked slots
+          // Collect bubbleIds for overlapping booked slots
+          const bookedBubbleIds = [];
           alreadyBookedList.forEach((bookedSlot) => {
             const bookedStart = moment
               .utc(bookedSlot.start_date)
@@ -566,9 +567,13 @@ export const schedule = async function () {
               (bookedStart.isBetween(slotStart, slotEnd, null, "[)") &&
                 bookedEnd.isBetween(slotStart, slotEnd, null, "(]"))
             ) {
-              slotInfo.alreadyBooked = bookedSlot.bubbleId;
+              bookedBubbleIds.push(bookedSlot.bubbleId);
             }
           });
+
+          // Assign concatenated bubbleIds or null
+          slotInfo.alreadyBooked =
+            bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
 
           // Check against blocked by user slots
           blockedByUserList.forEach((blockedSlot) => {
@@ -614,24 +619,16 @@ export const schedule = async function () {
           // Push slot info to the corresponding lists
           outputlist1.push(slotInfo.meetingLink);
           outputlist2.push(slotInfo.Address);
-          if (slotInfo.alreadyBooked) outputlist3.push(slotInfo.alreadyBooked); // Collect bubble IDs
+          outputlist3.push(slotInfo.alreadyBooked); // Push null or concatenated string
           outputlist4.push(slotInfo.isModified);
           outputlist8.push(slotInfo.blockedByUser);
         }
       });
     });
 
-    // Concatenate outputlist3 into a single string
-    const outputlist3String = outputlist3.join("_");
-
-    return {
-      outputlist1,
-      outputlist2,
-      outputlist3: outputlist3String,
-      outputlist4,
-      outputlist8,
-    };
+    return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8 };
   }
+
 
 
   function filterSlotsByAvailabilityRange(
