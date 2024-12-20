@@ -180,7 +180,8 @@ export const schedule = async function () {
       commonDailyStart.format("HH:mm"),
       commonDailyEnd.format("HH:mm"),
       slotDuration,
-      userOffsetInSeconds
+      userOffsetInSeconds,
+      mainAvailabilityList
     );
     console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
 
