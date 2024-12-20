@@ -148,13 +148,27 @@ export const schedule = async function () {
     let slotDuration = null;
 
     allAvailabilityLists.forEach((availability) => {
+      // Convert daily start and end times explicitly assuming they are in UTC
       const dailyStart = moment
-        .utc(availability.daily_start_time, "HH:mm")
+        .utc(
+          `${availability.start_date.split("T")[0]}T${
+            availability.daily_start_time
+          }`,
+          "YYYY-MM-DDTHH:mm"
+        )
         .utcOffset(userOffsetInMinutes); // Convert to viewer's local time
 
       const dailyEnd = moment
-        .utc(availability.daily_end_time, "HH:mm")
+        .utc(
+          `${availability.start_date.split("T")[0]}T${
+            availability.daily_end_time
+          }`,
+          "YYYY-MM-DDTHH:mm"
+        )
         .utcOffset(userOffsetInMinutes); // Convert to viewer's local time
+
+      console.log("Converted Daily Start:", dailyStart.format());
+      console.log("Converted Daily End:", dailyEnd.format());
 
       if (!commonDailyStart || dailyStart.isAfter(commonDailyStart)) {
         commonDailyStart = dailyStart;
@@ -164,6 +178,7 @@ export const schedule = async function () {
       }
       slotDuration = availability.slot_duration_minutes;
     });
+
 
     if (!commonDailyStart || !commonDailyEnd || !slotDuration) {
       console.error("No overlapping availability found.");
