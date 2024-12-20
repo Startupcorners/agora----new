@@ -122,6 +122,7 @@ export const schedule = async function () {
     console.log("======== Function Start ========");
     console.log("allAvailabilityLists", allAvailabilityLists);
     console.log("alreadyBookedList", alreadyBookedList);
+    console.log("userOffsetInSeconds", userOffsetInSeconds);
 
     const userOffsetInMinutes = userOffsetInSeconds / 60;
 
