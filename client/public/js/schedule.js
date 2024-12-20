@@ -304,8 +304,9 @@ export const schedule = async function () {
         `Processing iteration ${iteration} and updating baseline outputs, reflecting booked slots.`
       );
 
+      // Map to store current booked slots
       const currentSlotsMap = {};
-      outputlist5.forEach((slot) => {
+      outputlist7.forEach((slot) => {
         const slotKey = slot.join("|");
 
         // Find all booked entries for this slot
@@ -327,45 +328,42 @@ export const schedule = async function () {
         currentSlotsMap[slotKey] = { slot, bookedBubbleIds };
       });
 
-      const newBaselineIndices = [];
-      baselineOutput5.forEach((slot, index) => {
+      // Update baseline outputs without reducing slot count
+      outputlist7.forEach((slot, index) => {
         const slotKey = slot.join("|");
         const entry = currentSlotsMap[slotKey];
         if (entry) {
-          // If there are bookedBubbleIds, append them to baselineOutput3[index] if not already present
+          // Update bookedBubbleIds for this slot
           if (entry.bookedBubbleIds.length > 0) {
             let currentVal = baselineOutput3[index] || "";
-            // Split into an array if not empty
             let currentIds = currentVal ? currentVal.split("_") : [];
-
-            // Add only those IDs not already present
             entry.bookedBubbleIds.forEach((bid) => {
               if (!currentIds.includes(bid)) {
                 currentIds.push(bid);
               }
             });
-
-            // Join them back with underscores
-            currentVal = currentIds.length ? currentIds.join("_") : null;
-            baselineOutput3[index] = currentVal;
+            baselineOutput3[index] = currentIds.length
+              ? currentIds.join("_")
+              : null;
           }
-          newBaselineIndices.push(index);
         }
       });
 
-      console.log(
-        "New baseline indices after intersection:",
-        newBaselineIndices
-      );
-
-      // Update all baseline arrays to reflect the intersection
-      baselineOutput1 = newBaselineIndices.map((i) => baselineOutput1[i]);
-      baselineOutput2 = newBaselineIndices.map((i) => baselineOutput2[i]);
-      baselineOutput3 = newBaselineIndices.map((i) => baselineOutput3[i]);
-      baselineOutput4 = newBaselineIndices.map((i) => baselineOutput4[i]);
-      baselineOutput5 = newBaselineIndices.map((i) => baselineOutput5[i]);
-      //baselineOutput7 = newBaselineIndices.map((i) => baselineOutput7[i]);
-      baselineOutput8 = newBaselineIndices.map((i) => baselineOutput8[i]);
+      // Ensure all outputs maintain the full set of weekly slots
+      baselineOutput1 = [...outputlist1]; // Meeting links
+      baselineOutput2 = [...outputlist2]; // Addresses
+      baselineOutput3 = [...baselineOutput3]; // Already booked
+      baselineOutput4 = [...outputlist4]; // Modified slots
+      baselineOutput5 = filterSlotsByAvailabilityRange(
+        outputlist7,
+        globalStart,
+        globalEnd,
+        userOffsetInSeconds
+      ); // Filtered by availability
+      baselineOutput6 = [...outputlist6]; // Day boundaries
+      baselineOutput7 = [...outputlist7]; // All weekly slots
+      baselineOutput8 = [...outputlist8]; // Blocked by user
+      baselineOutput9 = [...outputlist9]; // isStartupCorners
 
       if (iteration < availabilityids.length) {
         console.log("Moving to next iteration:", iteration + 1);
@@ -377,9 +375,9 @@ export const schedule = async function () {
           outputlist2: baselineOutput2,
           outputlist3: baselineOutput3,
           outputlist4: baselineOutput4,
-          outputlist5: baselineOutput5,
+          outputlist5: baselineOutput5, // Only filtered list
           outputlist6: baselineOutput6,
-          //outputlist7: baselineOutput7,
+          outputlist7: baselineOutput7,
           outputlist8: baselineOutput8,
           outputlist9: baselineOutput9,
         });
@@ -398,19 +396,20 @@ export const schedule = async function () {
           JSON.stringify(outputlist4, null, 2)
         );
         console.log(
+          "Generated outputlist5 (Filtered Slots):",
+          JSON.stringify(outputlist5, null, 2)
+        );
+        console.log(
           "Generated outputlist8 (Blocked by User):",
           JSON.stringify(outputlist8, null, 2)
         );
         console.log(
-          "Generated outputlist9 (isStartupCorners):",
-          JSON.stringify(outputlist9, null, 2)
-        );
-        console.log(
-          "Generated outputlist7:",
-          outputlist7
+          "Generated outputlist7 (All Weekly Slots):",
+          JSON.stringify(outputlist7, null, 2)
         );
       }
     }
+
 
     console.log("======== Function End ========");
     // Add a 3-second delay before calling bubble_fn_ready
