@@ -670,7 +670,10 @@ export const schedule = async function () {
               (modifiedStart.isBetween(slotStart, slotEnd, null, "[)") &&
                 modifiedEnd.isBetween(slotStart, slotEnd, null, "(]"))
             ) {
-              slotInfo.isModified = modifiedSlot.bubbleId; // Assign bubbleId or fallback to true
+              slotInfo.isModified = modifiedSlot.bubbleId; 
+              slotInfo.meetingLink = modifiedSlot.meetingLink;
+              slotInfo.Address = modifiedSlot.Address;
+              slotInfo.isStartupCorners = modifiedSlot.isStartupcorners;
             }
           });
 
