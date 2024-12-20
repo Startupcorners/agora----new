@@ -147,8 +147,13 @@ export const schedule = async function () {
     let slotDuration = null;
 
     allAvailabilityLists.forEach((availability) => {
-      const dailyStart = moment.utc(availability.daily_start_time, "HH:mm");
-      const dailyEnd = moment.utc(availability.daily_end_time, "HH:mm");
+      const dailyStart = moment
+        .utc(availability.daily_start_time, "HH:mm")
+        .utcOffset(userOffsetInMinutes); // Convert to viewer's local time
+
+      const dailyEnd = moment
+        .utc(availability.daily_end_time, "HH:mm")
+        .utcOffset(userOffsetInMinutes); // Convert to viewer's local time
 
       if (!commonDailyStart || dailyStart.isAfter(commonDailyStart)) {
         commonDailyStart = dailyStart;
@@ -158,6 +163,7 @@ export const schedule = async function () {
       }
       slotDuration = availability.slot_duration_minutes;
     });
+
 
     if (!commonDailyStart || !commonDailyEnd || !slotDuration) {
       console.error("No overlapping availability found.");
@@ -225,6 +231,11 @@ export const schedule = async function () {
       second: 0,
       millisecond: 0,
     });
+
+    console.log("Global Start (Adjusted):", globalStart.format());
+    console.log("Global End (Adjusted):", globalEnd.format());
+
+
 
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
@@ -339,6 +350,7 @@ function generateWeeklySlots(
       slotEnd.isSameOrBefore(endDateLocal)
     );
   });
+
 
   return filteredSlots;
 }
@@ -488,45 +500,22 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     const outputlist5 = [];
 
-    console.log("FilterSlotsByAvailabilityRange Called");
-    console.log("Global Start:", globalStart ? globalStart.format() : "null");
-    console.log("Global End:", globalEnd ? globalEnd.format() : "null");
-    console.log("All Slots:", JSON.stringify(allSlots, null, 2));
-
     if (globalStart && globalEnd) {
-      allSlots.forEach((slotRange, index) => {
+      allSlots.forEach((slotRange) => {
         const slotStart = moment
           .utc(slotRange[0])
           .utcOffset(userOffsetInMinutes);
         const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
 
-        console.log(`\nProcessing Slot ${index + 1}:`);
-        console.log("  Slot Start:", slotStart.format());
-        console.log("  Slot End:", slotEnd.format());
-
-        const isBeforeEnd = slotStart.isBefore(globalEnd);
-        const isAfterStart = slotEnd.isAfter(globalStart);
-
-        console.log("  Is Slot Start Before Global End?", isBeforeEnd);
-        console.log("  Is Slot End After Global Start?", isAfterStart);
-
-        if (isBeforeEnd && isAfterStart) {
-          console.log("  Slot is within range. Adding to outputlist5.");
+        if (slotStart.isBefore(globalEnd) && slotEnd.isAfter(globalStart)) {
           outputlist5.push(slotRange);
-        } else {
-          console.log("  Slot is outside range. Excluding.");
         }
       });
-    } else {
-      console.log("Global Start or Global End is invalid.");
     }
 
-    console.log(
-      "Filtered Slots (outputlist5):",
-      JSON.stringify(outputlist5, null, 2)
-    );
     return outputlist5;
   }
+
 
 
   function emptyOutput() {
