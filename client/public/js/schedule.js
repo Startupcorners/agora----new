@@ -256,81 +256,84 @@ export const schedule = async function () {
         // });
       }
     } else {
-      // Map current booked slots
-      const currentSlotsMap = {};
-      outputlist7.forEach((slot) => {
-        const slotKey = slot.join("|");
+  // Map current booked slots
+  const currentSlotsMap = {};
+  outputlist7.forEach((slot) => {
+    const slotKey = slot.join("|");
 
-        const bookedEntries = alreadyBookedList.filter((booked) => {
-          const bookedStart = moment.utc(booked.start_date);
-          const bookedEnd = moment.utc(booked.end_date);
-          const slotStart = moment.utc(slot[0]);
-          const slotEnd = moment.utc(slot[1]);
+    const bookedEntries = alreadyBookedList.filter((booked) => {
+      const bookedStart = moment.utc(booked.start_date);
+      const bookedEnd = moment.utc(booked.end_date);
+      const slotStart = moment.utc(slot[0]);
+      const slotEnd = moment.utc(slot[1]);
 
-          return (
-            slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
-            slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
-            bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
-            bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
-          );
-        });
-
-        const bookedBubbleIds = bookedEntries.map((entry) => entry.bubbleId);
-        currentSlotsMap[slotKey] = { slot, bookedBubbleIds };
-      });
-
-      // Update baselineOutput3
-      baselineOutput7.forEach((slot, index) => {
-        const slotKey = slot.join("|");
-        const entry = currentSlotsMap[slotKey];
-
-        if (entry) {
-          if (entry.bookedBubbleIds.length > 0) {
-            let currentVal = baselineOutput3[index] || "";
-            let currentIds = currentVal ? currentVal.split("_") : [];
-            entry.bookedBubbleIds.forEach((bid) => {
-              if (!currentIds.includes(bid)) {
-                currentIds.push(bid);
-              }
-            });
-            baselineOutput3[index] = currentIds.length
-              ? currentIds.join("_")
-              : null;
-          }
-        }
-      });
-
-      // Filter and update baselineOutput5 with overlapping slots only
-      baselineOutput5 = baselineOutput5.filter((slot) => {
-        const slotStart = moment
-          .utc(slot[0])
-          .utcOffset(userOffsetInSeconds / 60);
-        const slotEnd = moment.utc(slot[1]).utcOffset(userOffsetInSeconds / 60);
-        return (
-          slotStart.isSameOrAfter(globalStart) &&
-          slotEnd.isSameOrBefore(globalEnd)
-        );
-      });
-
-      console.log(
-        `Iteration ${iteration}: Updated baselineOutput5:`,
-        JSON.stringify(baselineOutput5, null, 2)
+      return (
+        slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
+        slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
+        bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
+        bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
       );
+    });
 
-      if (iteration < availabilityids.length) {
-        bubble_fn_next(iteration + 1);
-      } else {
-        bubble_fn_hours({
-          outputlist1: baselineOutput1,
-          outputlist2: baselineOutput2,
-          outputlist3: baselineOutput3,
-          outputlist4: baselineOutput4,
-          outputlist5: baselineOutput5,
-          outputlist6: baselineOutput6,
-          outputlist7: baselineOutput7,
-          outputlist8: baselineOutput8,
-          outputlist9: baselineOutput9,
+    const bookedBubbleIds = bookedEntries.map((entry) => entry.bubbleId);
+    currentSlotsMap[slotKey] = { slot, bookedBubbleIds };
+  });
+
+  // Update baselineOutput3
+  baselineOutput7.forEach((slot, index) => {
+    const slotKey = slot.join("|");
+    const entry = currentSlotsMap[slotKey];
+
+    if (entry) {
+      if (entry.bookedBubbleIds.length > 0) {
+        let currentVal = baselineOutput3[index] || "";
+        let currentIds = currentVal ? currentVal.split("_") : [];
+        entry.bookedBubbleIds.forEach((bid) => {
+          if (!currentIds.includes(bid)) {
+            currentIds.push(bid);
+          }
         });
+        baselineOutput3[index] = currentIds.length
+          ? currentIds.join("_")
+          : null;
+      }
+    }
+  });
+
+  // Filter and update baselineOutput5 with overlapping slots only
+  baselineOutput5 = baselineOutput5.filter((slot) => {
+    const slotKey = slot.join("|");
+    const currentBooked = currentSlotsMap[slotKey];
+
+    // Ensure slots are within global availability and have been updated
+    const slotStart = moment.utc(slot[0]).utcOffset(userOffsetInSeconds / 60);
+    const slotEnd = moment.utc(slot[1]).utcOffset(userOffsetInSeconds / 60);
+    return (
+      slotStart.isSameOrAfter(globalStart) &&
+      slotEnd.isSameOrBefore(globalEnd) &&
+      currentBooked // Ensure slot was updated in this iteration
+    );
+  });
+
+  console.log(
+    `Iteration ${iteration}: Updated baselineOutput5:`,
+    JSON.stringify(baselineOutput5, null, 2)
+  );
+
+  if (iteration < availabilityids.length) {
+    bubble_fn_next(iteration + 1);
+  } else {
+    bubble_fn_hours({
+      outputlist1: baselineOutput1,
+      outputlist2: baselineOutput2,
+      outputlist3: baselineOutput3,
+      outputlist4: baselineOutput4,
+      outputlist5: baselineOutput5,
+      outputlist6: baselineOutput6,
+      outputlist7: baselineOutput7,
+      outputlist8: baselineOutput8,
+      outputlist9: baselineOutput9,
+    });
         // logFinalOutputs({
         //   outputlist1: baselineOutput1,
         //   outputlist2: baselineOutput2,
