@@ -291,13 +291,15 @@ export const schedule = async function () {
       }
     } else {
       console.log(
-        `Processing iteration ${iteration} and filtering baseline outputs, considering booked slots.`
+        `Processing iteration ${iteration} and updating baseline outputs, considering booked slots.`
       );
-      const currentSlots = new Set(
-        outputlist5
-          .filter((slot) => {
-            // Exclude slots already booked
-            return !alreadyBookedList.some((booked) => {
+
+      // Create a mapping of already booked slots
+      const currentSlots = new Map(
+        outputlist5.map((slot) => {
+          const slotKey = slot.join("|");
+          const bookedIds = alreadyBookedList
+            .filter((booked) => {
               const bookedStart = moment.utc(booked.start_date);
               const bookedEnd = moment.utc(booked.end_date);
               const slotStart = moment.utc(slot[0]);
@@ -309,24 +311,33 @@ export const schedule = async function () {
                 bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
                 bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
               );
-            });
-          })
-          .map((slot) => slot.join("|"))
+            })
+            .map((booked) => booked.bubbleId); // Collect the bubble IDs of booked slots
+
+          return [slotKey, bookedIds.length > 0 ? bookedIds.join("_") : null];
+        })
       );
 
-      const newBaselineIndices = [];
-      baselineOutput5.forEach((slot, index) => {
+      // Update outputlist3 with booked IDs or null
+      outputlist3 = outputlist5.map((slot) => {
         const slotKey = slot.join("|");
-        if (currentSlots.has(slotKey)) {
-          newBaselineIndices.push(index);
-        }
+        return currentSlots.has(slotKey) ? currentSlots.get(slotKey) : null;
       });
 
-      console.log("New baseline indices after filtering:", newBaselineIndices);
+      console.log(
+        "Updated outputlist3 (Already Booked):",
+        JSON.stringify(outputlist3, null, 2)
+      );
+
+      // Baseline outputs are updated without filtering out slots
+      const newBaselineIndices = Array.from(
+        { length: baselineOutput5.length },
+        (_, i) => i
+      );
 
       baselineOutput1 = newBaselineIndices.map((i) => baselineOutput1[i]);
       baselineOutput2 = newBaselineIndices.map((i) => baselineOutput2[i]);
-      baselineOutput3 = newBaselineIndices.map((i) => baselineOutput3[i]);
+      baselineOutput3 = [...outputlist3]; // Directly assign updated outputlist3
       baselineOutput4 = newBaselineIndices.map((i) => baselineOutput4[i]);
       baselineOutput5 = newBaselineIndices.map((i) => baselineOutput5[i]);
       baselineOutput7 = newBaselineIndices.map((i) => baselineOutput7[i]);
@@ -349,6 +360,7 @@ export const schedule = async function () {
         });
       }
     }
+
 
     console.log("======== Function End ========");
     bubble_fn_ready();
