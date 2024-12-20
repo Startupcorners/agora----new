@@ -329,11 +329,28 @@ export const schedule = async function () {
       });
 
       // Update baseline outputs without reducing slot count
+      console.log(`Iteration ${iteration} - Starting baselineOutput3 update`);
+
+      // Ensure `baselineOutput3` matches `outputlist7` in length
+      if (baselineOutput3.length !== outputlist7.length) {
+        console.log(
+          `Adjusting baselineOutput3 size from ${baselineOutput3.length} to ${outputlist7.length}`
+        );
+        baselineOutput3 = Array(outputlist7.length)
+          .fill(null)
+          .map((_, i) => baselineOutput3[i] || null);
+      }
+
+      console.log(`Iteration ${iteration} - Length alignment complete`);
+      console.log(
+        `outputlist7 length: ${outputlist7.length}, baselineOutput3 length: ${baselineOutput3.length}`
+      );
+
+      // Update `baselineOutput3` without adding new entries
       outputlist7.forEach((slot, index) => {
         const slotKey = slot.join("|");
         const entry = currentSlotsMap[slotKey];
         if (entry) {
-          // Update bookedBubbleIds for this slot
           if (entry.bookedBubbleIds.length > 0) {
             let currentVal = baselineOutput3[index] || "";
             let currentIds = currentVal ? currentVal.split("_") : [];
@@ -348,6 +365,12 @@ export const schedule = async function () {
           }
         }
       });
+
+      console.log(
+        `Iteration ${iteration} - Updated baselineOutput3`,
+        baselineOutput3
+      );
+
 
       // Ensure all outputs maintain the full set of weekly slots
       baselineOutput1 = [...outputlist1]; // Meeting links
