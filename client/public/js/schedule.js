@@ -267,18 +267,35 @@ export const schedule = async function () {
           outputlist7,
           outputlist8,
         });
+
+        console.log(
+          "Generated outputlist1 (Meeting Links):",
+          JSON.stringify(outputlist1, null, 2)
+        );
+        console.log(
+          "Generated outputlist2 (Addresses):",
+          JSON.stringify(outputlist2, null, 2)
+        );
+        console.log("Generated outputlist3 (Already Booked):", outputlist3);
+        console.log(
+          "Generated outputlist4 (Modified Slots):",
+          JSON.stringify(outputlist4, null, 2)
+        );
+        console.log(
+          "Generated outputlist8 (Blocked by User):",
+          JSON.stringify(outputlist8, null, 2)
+        );
       }
     } else {
       console.log(
         `Processing iteration ${iteration} and updating baseline outputs, reflecting booked slots.`
       );
 
-      // Build a map of current slots from this iteration
       const currentSlotsMap = {};
       outputlist5.forEach((slot) => {
         const slotKey = slot.join("|");
 
-        // Identify all booked entries for this slot
+        // Find all booked entries for this slot
         const bookedEntries = alreadyBookedList.filter((booked) => {
           const bookedStart = moment.utc(booked.start_date);
           const bookedEnd = moment.utc(booked.end_date);
@@ -294,24 +311,29 @@ export const schedule = async function () {
         });
 
         const bookedBubbleIds = bookedEntries.map((entry) => entry.bubbleId);
-
         currentSlotsMap[slotKey] = { slot, bookedBubbleIds };
       });
 
-      // Determine the intersection while updating baselineOutput3 as needed
       const newBaselineIndices = [];
       baselineOutput5.forEach((slot, index) => {
         const slotKey = slot.join("|");
         const entry = currentSlotsMap[slotKey];
         if (entry) {
-          // If there are bookedBubbleIds, append them to baselineOutput3[index]
+          // If there are bookedBubbleIds, append them to baselineOutput3[index] if not already present
           if (entry.bookedBubbleIds.length > 0) {
-            // If baselineOutput3[index] is null or empty, start with the first bubbleid
-            // Otherwise, append each bubbleid with an underscore
             let currentVal = baselineOutput3[index] || "";
+            // Split into an array if not empty
+            let currentIds = currentVal ? currentVal.split("_") : [];
+
+            // Add only those IDs not already present
             entry.bookedBubbleIds.forEach((bid) => {
-              currentVal = currentVal ? currentVal + "_" + bid : bid;
+              if (!currentIds.includes(bid)) {
+                currentIds.push(bid);
+              }
             });
+
+            // Join them back with underscores
+            currentVal = currentIds.length ? currentIds.join("_") : null;
             baselineOutput3[index] = currentVal;
           }
           newBaselineIndices.push(index);
@@ -347,25 +369,28 @@ export const schedule = async function () {
           outputlist7: baselineOutput7,
           outputlist8: baselineOutput8,
         });
+
+        console.log(
+          "Generated outputlist1 (Meeting Links):",
+          JSON.stringify(outputlist1, null, 2)
+        );
+        console.log(
+          "Generated outputlist2 (Addresses):",
+          JSON.stringify(outputlist2, null, 2)
+        );
+        console.log("Generated outputlist3 (Already Booked):", outputlist3);
+        console.log(
+          "Generated outputlist4 (Modified Slots):",
+          JSON.stringify(outputlist4, null, 2)
+        );
+        console.log(
+          "Generated outputlist8 (Blocked by User):",
+          JSON.stringify(outputlist8, null, 2)
+        );
       }
     }
-    console.log(
-      "Generated outputlist1 (Meeting Links):",
-      JSON.stringify(outputlist1, null, 2)
-    );
-    console.log(
-      "Generated outputlist2 (Addresses):",
-      JSON.stringify(outputlist2, null, 2)
-    );
-    console.log("Generated outputlist3 (Already Booked):", outputlist3);
-    console.log(
-      "Generated outputlist4 (Modified Slots):",
-      JSON.stringify(outputlist4, null, 2)
-    );
-    console.log(
-      "Generated outputlist8 (Blocked by User):",
-      JSON.stringify(outputlist8, null, 2)
-    );
+
+    
 
 
     console.log("======== Function End ========");
