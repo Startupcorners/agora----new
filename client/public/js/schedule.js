@@ -131,56 +131,27 @@ export const schedule = async function () {
     availabilityids,
     iteration
   ) {
-    console.log("======== Function Start ========");
-    console.log("Received iteration:", iteration);
-    console.log("User IDs count:", availabilityids.length);
-
     const userOffsetInMinutes = userOffsetInSeconds / 60;
-
-    console.log("User offset (in seconds):", userOffsetInSeconds);
-    console.log("User offset (in minutes):", userOffsetInMinutes);
-
     const startDateLocal = moment
       .utc(viewerStartDate)
       .utcOffset(userOffsetInMinutes)
       .startOf("day")
       .add(offset * 7, "days");
 
-    console.log("Start date local:", startDateLocal.format());
+    if (!startDateLocal.isValid()) return emptyOutput();
 
-    if (!startDateLocal.isValid()) {
-      console.error("Invalid viewerStartDate:", viewerStartDate);
+    if (availabilityList.length === 0) return emptyOutput();
+
+    const {
+      daily_start_time: baseDailyStart,
+      daily_end_time: baseDailyEnd,
+      slot_duration_minutes: baseSlotDuration,
+    } = availabilityList[0];
+
+    if (!baseDailyStart || !baseDailyEnd || !baseSlotDuration)
       return emptyOutput();
-    }
-
-    let baseDailyStart = null;
-    let baseDailyEnd = null;
-    let baseSlotDuration = null;
-
-    if (availabilityList.length > 0) {
-      const firstAvailability = availabilityList[0];
-      baseDailyStart = firstAvailability.daily_start_time;
-      baseDailyEnd = firstAvailability.daily_end_time;
-      baseSlotDuration = firstAvailability.slot_duration_minutes;
-
-      console.log("Base daily start time:", baseDailyStart);
-      console.log("Base daily end time:", baseDailyEnd);
-      console.log("Base slot duration (minutes):", baseSlotDuration);
-    } else {
-      console.log("Availability list is empty.");
-    }
-
-    if (!baseDailyStart || !baseDailyEnd || !baseSlotDuration) {
-      console.log("No baseline availability found. Exiting function.");
-      return emptyOutput();
-    }
 
     const outputlist6 = generateDayBoundaries(startDateLocal);
-    console.log(
-      "Generated outputlist6 (Day Boundaries):",
-      JSON.stringify(outputlist6, null, 2)
-    );
-
     const outputlist7 = generateWeeklySlots(
       startDateLocal,
       baseDailyStart,
@@ -189,17 +160,10 @@ export const schedule = async function () {
       userOffsetInSeconds
     );
 
-    console.log(
-      "Generated outputlist7 (All Weekly Slots):",
-      JSON.stringify(outputlist7, null, 2)
-    );
-
     const firstSlotStart =
       outputlist7.length > 0
         ? moment.utc(outputlist7[0][0]).utcOffset(userOffsetInMinutes)
         : startDateLocal.clone();
-
-    console.log("First slot start time (local):", firstSlotStart.format());
 
     let {
       outputlist1,
@@ -225,16 +189,10 @@ export const schedule = async function () {
       ? moment.max(availabilityList.map((a) => moment.utc(a.end_date)))
       : null;
 
-    console.log("Global availability range UTC:");
-    console.log("  Start:", globalStartUTC ? globalStartUTC.format() : "null");
-    console.log("  End:", globalEndUTC ? globalEndUTC.format() : "null");
-
-    const globalStart = globalStartUTC
-      ? globalStartUTC.clone().utcOffset(userOffsetInMinutes)
-      : null;
-    const globalEnd = globalEndUTC
-      ? globalEndUTC.clone().utcOffset(userOffsetInMinutes)
-      : null;
+    const globalStart =
+      globalStartUTC?.clone().utcOffset(userOffsetInMinutes) || null;
+    const globalEnd =
+      globalEndUTC?.clone().utcOffset(userOffsetInMinutes) || null;
 
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
@@ -243,28 +201,28 @@ export const schedule = async function () {
       userOffsetInSeconds
     );
 
-    console.log(
-      "Filtered outputlist5 (Slots Within Availability Range):",
-      JSON.stringify(outputlist5, null, 2)
-    );
-
     if (iteration === 1) {
-      console.log("First iteration detected. Storing baseline outputs.");
-      baselineOutput1 = [...outputlist1];
-      baselineOutput2 = [...outputlist2];
-      baselineOutput3 = [...outputlist3];
-      baselineOutput4 = [...outputlist4];
+      // Set up baseline outputs using a mapping by slot keys
+      baselineOutputMap = {};
+      outputlist7.forEach((slot, index) => {
+        const slotKey = slot.join("|");
+        baselineOutputMap[slotKey] = {
+          meetingLink: outputlist1[index],
+          address: outputlist2[index],
+          alreadyBooked: outputlist3[index],
+          isModified: outputlist4[index],
+          blockedByUser: outputlist8[index],
+          isStartupCorners: outputlist9[index],
+        };
+      });
+
       baselineOutput5 = [...outputlist5];
       baselineOutput6 = [...outputlist6];
       baselineOutput7 = [...outputlist7];
-      baselineOutput8 = [...outputlist8];
-      baselineOutput9 = [...outputlist9];
 
       if (iteration < availabilityids.length) {
-        console.log("Moving to next iteration:", iteration + 1);
         bubble_fn_next(iteration + 1);
       } else {
-        console.log("Only one user detected. Sending final results to Bubble.");
         bubble_fn_hours({
           outputlist1,
           outputlist2,
@@ -276,40 +234,11 @@ export const schedule = async function () {
           outputlist8,
           outputlist9,
         });
-
-        console.log(
-          "Generated outputlist1 (Meeting Links):",
-          JSON.stringify(outputlist1, null, 2)
-        );
-        console.log(
-          "Generated outputlist2 (Addresses):",
-          JSON.stringify(outputlist2, null, 2)
-        );
-        console.log("Generated outputlist3 (Already Booked):", outputlist3);
-        console.log(
-          "Generated outputlist4 (Modified Slots):",
-          JSON.stringify(outputlist4, null, 2)
-        );
-        console.log(
-          "Generated outputlist8 (Blocked by User):",
-          JSON.stringify(outputlist8, null, 2)
-        );
-        console.log(
-          "Generated outputlist9 (isStartupCorners):",
-          JSON.stringify(outputlist9, null, 2)
-        );
       }
     } else {
-      console.log(
-        `Processing iteration ${iteration} and updating baseline outputs, reflecting booked slots.`
-      );
-
-      // Map to store current booked slots
-      const currentSlotsMap = {};
+      // Update baseline outputs
       outputlist7.forEach((slot) => {
         const slotKey = slot.join("|");
-
-        // Find all booked entries for this slot
         const bookedEntries = alreadyBookedList.filter((booked) => {
           const bookedStart = moment.utc(booked.start_date);
           const bookedEnd = moment.utc(booked.end_date);
@@ -325,114 +254,64 @@ export const schedule = async function () {
         });
 
         const bookedBubbleIds = bookedEntries.map((entry) => entry.bubbleId);
-        currentSlotsMap[slotKey] = { slot, bookedBubbleIds };
-      });
-
-      // Update baseline outputs without reducing slot count
-      // Debugging: Verify alignment between outputlist7 and currentSlotsMap
-      console.log(`Iteration ${iteration} - Starting baselineOutput3 update`);
-      outputlist7.forEach((slot, index) => {
-        const slotKey = slot.join("|");
-        console.log(`Index ${index} - SlotKey: ${slotKey}`);
-        if (!currentSlotsMap[slotKey]) {
-          console.error(`Missing SlotKey in currentSlotsMap: ${slotKey}`);
+        if (!baselineOutputMap[slotKey]) {
+          baselineOutputMap[slotKey] = {
+            alreadyBooked: null,
+          };
         }
+        const currentBooked = baselineOutputMap[slotKey].alreadyBooked
+          ? baselineOutputMap[slotKey].alreadyBooked.split("_").filter(Boolean)
+          : [];
+        baselineOutputMap[slotKey].alreadyBooked = [
+          ...new Set([...currentBooked, ...bookedBubbleIds]),
+        ].join("_");
       });
 
-      // Update baselineOutput3
-      outputlist7.forEach((slot, index) => {
-        const slotKey = slot.join("|");
-        const entry = currentSlotsMap[slotKey];
-
-        if (entry) {
-          if (entry.bookedBubbleIds.length > 0) {
-            let currentVal = baselineOutput3[index] || "";
-            let currentIds = currentVal ? currentVal.split("_") : [];
-            entry.bookedBubbleIds.forEach((bid) => {
-              if (!currentIds.includes(bid)) {
-                currentIds.push(bid);
-              }
-            });
-            baselineOutput3[index] = currentIds.length
-              ? currentIds.join("_")
-              : null;
-          }
-        }
-      });
-
-      console.log(
-        `Iteration ${iteration} - Updated baselineOutput3:`,
-        baselineOutput3
-      );
-
-      // Ensure all outputs maintain the full set of weekly slots
-      baselineOutput1 = [...outputlist1]; // Meeting links
-      baselineOutput2 = [...outputlist2]; // Addresses
-      baselineOutput3 = [...baselineOutput3]; // Already booked
-      baselineOutput4 = [...outputlist4]; // Modified slots
       baselineOutput5 = filterSlotsByAvailabilityRange(
         outputlist7,
         globalStart,
         globalEnd,
         userOffsetInSeconds
-      ); // Filtered by availability
-      baselineOutput6 = [...outputlist6]; // Day boundaries
-      baselineOutput7 = [...outputlist7]; // All weekly slots
-      baselineOutput8 = [...outputlist8]; // Blocked by user
-      baselineOutput9 = [...outputlist9]; // isStartupCorners
+      );
+      baselineOutput7 = [...outputlist7];
 
       if (iteration < availabilityids.length) {
-        console.log("Moving to next iteration:", iteration + 1);
         bubble_fn_next(iteration + 1);
       } else {
-        console.log("Final iteration completed. Sending results to Bubble.");
-        bubble_fn_hours({
-          outputlist1: baselineOutput1,
-          outputlist2: baselineOutput2,
-          outputlist3: baselineOutput3,
-          outputlist4: baselineOutput4,
-          outputlist5: baselineOutput5, // Only filtered list
+        const finalOutput = {
+          outputlist1: [],
+          outputlist2: [],
+          outputlist3: [],
+          outputlist4: [],
+          outputlist5: baselineOutput5,
           outputlist6: baselineOutput6,
           outputlist7: baselineOutput7,
-          outputlist8: baselineOutput8,
-          outputlist9: baselineOutput9,
+          outputlist8: [],
+          outputlist9: [],
+        };
+
+        baselineOutput7.forEach((slot) => {
+          const slotKey = slot.join("|");
+          const slotInfo = baselineOutputMap[slotKey];
+          if (slotInfo) {
+            finalOutput.outputlist1.push(slotInfo.meetingLink || null);
+            finalOutput.outputlist2.push(slotInfo.address || null);
+            finalOutput.outputlist3.push(slotInfo.alreadyBooked || null);
+            finalOutput.outputlist4.push(slotInfo.isModified || null);
+            finalOutput.outputlist8.push(slotInfo.blockedByUser || null);
+            finalOutput.outputlist9.push(slotInfo.isStartupCorners || null);
+          }
         });
 
-        console.log(
-          "Generated outputlist1 (Meeting Links):",
-          JSON.stringify(outputlist1, null, 2)
-        );
-        console.log(
-          "Generated outputlist2 (Addresses):",
-          JSON.stringify(outputlist2, null, 2)
-        );
-        console.log("Generated outputlist3 (Already Booked):", outputlist3);
-        console.log(
-          "Generated outputlist4 (Modified Slots):",
-          JSON.stringify(outputlist4, null, 2)
-        );
-        console.log(
-          "Generated outputlist5 (Filtered Slots):",
-          JSON.stringify(outputlist5, null, 2)
-        );
-        console.log(
-          "Generated outputlist8 (Blocked by User):",
-          JSON.stringify(outputlist8, null, 2)
-        );
-        console.log(
-          "Generated outputlist7 (All Weekly Slots):",
-          JSON.stringify(outputlist7, null, 2)
-        );
+        bubble_fn_hours(finalOutput);
       }
     }
 
-
-    console.log("======== Function End ========");
-    // Add a 3-second delay before calling bubble_fn_ready
-    setTimeout(() => {
-      bubble_fn_ready();
-    }, 3000);
+    setTimeout(bubble_fn_ready, 3000);
   }
+
+
+
 
 
 
@@ -460,27 +339,16 @@ export const schedule = async function () {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     const outputlist7 = [];
 
-    console.log("Start date local:", startDateLocal.format());
-    console.log("User offset (seconds):", userOffsetInSeconds);
-    console.log("Base daily start time:", baseDailyStart);
-    console.log("Base daily end time:", baseDailyEnd);
-    console.log("Slot duration (minutes):", slotDuration);
-
     // Determine the entire week's start and end in local time, plus one day before and after
     const endDateLocal = startDateLocal.clone().add(7, "days").endOf("day");
     const extendedStartLocal = startDateLocal.clone().subtract(1, "day");
     const extendedEndLocal = startDateLocal.clone().add(7, "days").endOf("day");
 
-    console.log("Extended week start (local):", extendedStartLocal.format());
-    console.log("Extended week end (local):", extendedEndLocal.format());
-
     for (let i = 0; i < 8; i++) {
       const currentDayLocal = startDateLocal.clone().add(i, "days");
-      console.log(`\nProcessing day ${i + 1}: ${currentDayLocal.format()}`);
 
       // Convert daily start/end times to UTC and then apply offset
       const currentDayUTC = currentDayLocal.clone().utc();
-      console.log("Current day (UTC):", currentDayUTC.format());
 
       const dailyStartTimeUTC = moment.utc(
         currentDayUTC.format("YYYY-MM-DD") + " " + baseDailyStart,
@@ -499,15 +367,6 @@ export const schedule = async function () {
         .clone()
         .utcOffset(userOffsetInMinutes);
 
-      console.log(
-        "Daily start time (local w/ offset):",
-        dailyStartTimeLocal.format()
-      );
-      console.log(
-        "Daily end time (local w/ offset):",
-        dailyEndTimeLocal.format()
-      );
-
       // Generate slots for the entire daily range
       outputlist7.push(
         ...generateSlotsForInterval(
@@ -519,55 +378,25 @@ export const schedule = async function () {
     }
 
     // Filter all slots to only those within the extended range
-    console.log(
-      "Filtering slots to ensure they fit within the extended weekly range."
-    );
     const filteredSlots = outputlist7.filter((slotRange) => {
       const slotStart = moment.utc(slotRange[0]).utcOffset(userOffsetInMinutes);
       const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
-      const isInExtendedRange =
+      return (
         slotStart.isSameOrAfter(startDateLocal) &&
-        slotEnd.isSameOrBefore(endDateLocal);
-      if (!isInExtendedRange) {
-        console.log(
-          "Excluding slot:",
-          slotStart.format(),
-          "to",
-          slotEnd.format(),
-          "(outside extended weekly range)"
-        );
-      }
-      return isInExtendedRange;
+        slotEnd.isSameOrBefore(endDateLocal)
+      );
     });
 
-    console.log("Final slots (with extra days):", filteredSlots);
     return filteredSlots;
   }
+
 
   function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
     const result = [];
     let current = startTimeLocal.clone();
 
-    console.log("Generating slots...");
-    console.log(
-      "Start time (local):",
-      startTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ")
-    );
-    console.log(
-      "End time (local):",
-      endTimeLocal.format("YYYY-MM-DDTHH:mm:ssZ")
-    );
-    console.log("Slot duration (minutes):", duration);
-
     while (current.isBefore(endTimeLocal)) {
       const slotEnd = current.clone().add(duration, "minutes");
-
-      console.log(
-        "Generated slot:",
-        current.format("YYYY-MM-DDTHH:mm:ssZ"),
-        "to",
-        slotEnd.format("YYYY-MM-DDTHH:mm:ssZ")
-      );
 
       result.push([
         current.format("YYYY-MM-DDTHH:mm:ssZ"),
@@ -577,9 +406,9 @@ export const schedule = async function () {
       current.add(duration, "minutes");
     }
 
-    console.log("Total slots generated:", result.length);
     return result;
   }
+
 
   function assignSlotInfo(
     outputlist7,
@@ -590,7 +419,6 @@ export const schedule = async function () {
     blockedByUserList,
     modifiedSlots
   ) {
-    console.log("modifiedSlots", modifiedSlots);
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     const outputlist1 = [];
     const outputlist2 = [];
@@ -694,7 +522,7 @@ export const schedule = async function () {
               (modifiedStart.isBetween(slotStart, slotEnd, null, "[)") &&
                 modifiedEnd.isBetween(slotStart, slotEnd, null, "(]"))
             ) {
-              slotInfo.isModified = modifiedSlot.bubbleId; 
+              slotInfo.isModified = modifiedSlot.bubbleId;
               slotInfo.meetingLink = modifiedSlot.meetingLink;
               slotInfo.Address = modifiedSlot.Address;
               slotInfo.isStartupCorners = modifiedSlot.isStartupcorners;
@@ -712,8 +540,16 @@ export const schedule = async function () {
       });
     });
 
-    return { outputlist1, outputlist2, outputlist3, outputlist4, outputlist8, outputlist9 };
+    return {
+      outputlist1,
+      outputlist2,
+      outputlist3,
+      outputlist4,
+      outputlist8,
+      outputlist9,
+    };
   }
+
 
 
 
