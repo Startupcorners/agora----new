@@ -225,12 +225,15 @@ export const schedule = async function () {
       millisecond: 0,
     });
 
-    const globalEnd = startDateLocal.clone().set({
-      hour: commonDailyEnd.hours(),
-      minute: commonDailyEnd.minutes(),
-      second: 0,
-      millisecond: 0,
-    });
+    const globalEnd = startDateLocal
+      .clone()
+      .add(7, "days") // Extend the range by a full week
+      .set({
+        hour: commonDailyEnd.hours(),
+        minute: commonDailyEnd.minutes(),
+        second: 0,
+        millisecond: 0,
+      });
 
     console.log("Global Start (Adjusted):", globalStart.format());
     console.log("Global End (Adjusted):", globalEnd.format());
