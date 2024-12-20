@@ -314,7 +314,7 @@ export const schedule = async function () {
           );
         });
 
-        const bookedBubbleIds = bookedEntries.map((entry) => entry.bubbleid);
+        const bookedBubbleIds = bookedEntries.map((entry) => entry.bubbleId);
 
         currentSlotsMap[slotKey] = { slot, bookedBubbleIds };
       });
