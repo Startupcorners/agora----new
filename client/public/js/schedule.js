@@ -179,13 +179,18 @@ export const schedule = async function () {
       if (!commonDailyEnd || dailyEnd.isBefore(commonDailyEnd)) {
         commonDailyEnd = dailyEnd;
       }
+
+      // Check for overlap
+      if (commonDailyStart.isSameOrAfter(commonDailyEnd)) {
+        console.error("No overlapping availability found.");
+        return emptyOutput(); // Exit early if no overlap exists
+      }
+
       slotDuration = availability.slot_duration_minutes;
     });
 
-
-
-    if (!commonDailyStart || !commonDailyEnd || !slotDuration) {
-      console.error("No overlapping availability found.");
+    if (!slotDuration) {
+      console.error("No valid slot duration found.");
       return emptyOutput();
     }
 
@@ -198,6 +203,7 @@ export const schedule = async function () {
       commonDailyEnd.format("HH:mm")
     );
     console.log("Slot duration (minutes):", slotDuration);
+
 
     // Generate outputlist7 (all weekly slots)
     const {
@@ -230,13 +236,6 @@ export const schedule = async function () {
       const slotStart = moment(slot[0]).utcOffset(userOffsetInMinutes);
       const slotEnd = moment(slot[1]).utcOffset(userOffsetInMinutes);
 
-      console.log(
-        `Checking Slot ${index}:`,
-        slotStart.format(),
-        "to",
-        slotEnd.format()
-      );
-
       const bookedBubbleIds = alreadyBookedList
         .filter((booked) => {
           const bookedStart = moment
@@ -246,10 +245,6 @@ export const schedule = async function () {
             .utc(booked.end_date)
             .utcOffset(userOffsetInMinutes);
 
-          console.log(
-            `  Against Booked: ${bookedStart.format()} to ${bookedEnd.format()}`
-          );
-
           return (
             slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
             slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
@@ -258,8 +253,6 @@ export const schedule = async function () {
           );
         })
         .map((booked) => booked.bubbleId);
-
-      console.log(`  Matched Bubble IDs: ${bookedBubbleIds}`);
       return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
     });
 
