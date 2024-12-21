@@ -265,10 +265,10 @@ export const schedule = async function () {
 
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
-      globalStart,
-      globalEnd,
-      userOffsetInSeconds
+      commonDailyStart,
+      commonDailyEnd
     );
+
 
     // Final output object
     const result = {
