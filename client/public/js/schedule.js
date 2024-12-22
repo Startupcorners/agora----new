@@ -462,8 +462,6 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
             isStartupCorners: availability.isStartupCorners,
           };
 
-          // Check against blocked by user slots
-          console.log("blockedByUserList before forEach:", blockedByUserList);
 
           blockedByUserList.forEach((blockedSlot) => {
             const blockedStart = moment
@@ -538,6 +536,7 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   ) {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     const outputlist5 = [];
+    console.log(allSlots, globalStart, globalEnd, userOffsetInSeconds);
 
     if (globalStart && globalEnd) {
       allSlots.forEach((slotRange) => {
