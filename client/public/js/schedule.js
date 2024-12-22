@@ -80,6 +80,7 @@ export const schedule = async function () {
       console.log("Next start time in minutes:", currentTimeInMinutes);
     }
 
+    console.log("starttimes", times);
     bubble_fn_startTime(times);
   }
 
@@ -106,6 +107,7 @@ export const schedule = async function () {
       currentTimeInMinutes += duration;
       console.log("Next end time in minutes:", currentTimeInMinutes);
     }
+    console.log("endtimes", times)
     bubble_fn_endTime(times);
   }
 
