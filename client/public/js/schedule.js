@@ -151,7 +151,7 @@ export const schedule = async function () {
     let slotDuration = null;
 
     allAvailabilityLists.forEach((availability) => {
-      // Parse start_date and end_date
+      // 1) Parse the "raw" date range
       const availabilityStart = moment
         .utc(availability.start_date)
         .utcOffset(userOffsetInMinutes);
@@ -159,49 +159,79 @@ export const schedule = async function () {
         .utc(availability.end_date)
         .utcOffset(userOffsetInMinutes);
 
-      console.log("Availability Start:", availabilityStart.format());
-      console.log("Availability End:", availabilityEnd.format());
+      // 2) Parse daily start/end times
+      const [dailyStartHour, dailyStartMinute] = availability.daily_start_time
+        .split(":")
+        .map((x) => parseInt(x, 10));
+      const [dailyEndHour, dailyEndMinute] = availability.daily_end_time
+        .split(":")
+        .map((x) => parseInt(x, 10));
 
-      // Calculate the daily start and end times for each day
+      // 3) Create candidate dailyStart / dailyEnd
+      //    * anchored to the same date as availabilityStart or availabilityEnd.
+      //    * You might need to decide whether you anchor dailyEnd to availabilityStart or availabilityEnd
+      //      depending on your booking logic across multiple days.
+      //    * For a single-day check, you might anchor both to availabilityStart;
+      //      for multi-day range, it’s often more accurate to anchor dailyEnd to availabilityEnd's date.
+
+      // For simplicity, let's anchor dailyStart and dailyEnd to availabilityStart's date:
       const dailyStart = availabilityStart.clone().set({
-        hour: parseInt(availability.daily_start_time.split(":")[0], 10),
-        minute: parseInt(availability.daily_start_time.split(":")[1], 10),
+        hour: dailyStartHour,
+        minute: dailyStartMinute,
         second: 0,
         millisecond: 0,
       });
-
       const dailyEnd = availabilityStart.clone().set({
-        hour: parseInt(availability.daily_end_time.split(":")[0], 10),
-        minute: parseInt(availability.daily_end_time.split(":")[1], 10),
+        hour: dailyEndHour,
+        minute: dailyEndMinute,
         second: 0,
         millisecond: 0,
       });
 
-      console.log("Converted Daily Start:", dailyStart.format());
-      console.log("Converted Daily End:", dailyEnd.format());
+      // 4) Effective availability start is the max of
+      //    the actual range start vs. the daily block start
+      const effectiveStart = moment.max(availabilityStart, dailyStart);
 
-      // Adjust for the full range (start_date to end_date)
-      if (!commonDailyStart || availabilityStart.isAfter(commonDailyStart)) {
-        commonDailyStart = availabilityStart.clone();
-      }
-      if (!commonDailyEnd || availabilityEnd.isBefore(commonDailyEnd)) {
-        commonDailyEnd = availabilityEnd.clone();
+      // 5) Effective availability end is the min of
+      //    the actual range end vs. daily block end
+      //    If your daily end should be anchored to the same day as availabilityEnd,
+      //    you can do something like:
+      //    const dailyEnd = availabilityEnd.clone().set({ hour: dailyEndHour, ... });
+      //    const effectiveEnd = moment.min(availabilityEnd, dailyEnd);
+      //    But for this example, we'll keep it simple:
+      const effectiveEnd = moment.min(availabilityEnd, dailyEnd);
+
+      // 6) Now adjust the common range
+      if (!commonDailyStart) {
+        // If first time, set the initial range
+        commonDailyStart = effectiveStart.clone();
+        commonDailyEnd = effectiveEnd.clone();
+      } else {
+        // Otherwise, overlap with existing common range
+        if (effectiveStart.isAfter(commonDailyStart)) {
+          commonDailyStart = effectiveStart.clone();
+        }
+        if (effectiveEnd.isBefore(commonDailyEnd)) {
+          commonDailyEnd = effectiveEnd.clone();
+        }
       }
 
-      // Check for overlap of the daily blocks
+      // 7) If at any point there's no overlap, exit
       if (commonDailyStart.isSameOrAfter(commonDailyEnd)) {
         console.error("No overlapping availability found.");
-        return emptyOutput(); // Exit early if no overlap exists
+        return emptyOutput();
       }
 
       slotDuration = availability.slot_duration_minutes;
     });
 
+    // 8) Handle invalid slot duration if none found
     if (!slotDuration) {
       console.error("No valid slot duration found.");
       return emptyOutput();
     }
 
+    // 9) Log final results
     console.log(
       "Common Daily Start (Viewer's Local Time):",
       commonDailyStart.format()
@@ -211,6 +241,7 @@ export const schedule = async function () {
       commonDailyEnd.format()
     );
     console.log("Slot duration (minutes):", slotDuration);
+
 
 
 
@@ -269,7 +300,8 @@ export const schedule = async function () {
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
       commonDailyStart,
-      commonDailyEnd
+      commonDailyEnd,
+      dailyStartTime
     );
 
 
