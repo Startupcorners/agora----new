@@ -301,7 +301,6 @@ export const schedule = async function () {
       outputlist7,
       commonDailyStart,
       commonDailyEnd,
-      dailyStartTime
     );
 
 
