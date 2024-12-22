@@ -149,38 +149,44 @@ export const schedule = async function () {
     let slotDuration = null;
 
     allAvailabilityLists.forEach((availability) => {
-      // Parse daily start and end times as local times relative to the start date
-      const dailyStart = moment
+      // Parse start_date and end_date
+      const availabilityStart = moment
         .utc(availability.start_date)
-        .utcOffset(0) // Interpret start_date as UTC
-        .startOf("day") // Reset to midnight of the start date
-        .set({
-          hour: parseInt(availability.daily_start_time.split(":")[0], 10),
-          minute: parseInt(availability.daily_start_time.split(":")[1], 10),
-        })
-        .utcOffset(userOffsetInMinutes); // Convert to viewer's timezone
+        .utcOffset(userOffsetInMinutes);
+      const availabilityEnd = moment
+        .utc(availability.end_date)
+        .utcOffset(userOffsetInMinutes);
 
-      const dailyEnd = moment
-        .utc(availability.start_date)
-        .utcOffset(0) // Interpret start_date as UTC
-        .startOf("day") // Reset to midnight of the start date
-        .set({
-          hour: parseInt(availability.daily_end_time.split(":")[0], 10),
-          minute: parseInt(availability.daily_end_time.split(":")[1], 10),
-        })
-        .utcOffset(userOffsetInMinutes); // Convert to viewer's timezone
+      console.log("Availability Start:", availabilityStart.format());
+      console.log("Availability End:", availabilityEnd.format());
+
+      // Calculate the daily start and end times for each day
+      const dailyStart = availabilityStart.clone().set({
+        hour: parseInt(availability.daily_start_time.split(":")[0], 10),
+        minute: parseInt(availability.daily_start_time.split(":")[1], 10),
+        second: 0,
+        millisecond: 0,
+      });
+
+      const dailyEnd = availabilityStart.clone().set({
+        hour: parseInt(availability.daily_end_time.split(":")[0], 10),
+        minute: parseInt(availability.daily_end_time.split(":")[1], 10),
+        second: 0,
+        millisecond: 0,
+      });
 
       console.log("Converted Daily Start:", dailyStart.format());
       console.log("Converted Daily End:", dailyEnd.format());
 
-      if (!commonDailyStart || dailyStart.isAfter(commonDailyStart)) {
-        commonDailyStart = dailyStart;
+      // Adjust for the full range (start_date to end_date)
+      if (!commonDailyStart || availabilityStart.isAfter(commonDailyStart)) {
+        commonDailyStart = availabilityStart.clone();
       }
-      if (!commonDailyEnd || dailyEnd.isBefore(commonDailyEnd)) {
-        commonDailyEnd = dailyEnd;
+      if (!commonDailyEnd || availabilityEnd.isBefore(commonDailyEnd)) {
+        commonDailyEnd = availabilityEnd.clone();
       }
 
-      // Check for overlap
+      // Check for overlap of the daily blocks
       if (commonDailyStart.isSameOrAfter(commonDailyEnd)) {
         console.error("No overlapping availability found.");
         return emptyOutput(); // Exit early if no overlap exists
@@ -195,14 +201,15 @@ export const schedule = async function () {
     }
 
     console.log(
-      "Common daily start time (Viewer's Local Time):",
-      commonDailyStart.format("HH:mm")
+      "Common Daily Start (Viewer's Local Time):",
+      commonDailyStart.format()
     );
     console.log(
-      "Common daily end time (Viewer's Local Time):",
-      commonDailyEnd.format("HH:mm")
+      "Common Daily End (Viewer's Local Time):",
+      commonDailyEnd.format()
     );
     console.log("Slot duration (minutes):", slotDuration);
+
 
 
     // Generate outputlist7 (all weekly slots)
@@ -255,6 +262,7 @@ export const schedule = async function () {
         .map((booked) => booked.bubbleId);
       return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
     });
+
 
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
