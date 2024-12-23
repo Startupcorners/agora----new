@@ -259,12 +259,13 @@ export const schedule = async function () {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
 
     // Step 1: Calculate viewer's start date for the given week in user timezone
-    const viewerStartUTC = moment
+    const viewerStartLocal = moment
       .utc(viewerStartDate)
+      .utcOffset(userOffsetInMinutes)
       .startOf("day")
       .add(offset * 7, "days");
 
-    if (!viewerStartUTC.isValid()) {
+    if (!viewerStartLocal.isValid()) {
       console.error("Invalid viewerStartDate:", viewerStartDate);
       return { error: "Invalid start date" };
     }
@@ -331,39 +332,52 @@ export const schedule = async function () {
     });
 
     // Step 4: Clamp the global range to 7 days and availability range in user timezone
-    const globalStartDate = moment
-      .max(viewerStartUTC, overallEarliestStart)
-      .utcOffset(userOffsetInMinutes)
+    const globalStartLocal = moment
+      .max(
+        viewerStartLocal,
+        overallEarliestStart.utcOffset(userOffsetInMinutes)
+      )
       .startOf("day");
 
-    const globalEndDate = moment
-      .min(viewerStartUTC.clone().add(6, "days").endOf("day"), overallLatestEnd)
-      .utcOffset(userOffsetInMinutes)
+    const globalEndLocal = moment
+      .min(
+        viewerStartLocal.clone().add(6, "days").endOf("day"),
+        overallLatestEnd.utcOffset(userOffsetInMinutes)
+      )
       .endOf("day");
 
-    if (globalEndDate.isBefore(globalStartDate)) {
+    if (globalEndLocal.isBefore(globalStartLocal)) {
       console.error("No overlap once clamped to 7 days or overallLatestEnd.");
       return { error: "No final overlap" };
     }
 
     // Step 5: Compute realStart and realEnd in user timezone
-    const realStart = moment
-      .max(globalStartDate, overallEarliestStart)
-      .utcOffset(userOffsetInMinutes);
-    const realEnd = moment
-      .min(globalEndDate, overallLatestEnd)
-      .utcOffset(userOffsetInMinutes);
+    const realStartLocal = moment.max(
+      globalStartLocal,
+      overallEarliestStart.utcOffset(userOffsetInMinutes)
+    );
+    const realEndLocal = moment.min(
+      globalEndLocal,
+      overallLatestEnd.utcOffset(userOffsetInMinutes)
+    );
+
+    // Convert all outputs back to UTC for output
+    const globalStartUTC = globalStartLocal.clone().utc();
+    const globalEndUTC = globalEndLocal.clone().utc();
+    const realStartUTC = realStartLocal.clone().utc();
+    const realEndUTC = realEndLocal.clone().utc();
 
     // Return results
     return {
-      globalStart: globalStartDate.format("YYYY-MM-DDTHH:mm:ssZ"),
-      globalEnd: globalEndDate.format("YYYY-MM-DDTHH:mm:ssZ"),
+      globalStart: globalStartUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
+      globalEnd: globalEndUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
       commonDailyStart: commonDailyStart.format("HH:mm"),
       commonDailyEnd: commonDailyEnd.format("HH:mm"),
-      realStart: realStart.format("YYYY-MM-DDTHH:mm:ssZ"),
-      realEnd: realEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+      realStart: realStartUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
+      realEnd: realEndUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
     };
   }
+
 
 
 
