@@ -121,6 +121,26 @@ export const schedule = async function () {
     blockedByUserList
   ) {
     console.log("======== Function Start ========");
+    console.log(
+      "mainAvailabilityList:",
+      JSON.stringify(mainAvailabilityList, null, 2)
+    );
+    console.log(
+      "allAvailabilityLists:",
+      JSON.stringify(allAvailabilityLists, null, 2)
+    );
+    console.log("viewerStartDate:", viewerStartDate);
+    console.log(
+      "alreadyBookedList:",
+      JSON.stringify(alreadyBookedList, null, 2)
+    );
+    console.log("modifiedSlots:", JSON.stringify(modifiedSlots, null, 2));
+    console.log("offset:", offset);
+    console.log("userOffsetInSeconds:", userOffsetInSeconds);
+    console.log(
+      "blockedByUserList:",
+      JSON.stringify(blockedByUserList, null, 2)
+    );
 
     const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
 
