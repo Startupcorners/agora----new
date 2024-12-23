@@ -510,7 +510,9 @@ export const schedule = async function () {
       currentStart = nextSlot;
     }
 
+    console.log("baseSlots", baseSlots);
     return baseSlots;
+    
   }
 
 
