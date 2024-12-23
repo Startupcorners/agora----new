@@ -127,6 +127,8 @@ export const schedule = async function () {
     console.log("alreadyBookedList", alreadyBookedList);
     console.log("userOffsetInSeconds", userOffsetInSeconds);
 
+    const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
+
      const {
        globalStart,
        globalEnd,
