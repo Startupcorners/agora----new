@@ -406,26 +406,42 @@ export const schedule = async function () {
   }
 
   // 2) Main function: parse the strings, loop over days, and generate slots.
+  // Helper: generates incremental slots in local offset, returning strings
+  function generateSlotsForInterval(startMoment, endMoment, durationMinutes) {
+    const result = [];
+    let current = startMoment.clone();
+
+    while (current.isBefore(endMoment)) {
+      const slotEnd = current.clone().add(durationMinutes, "minutes");
+      if (slotEnd.isAfter(endMoment)) {
+        break;
+      }
+      // IMPORTANT: format with offset => e.g. "2024-12-22T17:00:00-11:00"
+      const startStr = current.format("YYYY-MM-DDTHH:mm:ssZ");
+      const endStr = slotEnd.format("YYYY-MM-DDTHH:mm:ssZ");
+      result.push([startStr, endStr]);
+
+      current = slotEnd;
+    }
+    return result;
+  }
+
   function generateWeeklySlots(
     globalStartStr, // e.g. "2024-12-23T00:00:00-11:00"
     globalEndStr, // e.g. "2024-12-29T23:59:59-11:00"
     commonDailyStartStr, // e.g. "17:00"
     commonDailyEndStr, // e.g. "19:00"
-    slotDuration // in minutes (e.g. 60)
+    slotDuration // e.g. 60
   ) {
-    // A) Parse the incoming date/time strings using .parseZone
-    //    to preserve the exact offset from the string.
+    // 1) Use parseZone to preserve the offset from the string.
     const globalStart = moment.parseZone(globalStartStr);
     const globalEnd = moment.parseZone(globalEndStr);
 
-    // B) Parse the daily start/end times as purely "hour:minute",
-    //    anchored to the same offset. We'll anchor them to the same *date*
-    //    as globalStart for consistency. Another approach is to use .startOf("day").
+    // 2) Convert daily start/end from "HH:mm" to a Moment with the *same offset* as globalStart
     const [startH, startM] = commonDailyStartStr.split(":").map(Number);
     const [endH, endM] = commonDailyEndStr.split(":").map(Number);
 
-    // We won't lock them to the actual globalStart date, but we do want them
-    // in the same offset. So let's clone globalStart just to keep the offset:
+    // We'll anchor them to the same date as globalStart just to keep the offset correct.
     const offsetAnchor = globalStart.clone().startOf("day");
     const commonDailyStart = offsetAnchor
       .clone()
@@ -434,24 +450,22 @@ export const schedule = async function () {
       .clone()
       .set({ hour: endH, minute: endM });
 
-    // C) Figure out how many days to iterate over
+    // 3) Figure out how many days to iterate
     const totalDays = Math.ceil(globalEnd.diff(globalStart, "days", true));
     console.log(
-      `Generate up to ${totalDays} days of slots from ${globalStart.format()} to ${globalEnd.format()}`
+      `Generate up to ${totalDays} days from ${globalStart.format()} to ${globalEnd.format()}`
     );
 
     const outputlist7 = [];
 
-    // D) Loop day-by-day
+    // 4) Loop day-by-day
     for (let i = 0; i < totalDays; i++) {
-      // currentDayLocal is the i-th day from globalStart
       const currentDayLocal = globalStart.clone().add(i, "days");
       if (currentDayLocal.isAfter(globalEnd, "day")) {
-        // If we've gone past globalEnd, stop
         break;
       }
 
-      // For this day, set the daily start/end times (keeping offset)
+      // Build daily start/end for this day in *the same offset*
       const dailyStartTime = currentDayLocal.clone().set({
         hour: commonDailyStart.hours(),
         minute: commonDailyStart.minutes(),
@@ -466,10 +480,9 @@ export const schedule = async function () {
         millisecond: 0,
       });
 
-      // E) If dailyEndTime goes beyond the globalEnd for that day, clamp it
+      // If dailyEndTime goes beyond globalEnd, clamp
       if (dailyEndTime.isAfter(globalEnd)) {
-        // Using moment.min ensures we pick whichever is earlier
-        // (endOf("day") or globalEnd).
+        // moment.min picks whichever is earlier
         const clampedEnd = moment.min(dailyEndTime, globalEnd);
         dailyEndTime.set({
           hour: clampedEnd.hours(),
@@ -479,19 +492,19 @@ export const schedule = async function () {
         });
       }
 
-      // If daily end <= daily start, skip
       if (!dailyEndTime.isAfter(dailyStartTime)) {
+        // no valid range for this day
         continue;
       }
 
-      // F) Generate slots for this day
+      // 5) Generate incremental slots for that day
       const daySlots = generateSlotsForInterval(
         dailyStartTime,
         dailyEndTime,
         slotDuration
       );
 
-      // G) Collect them
+      // 6) Append them
       outputlist7.push(...daySlots);
     }
 
@@ -507,12 +520,17 @@ export const schedule = async function () {
       if (slotEnd.isAfter(endTimeLocal)) {
         break;
       }
-      result.push([current.toISOString(), slotEnd.toISOString()]);
+      // Use .format(...) with "YYYY-MM-DDTHH:mm:ssZ" to preserve the offset
+      const startStr = current.format("YYYY-MM-DDTHH:mm:ssZ");
+      const endStr = slotEnd.format("YYYY-MM-DDTHH:mm:ssZ");
+      result.push([startStr, endStr]);
+
       current.add(duration, "minutes");
     }
 
     return result;
   }
+
 
   function assignSlotInfo(
     outputlist7,
