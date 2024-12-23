@@ -396,14 +396,24 @@ export const schedule = async function () {
 function generateWeeklySlots(
   globalStartStr, // e.g. "2024-12-23T00:00-11:00"
   globalEndStr, // The end of your 7-day window (local time)
-  commonDailyStart, // A Moment object representing the daily start time (only .hours() / .minutes() matter)
-  commonDailyEnd, // A Moment object representing the daily end time
+  commonDailyStartStr, // A Moment object representing the daily start time (only .hours() / .minutes() matter)
+  commonDailyEndStr, // A Moment object representing the daily end time
   slotDuration // Slot length in minutes
 ) {
   const outputlist7 = [];
 
   const globalStart = moment(globalStartStr, "YYYY-MM-DDTHH:mm:ssZ");
   const globalEnd = moment(globalEndStr, "YYYY-MM-DDTHH:mm:ssZ");
+
+  const [startH, startM] = commonDailyStartStr.split(":").map(Number);
+  const [endH, endM] = commonDailyEndStr.split(":").map(Number);
+
+  const commonDailyStart = moment()
+    .startOf("day")
+    .set({ hour: startH, minute: startM });
+  const commonDailyEnd = moment()
+    .startOf("day")
+    .set({ hour: endH, minute: endM });
 
   // Determine how many days are in your globalStart -> globalEnd range.
   // Typically 7, but let's compute dynamically in case you are doing +/- offset logic.
