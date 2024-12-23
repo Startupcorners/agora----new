@@ -624,35 +624,44 @@ export const schedule = async function () {
 
   function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
     const outputlist5 = [];
-    console.log(allSlots, globalStart, globalEnd);
+    console.log("Input allSlots:", allSlots);
+    console.log("Global start:", globalStart);
+    console.log("Global end:", globalEnd);
 
     if (globalStart && globalEnd) {
-      allSlots.forEach((slotRange) => {
+      allSlots.forEach((slotRange, index) => {
         const slotStart = moment.utc(slotRange[0]);
         const slotEnd = moment.utc(slotRange[1]);
 
+        console.log(`Processing slot ${index + 1}:`, slotRange);
+        console.log(
+          "  Slot start (UTC):",
+          slotStart.format("YYYY-MM-DDTHH:mm:ssZ")
+        );
+        console.log(
+          "  Slot end (UTC):",
+          slotEnd.format("YYYY-MM-DDTHH:mm:ssZ")
+        );
+
         // Check if the slot overlaps with the global range
         if (slotStart.isBefore(globalEnd) && slotEnd.isAfter(globalStart)) {
+          console.log("  Slot overlaps with global range.");
           outputlist5.push(slotRange);
+        } else {
+          console.log("  Slot does not overlap with global range.");
         }
       });
+    } else {
+      console.warn(
+        "Global start or global end is undefined. No filtering applied."
+      );
     }
 
+    console.log("Filtered slots (outputlist5):", outputlist5);
     return outputlist5;
   }
 
-  function emptyOutput() {
-    return {
-      outputlist1: [],
-      outputlist2: [],
-      outputlist3: [],
-      outputlist4: [],
-      outputlist5: [],
-      outputlist6: [],
-      outputlist7: [],
-      outputlist9: [],
-    };
-  }
+
 
   function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
     console.log("Received Availabilities:", availabilities);
