@@ -123,6 +123,7 @@ export const schedule = async function () {
   ) {
     console.log("======== Function Start ========");
     console.log("allAvailabilityLists", allAvailabilityLists);
+    console.log("mainAvailabilityList", mainAvailabilityList);
     console.log("alreadyBookedList", alreadyBookedList);
     console.log("userOffsetInSeconds", userOffsetInSeconds);
 
