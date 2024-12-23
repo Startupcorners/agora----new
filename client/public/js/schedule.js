@@ -121,13 +121,8 @@ export const schedule = async function () {
     blockedByUserList
   ) {
     console.log("======== Function Start ========");
-    console.log("allAvailabilityLists", allAvailabilityLists);
-    console.log("mainAvailabilityList", mainAvailabilityList);
-    console.log("alreadyBookedList", alreadyBookedList);
-    console.log("userOffsetInSeconds", userOffsetInSeconds);
 
     const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
-    const userOffsetInMinutes = userOffsetInSeconds / 60;
 
     const { globalStart, globalEnd, commonDailyStart, commonDailyEnd } =
       computeWeekRangeAndDailyIntersection(
@@ -141,11 +136,8 @@ export const schedule = async function () {
     console.log("commonDailyStart", commonDailyStart);
     console.log("commonDailyEnd", commonDailyEnd);
 
-    // Generate outputlist6 (day boundaries)
+    // Generate day boundaries and weekly slots
     const outputlist6 = generateDayBoundaries(globalStart);
-    console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
-
-    // Generate outputlist7 (all weekly slots)
     const { outputlist7 } = generateWeeklySlots(
       globalStart,
       globalEnd,
@@ -154,6 +146,7 @@ export const schedule = async function () {
       slotDuration
     );
 
+    console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
     console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
 
     // Assign slot information (excluding outputlist3)
@@ -161,57 +154,34 @@ export const schedule = async function () {
       assignSlotInfo(
         outputlist7,
         mainAvailabilityList,
-        userOffsetInSeconds,
         blockedByUserList,
         modifiedSlots
       );
 
-    // Generate outputlist3 (all booked slots)
-    const outputlist3 = outputlist7.map((slot, index) => {
-      const slotStart = moment(slot[0]).utcOffset(userOffsetInMinutes);
-      const slotEnd = moment(slot[1]).utcOffset(userOffsetInMinutes);
+    // Generate outputlist3 (already booked slots)
+    const outputlist3 = outputlist7.map((slot) => {
+      const slotStart = moment.utc(slot[0]);
+      const slotEnd = moment.utc(slot[1]);
 
       const bookedBubbleIds = alreadyBookedList
         .filter((booked) => {
-          const bookedStart = moment
-            .utc(booked.start_date)
-            .utcOffset(userOffsetInMinutes);
-          const bookedEnd = moment
-            .utc(booked.end_date)
-            .utcOffset(userOffsetInMinutes);
-
-          return (
-            slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
-            slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
-            bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
-            bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
-          );
+          const bookedStart = moment.utc(booked.start_date);
+          const bookedEnd = moment.utc(booked.end_date);
+          return isSlotOverlapping(slotStart, slotEnd, bookedStart, bookedEnd);
         })
         .map((booked) => booked.bubbleId);
+
       return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
     });
 
+    // Generate outputlist5 (filtered slots by availability)
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
       commonDailyStart,
       commonDailyEnd
     );
 
-    // Helper function to adjust and format slot ranges to viewer timezone
-    function adjustSlotsToViewerTimezone(slotList, userOffsetInSeconds) {
-      const userOffsetInMinutes = userOffsetInSeconds / 60;
-
-      return slotList.map((slotRange) => {
-        return slotRange.map((slot) => {
-          return moment
-            .utc(slot) // Parse as UTC
-            .utcOffset(userOffsetInMinutes) // Apply viewer offset
-            .format("YYYY-MM-DDTHH:mm:ssZ"); // Format in ISO 8601 with timezone
-        });
-      });
-    }
-
-    // Adjust outputlist6, outputlist7, and outputlist5
+    // Adjust slot ranges to viewer timezone
     const adjustedOutputlist6 = adjustSlotsToViewerTimezone(
       outputlist6,
       userOffsetInSeconds
@@ -225,7 +195,7 @@ export const schedule = async function () {
       userOffsetInSeconds
     );
 
-    // Final output object
+    // Final output
     const result = {
       outputlist1,
       outputlist2,
@@ -241,29 +211,36 @@ export const schedule = async function () {
     console.log("Final output:", result);
     console.log("======== Function End ========");
 
-    // Send the result to Bubble
     bubble_fn_hours(result);
 
-    setTimeout(() => {
-      bubble_fn_ready();
-    }, 3000);
+    setTimeout(() => bubble_fn_ready(), 3000);
 
     return result;
   }
 
-  // Helper function to adjust and format slot ranges to viewer timezone
+  // Helper functions
   function adjustSlotsToViewerTimezone(slotList, userOffsetInSeconds) {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
 
-    return slotList.map((slotRange) => {
-      return slotRange.map((slot) => {
-        return moment
-          .utc(slot) // Parse as UTC
-          .utcOffset(userOffsetInMinutes) // Apply viewer offset
-          .format("YYYY-MM-DDTHH:mm:ssZ"); // Format in ISO 8601 with timezone
-      });
-    });
+    return slotList.map((slotRange) =>
+      slotRange.map((slot) =>
+        moment
+          .utc(slot)
+          .utcOffset(userOffsetInMinutes)
+          .format("YYYY-MM-DDTHH:mm:ssZ")
+      )
+    );
   }
+
+  function isSlotOverlapping(slotStart, slotEnd, bookedStart, bookedEnd) {
+    return (
+      slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
+      slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
+      bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
+      bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
+    );
+  }
+
 
 
   function computeWeekRangeAndDailyIntersection(
