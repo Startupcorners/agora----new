@@ -468,7 +468,24 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
     modifiedSlots
   ) {
     console.log("Modified slots:", modifiedSlots);
-    console.log("availabilityList:", availabilityList);
+    console.log("In assignSlotInfo, availabilityList:", availabilityList);
+    console.log(
+      "Array.isArray(availabilityList):",
+      Array.isArray(availabilityList)
+    );
+    if (!availabilityList || !Array.isArray(availabilityList)) {
+      console.error(
+        "availabilityList is undefined or not an array:",
+        availabilityList
+      );
+      return {
+        outputlist1: [],
+        outputlist2: [],
+        outputlist4: [],
+        outputlist8: [],
+        outputlist9: [],
+      };
+    }
     const userOffsetInMinutes = userOffsetInSeconds / 60;
 
     const outputlist1 = []; // Meeting links
