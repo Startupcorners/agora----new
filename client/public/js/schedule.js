@@ -144,13 +144,6 @@ export const schedule = async function () {
      console.log("commonDailyStart", commonDailyStart);
      console.log("commonDailyEnd", globalStart);
 
-
-     // If there's an error, handle it
-     if (error) {
-       console.error("Error computing week range:", error);
-       return emptyOutput();
-     }
-
     // Generate outputlist6 (day boundaries)
     const outputlist6 = generateDayBoundaries(globalStart);
     console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
