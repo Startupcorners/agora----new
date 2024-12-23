@@ -468,6 +468,7 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
     modifiedSlots
   ) {
     console.log("Modified slots:", modifiedSlots);
+    console.log("availabilityList:", availabilityList);
     const userOffsetInMinutes = userOffsetInSeconds / 60;
 
     const outputlist1 = []; // Meeting links
