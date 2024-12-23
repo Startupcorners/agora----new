@@ -461,10 +461,15 @@ export const schedule = async function () {
     const [startHour, startMinute] = commonDailyStartStr.split(":").map(Number);
     const [endHour, endMinute] = commonDailyEndStr.split(":").map(Number);
 
+    // Calculate slots per day
+    const totalMinutes =
+      endHour * 60 + endMinute - (startHour * 60 + startMinute);
+    const slotsPerDay = Math.floor(totalMinutes / slotDuration);
+
     const outputlist7 = [];
     let currentSlot = globalStart.clone();
 
-    // Adjust the first slot to align with the daily window if necessary
+    // Align the first slot with globalStart
     if (
       currentSlot.hours() < startHour ||
       (currentSlot.hours() === startHour && currentSlot.minutes() < startMinute)
@@ -487,50 +492,37 @@ export const schedule = async function () {
       });
     }
 
-    // Ensure the first slot respects the globalStart boundary
-    while (currentSlot.isBefore(globalStart)) {
-      currentSlot.add(slotDuration, "minutes");
-    }
-
     // Generate slots for 7 days
     for (let day = 0; day < 7; day++) {
-      const dayStart = globalStart.clone().add(day, "days").set({
-        hour: startHour,
-        minute: startMinute,
-        second: 0,
-        millisecond: 0,
-      });
+      for (let slot = 0; slot < slotsPerDay; slot++) {
+        const slotEnd = currentSlot.clone().add(slotDuration, "minutes");
 
-      const dayEnd = dayStart.clone().set({
-        hour: endHour,
-        minute: endMinute,
-        second: 0,
-        millisecond: 0,
-      });
-
-      // If it's the first day, align with globalStart
-      let slotStart = moment.max(dayStart, globalStart).clone();
-
-      // Add slots for the current day
-      while (slotStart.isBefore(dayEnd)) {
-        const slotEnd = slotStart.clone().add(slotDuration, "minutes");
-
-        // Stop adding slots if the end of the slot exceeds the daily time range
-        if (slotEnd.isAfter(dayEnd)) {
-          break;
+        // Push slot only if it starts after globalStart
+        if (currentSlot.isSameOrAfter(globalStart)) {
+          outputlist7.push([
+            currentSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
+            slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+          ]);
         }
 
-        outputlist7.push([
-          slotStart.format("YYYY-MM-DDTHH:mm:ssZ"),
-          slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
-        ]);
-
-        slotStart.add(slotDuration, "minutes");
+        // Move to the next slot
+        currentSlot.add(slotDuration, "minutes");
       }
+
+      // Move to the next day, resetting to the start of the daily window
+      currentSlot
+        .set({
+          hour: startHour,
+          minute: startMinute,
+          second: 0,
+          millisecond: 0,
+        })
+        .add(1, "days");
     }
 
     return { outputlist7 };
   }
+
 
 
 
