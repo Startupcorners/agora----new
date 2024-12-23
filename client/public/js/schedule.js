@@ -461,32 +461,40 @@ export const schedule = async function () {
     const [startHour, startMinute] = commonDailyStartStr.split(":").map(Number);
     const [endHour, endMinute] = commonDailyEndStr.split(":").map(Number);
 
+    const outputlist7 = [];
+
+    // Calculate total slots per day
     const totalMinutes =
       endHour * 60 + endMinute - (startHour * 60 + startMinute);
     const slotsPerDay = Math.floor(totalMinutes / slotDuration);
 
-    const outputlist7 = [];
-    const baseSlots = [];
-
-    // Generate base slots for one day
-    let currentSlot = globalStart.clone().set({
+    // Generate base slots for the first day
+    let currentSlotStart = globalStart.clone().set({
       hour: startHour,
       minute: startMinute,
       second: 0,
       millisecond: 0,
     });
 
-    for (let i = 0; i < slotsPerDay; i++) {
-      const slotEnd = currentSlot.clone().add(slotDuration, "minutes");
-      baseSlots.push([
-        currentSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
-        slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
-      ]);
-      currentSlot.add(slotDuration, "minutes");
+    // Adjust the first slot start to align with globalStart
+    if (currentSlotStart.isBefore(globalStart)) {
+      while (currentSlotStart.isBefore(globalStart)) {
+        currentSlotStart.add(slotDuration, "minutes");
+      }
     }
 
-    // Generate slots for the whole week
-    for (let day = 0; day < 7; day++) {
+    for (let i = 0; i < slotsPerDay; i++) {
+      const slotEnd = currentSlotStart.clone().add(slotDuration, "minutes");
+      outputlist7.push([
+        currentSlotStart.format("YYYY-MM-DDTHH:mm:ssZ"),
+        slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+      ]);
+      currentSlotStart.add(slotDuration, "minutes");
+    }
+
+    // Generate slots for the remaining days by adding 1 day
+    const baseSlots = [...outputlist7];
+    for (let day = 1; day < 7; day++) {
       baseSlots.forEach(([start, end]) => {
         outputlist7.push([
           moment
@@ -500,7 +508,6 @@ export const schedule = async function () {
 
     return { outputlist7 };
   }
-
 
 
 
