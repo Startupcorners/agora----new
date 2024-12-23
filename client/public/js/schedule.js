@@ -165,6 +165,7 @@ export const schedule = async function () {
 
     // Generate day boundaries and weekly slots
     const outputlist6 = generateDayBoundaries(globalStart);
+    console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
     const { outputlist7 } = generateWeeklySlots(
       globalStart,
       commonDailyStart,
@@ -172,7 +173,7 @@ export const schedule = async function () {
       slotDuration
     );
 
-    console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
+    
     console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
 
     // Assign slot information (excluding outputlist3)
@@ -435,48 +436,6 @@ export const schedule = async function () {
   }
 
 
-
-  // 1) Helper: generate time slots in increments of `duration` minutes,
-  //    preserving the offset in the final strings.
-  function generateSlotsForInterval(startMoment, endMoment, durationMinutes) {
-    const result = [];
-    let current = startMoment.clone();
-
-    while (current.isBefore(endMoment)) {
-      const slotEnd = current.clone().add(durationMinutes, "minutes");
-      if (slotEnd.isAfter(endMoment)) {
-        break;
-      }
-      // Format with offset => e.g. "2024-12-22T17:00:00-11:00"
-      const startStr = current.format("YYYY-MM-DDTHH:mm:ssZ");
-      const endStr = slotEnd.format("YYYY-MM-DDTHH:mm:ssZ");
-      result.push([startStr, endStr]);
-
-      current = slotEnd;
-    }
-    return result;
-  }
-
-  // 2) Main function: parse the strings, loop over days, and generate slots.
-  // Helper: generates incremental slots in local offset, returning strings
-  function generateSlotsForInterval(startMoment, endMoment, durationMinutes) {
-    const result = [];
-    let current = startMoment.clone();
-
-    while (current.isBefore(endMoment)) {
-      const slotEnd = current.clone().add(durationMinutes, "minutes");
-      if (slotEnd.isAfter(endMoment)) {
-        break;
-      }
-      // IMPORTANT: format with offset => e.g. "2024-12-22T17:00:00-11:00"
-      const startStr = current.format("YYYY-MM-DDTHH:mm:ssZ");
-      const endStr = slotEnd.format("YYYY-MM-DDTHH:mm:ssZ");
-      result.push([startStr, endStr]);
-
-      current = slotEnd;
-    }
-    return result;
-  }
 
   function generateWeeklySlots(
     globalStartStr,
