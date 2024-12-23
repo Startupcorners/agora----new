@@ -451,7 +451,7 @@ export const schedule = async function () {
 
 
 
-  function generateWeeklySlots(
+  function generateBaseDay(
     globalStartStr,
     commonDailyStartStr,
     commonDailyEndStr,
@@ -510,10 +510,40 @@ export const schedule = async function () {
       currentStart = nextSlot;
     }
 
-    console.log("baseSlots", baseSlots);
     return baseSlots;
-    
   }
+
+
+  function generateWeeklySlots(
+    globalStartStr,
+    commonDailyStartStr,
+    commonDailyEndStr,
+    slotDuration // e.g. 60
+  ) {
+    // 1) Base day of N slots (where N is dynamic)
+    const base = generateBaseDay(
+      globalStartStr,
+      commonDailyStartStr,
+      commonDailyEndStr,
+      slotDuration
+    );
+
+    // 2) For 7 days total, replicate
+    const outputlist7 = [];
+    for (let day = 0; day < 7; day++) {
+      for (let [startStr, endStr] of base) {
+        const newStart = moment.parseZone(startStr).add(day, "days");
+        const newEnd = moment.parseZone(endStr).add(day, "days");
+        outputlist7.push([
+          newStart.format("YYYY-MM-DDTHH:mm:ssZ"),
+          newEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+        ]);
+      }
+    }
+
+    return outputlist7;
+  }
+
 
 
 
