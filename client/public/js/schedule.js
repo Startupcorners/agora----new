@@ -487,7 +487,7 @@ export const schedule = async function () {
       });
     }
 
-    // Ensure the first slot starts no earlier than globalStart
+    // Ensure the first slot respects the globalStart boundary
     while (currentSlot.isBefore(globalStart)) {
       currentSlot.add(slotDuration, "minutes");
     }
@@ -509,9 +509,14 @@ export const schedule = async function () {
         millisecond: 0,
       });
 
+      // Skip the day if dayStart is before globalStart
+      if (dayStart.isBefore(globalStart)) {
+        continue;
+      }
+
       // Add slots for the current day within the daily window
       for (
-        let slotStart = dayStart.clone();
+        let slotStart = moment.max(dayStart, globalStart).clone();
         slotStart.isBefore(dayEnd);
         slotStart.add(slotDuration, "minutes")
       ) {
@@ -531,6 +536,7 @@ export const schedule = async function () {
 
     return { outputlist7 };
   }
+
 
 
 
