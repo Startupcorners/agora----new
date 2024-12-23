@@ -403,6 +403,9 @@ function generateWeeklySlots(
 
   const outputlist7 = [];
 
+  const globalStart = moment(globalStartStr, "YYYY-MM-DDTHH:mm:ssZ");
+  const globalEnd = moment(globalEndStr, "YYYY-MM-DDTHH:mm:ssZ");
+
   // Determine how many days are in your globalStart -> globalEnd range.
   // Typically 7, but let's compute dynamically in case you are doing +/- offset logic.
   const totalDays = Math.ceil(globalEnd.diff(globalStart, "days", true));
