@@ -461,7 +461,7 @@ export const schedule = async function () {
     const [startHour, startMinute] = commonDailyStartStr.split(":").map(Number);
     const [endHour, endMinute] = commonDailyEndStr.split(":").map(Number);
 
-    // Calculate the total slots per day
+    // Calculate total slots per day
     const totalMinutes =
       endHour * 60 + endMinute - (startHour * 60 + startMinute);
     const slotsPerDay = Math.floor(totalMinutes / slotDuration);
@@ -469,7 +469,7 @@ export const schedule = async function () {
     const outputlist7 = [];
     let currentSlot = globalStart.clone();
 
-    // Adjust the first slot to align with globalStart or daily start time
+    // Adjust to start at `commonDailyStart` if necessary
     if (
       currentSlot.hours() < startHour ||
       (currentSlot.hours() === startHour && currentSlot.minutes() < startMinute)
@@ -482,61 +482,32 @@ export const schedule = async function () {
       });
     }
 
-    for (let day = 0; day < 7; day++) {
-      let slotsGenerated = 0;
+    // Generate slots for the first day
+    const firstDaySlots = [];
+    for (let i = 0; i < slotsPerDay; i++) {
+      const slotEnd = currentSlot.clone().add(slotDuration, "minutes");
+      firstDaySlots.push([
+        currentSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
+        slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+      ]);
+      currentSlot.add(slotDuration, "minutes");
+    }
 
-      // Generate slots for the day
-      while (slotsGenerated < slotsPerDay) {
-        const slotEnd = currentSlot.clone().add(slotDuration, "minutes");
+    // Add first day's slots to output
+    outputlist7.push(...firstDaySlots);
 
-        // Stop if the slot exceeds the daily time window
-        if (
-          currentSlot.hours() >= endHour &&
-          (currentSlot.minutes() >= endMinute ||
-            slotEnd.isAfter(currentSlot.clone().endOf("day")))
-        ) {
-          break;
-        }
-
-        outputlist7.push([
-          currentSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
-          slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
-        ]);
-
-        currentSlot.add(slotDuration, "minutes");
-        slotsGenerated++;
-      }
-
-      // If we didn't generate enough slots for the first day, continue into the next day
-      if (day === 0 && slotsGenerated < slotsPerDay) {
-        currentSlot.add(1, "days").set({
-          hour: startHour,
-          minute: startMinute,
-          second: 0,
-          millisecond: 0,
-        });
-        while (slotsGenerated < slotsPerDay) {
-          const slotEnd = currentSlot.clone().add(slotDuration, "minutes");
-          outputlist7.push([
-            currentSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
-            slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
-          ]);
-          currentSlot.add(slotDuration, "minutes");
-          slotsGenerated++;
-        }
-      } else {
-        // Move to the next day
-        currentSlot.add(1, "days").set({
-          hour: startHour,
-          minute: startMinute,
-          second: 0,
-          millisecond: 0,
-        });
-      }
+    // Generate slots for the remaining 6 days by adding 1 day to each slot
+    for (let day = 1; day < 7; day++) {
+      const nextDaySlots = firstDaySlots.map(([start, end]) => [
+        moment.parseZone(start).add(day, "days").format("YYYY-MM-DDTHH:mm:ssZ"),
+        moment.parseZone(end).add(day, "days").format("YYYY-MM-DDTHH:mm:ssZ"),
+      ]);
+      outputlist7.push(...nextDaySlots);
     }
 
     return { outputlist7 };
   }
+
 
 
 
