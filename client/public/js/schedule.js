@@ -461,52 +461,55 @@ export const schedule = async function () {
     const [startHour, startMinute] = commonDailyStartStr.split(":").map(Number);
     const [endHour, endMinute] = commonDailyEndStr.split(":").map(Number);
 
+    // Calculate slots per day
+    const totalMinutes =
+      endHour * 60 + endMinute - (startHour * 60 + startMinute);
+    const slotsPerDay = Math.floor(totalMinutes / slotDuration);
+
     const outputlist7 = [];
     let currentSlot = globalStart.clone();
 
-    // Calculate the effective daily window for each day
-    for (let day = 0; day < 7; day++) {
-      // Calculate the start and end of the current day
-      const dayStart = globalStart.clone().add(day, "days").set({
+    // Align first slot with globalStart if needed
+    if (
+      currentSlot.hours() < startHour ||
+      (currentSlot.hours() === startHour && currentSlot.minutes() < startMinute)
+    ) {
+      currentSlot.set({
         hour: startHour,
         minute: startMinute,
         second: 0,
         millisecond: 0,
       });
+    }
 
-      const dayEnd = dayStart.clone().set({
-        hour: endHour,
-        minute: endMinute,
-        second: 0,
-        millisecond: 0,
-      });
-
-      // For the first day, align with globalStart
-      const effectiveDayStart =
-        day === 0 ? moment.max(dayStart, globalStart) : dayStart;
-
-      // Generate slots within the daily window
-      let slotStart = effectiveDayStart.clone();
-      while (slotStart.isBefore(dayEnd)) {
-        const slotEnd = slotStart.clone().add(slotDuration, "minutes");
-
-        // Stop adding slots if the slotEnd exceeds the daily window
-        if (slotEnd.isAfter(dayEnd)) {
-          break;
-        }
-
+    // Generate slots for 7 days
+    for (let day = 0; day < 7; day++) {
+      for (let slot = 0; slot < slotsPerDay; slot++) {
+        const slotEnd = currentSlot.clone().add(slotDuration, "minutes");
         outputlist7.push([
-          slotStart.format("YYYY-MM-DDTHH:mm:ssZ"),
+          currentSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
           slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
         ]);
 
         // Move to the next slot
-        slotStart.add(slotDuration, "minutes");
+        currentSlot.add(slotDuration, "minutes");
       }
+
+      // Add 1 day to the starting point for the next day’s slots
+      currentSlot
+        .set({
+          hour: startHour,
+          minute: startMinute,
+          second: 0,
+          millisecond: 0,
+        })
+        .add(1, "days");
     }
 
     return { outputlist7 };
   }
+
+
 
 
 
