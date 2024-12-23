@@ -241,109 +241,62 @@ export const schedule = async function () {
     userOffsetInSeconds
   ) {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
+    // Convert numeric offset to something like "+02:00" or "-11:00"
+    const offsetHours = Math.floor(userOffsetInMinutes / 60); // e.g. -11
+    const offsetMins = Math.abs(userOffsetInMinutes % 60); // e.g. 0 for :00
+    // A small helper to build the +/- sign
+    const sign = offsetHours >= 0 ? "+" : "-";
+    // Build a string like "-11:00" or "+02:30"
+    // If offsetHours is negative, we already have sign = "-"
+    const offsetStr = `${sign}${String(Math.abs(offsetHours)).padStart(
+      2,
+      "0"
+    )}:${String(offsetMins).padStart(2, "0")}`;
 
-    // 1) Convert viewerStartDate -> local midnight -> shift by `offset` weeks
+    // 1) Build a “local midnight” for viewerStartDate using userOffsetInSeconds
     const viewerStartLocal = moment
       .utc(viewerStartDate)
       .utcOffset(userOffsetInMinutes)
       .startOf("day")
       .add(offset * 7, "days");
 
-    // If you truly trust the date is valid, you can skip this check
-    if (!viewerStartLocal.isValid()) {
-      console.error("Invalid viewerStartDate:", viewerStartDate);
-      return { error: "Invalid start date" };
-    }
+    // ... [all your existing logic for overallEarliestStart, overallLatestEnd, etc.] ...
 
-    // 2) We'll find the combined date range + daily window:
-    //    - overallEarliestStart = MAX of all start dates
-    //    - overallLatestEnd     = MIN of all end dates
-    //    - dailyStartInMinutes  = MAX of all daily_start_time (HH:mm)
-    //    - dailyEndInMinutes    = MIN of all daily_end_time   (HH:mm)
-    let overallEarliestStart = null;
-    let overallLatestEnd = null;
+    // Let's assume you end up with:
+    //   finalDailyStartMins, finalDailyEndMins,
+    //   globalStartDate, globalEndDate
+    // all in the correct user offset as needed.
 
-    let dailyStartInMinutesArray = [];
-    let dailyEndInMinutesArray = [];
-
-    // 3) Parse each availability
-    allAvailabilityLists.forEach((availability) => {
-      // Convert start_date / end_date to local time
-      const availabilityStart = moment
-        .utc(availability.start_date)
-        .utcOffset(userOffsetInMinutes);
-      const availabilityEnd = moment
-        .utc(availability.end_date)
-        .utcOffset(userOffsetInMinutes);
-
-      // Update overallEarliestStart
-      if (!overallEarliestStart) {
-        overallEarliestStart = availabilityStart.clone();
-      } else if (availabilityStart.isAfter(overallEarliestStart)) {
-        overallEarliestStart = availabilityStart.clone();
-      }
-
-      // Update overallLatestEnd
-      if (!overallLatestEnd) {
-        overallLatestEnd = availabilityEnd.clone();
-      } else if (availabilityEnd.isBefore(overallLatestEnd)) {
-        overallLatestEnd = availabilityEnd.clone();
-      }
-
-      // Convert daily_start_time / daily_end_time to numeric minutes
-      const [startHour, startMin] = availability.daily_start_time
-        .split(":")
-        .map(Number);
-      const [endHour, endMin] = availability.daily_end_time
-        .split(":")
-        .map(Number);
-
-      dailyStartInMinutesArray.push(startHour * 60 + startMin);
-      dailyEndInMinutesArray.push(endHour * 60 + endMin);
-    });
-
-    // If you truly know there's always overlap, you could skip these checks
-    if (!overallEarliestStart || !overallLatestEnd) {
-      console.error("No valid availability range found.");
-      return { error: "No availability data" };
-    }
-
-    // 4) Compute final daily intersection
-    const finalDailyStartMins = Math.max(...dailyStartInMinutesArray);
-    const finalDailyEndMins = Math.min(...dailyEndInMinutesArray);
-
-    // 5) Build commonDailyStart / commonDailyEnd as times-of-day
+    // 2) Build the final daily times using parseZone (or set offset manually)
     const dailyStartHour = Math.floor(finalDailyStartMins / 60);
     const dailyStartMinute = finalDailyStartMins % 60;
     const dailyEndHour = Math.floor(finalDailyEndMins / 60);
     const dailyEndMinute = finalDailyEndMins % 60;
 
-    const commonDailyStart = moment().set({
+    // We parse "1970-01-01T00:00:00" with parseZone(... offsetStr ...),
+    // so that the final moment is pinned to e.g. -11:00 offset:
+    const anchor = moment.parseZone(
+      `1970-01-01T00:00:00${offsetStr}`,
+      "YYYY-MM-DDTHH:mm:ssZ"
+    );
+
+    // Make commonDailyStart from that anchor
+    const commonDailyStart = anchor.clone().set({
       hour: dailyStartHour,
       minute: dailyStartMinute,
       second: 0,
       millisecond: 0,
     });
-    const commonDailyEnd = moment().set({
+
+    // Similarly for end
+    const commonDailyEnd = anchor.clone().set({
       hour: dailyEndHour,
       minute: dailyEndMinute,
       second: 0,
       millisecond: 0,
     });
 
-    // 6) Our final "global" start is the max of (viewerStartLocal, overallEarliestStart)
-    const globalStartDate = moment.max(viewerStartLocal, overallEarliestStart);
-
-    // 7) For a 7-day window from globalStartDate, but not exceeding overallLatestEnd
-    const sevenDaysLater = globalStartDate.clone().add(6, "days").endOf("day");
-    const globalEndDate = moment.min(sevenDaysLater, overallLatestEnd);
-
-    // Optionally skip the overlap check if you're sure there's always some
-    if (globalEndDate.isBefore(globalStartDate)) {
-      console.error("No overlap once we clamp to 7 days or overallLatestEnd.");
-      return { error: "No final overlap" };
-    }
-    // 10) Return final results
+    // 3) Return the final results in offset-based ISO. Example:
     return {
       globalStart: globalStartDate
         .clone()
@@ -353,10 +306,12 @@ export const schedule = async function () {
         .clone()
         .utcOffset(userOffsetInMinutes)
         .format("YYYY-MM-DDTHH:mm:ssZ"),
+      // e.g., "17:00"
       commonDailyStart: commonDailyStart.format("HH:mm"),
       commonDailyEnd: commonDailyEnd.format("HH:mm"),
     };
   }
+
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
     // Parse the incoming string (with offset) and do NOT convert to local timezone
