@@ -451,7 +451,7 @@ export const schedule = async function () {
 
 
 
-  function generateBaseDay(
+  function generateWeeklySlots(
     globalStartStr,
     commonDailyStartStr,
     commonDailyEndStr,
