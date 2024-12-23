@@ -252,6 +252,11 @@ export const schedule = async function () {
     mainAvailabilityList
   ) {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
+    console.log("allAvailabilityLists", allAvailabilityLists);
+    console.log("viewerStartDate", viewerStartDate);
+    console.log("offset", offset);
+    console.log("userOffsetInSeconds", userOffsetInSeconds);
+    console.log("mainAvailabilityList", mainAvailabilityList);
 
     // 1) Convert viewerStartDate -> local midnight -> shift by `offset` weeks
     const startDateLocal = moment
