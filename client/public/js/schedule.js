@@ -468,6 +468,7 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
     modifiedSlots
   ) {
     console.log("Modified slots:", modifiedSlots);
+    console.log("blockedByUserList:", blockedByUserList);
     console.log("In assignSlotInfo, availabilityList:", availabilityList);
     console.log(
       "Array.isArray(availabilityList):",
