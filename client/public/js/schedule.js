@@ -133,8 +133,7 @@ export const schedule = async function () {
       computeWeekRangeAndDailyIntersection(
         allAvailabilityLists,
         viewerStartDate,
-        offset,
-        userOffsetInSeconds
+        offset
       );
 
     console.log("globalStart", globalStart);
@@ -198,15 +197,43 @@ export const schedule = async function () {
       commonDailyEnd
     );
 
+    // Helper function to adjust and format slot ranges to viewer timezone
+    function adjustSlotsToViewerTimezone(slotList, userOffsetInSeconds) {
+      const userOffsetInMinutes = userOffsetInSeconds / 60;
+
+      return slotList.map((slotRange) => {
+        return slotRange.map((slot) => {
+          return moment
+            .utc(slot) // Parse as UTC
+            .utcOffset(userOffsetInMinutes) // Apply viewer offset
+            .format("YYYY-MM-DDTHH:mm:ssZ"); // Format in ISO 8601 with timezone
+        });
+      });
+    }
+
+    // Adjust outputlist6, outputlist7, and outputlist5
+    const adjustedOutputlist6 = adjustSlotsToViewerTimezone(
+      outputlist6,
+      userOffsetInSeconds
+    );
+    const adjustedOutputlist7 = adjustSlotsToViewerTimezone(
+      outputlist7,
+      userOffsetInSeconds
+    );
+    const adjustedOutputlist5 = adjustSlotsToViewerTimezone(
+      outputlist5,
+      userOffsetInSeconds
+    );
+
     // Final output object
     const result = {
       outputlist1,
       outputlist2,
       outputlist3,
       outputlist4,
-      outputlist5,
-      outputlist6,
-      outputlist7,
+      outputlist5: adjustedOutputlist5,
+      outputlist6: adjustedOutputlist6,
+      outputlist7: adjustedOutputlist7,
       outputlist8,
       outputlist9,
     };
@@ -215,17 +242,7 @@ export const schedule = async function () {
     console.log("======== Function End ========");
 
     // Send the result to Bubble
-    bubble_fn_hours({
-      outputlist1,
-      outputlist2,
-      outputlist3,
-      outputlist4,
-      outputlist5,
-      outputlist6,
-      outputlist7,
-      outputlist8,
-      outputlist9,
-    });
+    bubble_fn_hours(result);
 
     setTimeout(() => {
       bubble_fn_ready();
@@ -234,58 +251,57 @@ export const schedule = async function () {
     return result;
   }
 
+  // Helper function to adjust and format slot ranges to viewer timezone
+  function adjustSlotsToViewerTimezone(slotList, userOffsetInSeconds) {
+    const userOffsetInMinutes = userOffsetInSeconds / 60;
+
+    return slotList.map((slotRange) => {
+      return slotRange.map((slot) => {
+        return moment
+          .utc(slot) // Parse as UTC
+          .utcOffset(userOffsetInMinutes) // Apply viewer offset
+          .format("YYYY-MM-DDTHH:mm:ssZ"); // Format in ISO 8601 with timezone
+      });
+    });
+  }
+
+
   function computeWeekRangeAndDailyIntersection(
     allAvailabilityLists,
     viewerStartDate,
-    offset,
-    userOffsetInSeconds
+    offset
   ) {
-    const userOffsetInMinutes = userOffsetInSeconds / 60;
-
-    // 1) Convert viewerStartDate -> local midnight -> shift by `offset` weeks
-    const viewerStartLocal = moment
+    // Convert viewerStartDate to UTC midnight and add offset in weeks
+    const viewerStartUTC = moment
       .utc(viewerStartDate)
-      .utcOffset(userOffsetInMinutes)
       .startOf("day")
       .add(offset * 7, "days");
 
-    // If you truly trust the date is valid, you can skip this check
-    if (!viewerStartLocal.isValid()) {
+    if (!viewerStartUTC.isValid()) {
       console.error("Invalid viewerStartDate:", viewerStartDate);
       return { error: "Invalid start date" };
     }
 
     let overallEarliestStart = null;
     let overallLatestEnd = null;
-
     let dailyStartInMinutesArray = [];
     let dailyEndInMinutesArray = [];
 
-    // 3) Parse each availability
     allAvailabilityLists.forEach((availability) => {
-      // Convert start_date / end_date to local time
-      const availabilityStart = moment
-        .utc(availability.start_date)
-        .utcOffset(userOffsetInMinutes);
-      const availabilityEnd = moment
-        .utc(availability.end_date)
-        .utcOffset(userOffsetInMinutes);
+      const availabilityStart = moment.utc(availability.start_date);
+      const availabilityEnd = moment.utc(availability.end_date);
 
-      // Update overallEarliestStart
-      if (!overallEarliestStart) {
-        overallEarliestStart = availabilityStart.clone();
-      } else if (availabilityStart.isAfter(overallEarliestStart)) {
+      if (
+        !overallEarliestStart ||
+        availabilityStart.isAfter(overallEarliestStart)
+      ) {
         overallEarliestStart = availabilityStart.clone();
       }
 
-      // Update overallLatestEnd
-      if (!overallLatestEnd) {
-        overallLatestEnd = availabilityEnd.clone();
-      } else if (availabilityEnd.isBefore(overallLatestEnd)) {
+      if (!overallLatestEnd || availabilityEnd.isBefore(overallLatestEnd)) {
         overallLatestEnd = availabilityEnd.clone();
       }
 
-      // Convert daily_start_time / daily_end_time to numeric minutes
       const [startHour, startMin] = availability.daily_start_time
         .split(":")
         .map(Number);
@@ -297,70 +313,49 @@ export const schedule = async function () {
       dailyEndInMinutesArray.push(endHour * 60 + endMin);
     });
 
-    // If you truly know there's always overlap, you could skip these checks
     if (!overallEarliestStart || !overallLatestEnd) {
       console.error("No valid availability range found.");
       return { error: "No availability data" };
     }
 
-    // 4) Compute final daily intersection
     const finalDailyStartMins = Math.max(...dailyStartInMinutesArray);
     const finalDailyEndMins = Math.min(...dailyEndInMinutesArray);
 
-    // 5) Build commonDailyStart / commonDailyEnd as times-of-day
     const dailyStartHour = Math.floor(finalDailyStartMins / 60);
     const dailyStartMinute = finalDailyStartMins % 60;
     const dailyEndHour = Math.floor(finalDailyEndMins / 60);
     const dailyEndMinute = finalDailyEndMins % 60;
 
-    const commonDailyStart = moment
-      .utc()
-      .set({
-        hour: dailyStartHour,
-        minute: dailyStartMinute,
-        second: 0,
-        millisecond: 0,
-      })
-      .add(userOffsetInSeconds, "seconds"); // Apply user offset
+    const commonDailyStart = moment.utc().set({
+      hour: dailyStartHour,
+      minute: dailyStartMinute,
+      second: 0,
+      millisecond: 0,
+    });
 
-    const commonDailyEnd = moment
-      .utc()
-      .set({
-        hour: dailyEndHour,
-        minute: dailyEndMinute,
-        second: 0,
-        millisecond: 0,
-      })
-      .add(userOffsetInSeconds, "seconds"); // Apply user offset
+    const commonDailyEnd = moment.utc().set({
+      hour: dailyEndHour,
+      minute: dailyEndMinute,
+      second: 0,
+      millisecond: 0,
+    });
 
-    // 6) Our final "global" start is the max of (viewerStartLocal, overallEarliestStart)
-    const globalStartDate = moment.max(viewerStartLocal, overallEarliestStart);
-
-    // 7) For a 7-day window from globalStartDate, but not exceeding overallLatestEnd
+    const globalStartDate = moment.max(viewerStartUTC, overallEarliestStart);
     const sevenDaysLater = globalStartDate.clone().add(6, "days").endOf("day");
     const globalEndDate = moment.min(sevenDaysLater, overallLatestEnd);
 
-    // Optionally skip the overlap check if you're sure there's always some
     if (globalEndDate.isBefore(globalStartDate)) {
       console.error("No overlap once we clamp to 7 days or overallLatestEnd.");
       return { error: "No final overlap" };
     }
 
-    // 10) Return final results
     return {
-      globalStart: globalStartDate
-        .clone()
-        .utcOffset(userOffsetInMinutes)
-        .format("YYYY-MM-DDTHH:mm:ssZ"),
-      globalEnd: globalEndDate
-        .clone()
-        .utcOffset(userOffsetInMinutes)
-        .format("YYYY-MM-DDTHH:mm:ssZ"),
+      globalStart: globalStartDate.format("YYYY-MM-DDTHH:mm:ssZ"),
+      globalEnd: globalEndDate.format("YYYY-MM-DDTHH:mm:ssZ"),
       commonDailyStart: commonDailyStart.format("HH:mm"),
       commonDailyEnd: commonDailyEnd.format("HH:mm"),
     };
   }
-
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
     // Parse the incoming string (with offset) and do NOT convert to local timezone
@@ -535,11 +530,9 @@ export const schedule = async function () {
     return result;
   }
 
-
   function assignSlotInfo(
     outputlist7,
     availabilityList,
-    userOffsetInSeconds,
     blockedByUserList,
     modifiedSlots
   ) {
@@ -551,6 +544,7 @@ export const schedule = async function () {
       "Array.isArray(availabilityList):",
       Array.isArray(availabilityList)
     );
+
     if (!availabilityList || !Array.isArray(availabilityList)) {
       console.error(
         "availabilityList is undefined or not an array:",
@@ -564,7 +558,6 @@ export const schedule = async function () {
         outputlist9: [],
       };
     }
-    const userOffsetInMinutes = userOffsetInSeconds / 60;
 
     const outputlist1 = []; // Meeting links
     const outputlist2 = []; // Addresses
@@ -573,29 +566,21 @@ export const schedule = async function () {
     const outputlist9 = []; // Startup corners information
 
     availabilityList.forEach((availability) => {
-      const startDate = moment
-        .utc(availability.start_date)
-        .utcOffset(userOffsetInMinutes)
-        .startOf("day");
-      const endDate = moment
-        .utc(availability.end_date)
-        .utcOffset(userOffsetInMinutes)
-        .endOf("day");
+      const startDate = moment.utc(availability.start_date).startOf("day");
+      const endDate = moment.utc(availability.end_date).endOf("day");
 
       outputlist7.forEach((slotRange) => {
-        const slotStart = moment
-          .utc(slotRange[0])
-          .utcOffset(userOffsetInMinutes);
-        const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
+        const slotStart = moment.utc(slotRange[0]);
+        const slotEnd = moment.utc(slotRange[1]);
 
-        const includesCurrentDayLocal = slotStart.isBetween(
+        const includesCurrentDay = slotStart.isBetween(
           startDate,
           endDate,
           null,
           "[]"
         );
 
-        if (includesCurrentDayLocal) {
+        if (includesCurrentDay) {
           let slotInfo = {
             slotTimeRange: slotRange,
             meetingLink: availability.meetingLink,
@@ -605,13 +590,10 @@ export const schedule = async function () {
             isStartupCorners: availability.isStartupCorners,
           };
 
+          // Check if the slot is blocked by the user
           blockedByUserList.forEach((blockedSlot) => {
-            const blockedStart = moment
-              .utc(blockedSlot.start_date)
-              .utcOffset(userOffsetInMinutes);
-            const blockedEnd = moment
-              .utc(blockedSlot.end_date)
-              .utcOffset(userOffsetInMinutes);
+            const blockedStart = moment.utc(blockedSlot.start_date);
+            const blockedEnd = moment.utc(blockedSlot.end_date);
 
             if (
               slotStart.isBetween(blockedStart, blockedEnd, null, "[)") ||
@@ -626,12 +608,8 @@ export const schedule = async function () {
 
           // Check against modified slots
           modifiedSlots.forEach((modifiedSlot) => {
-            const modifiedStart = moment
-              .utc(modifiedSlot.start_date)
-              .utcOffset(userOffsetInMinutes);
-            const modifiedEnd = moment
-              .utc(modifiedSlot.end_date)
-              .utcOffset(userOffsetInMinutes);
+            const modifiedStart = moment.utc(modifiedSlot.start_date);
+            const modifiedEnd = moment.utc(modifiedSlot.end_date);
 
             if (
               slotStart.isBetween(modifiedStart, modifiedEnd, null, "[)") ||
@@ -667,23 +645,16 @@ export const schedule = async function () {
     };
   }
 
-  function filterSlotsByAvailabilityRange(
-    allSlots,
-    globalStart,
-    globalEnd,
-    userOffsetInSeconds
-  ) {
-    const userOffsetInMinutes = userOffsetInSeconds / 60;
+  function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
     const outputlist5 = [];
-    console.log(allSlots, globalStart, globalEnd, userOffsetInSeconds);
+    console.log(allSlots, globalStart, globalEnd);
 
     if (globalStart && globalEnd) {
       allSlots.forEach((slotRange) => {
-        const slotStart = moment
-          .utc(slotRange[0])
-          .utcOffset(userOffsetInMinutes);
-        const slotEnd = moment.utc(slotRange[1]).utcOffset(userOffsetInMinutes);
+        const slotStart = moment.utc(slotRange[0]);
+        const slotEnd = moment.utc(slotRange[1]);
 
+        // Check if the slot overlaps with the global range
         if (slotStart.isBefore(globalEnd) && slotEnd.isAfter(globalStart)) {
           outputlist5.push(slotRange);
         }
