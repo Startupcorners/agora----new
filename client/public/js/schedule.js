@@ -653,22 +653,8 @@ export const schedule = async function () {
         const slotStart = moment.utc(slotRange[0]);
         const slotEnd = moment.utc(slotRange[1]);
 
-        console.log(`Processing slot ${index + 1}:`, slotRange);
-        console.log(
-          "  Slot start (UTC):",
-          slotStart.format("YYYY-MM-DDTHH:mm:ssZ")
-        );
-        console.log(
-          "  Slot end (UTC):",
-          slotEnd.format("YYYY-MM-DDTHH:mm:ssZ")
-        );
-
-        // Check if the slot overlaps with the global range
         if (slotStart.isBefore(globalEnd) && slotEnd.isAfter(globalStart)) {
-          console.log("  Slot overlaps with global range.");
           outputlist5.push(slotRange);
-        } else {
-          console.log("  Slot does not overlap with global range.");
         }
       });
     } else {
