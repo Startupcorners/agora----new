@@ -322,14 +322,48 @@ export const schedule = async function () {
       dailyEndInMinutesArray.push(endHour * 60 + endMin);
     });
 
-    if (!overallEarliestStart || !overallLatestEnd) {
-      console.error("No valid availability range found.");
-      return { error: "No availability data" };
+    // Step 3: Compute default global range for the week (falling back to viewer's week)
+    const weekStartLocal = viewerStartLocal.clone().startOf("day");
+    const weekEndLocal = weekStartLocal.clone().add(6, "days").endOf("day");
+
+    // Step 4: Compute global range using availability or fall back to week range
+    const globalStartLocal = overallEarliestStart
+      ? moment
+          .max(
+            viewerStartLocal,
+            overallEarliestStart.utcOffset(userOffsetInMinutes)
+          )
+          .startOf("day")
+      : weekStartLocal;
+
+    const globalEndLocal = overallLatestEnd
+      ? moment
+          .min(
+            viewerStartLocal.clone().add(6, "days").endOf("day"),
+            overallLatestEnd.utcOffset(userOffsetInMinutes)
+          )
+          .endOf("day")
+      : weekEndLocal;
+
+    if (globalEndLocal.isBefore(globalStartLocal)) {
+      console.warn("No overlap with availability. Using default week range.");
+      return {
+        globalStart: weekStartLocal.utc().format("YYYY-MM-DDTHH:mm:ssZ"),
+        globalEnd: weekEndLocal.utc().format("YYYY-MM-DDTHH:mm:ssZ"),
+        commonDailyStart: "00:00",
+        commonDailyEnd: "23:59",
+        realStart: weekStartLocal.utc().format("YYYY-MM-DDTHH:mm:ssZ"),
+        realEnd: weekEndLocal.utc().format("YYYY-MM-DDTHH:mm:ssZ"),
+      };
     }
 
-    // Step 3: Compute the daily intersection window
-    const finalDailyStartMins = Math.max(...dailyStartInMinutesArray);
-    const finalDailyEndMins = Math.min(...dailyEndInMinutesArray);
+    // Step 5: Compute daily intersection window
+    const finalDailyStartMins = dailyStartInMinutesArray.length
+      ? Math.max(...dailyStartInMinutesArray)
+      : 0; // Default to midnight if no availability
+    const finalDailyEndMins = dailyEndInMinutesArray.length
+      ? Math.min(...dailyEndInMinutesArray)
+      : 23 * 60 + 59; // Default to 23:59 if no availability
 
     const dailyStartHour = Math.floor(finalDailyStartMins / 60);
     const dailyStartMinute = finalDailyStartMins % 60;
@@ -350,34 +384,14 @@ export const schedule = async function () {
       millisecond: 0,
     });
 
-    // Step 4: Clamp the global range to 7 days and availability range in user timezone
-    const globalStartLocal = moment
-      .max(
-        viewerStartLocal,
-        overallEarliestStart.utcOffset(userOffsetInMinutes)
-      )
-      .startOf("day");
-
-    const globalEndLocal = moment
-      .min(
-        viewerStartLocal.clone().add(6, "days").endOf("day"),
-        overallLatestEnd.utcOffset(userOffsetInMinutes)
-      )
-      .endOf("day");
-
-    if (globalEndLocal.isBefore(globalStartLocal)) {
-      console.error("No overlap once clamped to 7 days or overallLatestEnd.");
-      return { error: "No final overlap" };
-    }
-
-    // Step 5: Compute realStart and realEnd in user timezone
+    // Step 6: Compute realStart and realEnd in user timezone
     const realStartLocal = moment.max(
       globalStartLocal,
-      overallEarliestStart.utcOffset(userOffsetInMinutes)
+      overallEarliestStart || weekStartLocal
     );
     const realEndLocal = moment.min(
       globalEndLocal,
-      overallLatestEnd.utcOffset(userOffsetInMinutes)
+      overallLatestEnd || weekEndLocal
     );
 
     // Convert all outputs back to UTC for output
@@ -396,6 +410,7 @@ export const schedule = async function () {
       realEnd: realEndUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
     };
   }
+
 
 
 
