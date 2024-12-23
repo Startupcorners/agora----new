@@ -128,6 +128,7 @@ export const schedule = async function () {
     console.log("userOffsetInSeconds", userOffsetInSeconds);
 
     const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
+    const userOffsetInMinutes = userOffsetInSeconds / 60;
 
      const {
        globalStart,
