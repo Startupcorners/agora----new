@@ -394,13 +394,12 @@ export const schedule = async function () {
 
 
 function generateWeeklySlots(
-  globalStart, // The start of your 7-day window (local time)
-  globalEnd, // The end of your 7-day window (local time)
+  globalStartStr, // e.g. "2024-12-23T00:00-11:00"
+  globalEndStr, // The end of your 7-day window (local time)
   commonDailyStart, // A Moment object representing the daily start time (only .hours() / .minutes() matter)
   commonDailyEnd, // A Moment object representing the daily end time
-  slotDuration, // Slot length in minutes
+  slotDuration // Slot length in minutes
 ) {
-
   const outputlist7 = [];
 
   const globalStart = moment(globalStartStr, "YYYY-MM-DDTHH:mm:ssZ");
@@ -457,7 +456,7 @@ function generateWeeklySlots(
     outputlist7.push(...daySlots);
   }
 
-  return {outputlist7};
+  return { outputlist7 };
 }
 
 
