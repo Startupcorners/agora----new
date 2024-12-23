@@ -417,14 +417,14 @@ export const schedule = async function () {
 
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
-    // Parse the incoming string (with offset) and preserve the offset
+    // Parse the incoming string and preserve the offset
     const globalStart = moment.parseZone(globalStartStr);
 
     const outputlist6 = [];
     for (let i = 0; i < totalDays; i++) {
       // Calculate day boundaries using the offset-preserved time
-      const dayStart = globalStart.clone().add(i, "days");
-      const dayEnd = dayStart.clone().add(1, "days").subtract(1, "second");
+      const dayStart = globalStart.clone().add(i, "days").startOf("day");
+      const dayEnd = globalStart.clone().add(i, "days").endOf("day");
 
       // Format in ISO8601 with the *original* offset
       outputlist6.push([
@@ -437,79 +437,57 @@ export const schedule = async function () {
 
 
 
-  function generateWeeklySlots(
-    globalStartStr,
-    commonDailyStartStr,
-    commonDailyEndStr,
-    slotDuration
-  ) {
-    const globalStart = moment.parseZone(globalStartStr);
 
-    const [startHour, startMinute] = commonDailyStartStr.split(":").map(Number);
-    const [endHour, endMinute] = commonDailyEndStr.split(":").map(Number);
+ function generateWeeklySlots(
+   globalStartStr,
+   commonDailyStartStr,
+   commonDailyEndStr,
+   slotDuration
+ ) {
+   const globalStart = moment.parseZone(globalStartStr);
 
-    const outputlist7 = [];
-    let currentSlot = globalStart.clone();
+   const [startHour, startMinute] = commonDailyStartStr.split(":").map(Number);
+   const [endHour, endMinute] = commonDailyEndStr.split(":").map(Number);
 
-    // Adjust the first slot to align with the daily window if necessary
-    if (
-      currentSlot.hours() < startHour ||
-      (currentSlot.hours() === startHour && currentSlot.minutes() < startMinute)
-    ) {
-      currentSlot.set({
-        hour: startHour,
-        minute: startMinute,
-        second: 0,
-        millisecond: 0,
-      });
-    } else if (
-      currentSlot.hours() > endHour ||
-      (currentSlot.hours() === endHour && currentSlot.minutes() > endMinute)
-    ) {
-      currentSlot.add(1, "days").set({
-        hour: startHour,
-        minute: startMinute,
-        second: 0,
-        millisecond: 0,
-      });
-    }
+   const outputlist7 = [];
 
-    // Generate slots for 7 days
-    for (let day = 0; day < 7; day++) {
-      // Calculate the start of the current day
-      const dayStart = currentSlot.clone().add(day, "days").set({
-        hour: startHour,
-        minute: startMinute,
-        second: 0,
-        millisecond: 0,
-      });
+   // Generate slots for 7 days
+   for (let day = 0; day < 7; day++) {
+     // Calculate the start of the current day
+     const dayStart = globalStart.clone().add(day, "days").set({
+       hour: startHour,
+       minute: startMinute,
+       second: 0,
+       millisecond: 0,
+     });
 
-      // Add slots for the current day within the daily window
-      for (
-        let slotStart = dayStart.clone();
-        slotStart.hours() < endHour ||
-        (slotStart.hours() === endHour && slotStart.minutes() < endMinute);
-        slotStart.add(slotDuration, "minutes")
-      ) {
-        const slotEnd = slotStart.clone().add(slotDuration, "minutes");
+     const dayEnd = globalStart.clone().add(day, "days").set({
+       hour: endHour,
+       minute: endMinute,
+       second: 0,
+       millisecond: 0,
+     });
 
-        // Stop adding slots if the end of the slot exceeds the daily time range
-        if (
-          slotEnd.hours() > endHour ||
-          (slotEnd.hours() === endHour && slotEnd.minutes() > endMinute)
-        ) {
-          break;
-        }
+     // Add slots for the current day within the daily window
+     for (
+       let slotStart = dayStart.clone();
+       slotStart.isBefore(dayEnd);
+       slotStart.add(slotDuration, "minutes")
+     ) {
+       const slotEnd = slotStart.clone().add(slotDuration, "minutes");
 
-        outputlist7.push([
-          slotStart.format("YYYY-MM-DDTHH:mm:ssZ"),
-          slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
-        ]);
-      }
-    }
+       // Only add slots that fully fit within the daily range
+       if (slotEnd.isAfter(dayEnd)) break;
 
-    return { outputlist7 };
-  }
+       outputlist7.push([
+         slotStart.format("YYYY-MM-DDTHH:mm:ssZ"),
+         slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+       ]);
+     }
+   }
+
+   return { outputlist7 };
+ }
 
 
 
