@@ -368,12 +368,12 @@ export const schedule = async function () {
 
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
-    // Parse the incoming string (which includes offset)
-    const globalStart = moment(globalStartStr, "YYYY-MM-DDTHH:mm:ssZ");
+    // Parse the incoming string (with offset) and do NOT convert to local timezone
+    const globalStart = moment.parseZone(globalStartStr);
 
     const outputlist6 = [];
     for (let i = 0; i < totalDays; i++) {
-      // dayStart: local midnight of day i
+      // dayStart: local midnight (in the *parsed* offset) for day i
       const dayStart = globalStart.clone().add(i, "days").startOf("day");
 
       // dayEnd: 23:59 on that same day, preserving offset
@@ -384,7 +384,7 @@ export const schedule = async function () {
         millisecond: 0,
       });
 
-      // Format them with offset in ISO8601
+      // Format in ISO8601 with the *original* offset
       outputlist6.push([
         dayStart.format("YYYY-MM-DDTHH:mmZ"),
         dayEnd.format("YYYY-MM-DDTHH:mmZ"),
@@ -392,6 +392,7 @@ export const schedule = async function () {
     }
     return outputlist6;
   }
+
 
 
 function generateWeeklySlots(
