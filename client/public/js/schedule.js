@@ -124,12 +124,18 @@ export const schedule = async function () {
 
     const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
 
-    const { globalStart, globalEnd, commonDailyStart, commonDailyEnd } =
-      computeWeekRangeAndDailyIntersection(
-        allAvailabilityLists,
-        viewerStartDate,
-        offset
-      );
+    const {
+      globalStart,
+      globalEnd,
+      commonDailyStart,
+      commonDailyEnd,
+      realStart,
+      realEnd,
+    } = computeWeekRangeAndDailyIntersection(
+      allAvailabilityLists,
+      viewerStartDate,
+      offset
+    );
 
     console.log("globalStart", globalStart);
     console.log("globalEnd", globalEnd);
@@ -177,8 +183,8 @@ export const schedule = async function () {
     // Generate outputlist5 (filtered slots by availability)
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
-      commonDailyStart,
-      commonDailyEnd
+      realStart,
+      realEnd
     );
 
     // Adjust slot ranges to viewer timezone
@@ -248,7 +254,7 @@ export const schedule = async function () {
     viewerStartDate,
     offset
   ) {
-    // Convert viewerStartDate to UTC midnight and add offset in weeks
+    // Step 1: Calculate viewer's start date for the given week
     const viewerStartUTC = moment
       .utc(viewerStartDate)
       .startOf("day")
@@ -264,6 +270,7 @@ export const schedule = async function () {
     let dailyStartInMinutesArray = [];
     let dailyEndInMinutesArray = [];
 
+    // Step 2: Parse each availability and compute overall earliest/latest dates
     allAvailabilityLists.forEach((availability) => {
       const availabilityStart = moment.utc(availability.start_date);
       const availabilityEnd = moment.utc(availability.end_date);
@@ -279,6 +286,7 @@ export const schedule = async function () {
         overallLatestEnd = availabilityEnd.clone();
       }
 
+      // Extract daily start and end times in minutes
       const [startHour, startMin] = availability.daily_start_time
         .split(":")
         .map(Number);
@@ -295,6 +303,7 @@ export const schedule = async function () {
       return { error: "No availability data" };
     }
 
+    // Step 3: Compute the daily intersection window
     const finalDailyStartMins = Math.max(...dailyStartInMinutesArray);
     const finalDailyEndMins = Math.min(...dailyEndInMinutesArray);
 
@@ -317,22 +326,31 @@ export const schedule = async function () {
       millisecond: 0,
     });
 
+    // Step 4: Clamp the global range to 7 days and availability range
     const globalStartDate = moment.max(viewerStartUTC, overallEarliestStart);
     const sevenDaysLater = globalStartDate.clone().add(6, "days").endOf("day");
     const globalEndDate = moment.min(sevenDaysLater, overallLatestEnd);
 
     if (globalEndDate.isBefore(globalStartDate)) {
-      console.error("No overlap once we clamp to 7 days or overallLatestEnd.");
+      console.error("No overlap once clamped to 7 days or overallLatestEnd.");
       return { error: "No final overlap" };
     }
 
+    // Step 5: Compute realStart and realEnd
+    const realStart = moment.max(globalStartDate, overallEarliestStart);
+    const realEnd = moment.min(globalEndDate, overallLatestEnd);
+
+    // Return results
     return {
       globalStart: globalStartDate.format("YYYY-MM-DDTHH:mm:ssZ"),
       globalEnd: globalEndDate.format("YYYY-MM-DDTHH:mm:ssZ"),
       commonDailyStart: commonDailyStart.format("HH:mm"),
       commonDailyEnd: commonDailyEnd.format("HH:mm"),
+      realStart: realStart.format("YYYY-MM-DDTHH:mm:ssZ"),
+      realEnd: realEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
     };
   }
+
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
     // Parse the incoming string (with offset) and do NOT convert to local timezone
