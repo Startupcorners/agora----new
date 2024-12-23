@@ -149,7 +149,7 @@ export const schedule = async function () {
      }
 
     // Generate outputlist6 (day boundaries)
-    const outputlist6 = generateDayBoundaries(startDateLocal);
+    const outputlist6 = generateDayBoundaries(globalStart);
     console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
 
 
