@@ -132,15 +132,18 @@ export const schedule = async function () {
        globalEnd,
        commonDailyStart,
        commonDailyEnd,
-       slotDuration,
-       error,
-     } = computeWeekRangeAndDailyIntersection(
+       } = computeWeekRangeAndDailyIntersection(
        allAvailabilityLists,
        viewerStartDate,
        offset,
        userOffsetInSeconds,
-       mainAvailabilityList
      );
+
+     console.log("globalStart", globalStart);
+     console.log("globalEnd", globalEnd);
+     console.log("commonDailyStart", commonDailyStart);
+     console.log("commonDailyEnd", commonDailyEnd);
+
 
      // If there's an error, handle it
      if (error) {
@@ -382,16 +385,10 @@ export const schedule = async function () {
     // 10) Return final results
     return {
       // Overlapping date range
-      overallEarliestStart: overallEarliestStart.toISOString(),
-      overallLatestEnd: overallLatestEnd.toISOString(),
-
-      // Overlapping daily window (just times)
-      commonDailyStart: commonDailyStart.format("HH:mm"), // e.g. "17:00"
-      commonDailyEnd: commonDailyEnd.format("HH:mm"), // e.g. "19:00"
-
-      // The final 7-day "global" range for scheduling
       globalStartDate: globalStartDate.toISOString(),
       globalEndDate: globalEndDate.toISOString(),
+      commonDailyStart: commonDailyStart.format("HH:mm"), // e.g. "17:00"
+      commonDailyEnd: commonDailyEnd.format("HH:mm"), // e.g. "19:00"
     };
   }
 
