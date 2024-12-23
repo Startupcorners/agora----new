@@ -134,7 +134,8 @@ export const schedule = async function () {
     } = computeWeekRangeAndDailyIntersection(
       allAvailabilityLists,
       viewerStartDate,
-      offset
+      offset,
+      userOffsetInSeconds
     );
 
     console.log("globalStart", globalStart);
@@ -252,9 +253,12 @@ export const schedule = async function () {
   function computeWeekRangeAndDailyIntersection(
     allAvailabilityLists,
     viewerStartDate,
-    offset
+    offset,
+    userOffsetInSeconds
   ) {
-    // Step 1: Calculate viewer's start date for the given week
+    const userOffsetInMinutes = userOffsetInSeconds / 60;
+
+    // Step 1: Calculate viewer's start date for the given week in user timezone
     const viewerStartUTC = moment
       .utc(viewerStartDate)
       .startOf("day")
@@ -326,19 +330,29 @@ export const schedule = async function () {
       millisecond: 0,
     });
 
-    // Step 4: Clamp the global range to 7 days and availability range
-    const globalStartDate = moment.max(viewerStartUTC, overallEarliestStart);
-    const sevenDaysLater = globalStartDate.clone().add(6, "days").endOf("day");
-    const globalEndDate = moment.min(sevenDaysLater, overallLatestEnd);
+    // Step 4: Clamp the global range to 7 days and availability range in user timezone
+    const globalStartDate = moment
+      .max(viewerStartUTC, overallEarliestStart)
+      .utcOffset(userOffsetInMinutes)
+      .startOf("day");
+
+    const globalEndDate = moment
+      .min(viewerStartUTC.clone().add(6, "days").endOf("day"), overallLatestEnd)
+      .utcOffset(userOffsetInMinutes)
+      .endOf("day");
 
     if (globalEndDate.isBefore(globalStartDate)) {
       console.error("No overlap once clamped to 7 days or overallLatestEnd.");
       return { error: "No final overlap" };
     }
 
-    // Step 5: Compute realStart and realEnd
-    const realStart = moment.max(globalStartDate, overallEarliestStart);
-    const realEnd = moment.min(globalEndDate, overallLatestEnd);
+    // Step 5: Compute realStart and realEnd in user timezone
+    const realStart = moment
+      .max(globalStartDate, overallEarliestStart)
+      .utcOffset(userOffsetInMinutes);
+    const realEnd = moment
+      .min(globalEndDate, overallLatestEnd)
+      .utcOffset(userOffsetInMinutes);
 
     // Return results
     return {
@@ -350,6 +364,7 @@ export const schedule = async function () {
       realEnd: realEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
     };
   }
+
 
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
