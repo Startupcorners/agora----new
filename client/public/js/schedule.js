@@ -494,7 +494,6 @@ export const schedule = async function () {
 
     // Generate slots for 7 days
     for (let day = 0; day < 7; day++) {
-      // Calculate the start of the current day
       const dayStart = globalStart.clone().add(day, "days").set({
         hour: startHour,
         minute: startMinute,
@@ -509,17 +508,11 @@ export const schedule = async function () {
         millisecond: 0,
       });
 
-      // Skip the day if dayStart is before globalStart
-      if (dayStart.isBefore(globalStart)) {
-        continue;
-      }
+      // If it's the first day, align with globalStart
+      let slotStart = moment.max(dayStart, globalStart).clone();
 
-      // Add slots for the current day within the daily window
-      for (
-        let slotStart = moment.max(dayStart, globalStart).clone();
-        slotStart.isBefore(dayEnd);
-        slotStart.add(slotDuration, "minutes")
-      ) {
+      // Add slots for the current day
+      while (slotStart.isBefore(dayEnd)) {
         const slotEnd = slotStart.clone().add(slotDuration, "minutes");
 
         // Stop adding slots if the end of the slot exceeds the daily time range
@@ -531,11 +524,14 @@ export const schedule = async function () {
           slotStart.format("YYYY-MM-DDTHH:mm:ssZ"),
           slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
         ]);
+
+        slotStart.add(slotDuration, "minutes");
       }
     }
 
     return { outputlist7 };
   }
+
 
 
 
