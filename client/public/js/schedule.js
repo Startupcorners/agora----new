@@ -390,22 +390,22 @@ export const schedule = async function () {
       // dayStart: local midnight (in the *parsed* offset) for day i
       const dayStart = globalStart.clone().add(i, "days").startOf("day");
 
-      // dayEnd: 23:59 on that same day, preserving offset
-      const dayEnd = dayStart.clone().set({
-        hour: 23,
-        minute: 59,
-        second: 0,
-        millisecond: 0,
-      });
+      // dayEnd: 23:59:59.999 on that same day, preserving offset
+      const dayEnd = dayStart
+        .clone()
+        .add(1, "days")
+        .startOf("day")
+        .subtract(1, "millisecond");
 
       // Format in ISO8601 with the *original* offset
       outputlist6.push([
-        dayStart.format("YYYY-MM-DDTHH:mmZ"),
-        dayEnd.format("YYYY-MM-DDTHH:mmZ"),
+        dayStart.format("YYYY-MM-DDTHH:mm:ssZ"),
+        dayEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
       ]);
     }
     return outputlist6;
   }
+
 
   // 1) Helper: generate time slots in increments of `duration` minutes,
   //    preserving the offset in the final strings.
