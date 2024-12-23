@@ -1,60 +1,59 @@
 
 export const schedule = async function () {
-//   function generateUniqueDates(inputList) {
-//     const availabilityList = inputList[0];
-//     const currentUserDate = inputList[1];
-//     const daysInAdvance = inputList[2];
-//     const excludeWeekendAndHolidays = inputList[3];
+  //   function generateUniqueDates(inputList) {
+  //     const availabilityList = inputList[0];
+  //     const currentUserDate = inputList[1];
+  //     const daysInAdvance = inputList[2];
+  //     const excludeWeekendAndHolidays = inputList[3];
 
-//     console.log(availabilityList);
-//     console.log(currentUserDate);
-//     console.log(daysInAdvance);
-//     console.log(excludeWeekendAndHolidays);
+  //     console.log(availabilityList);
+  //     console.log(currentUserDate);
+  //     console.log(daysInAdvance);
+  //     console.log(excludeWeekendAndHolidays);
 
-//     const uniqueDates = new Set();
-//     const currentMoment = moment.utc(currentUserDate);
-//     const minBookableDate = currentMoment
-//       .clone()
-//       .add(daysInAdvance, "days")
-//       .startOf("day");
+  //     const uniqueDates = new Set();
+  //     const currentMoment = moment.utc(currentUserDate);
+  //     const minBookableDate = currentMoment
+  //       .clone()
+  //       .add(daysInAdvance, "days")
+  //       .startOf("day");
 
-//     availabilityList.forEach((availability) => {
-//       // Start and end dates are already in UTC, no need for time zone conversion
-//       const startDate = moment.utc(availability.start_date).startOf("day");
-//       const endDate = moment.utc(availability.end_date).endOf("day");
+  //     availabilityList.forEach((availability) => {
+  //       // Start and end dates are already in UTC, no need for time zone conversion
+  //       const startDate = moment.utc(availability.start_date).startOf("day");
+  //       const endDate = moment.utc(availability.end_date).endOf("day");
 
-//       let currentDate = startDate.clone();
+  //       let currentDate = startDate.clone();
 
-//       while (currentDate.isSameOrBefore(endDate)) {
-//         let dailyStart = currentDate.clone().startOf("day");
-//         const currentDateStr = dailyStart
-//           .utc()
-//           .format("YYYY-MM-DDT00:00:00[Z]");
-//         const isHoliday =
-//           availability.holidays &&
-//           availability.holidays.includes(currentDateStr.split("T")[0]);
-//         const isWeekend = dailyStart.day() === 0 || dailyStart.day() === 6; // 0 = Sunday, 6 = Saturday
+  //       while (currentDate.isSameOrBefore(endDate)) {
+  //         let dailyStart = currentDate.clone().startOf("day");
+  //         const currentDateStr = dailyStart
+  //           .utc()
+  //           .format("YYYY-MM-DDT00:00:00[Z]");
+  //         const isHoliday =
+  //           availability.holidays &&
+  //           availability.holidays.includes(currentDateStr.split("T")[0]);
+  //         const isWeekend = dailyStart.day() === 0 || dailyStart.day() === 6; // 0 = Sunday, 6 = Saturday
 
-//         if (dailyStart.isAfter(minBookableDate)) {
-//           if (excludeWeekendAndHolidays) {
-//             if (!isHoliday && !isWeekend) {
-//               uniqueDates.add(currentDateStr);
-//             }
-//           } else {
-//             uniqueDates.add(currentDateStr);
-//           }
-//         }
+  //         if (dailyStart.isAfter(minBookableDate)) {
+  //           if (excludeWeekendAndHolidays) {
+  //             if (!isHoliday && !isWeekend) {
+  //               uniqueDates.add(currentDateStr);
+  //             }
+  //           } else {
+  //             uniqueDates.add(currentDateStr);
+  //           }
+  //         }
 
-//         currentDate.add(1, "days");
-//       }
-//     });
+  //         currentDate.add(1, "days");
+  //       }
+  //     });
 
-//     console.log("uniquedatestart");
-//     console.log(Array.from(uniqueDates).sort());
-//     console.log("uniquedateend");
-//     bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
-//   }
-
+  //     console.log("uniquedatestart");
+  //     console.log(Array.from(uniqueDates).sort());
+  //     console.log("uniquedateend");
+  //     bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
+  //   }
 
   function generateStartTimes(startTime, duration) {
     const times = [];
@@ -107,7 +106,7 @@ export const schedule = async function () {
       currentTimeInMinutes += duration;
       console.log("Next end time in minutes:", currentTimeInMinutes);
     }
-    console.log("endtimes", times)
+    console.log("endtimes", times);
     bubble_fn_endTime(times);
   }
 
@@ -130,27 +129,22 @@ export const schedule = async function () {
     const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
     const userOffsetInMinutes = userOffsetInSeconds / 60;
 
-     const {
-       globalStart,
-       globalEnd,
-       commonDailyStart,
-       commonDailyEnd,
-       } = computeWeekRangeAndDailyIntersection(
-       allAvailabilityLists,
-       viewerStartDate,
-       offset,
-       userOffsetInSeconds,
-     );
+    const { globalStart, globalEnd, commonDailyStart, commonDailyEnd } =
+      computeWeekRangeAndDailyIntersection(
+        allAvailabilityLists,
+        viewerStartDate,
+        offset,
+        userOffsetInSeconds
+      );
 
-     console.log("globalStart", globalStart);
-     console.log("globalEnd", globalEnd);
-     console.log("commonDailyStart", commonDailyStart);
-     console.log("commonDailyEnd", commonDailyEnd);
+    console.log("globalStart", globalStart);
+    console.log("globalEnd", globalEnd);
+    console.log("commonDailyStart", commonDailyStart);
+    console.log("commonDailyEnd", commonDailyEnd);
 
     // Generate outputlist6 (day boundaries)
     const outputlist6 = generateDayBoundaries(globalStart);
     console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
-
 
     // Generate outputlist7 (all weekly slots)
     const { outputlist7 } = generateWeeklySlots(
@@ -158,7 +152,7 @@ export const schedule = async function () {
       globalEnd,
       commonDailyStart,
       commonDailyEnd,
-      slotDuration,
+      slotDuration
     );
 
     console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
@@ -198,13 +192,11 @@ export const schedule = async function () {
       return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
     });
 
-
     const outputlist5 = filterSlotsByAvailabilityRange(
       outputlist7,
       commonDailyStart,
-      commonDailyEnd,
+      commonDailyEnd
     );
-
 
     // Final output object
     const result = {
@@ -242,112 +234,115 @@ export const schedule = async function () {
     return result;
   }
 
-
   function computeWeekRangeAndDailyIntersection(
-  allAvailabilityLists,
-  viewerStartDate,
-  offset,
-  userOffsetInSeconds
-) {
-  const userOffsetInMinutes = userOffsetInSeconds / 60;
+    allAvailabilityLists,
+    viewerStartDate,
+    offset,
+    userOffsetInSeconds
+  ) {
+    const userOffsetInMinutes = userOffsetInSeconds / 60;
 
-  // 1) Convert viewerStartDate -> local midnight -> shift by `offset` weeks
-  const viewerStartLocal = moment
-    .utc(viewerStartDate)
-    .utcOffset(userOffsetInMinutes)
-    .startOf("day")
-    .add(offset * 7, "days");
+    // 1) Convert viewerStartDate -> local midnight -> shift by `offset` weeks
+    const viewerStartLocal = moment
+      .utc(viewerStartDate)
+      .utcOffset(userOffsetInMinutes)
+      .startOf("day")
+      .add(offset * 7, "days");
 
-  // If you truly trust the date is valid, you can skip this check
-  if (!viewerStartLocal.isValid()) {
-    console.error("Invalid viewerStartDate:", viewerStartDate);
-    return { error: "Invalid start date" };
-  }
-
-  // 2) We'll find the combined date range + daily window:
-  //    - overallEarliestStart = MAX of all start dates
-  //    - overallLatestEnd     = MIN of all end dates
-  //    - dailyStartInMinutes  = MAX of all daily_start_time (HH:mm)
-  //    - dailyEndInMinutes    = MIN of all daily_end_time   (HH:mm)
-  let overallEarliestStart = null;
-  let overallLatestEnd = null;
-
-  let dailyStartInMinutesArray = [];
-  let dailyEndInMinutesArray = [];
-
-  // 3) Parse each availability
-  allAvailabilityLists.forEach((availability) => {
-    // Convert start_date / end_date to local time
-    const availabilityStart = moment
-      .utc(availability.start_date)
-      .utcOffset(userOffsetInMinutes);
-    const availabilityEnd = moment
-      .utc(availability.end_date)
-      .utcOffset(userOffsetInMinutes);
-
-    // Update overallEarliestStart
-    if (!overallEarliestStart) {
-      overallEarliestStart = availabilityStart.clone();
-    } else if (availabilityStart.isAfter(overallEarliestStart)) {
-      overallEarliestStart = availabilityStart.clone();
+    // If you truly trust the date is valid, you can skip this check
+    if (!viewerStartLocal.isValid()) {
+      console.error("Invalid viewerStartDate:", viewerStartDate);
+      return { error: "Invalid start date" };
     }
 
-    // Update overallLatestEnd
-    if (!overallLatestEnd) {
-      overallLatestEnd = availabilityEnd.clone();
-    } else if (availabilityEnd.isBefore(overallLatestEnd)) {
-      overallLatestEnd = availabilityEnd.clone();
+    // 2) We'll find the combined date range + daily window:
+    //    - overallEarliestStart = MAX of all start dates
+    //    - overallLatestEnd     = MIN of all end dates
+    //    - dailyStartInMinutes  = MAX of all daily_start_time (HH:mm)
+    //    - dailyEndInMinutes    = MIN of all daily_end_time   (HH:mm)
+    let overallEarliestStart = null;
+    let overallLatestEnd = null;
+
+    let dailyStartInMinutesArray = [];
+    let dailyEndInMinutesArray = [];
+
+    // 3) Parse each availability
+    allAvailabilityLists.forEach((availability) => {
+      // Convert start_date / end_date to local time
+      const availabilityStart = moment
+        .utc(availability.start_date)
+        .utcOffset(userOffsetInMinutes);
+      const availabilityEnd = moment
+        .utc(availability.end_date)
+        .utcOffset(userOffsetInMinutes);
+
+      // Update overallEarliestStart
+      if (!overallEarliestStart) {
+        overallEarliestStart = availabilityStart.clone();
+      } else if (availabilityStart.isAfter(overallEarliestStart)) {
+        overallEarliestStart = availabilityStart.clone();
+      }
+
+      // Update overallLatestEnd
+      if (!overallLatestEnd) {
+        overallLatestEnd = availabilityEnd.clone();
+      } else if (availabilityEnd.isBefore(overallLatestEnd)) {
+        overallLatestEnd = availabilityEnd.clone();
+      }
+
+      // Convert daily_start_time / daily_end_time to numeric minutes
+      const [startHour, startMin] = availability.daily_start_time
+        .split(":")
+        .map(Number);
+      const [endHour, endMin] = availability.daily_end_time
+        .split(":")
+        .map(Number);
+
+      dailyStartInMinutesArray.push(startHour * 60 + startMin);
+      dailyEndInMinutesArray.push(endHour * 60 + endMin);
+    });
+
+    // If you truly know there's always overlap, you could skip these checks
+    if (!overallEarliestStart || !overallLatestEnd) {
+      console.error("No valid availability range found.");
+      return { error: "No availability data" };
     }
 
-    // Convert daily_start_time / daily_end_time to numeric minutes
-    const [startHour, startMin] = availability.daily_start_time.split(":").map(Number);
-    const [endHour, endMin] = availability.daily_end_time.split(":").map(Number);
+    // 4) Compute final daily intersection
+    const finalDailyStartMins = Math.max(...dailyStartInMinutesArray);
+    const finalDailyEndMins = Math.min(...dailyEndInMinutesArray);
 
-    dailyStartInMinutesArray.push(startHour * 60 + startMin);
-    dailyEndInMinutesArray.push(endHour * 60 + endMin);
-  });
+    // 5) Build commonDailyStart / commonDailyEnd as times-of-day
+    const dailyStartHour = Math.floor(finalDailyStartMins / 60);
+    const dailyStartMinute = finalDailyStartMins % 60;
+    const dailyEndHour = Math.floor(finalDailyEndMins / 60);
+    const dailyEndMinute = finalDailyEndMins % 60;
 
-  // If you truly know there's always overlap, you could skip these checks
-  if (!overallEarliestStart || !overallLatestEnd) {
-    console.error("No valid availability range found.");
-    return { error: "No availability data" };
-  }
+    const commonDailyStart = moment().set({
+      hour: dailyStartHour,
+      minute: dailyStartMinute,
+      second: 0,
+      millisecond: 0,
+    });
+    const commonDailyEnd = moment().set({
+      hour: dailyEndHour,
+      minute: dailyEndMinute,
+      second: 0,
+      millisecond: 0,
+    });
 
-  // 4) Compute final daily intersection
-  const finalDailyStartMins = Math.max(...dailyStartInMinutesArray);
-  const finalDailyEndMins = Math.min(...dailyEndInMinutesArray);
+    // 6) Our final "global" start is the max of (viewerStartLocal, overallEarliestStart)
+    const globalStartDate = moment.max(viewerStartLocal, overallEarliestStart);
 
-  // 5) Build commonDailyStart / commonDailyEnd as times-of-day
-  const dailyStartHour = Math.floor(finalDailyStartMins / 60);
-  const dailyStartMinute = finalDailyStartMins % 60;
-  const dailyEndHour = Math.floor(finalDailyEndMins / 60);
-  const dailyEndMinute = finalDailyEndMins % 60;
+    // 7) For a 7-day window from globalStartDate, but not exceeding overallLatestEnd
+    const sevenDaysLater = globalStartDate.clone().add(6, "days").endOf("day");
+    const globalEndDate = moment.min(sevenDaysLater, overallLatestEnd);
 
-  const commonDailyStart = moment().set({
-    hour: dailyStartHour,
-    minute: dailyStartMinute,
-    second: 0,
-    millisecond: 0,
-  });
-  const commonDailyEnd = moment().set({
-    hour: dailyEndHour,
-    minute: dailyEndMinute,
-    second: 0,
-    millisecond: 0,
-  });
-
-  // 6) Our final "global" start is the max of (viewerStartLocal, overallEarliestStart)
-  const globalStartDate = moment.max(viewerStartLocal, overallEarliestStart);
-
-  // 7) For a 7-day window from globalStartDate, but not exceeding overallLatestEnd
-  const sevenDaysLater = globalStartDate.clone().add(6, "days").endOf("day");
-  const globalEndDate = moment.min(sevenDaysLater, overallLatestEnd);
-
-  // Optionally skip the overlap check if you're sure there's always some
-  if (globalEndDate.isBefore(globalStartDate)) {
-    console.error("No overlap once we clamp to 7 days or overallLatestEnd.");
-    return { error: "No final overlap" };
-  }
+    // Optionally skip the overlap check if you're sure there's always some
+    if (globalEndDate.isBefore(globalStartDate)) {
+      console.error("No overlap once we clamp to 7 days or overallLatestEnd.");
+      return { error: "No final overlap" };
+    }
     // 10) Return final results
     return {
       globalStart: globalStartDate
@@ -361,11 +356,7 @@ export const schedule = async function () {
       commonDailyStart: commonDailyStart.format("HH:mm"),
       commonDailyEnd: commonDailyEnd.format("HH:mm"),
     };
-
   }
-
-
-
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
     // Parse the incoming string (with offset) and do NOT convert to local timezone
@@ -393,103 +384,135 @@ export const schedule = async function () {
     return outputlist6;
   }
 
+  // 1) Helper: generate time slots in increments of `duration` minutes,
+  //    preserving the offset in the final strings.
+  function generateSlotsForInterval(startMoment, endMoment, durationMinutes) {
+    const result = [];
+    let current = startMoment.clone();
 
+    while (current.isBefore(endMoment)) {
+      const slotEnd = current.clone().add(durationMinutes, "minutes");
+      if (slotEnd.isAfter(endMoment)) {
+        break;
+      }
+      // Format with offset => e.g. "2024-12-22T17:00:00-11:00"
+      const startStr = current.format("YYYY-MM-DDTHH:mm:ssZ");
+      const endStr = slotEnd.format("YYYY-MM-DDTHH:mm:ssZ");
+      result.push([startStr, endStr]);
 
-function generateWeeklySlots(
-  globalStartStr, // e.g. "2024-12-23T00:00-11:00"
-  globalEndStr, // The end of your 7-day window (local time)
-  commonDailyStartStr, // A Moment object representing the daily start time (only .hours() / .minutes() matter)
-  commonDailyEndStr, // A Moment object representing the daily end time
-  slotDuration // Slot length in minutes
-) {
-  const outputlist7 = [];
-
-  const globalStart = moment(globalStartStr, "YYYY-MM-DDTHH:mm:ssZ");
-  const globalEnd = moment(globalEndStr, "YYYY-MM-DDTHH:mm:ssZ");
-
-  const [startH, startM] = commonDailyStartStr.split(":").map(Number);
-  const [endH, endM] = commonDailyEndStr.split(":").map(Number);
-
-  const commonDailyStart = moment()
-    .startOf("day")
-    .set({ hour: startH, minute: startM });
-  const commonDailyEnd = moment()
-    .startOf("day")
-    .set({ hour: endH, minute: endM });
-
-  // Determine how many days are in your globalStart -> globalEnd range.
-  // Typically 7, but let's compute dynamically in case you are doing +/- offset logic.
-  const totalDays = Math.ceil(globalEnd.diff(globalStart, "days", true));
-  console.log(
-    `Generating up to ${totalDays} days of slots from ${globalStart.format()} to ${globalEnd.format()}`
-  );
-
-  for (let i = 0; i < totalDays; i++) {
-    // 1) Current day in local time
-    const currentDayLocal = globalStart.clone().add(i, "days");
-    if (currentDayLocal.isAfter(globalEnd, "day")) {
-      // If we’ve gone past globalEnd, stop
-      break;
+      current = slotEnd;
     }
+    return result;
+  }
 
-    // 2) For this day, build dailyStartTime / dailyEndTime
-    const dailyStartTime = currentDayLocal.clone().set({
-      hour: commonDailyStart.hours(),
-      minute: commonDailyStart.minutes(),
-      second: 0,
-      millisecond: 0,
-    });
+  // 2) Main function: parse the strings, loop over days, and generate slots.
+  function generateWeeklySlots(
+    globalStartStr, // e.g. "2024-12-23T00:00:00-11:00"
+    globalEndStr, // e.g. "2024-12-29T23:59:59-11:00"
+    commonDailyStartStr, // e.g. "17:00"
+    commonDailyEndStr, // e.g. "19:00"
+    slotDuration // in minutes (e.g. 60)
+  ) {
+    // A) Parse the incoming date/time strings using .parseZone
+    //    to preserve the exact offset from the string.
+    const globalStart = moment.parseZone(globalStartStr);
+    const globalEnd = moment.parseZone(globalEndStr);
 
-    const dailyEndTime = currentDayLocal.clone().set({
-      hour: commonDailyEnd.hours(),
-      minute: commonDailyEnd.minutes(),
-      second: 0,
-      millisecond: 0,
-    });
+    // B) Parse the daily start/end times as purely "hour:minute",
+    //    anchored to the same offset. We'll anchor them to the same *date*
+    //    as globalStart for consistency. Another approach is to use .startOf("day").
+    const [startH, startM] = commonDailyStartStr.split(":").map(Number);
+    const [endH, endM] = commonDailyEndStr.split(":").map(Number);
 
-    // Ensure we're not going beyond globalEnd on this day
-    if (dailyEndTime.isAfter(globalEnd)) {
-      dailyEndTime.endOf("day").min(globalEnd);
-    }
+    // We won't lock them to the actual globalStart date, but we do want them
+    // in the same offset. So let's clone globalStart just to keep the offset:
+    const offsetAnchor = globalStart.clone().startOf("day");
+    const commonDailyStart = offsetAnchor
+      .clone()
+      .set({ hour: startH, minute: startM });
+    const commonDailyEnd = offsetAnchor
+      .clone()
+      .set({ hour: endH, minute: endM });
 
-    // If daily end is <= daily start, skip (no valid time range)
-    if (!dailyEndTime.isAfter(dailyStartTime)) {
-      continue;
-    }
-
-    // 3) Generate slots for this day
-    const daySlots = generateSlotsForInterval(
-      dailyStartTime,
-      dailyEndTime,
-      slotDuration
+    // C) Figure out how many days to iterate over
+    const totalDays = Math.ceil(globalEnd.diff(globalStart, "days", true));
+    console.log(
+      `Generate up to ${totalDays} days of slots from ${globalStart.format()} to ${globalEnd.format()}`
     );
 
-    // 4) Add them to outputlist7
-    outputlist7.push(...daySlots);
-  }
+    const outputlist7 = [];
 
-  return { outputlist7 };
-}
+    // D) Loop day-by-day
+    for (let i = 0; i < totalDays; i++) {
+      // currentDayLocal is the i-th day from globalStart
+      const currentDayLocal = globalStart.clone().add(i, "days");
+      if (currentDayLocal.isAfter(globalEnd, "day")) {
+        // If we've gone past globalEnd, stop
+        break;
+      }
 
+      // For this day, set the daily start/end times (keeping offset)
+      const dailyStartTime = currentDayLocal.clone().set({
+        hour: commonDailyStart.hours(),
+        minute: commonDailyStart.minutes(),
+        second: 0,
+        millisecond: 0,
+      });
 
-function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
-  const result = [];
-  let current = startTimeLocal.clone();
+      const dailyEndTime = currentDayLocal.clone().set({
+        hour: commonDailyEnd.hours(),
+        minute: commonDailyEnd.minutes(),
+        second: 0,
+        millisecond: 0,
+      });
 
-  while (current.isBefore(endTimeLocal)) {
-    const slotEnd = current.clone().add(duration, "minutes");
-    if (slotEnd.isAfter(endTimeLocal)) {
-      break;
+      // E) If dailyEndTime goes beyond the globalEnd for that day, clamp it
+      if (dailyEndTime.isAfter(globalEnd)) {
+        // Using moment.min ensures we pick whichever is earlier
+        // (endOf("day") or globalEnd).
+        const clampedEnd = moment.min(dailyEndTime, globalEnd);
+        dailyEndTime.set({
+          hour: clampedEnd.hours(),
+          minute: clampedEnd.minutes(),
+          second: clampedEnd.seconds(),
+          millisecond: 0,
+        });
+      }
+
+      // If daily end <= daily start, skip
+      if (!dailyEndTime.isAfter(dailyStartTime)) {
+        continue;
+      }
+
+      // F) Generate slots for this day
+      const daySlots = generateSlotsForInterval(
+        dailyStartTime,
+        dailyEndTime,
+        slotDuration
+      );
+
+      // G) Collect them
+      outputlist7.push(...daySlots);
     }
-    result.push([current.toISOString(), slotEnd.toISOString()]);
-    current.add(duration, "minutes");
+
+    return { outputlist7 };
   }
 
-  return result;
-}
+  function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
+    const result = [];
+    let current = startTimeLocal.clone();
 
+    while (current.isBefore(endTimeLocal)) {
+      const slotEnd = current.clone().add(duration, "minutes");
+      if (slotEnd.isAfter(endTimeLocal)) {
+        break;
+      }
+      result.push([current.toISOString(), slotEnd.toISOString()]);
+      current.add(duration, "minutes");
+    }
 
-
+    return result;
+  }
 
   function assignSlotInfo(
     outputlist7,
@@ -560,7 +583,6 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
             isStartupCorners: availability.isStartupCorners,
           };
 
-
           blockedByUserList.forEach((blockedSlot) => {
             const blockedStart = moment
               .utc(blockedSlot.start_date)
@@ -623,9 +645,6 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
     };
   }
 
-
-
-
   function filterSlotsByAvailabilityRange(
     allSlots,
     globalStart,
@@ -652,8 +671,6 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
     return outputlist5;
   }
 
-
-
   function emptyOutput() {
     return {
       outputlist1: [],
@@ -667,136 +684,129 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
     };
   }
 
+  function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
+    console.log("Received Availabilities:", availabilities);
 
-
-function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
-  console.log("Received Availabilities:", availabilities);
-
-  // Validate input
-  if (!Array.isArray(availabilities)) {
-    console.error("Invalid input: availabilities should be an array.");
-    return [];
-  }
-
-  // Map bubbleids to userids
-  const bubbleToUser = {};
-  const allUserIds = new Set();
-  for (const a of availabilities) {
-    if (!a.bubbleid || !a.userid) {
-      console.error("Invalid availability object: missing bubbleid or userid.");
+    // Validate input
+    if (!Array.isArray(availabilities)) {
+      console.error("Invalid input: availabilities should be an array.");
       return [];
     }
-    bubbleToUser[a.bubbleid] = a.userid;
-    allUserIds.add(a.userid);
-  }
 
-  const overlappingBubbleIds = new Set();
-
-  // Compare each availability with all others
-  for (let i = 0; i < availabilities.length; i++) {
-    const availability1 = availabilities[i];
-    const dateStart1 = moment.utc(availability1.start_date);
-    const dateEnd1 = moment.utc(availability1.end_date);
-
-    for (let j = i + 1; j < availabilities.length; j++) {
-      const availability2 = availabilities[j];
-      const dateStart2 = moment.utc(availability2.start_date);
-      const dateEnd2 = moment.utc(availability2.end_date);
-
-      // Check if the date ranges overlap
-      const dateOverlap =
-        dateStart1.isBefore(dateEnd2) && dateStart2.isBefore(dateEnd1);
-
-      if (!dateOverlap) {
-        continue; // Skip if no date overlap
-      }
-
-      // Check daily time ranges for overlap
-      const dailyStart1 = moment.utc(
-        "1970-01-01T" + availability1.daily_start_time + ":00Z"
-      );
-      const dailyEnd1 = moment.utc(
-        "1970-01-01T" + availability1.daily_end_time + ":00Z"
-      );
-      const dailyStart2 = moment.utc(
-        "1970-01-01T" + availability2.daily_start_time + ":00Z"
-      );
-      const dailyEnd2 = moment.utc(
-        "1970-01-01T" + availability2.daily_end_time + ":00Z"
-      );
-
-      // Adjust for crossing midnight
-      if (dailyEnd1.isBefore(dailyStart1)) dailyEnd1.add(1, "day");
-      if (dailyEnd2.isBefore(dailyStart2)) dailyEnd2.add(1, "day");
-
-      const dailyOverlap =
-        dailyStart1.isBefore(dailyEnd2) && dailyStart2.isBefore(dailyEnd1);
-
-      if (dailyOverlap) {
-        console.log(
-          `Overlap found between Bubble IDs ${availability1.bubbleid} and ${availability2.bubbleid}`
+    // Map bubbleids to userids
+    const bubbleToUser = {};
+    const allUserIds = new Set();
+    for (const a of availabilities) {
+      if (!a.bubbleid || !a.userid) {
+        console.error(
+          "Invalid availability object: missing bubbleid or userid."
         );
-        overlappingBubbleIds.add(availability1.bubbleid);
-        overlappingBubbleIds.add(availability2.bubbleid);
+        return [];
+      }
+      bubbleToUser[a.bubbleid] = a.userid;
+      allUserIds.add(a.userid);
+    }
+
+    const overlappingBubbleIds = new Set();
+
+    // Compare each availability with all others
+    for (let i = 0; i < availabilities.length; i++) {
+      const availability1 = availabilities[i];
+      const dateStart1 = moment.utc(availability1.start_date);
+      const dateEnd1 = moment.utc(availability1.end_date);
+
+      for (let j = i + 1; j < availabilities.length; j++) {
+        const availability2 = availabilities[j];
+        const dateStart2 = moment.utc(availability2.start_date);
+        const dateEnd2 = moment.utc(availability2.end_date);
+
+        // Check if the date ranges overlap
+        const dateOverlap =
+          dateStart1.isBefore(dateEnd2) && dateStart2.isBefore(dateEnd1);
+
+        if (!dateOverlap) {
+          continue; // Skip if no date overlap
+        }
+
+        // Check daily time ranges for overlap
+        const dailyStart1 = moment.utc(
+          "1970-01-01T" + availability1.daily_start_time + ":00Z"
+        );
+        const dailyEnd1 = moment.utc(
+          "1970-01-01T" + availability1.daily_end_time + ":00Z"
+        );
+        const dailyStart2 = moment.utc(
+          "1970-01-01T" + availability2.daily_start_time + ":00Z"
+        );
+        const dailyEnd2 = moment.utc(
+          "1970-01-01T" + availability2.daily_end_time + ":00Z"
+        );
+
+        // Adjust for crossing midnight
+        if (dailyEnd1.isBefore(dailyStart1)) dailyEnd1.add(1, "day");
+        if (dailyEnd2.isBefore(dailyStart2)) dailyEnd2.add(1, "day");
+
+        const dailyOverlap =
+          dailyStart1.isBefore(dailyEnd2) && dailyStart2.isBefore(dailyEnd1);
+
+        if (dailyOverlap) {
+          console.log(
+            `Overlap found between Bubble IDs ${availability1.bubbleid} and ${availability2.bubbleid}`
+          );
+          overlappingBubbleIds.add(availability1.bubbleid);
+          overlappingBubbleIds.add(availability2.bubbleid);
+        }
       }
     }
+
+    const overlappingBubbleIdsArray = Array.from(overlappingBubbleIds);
+
+    // Determine which user IDs overlap
+    const overlappingUserIds = new Set(
+      overlappingBubbleIdsArray.map((bid) => bubbleToUser[bid])
+    );
+
+    // Determine user IDs that do not overlap (among those who had availabilities)
+    const nonOverlappingUserIds = Array.from(allUserIds).filter(
+      (uid) => !overlappingUserIds.has(uid)
+    );
+
+    // Find user IDs that have no availabilities at all
+    const noAvailabilityUserIds = userids.filter((uid) => !allUserIds.has(uid));
+
+    // Combine non-overlapping with no-availability user IDs
+    const finalNonOverlappingUserIds = nonOverlappingUserIds.concat(
+      noAvailabilityUserIds
+    );
+
+    // Convert sets to arrays
+    const overlappingUserIdsArray = Array.from(overlappingUserIds);
+
+    // Special case: Only one userid or no overlaps
+    let finalOutputList1 = overlappingBubbleIdsArray;
+    if (userids.length === 1 || overlappingBubbleIdsArray.length === 0) {
+      // Include all availabilities of mainuserid
+      finalOutputList1 = availabilities
+        .filter((a) => a.userid === mainuserid)
+        .map((a) => a.bubbleid);
+    }
+
+    console.log(
+      "Final iteration completed. Sending results to Bubble.",
+      finalOutputList1,
+      overlappingUserIdsArray,
+      finalNonOverlappingUserIds
+    );
+
+    // Send to bubble in a similar format as requested
+    bubble_fn_overlapAvailabilities({
+      outputlist1: finalOutputList1,
+      outputlist2: overlappingUserIdsArray,
+      outputlist3: finalNonOverlappingUserIds,
+    });
+
+    return finalOutputList1;
   }
-
-  const overlappingBubbleIdsArray = Array.from(overlappingBubbleIds);
-
-  // Determine which user IDs overlap
-  const overlappingUserIds = new Set(
-    overlappingBubbleIdsArray.map((bid) => bubbleToUser[bid])
-  );
-
-  // Determine user IDs that do not overlap (among those who had availabilities)
-  const nonOverlappingUserIds = Array.from(allUserIds).filter(
-    (uid) => !overlappingUserIds.has(uid)
-  );
-
-  // Find user IDs that have no availabilities at all
-  const noAvailabilityUserIds = userids.filter((uid) => !allUserIds.has(uid));
-
-  // Combine non-overlapping with no-availability user IDs
-  const finalNonOverlappingUserIds = nonOverlappingUserIds.concat(
-    noAvailabilityUserIds
-  );
-
-  // Convert sets to arrays
-  const overlappingUserIdsArray = Array.from(overlappingUserIds);
-
-  // Special case: Only one userid or no overlaps
-  let finalOutputList1 = overlappingBubbleIdsArray;
-  if (userids.length === 1 || overlappingBubbleIdsArray.length === 0) {
-    // Include all availabilities of mainuserid
-    finalOutputList1 = availabilities
-      .filter((a) => a.userid === mainuserid)
-      .map((a) => a.bubbleid);
-  }
-
-  console.log(
-    "Final iteration completed. Sending results to Bubble.",
-    finalOutputList1,
-    overlappingUserIdsArray,
-    finalNonOverlappingUserIds
-  );
-
-  // Send to bubble in a similar format as requested
-  bubble_fn_overlapAvailabilities({
-    outputlist1: finalOutputList1,
-    outputlist2: overlappingUserIdsArray,
-    outputlist3: finalNonOverlappingUserIds,
-  });
-
-  return finalOutputList1;
-}
-
-
-
-
-
-
-
 
   return {
     // generateUniqueDates,
