@@ -328,6 +328,7 @@ export const schedule = async function () {
       }
 
       // Update slot duration
+      console.error("mainAvailabilityList", mainAvailabilityList);
       slotDuration = mainAvailabilityList.slot_duration_minutes;
     });
 
