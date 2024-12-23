@@ -248,36 +248,36 @@ export const schedule = async function () {
     allAvailabilityLists,
     viewerStartDate,
     offset,
-    userOffsetInSeconds,
-    mainAvailabilityList
+    userOffsetInSeconds
   ) {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
-    console.log("allAvailabilityLists", allAvailabilityLists);
-    console.log("viewerStartDate", viewerStartDate);
-    console.log("offset", offset);
-    console.log("userOffsetInSeconds", userOffsetInSeconds);
-    console.log("mainAvailabilityList", mainAvailabilityList);
 
     // 1) Convert viewerStartDate -> local midnight -> shift by `offset` weeks
-    const startDateLocal = moment
+    const viewerStartLocal = moment
       .utc(viewerStartDate)
       .utcOffset(userOffsetInMinutes)
       .startOf("day")
       .add(offset * 7, "days");
 
-    if (!startDateLocal.isValid()) {
+    if (!viewerStartLocal.isValid()) {
       console.error("Invalid viewerStartDate:", viewerStartDate);
-      // You could return null or some object indicating error
       return { error: "Invalid start date" };
     }
 
-    // 2) We want to find the intersection of daily times for all availabilities
-    let commonDailyStart = null;
-    let commonDailyEnd = null;
-    let slotDuration = null;
+    // 2) We'll find:
+    //    - overallEarliestStart: the LATEST of all start dates (because overlap must start after everyone's start)
+    //    - overallLatestEnd:     the EARLIEST of all end dates (overlap must end before anyone's end)
+    //    - dailyStartInMinutes:  the LATEST of all daily_start_time (for hour/min)
+    //    - dailyEndInMinutes:    the EARLIEST of all daily_end_time
+    let overallEarliestStart = null;
+    let overallLatestEnd = null;
 
-    allAvailabilityLists.forEach((availability) => {
-      // 2a) Parse the "raw" date range in local time (though we primarily care about daily times)
+    let dailyStartInMinutesArray = [];
+    let dailyEndInMinutesArray = [];
+
+    // 3) Loop over each availability to compute
+    allAvailabilityLists.forEach((availability, idx) => {
+      // 3a) Convert start_date / end_date to local time
       const availabilityStart = moment
         .utc(availability.start_date)
         .utcOffset(userOffsetInMinutes);
@@ -285,78 +285,116 @@ export const schedule = async function () {
         .utc(availability.end_date)
         .utcOffset(userOffsetInMinutes);
 
-      // 2b) Convert daily_start_time / daily_end_time into times anchored to availabilityStart
-      const [dailyStartHour, dailyStartMinute] = availability.daily_start_time
-        .split(":")
-        .map(Number);
-      const [dailyEndHour, dailyEndMinute] = availability.daily_end_time
-        .split(":")
-        .map(Number);
-
-      // Anchor to the same date as availabilityStart (simplified approach)
-      const dailyStart = availabilityStart.clone().set({
-        hour: dailyStartHour,
-        minute: dailyStartMinute,
-        second: 0,
-        millisecond: 0,
-      });
-      const dailyEnd = availabilityStart.clone().set({
-        hour: dailyEndHour,
-        minute: dailyEndMinute,
-        second: 0,
-        millisecond: 0,
-      });
-
-      // Compute the effective start and end
-      const effectiveStart = moment.max(availabilityStart, dailyStart);
-      const effectiveEnd = moment.min(availabilityEnd, dailyEnd);
-
-      // Merge with our running intersection
-      if (!commonDailyStart) {
-        // first availability
-        commonDailyStart = effectiveStart.clone();
-        commonDailyEnd = effectiveEnd.clone();
+      // Update overallEarliestStart (the max of all starts)
+      if (!overallEarliestStart) {
+        overallEarliestStart = availabilityStart.clone();
       } else {
-        // overlap with existing
-        if (effectiveStart.isAfter(commonDailyStart)) {
-          commonDailyStart = effectiveStart.clone();
-        }
-        if (effectiveEnd.isBefore(commonDailyEnd)) {
-          commonDailyEnd = effectiveEnd.clone();
+        if (availabilityStart.isAfter(overallEarliestStart)) {
+          overallEarliestStart = availabilityStart.clone();
         }
       }
 
-      // If no overlap, we can stop
-      if (commonDailyStart.isSameOrAfter(commonDailyEnd)) {
-        console.error("No overlapping availability found.");
-        return { error: "No overlap" };
+      // Update overallLatestEnd (the min of all ends)
+      if (!overallLatestEnd) {
+        overallLatestEnd = availabilityEnd.clone();
+      } else {
+        if (availabilityEnd.isBefore(overallLatestEnd)) {
+          overallLatestEnd = availabilityEnd.clone();
+        }
       }
 
-      // Update slot duration
-      
-      slotDuration = mainAvailabilityList[0].slot_duration_minutes;;
+      // 3b) Convert daily_start_time / daily_end_time to numeric minutes
+      const [startHour, startMin] = availability.daily_start_time
+        .split(":")
+        .map(Number);
+      const [endHour, endMin] = availability.daily_end_time
+        .split(":")
+        .map(Number);
+
+      const dailyStartTotalMins = startHour * 60 + startMin;
+      const dailyEndTotalMins = endHour * 60 + endMin;
+
+      dailyStartInMinutesArray.push(dailyStartTotalMins);
+      dailyEndInMinutesArray.push(dailyEndTotalMins);
     });
 
-    if (!slotDuration) {
-      console.error("No valid slot duration found.");
-      return { error: "No slot duration" };
+    // 4) If there's no availability data, just return
+    if (!overallEarliestStart || !overallLatestEnd) {
+      console.error("No valid availability range found.");
+      return { error: "No availability data" };
     }
 
-    // 3) Now define the global 7-day window based on startDateLocal
-    //    (If you have special logic that clamps to earliestAvailabilityStart, do it here)
-    const globalStart = startDateLocal.clone();
-    const globalEnd = startDateLocal.clone().add(6, "days").endOf("day");
-    // or .add(7, "days").subtract(1, "second")
+    // 5) If the date-range intersection is invalid => no overlap
+    if (overallEarliestStart.isAfter(overallLatestEnd)) {
+      console.error("No overlapping date range found.");
+      return { error: "No overlap in dates" };
+    }
 
-    // 4) Return everything needed
+    // 6) Find the daily intersection
+    const finalDailyStartMins = Math.max(...dailyStartInMinutesArray);
+    const finalDailyEndMins = Math.min(...dailyEndInMinutesArray);
+
+    if (finalDailyStartMins >= finalDailyEndMins) {
+      console.error("No overlapping daily hours found.");
+      return { error: "No overlap in hours" };
+    }
+
+    // 7) Construct a moment for daily start/end (just for returning the HH:mm)
+    const dailyStartHour = Math.floor(finalDailyStartMins / 60);
+    const dailyStartMinute = finalDailyStartMins % 60;
+    const dailyEndHour = Math.floor(finalDailyEndMins / 60);
+    const dailyEndMinute = finalDailyEndMins % 60;
+
+    // We'll store them as moment objects (date doesn't matter as much—just the time)
+    const commonDailyStart = moment().set({
+      hour: dailyStartHour,
+      minute: dailyStartMinute,
+      second: 0,
+      millisecond: 0,
+    });
+    const commonDailyEnd = moment().set({
+      hour: dailyEndHour,
+      minute: dailyEndMinute,
+      second: 0,
+      millisecond: 0,
+    });
+
+    // 8) Now decide the final "globalStartDate"
+    //    We want the bigger of (viewerStartLocal, overallEarliestStart)
+    //    Because we can't start before the overallEarliestStart,
+    //    and we also want at least the viewerStartLocal if that's later.
+    const globalStartDate = moment.max(viewerStartLocal, overallEarliestStart);
+
+    // 9) Also decide the final "globalEndDate"
+    //    We can't go beyond the overallLatestEnd
+    //    If you want a full 7-day window from globalStartDate, do something like:
+    //    globalStartDate.clone().add(6, "days").endOf("day")
+    //    But then also clamp that to overallLatestEnd if you want a strict overlap only:
+    let sevenDaysLater = globalStartDate.clone().add(6, "days").endOf("day");
+    const globalEndDate = moment.min(sevenDaysLater, overallLatestEnd);
+
+    // If that min is still before globalStartDate => no overlap
+    if (globalEndDate.isBefore(globalStartDate)) {
+      console.error("No overlap once we clamp to 7 days or overallLatestEnd.");
+      return { error: "No final overlap" };
+    }
+
+    // 10) Return final results
     return {
-      globalStart,
-      globalEnd,
-      commonDailyStart,
-      commonDailyEnd,
-      slotDuration,
+      // Overlapping date range
+      overallEarliestStart: overallEarliestStart.toISOString(),
+      overallLatestEnd: overallLatestEnd.toISOString(),
+
+      // Overlapping daily window (just times)
+      commonDailyStart: commonDailyStart.format("HH:mm"), // e.g. "17:00"
+      commonDailyEnd: commonDailyEnd.format("HH:mm"), // e.g. "19:00"
+
+      // The final 7-day "global" range for scheduling
+      globalStartDate: globalStartDate.toISOString(),
+      globalEndDate: globalEndDate.toISOString(),
     };
   }
+
 
 
 
@@ -438,11 +476,7 @@ function generateWeeklySlots(
     outputlist7.push(...daySlots);
   }
 
-  return {
-    filteredSlots: outputlist7,
-    globalStart,
-    globalEnd,
-  };
+  return {outputlist7};
 }
 
 
