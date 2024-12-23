@@ -461,52 +461,46 @@ export const schedule = async function () {
     const [startHour, startMinute] = commonDailyStartStr.split(":").map(Number);
     const [endHour, endMinute] = commonDailyEndStr.split(":").map(Number);
 
-    // Calculate total slots per day
     const totalMinutes =
       endHour * 60 + endMinute - (startHour * 60 + startMinute);
     const slotsPerDay = Math.floor(totalMinutes / slotDuration);
 
     const outputlist7 = [];
-    let currentSlot = globalStart.clone();
+    const baseSlots = [];
 
-    // Adjust to start at `commonDailyStart` if necessary
-    if (
-      currentSlot.hours() < startHour ||
-      (currentSlot.hours() === startHour && currentSlot.minutes() < startMinute)
-    ) {
-      currentSlot.set({
-        hour: startHour,
-        minute: startMinute,
-        second: 0,
-        millisecond: 0,
-      });
-    }
+    // Generate base slots for one day
+    let currentSlot = globalStart.clone().set({
+      hour: startHour,
+      minute: startMinute,
+      second: 0,
+      millisecond: 0,
+    });
 
-    // Generate slots for the first day
-    const firstDaySlots = [];
     for (let i = 0; i < slotsPerDay; i++) {
       const slotEnd = currentSlot.clone().add(slotDuration, "minutes");
-      firstDaySlots.push([
+      baseSlots.push([
         currentSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
         slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
       ]);
       currentSlot.add(slotDuration, "minutes");
     }
 
-    // Add first day's slots to output
-    outputlist7.push(...firstDaySlots);
-
-    // Generate slots for the remaining 6 days by adding 1 day to each slot
-    for (let day = 1; day < 7; day++) {
-      const nextDaySlots = firstDaySlots.map(([start, end]) => [
-        moment.parseZone(start).add(day, "days").format("YYYY-MM-DDTHH:mm:ssZ"),
-        moment.parseZone(end).add(day, "days").format("YYYY-MM-DDTHH:mm:ssZ"),
-      ]);
-      outputlist7.push(...nextDaySlots);
+    // Generate slots for the whole week
+    for (let day = 0; day < 7; day++) {
+      baseSlots.forEach(([start, end]) => {
+        outputlist7.push([
+          moment
+            .parseZone(start)
+            .add(day, "days")
+            .format("YYYY-MM-DDTHH:mm:ssZ"),
+          moment.parseZone(end).add(day, "days").format("YYYY-MM-DDTHH:mm:ssZ"),
+        ]);
+      });
     }
 
     return { outputlist7 };
   }
+
 
 
 
