@@ -126,137 +126,39 @@ export const schedule = async function () {
     console.log("alreadyBookedList", alreadyBookedList);
     console.log("userOffsetInSeconds", userOffsetInSeconds);
 
-    const userOffsetInMinutes = userOffsetInSeconds / 60;
+     const {
+       globalStart,
+       globalEnd,
+       commonDailyStart,
+       commonDailyEnd,
+       slotDuration,
+       error,
+     } = computeWeekRangeAndDailyIntersection(
+       allAvailabilityLists,
+       viewerStartDate,
+       offset,
+       userOffsetInSeconds,
+       mainAvailabilityList
+     );
 
-    // Generate start date adjusted for user offset
-    const startDateLocal = moment
-      .utc(viewerStartDate)
-      .utcOffset(userOffsetInMinutes)
-      .startOf("day")
-      .add(offset * 7, "days");
-
-    console.log("Start date local:", startDateLocal.format());
-    if (!startDateLocal.isValid()) {
-      console.error("Invalid viewerStartDate:", viewerStartDate);
-      return emptyOutput();
-    }
+     // If there's an error, handle it
+     if (error) {
+       console.error("Error computing week range:", error);
+       return emptyOutput();
+     }
 
     // Generate outputlist6 (day boundaries)
     const outputlist6 = generateDayBoundaries(startDateLocal);
     console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
 
-    // Determine common availability for all users
-    let commonDailyStart = null;
-    let commonDailyEnd = null;
-    let slotDuration = null;
-
-    allAvailabilityLists.forEach((availability) => {
-      // 1) Parse the "raw" date range
-      const availabilityStart = moment
-        .utc(availability.start_date)
-        .utcOffset(userOffsetInMinutes);
-      const availabilityEnd = moment
-        .utc(availability.end_date)
-        .utcOffset(userOffsetInMinutes);
-
-      // 2) Parse daily start/end times
-      const [dailyStartHour, dailyStartMinute] = availability.daily_start_time
-        .split(":")
-        .map((x) => parseInt(x, 10));
-      const [dailyEndHour, dailyEndMinute] = availability.daily_end_time
-        .split(":")
-        .map((x) => parseInt(x, 10));
-
-      // 3) Create candidate dailyStart / dailyEnd
-      //    * anchored to the same date as availabilityStart or availabilityEnd.
-      //    * You might need to decide whether you anchor dailyEnd to availabilityStart or availabilityEnd
-      //      depending on your booking logic across multiple days.
-      //    * For a single-day check, you might anchor both to availabilityStart;
-      //      for multi-day range, it’s often more accurate to anchor dailyEnd to availabilityEnd's date.
-
-      // For simplicity, let's anchor dailyStart and dailyEnd to availabilityStart's date:
-      const dailyStart = availabilityStart.clone().set({
-        hour: dailyStartHour,
-        minute: dailyStartMinute,
-        second: 0,
-        millisecond: 0,
-      });
-      const dailyEnd = availabilityStart.clone().set({
-        hour: dailyEndHour,
-        minute: dailyEndMinute,
-        second: 0,
-        millisecond: 0,
-      });
-
-      // 4) Effective availability start is the max of
-      //    the actual range start vs. the daily block start
-      const effectiveStart = moment.max(availabilityStart, dailyStart);
-
-      // 5) Effective availability end is the min of
-      //    the actual range end vs. daily block end
-      //    If your daily end should be anchored to the same day as availabilityEnd,
-      //    you can do something like:
-      //    const dailyEnd = availabilityEnd.clone().set({ hour: dailyEndHour, ... });
-      //    const effectiveEnd = moment.min(availabilityEnd, dailyEnd);
-      //    But for this example, we'll keep it simple:
-      const effectiveEnd = moment.min(availabilityEnd, dailyEnd);
-
-      // 6) Now adjust the common range
-      if (!commonDailyStart) {
-        // If first time, set the initial range
-        commonDailyStart = effectiveStart.clone();
-        commonDailyEnd = effectiveEnd.clone();
-      } else {
-        // Otherwise, overlap with existing common range
-        if (effectiveStart.isAfter(commonDailyStart)) {
-          commonDailyStart = effectiveStart.clone();
-        }
-        if (effectiveEnd.isBefore(commonDailyEnd)) {
-          commonDailyEnd = effectiveEnd.clone();
-        }
-      }
-
-      // 7) If at any point there's no overlap, exit
-      if (commonDailyStart.isSameOrAfter(commonDailyEnd)) {
-        console.error("No overlapping availability found.");
-        return emptyOutput();
-      }
-
-      slotDuration = availability.slot_duration_minutes;
-    });
-
-    // 8) Handle invalid slot duration if none found
-    if (!slotDuration) {
-      console.error("No valid slot duration found.");
-      return emptyOutput();
-    }
-
-    // 9) Log final results
-    console.log(
-      "Common Daily Start (Viewer's Local Time):",
-      commonDailyStart.format()
-    );
-    console.log(
-      "Common Daily End (Viewer's Local Time):",
-      commonDailyEnd.format()
-    );
-    console.log("Slot duration (minutes):", slotDuration);
-
-
-
 
     // Generate outputlist7 (all weekly slots)
-    const {
-      filteredSlots: outputlist7,
+    const { outputlist7 } = generateWeeklySlots(
       globalStart,
       globalEnd,
-    } = generateWeeklySlots(
-      startDateLocal,
-      commonDailyStart.format("HH:mm"),
-      commonDailyEnd.format("HH:mm"),
+      commonDailyStart,
+      commonDailyEnd,
       slotDuration,
-      userOffsetInSeconds,
-      mainAvailabilityList
     );
 
     console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
@@ -341,6 +243,115 @@ export const schedule = async function () {
   }
 
 
+  function computeWeekRangeAndDailyIntersection(
+    allAvailabilityLists,
+    viewerStartDate,
+    offset,
+    userOffsetInSeconds,
+    mainAvailabilityList
+  ) {
+    const userOffsetInMinutes = userOffsetInSeconds / 60;
+
+    // 1) Convert viewerStartDate -> local midnight -> shift by `offset` weeks
+    const startDateLocal = moment
+      .utc(viewerStartDate)
+      .utcOffset(userOffsetInMinutes)
+      .startOf("day")
+      .add(offset * 7, "days");
+
+    if (!startDateLocal.isValid()) {
+      console.error("Invalid viewerStartDate:", viewerStartDate);
+      // You could return null or some object indicating error
+      return { error: "Invalid start date" };
+    }
+
+    // 2) We want to find the intersection of daily times for all availabilities
+    let commonDailyStart = null;
+    let commonDailyEnd = null;
+    let slotDuration = null;
+
+    allAvailabilityLists.forEach((availability) => {
+      // 2a) Parse the "raw" date range in local time (though we primarily care about daily times)
+      const availabilityStart = moment
+        .utc(availability.start_date)
+        .utcOffset(userOffsetInMinutes);
+      const availabilityEnd = moment
+        .utc(availability.end_date)
+        .utcOffset(userOffsetInMinutes);
+
+      // 2b) Convert daily_start_time / daily_end_time into times anchored to availabilityStart
+      const [dailyStartHour, dailyStartMinute] = availability.daily_start_time
+        .split(":")
+        .map(Number);
+      const [dailyEndHour, dailyEndMinute] = availability.daily_end_time
+        .split(":")
+        .map(Number);
+
+      // Anchor to the same date as availabilityStart (simplified approach)
+      const dailyStart = availabilityStart.clone().set({
+        hour: dailyStartHour,
+        minute: dailyStartMinute,
+        second: 0,
+        millisecond: 0,
+      });
+      const dailyEnd = availabilityStart.clone().set({
+        hour: dailyEndHour,
+        minute: dailyEndMinute,
+        second: 0,
+        millisecond: 0,
+      });
+
+      // Compute the effective start and end
+      const effectiveStart = moment.max(availabilityStart, dailyStart);
+      const effectiveEnd = moment.min(availabilityEnd, dailyEnd);
+
+      // Merge with our running intersection
+      if (!commonDailyStart) {
+        // first availability
+        commonDailyStart = effectiveStart.clone();
+        commonDailyEnd = effectiveEnd.clone();
+      } else {
+        // overlap with existing
+        if (effectiveStart.isAfter(commonDailyStart)) {
+          commonDailyStart = effectiveStart.clone();
+        }
+        if (effectiveEnd.isBefore(commonDailyEnd)) {
+          commonDailyEnd = effectiveEnd.clone();
+        }
+      }
+
+      // If no overlap, we can stop
+      if (commonDailyStart.isSameOrAfter(commonDailyEnd)) {
+        console.error("No overlapping availability found.");
+        return { error: "No overlap" };
+      }
+
+      // Update slot duration
+      slotDuration = mainAvailabilityList.slot_duration_minutes;
+    });
+
+    if (!slotDuration) {
+      console.error("No valid slot duration found.");
+      return { error: "No slot duration" };
+    }
+
+    // 3) Now define the global 7-day window based on startDateLocal
+    //    (If you have special logic that clamps to earliestAvailabilityStart, do it here)
+    const globalStart = startDateLocal.clone();
+    const globalEnd = startDateLocal.clone().add(6, "days").endOf("day");
+    // or .add(7, "days").subtract(1, "second")
+
+    // 4) Return everything needed
+    return {
+      globalStart,
+      globalEnd,
+      commonDailyStart,
+      commonDailyEnd,
+      slotDuration,
+    };
+  }
+
+
 
 
 
@@ -360,84 +371,73 @@ export const schedule = async function () {
   }
 
 function generateWeeklySlots(
-  startDateLocal,
-  baseDailyStart,
-  baseDailyEnd,
-  slotDuration,
-  userOffsetInSeconds,
-  mainAvailabilityList
+  globalStart, // The start of your 7-day window (local time)
+  globalEnd, // The end of your 7-day window (local time)
+  commonDailyStart, // A Moment object representing the daily start time (only .hours() / .minutes() matter)
+  commonDailyEnd, // A Moment object representing the daily end time
+  slotDuration, // Slot length in minutes
 ) {
-  const userOffsetInMinutes = userOffsetInSeconds / 60;
+
   const outputlist7 = [];
-  let globalStart = null;
-  let globalEnd = null;
 
-  const endDateLocal = startDateLocal.clone().add(7, "days").endOf("day");
+  // Determine how many days are in your globalStart -> globalEnd range.
+  // Typically 7, but let's compute dynamically in case you are doing +/- offset logic.
+  const totalDays = Math.ceil(globalEnd.diff(globalStart, "days", true));
+  console.log(
+    `Generating up to ${totalDays} days of slots from ${globalStart.format()} to ${globalEnd.format()}`
+  );
 
-  for (let i = 0; i < 7; i++) {
-    const currentDayLocal = startDateLocal.clone().add(i, "days");
+  for (let i = 0; i < totalDays; i++) {
+    // 1) Current day in local time
+    const currentDayLocal = globalStart.clone().add(i, "days");
+    if (currentDayLocal.isAfter(globalEnd, "day")) {
+      // If we’ve gone past globalEnd, stop
+      break;
+    }
 
-    // Calculate daily start and end times adjusted to user offset
-    const dailyStartTime = currentDayLocal
-      .clone()
-      .set({
-        hour: parseInt(baseDailyStart.split(":")[0], 10),
-        minute: parseInt(baseDailyStart.split(":")[1], 10),
-        second: 0,
-        millisecond: 0,
-      })
-      .utcOffset(userOffsetInMinutes);
+    // 2) For this day, build dailyStartTime / dailyEndTime
+    const dailyStartTime = currentDayLocal.clone().set({
+      hour: commonDailyStart.hours(),
+      minute: commonDailyStart.minutes(),
+      second: 0,
+      millisecond: 0,
+    });
 
-    const dailyEndTime = currentDayLocal
-      .clone()
-      .set({
-        hour: parseInt(baseDailyEnd.split(":")[0], 10),
-        minute: parseInt(baseDailyEnd.split(":")[1], 10),
-        second: 0,
-        millisecond: 0,
-      })
-      .utcOffset(userOffsetInMinutes);
+    const dailyEndTime = currentDayLocal.clone().set({
+      hour: commonDailyEnd.hours(),
+      minute: commonDailyEnd.minutes(),
+      second: 0,
+      millisecond: 0,
+    });
 
-    // Generate slots for this day
+    // Ensure we're not going beyond globalEnd on this day
+    if (dailyEndTime.isAfter(globalEnd)) {
+      dailyEndTime.endOf("day").min(globalEnd);
+    }
+
+    // If daily end is <= daily start, skip (no valid time range)
+    if (!dailyEndTime.isAfter(dailyStartTime)) {
+      continue;
+    }
+
+    // 3) Generate slots for this day
     const daySlots = generateSlotsForInterval(
       dailyStartTime,
       dailyEndTime,
       slotDuration
     );
 
-    // Update global start and end times for main availability range
-    daySlots.forEach((slot) => {
-      const slotStart = moment.utc(slot[0]).utcOffset(userOffsetInMinutes);
-      const slotEnd = moment.utc(slot[1]).utcOffset(userOffsetInMinutes);
-
-      mainAvailabilityList.forEach((availability) => {
-        const availabilityStart = moment
-          .utc(availability.start_date)
-          .utcOffset(userOffsetInMinutes);
-        const availabilityEnd = moment
-          .utc(availability.end_date)
-          .utcOffset(userOffsetInMinutes);
-
-        if (
-          slotStart.isBetween(availabilityStart, availabilityEnd, null, "[)") &&
-          slotEnd.isBetween(availabilityStart, availabilityEnd, null, "(]")
-        ) {
-          if (!globalStart) {
-            globalStart = slotStart.clone();
-          }
-          globalEnd = slotEnd.clone();
-        }
-      });
-    });
-
+    // 4) Add them to outputlist7
     outputlist7.push(...daySlots);
   }
 
-  console.log("Generated Global Start:", globalStart?.format());
-  console.log("Generated Global End:", globalEnd?.format());
-
-  return { filteredSlots: outputlist7, globalStart, globalEnd };
+  return {
+    filteredSlots: outputlist7,
+    globalStart,
+    globalEnd,
+  };
 }
+
 
 function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
   const result = [];
@@ -445,12 +445,16 @@ function generateSlotsForInterval(startTimeLocal, endTimeLocal, duration) {
 
   while (current.isBefore(endTimeLocal)) {
     const slotEnd = current.clone().add(duration, "minutes");
-    result.push([current.format(), slotEnd.format()]);
+    if (slotEnd.isAfter(endTimeLocal)) {
+      break;
+    }
+    result.push([current.toISOString(), slotEnd.toISOString()]);
     current.add(duration, "minutes");
   }
 
   return result;
 }
+
 
 
 
