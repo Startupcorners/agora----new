@@ -144,6 +144,7 @@ export const schedule = async function () {
 
     const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
 
+    // Compute week range and daily intersection
     const {
       globalStart,
       globalEnd,
@@ -151,6 +152,7 @@ export const schedule = async function () {
       commonDailyEnd,
       realStart,
       realEnd,
+      exit,
     } = computeWeekRangeAndDailyIntersection(
       allAvailabilityLists,
       viewerStartDate,
@@ -158,67 +160,95 @@ export const schedule = async function () {
       userOffsetInSeconds
     );
 
-    console.log("globalStart", globalStart);
-    console.log("globalEnd", globalEnd);
-    console.log("commonDailyStart", commonDailyStart);
-    console.log("commonDailyEnd", commonDailyEnd);
+    console.log("globalStart:", globalStart);
+    console.log("globalEnd:", globalEnd);
+    console.log("commonDailyStart:", commonDailyStart);
+    console.log("commonDailyEnd:", commonDailyEnd);
 
-    // Generate day boundaries and weekly slots
+    // Generate day boundaries (always necessary)
     const outputlist6 = generateDayBoundaries(globalStart);
     console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
-    const { outputlist7 } = generateWeeklySlots(
-      globalStart,
-      commonDailyStart,
-      commonDailyEnd,
-      slotDuration
-    );
 
-    
-    console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
+    // Declare other outputs
+    let outputlist7 = [];
+    let outputlist1 = [];
+    let outputlist2 = [];
+    let outputlist3 = [];
+    let outputlist4 = [];
+    let outputlist5 = [];
+    let outputlist8 = [];
+    let outputlist9 = [];
 
-    // Assign slot information (excluding outputlist3)
-    const { outputlist1, outputlist2, outputlist4, outputlist8, outputlist9 } =
-      assignSlotInfo(
+    if (!exit) {
+      console.log("Overlap found. Generating remaining slot outputs...");
+
+      // Generate weekly slots
+      const result = generateWeeklySlots(
+        globalStart,
+        commonDailyStart,
+        commonDailyEnd,
+        slotDuration
+      );
+      outputlist7 = result.outputlist7;
+      console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
+
+      // Assign slot information
+      const slotInfoResults = assignSlotInfo(
         outputlist7,
         mainAvailabilityList,
         blockedByUserList,
         modifiedSlots
       );
+      outputlist1 = slotInfoResults.outputlist1;
+      outputlist2 = slotInfoResults.outputlist2;
+      outputlist4 = slotInfoResults.outputlist4;
+      outputlist8 = slotInfoResults.outputlist8;
+      outputlist9 = slotInfoResults.outputlist9;
 
-    // Generate outputlist3 (already booked slots)
-    const outputlist3 = outputlist7.map((slot) => {
-      const slotStart = moment.utc(slot[0]);
-      const slotEnd = moment.utc(slot[1]);
+      // Generate outputlist3 (already booked slots)
+      outputlist3 = outputlist7.map((slot) => {
+        const slotStart = moment.utc(slot[0]);
+        const slotEnd = moment.utc(slot[1]);
 
-      const bookedBubbleIds = alreadyBookedList
-        .filter((booked) => {
-          const bookedStart = moment.utc(booked.start_date);
-          const bookedEnd = moment.utc(booked.end_date);
-          return isSlotOverlapping(slotStart, slotEnd, bookedStart, bookedEnd);
-        })
-        .map((booked) => booked.bubbleId);
+        const bookedBubbleIds = alreadyBookedList
+          .filter((booked) => {
+            const bookedStart = moment.utc(booked.start_date);
+            const bookedEnd = moment.utc(booked.end_date);
+            return isSlotOverlapping(
+              slotStart,
+              slotEnd,
+              bookedStart,
+              bookedEnd
+            );
+          })
+          .map((booked) => booked.bubbleId);
 
-      return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
-    });
+        return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
+      });
 
-    // Generate outputlist5 (filtered slots by availability)
-    const outputlist5 = filterSlotsByAvailabilityRange(
-      outputlist7,
-      realStart,
-      realEnd
-    );
+      // Generate outputlist5 (filtered slots by availability)
+      outputlist5 = filterSlotsByAvailabilityRange(
+        outputlist7,
+        realStart,
+        realEnd
+      );
 
-    // Adjust slot ranges to viewer timezone
+      // Adjust slot ranges to viewer timezone
+      outputlist7 = adjustSlotsToViewerTimezone(
+        outputlist7,
+        userOffsetInSeconds
+      );
+      outputlist5 = adjustSlotsToViewerTimezone(
+        outputlist5,
+        userOffsetInSeconds
+      );
+    } else {
+      console.warn("No overlap found. Skipping remaining slot generation.");
+    }
+
+    // Adjust `outputlist6` to viewer timezone
     const adjustedOutputlist6 = adjustSlotsToViewerTimezone(
       outputlist6,
-      userOffsetInSeconds
-    );
-    const adjustedOutputlist7 = adjustSlotsToViewerTimezone(
-      outputlist7,
-      userOffsetInSeconds
-    );
-    const adjustedOutputlist5 = adjustSlotsToViewerTimezone(
-      outputlist5,
       userOffsetInSeconds
     );
 
@@ -228,22 +258,26 @@ export const schedule = async function () {
       outputlist2,
       outputlist3,
       outputlist4,
-      outputlist5: adjustedOutputlist5,
+      outputlist5,
       outputlist6: adjustedOutputlist6,
-      outputlist7: adjustedOutputlist7,
+      outputlist7,
       outputlist8,
       outputlist9,
+      exit,
     };
 
     console.log("Final output:", result);
     console.log("======== Function End ========");
 
+    // Send result to Bubble
     bubble_fn_hours(result);
 
+    // Signal readiness after a delay
     setTimeout(() => bubble_fn_ready(), 3000);
 
     return result;
   }
+
 
   // Helper functions
   function adjustSlotsToViewerTimezone(slotList, userOffsetInSeconds) {
@@ -287,7 +321,7 @@ export const schedule = async function () {
 
     if (!viewerStartLocal.isValid()) {
       console.error("Invalid viewerStartDate:", viewerStartDate);
-      return { error: "Invalid start date" };
+      return { error: "Invalid start date", exit: true };
     }
 
     let overallEarliestStart = null;
@@ -323,42 +357,26 @@ export const schedule = async function () {
       dailyEndInMinutesArray.push(endHour * 60 + endMin);
     });
 
-    // Step 3: Compute default global range for the week (falling back to viewer's week)
-    const weekStartLocal = viewerStartLocal.clone().startOf("day");
-    const weekEndLocal = weekStartLocal.clone().add(6, "days").endOf("day");
+    // Step 3: Compute default global range for the week
+    const globalStartLocal = viewerStartLocal.clone().startOf("day");
+    const globalEndLocal = globalStartLocal.clone().add(6, "days").endOf("day");
 
-    // Step 4: Compute global range using availability or fall back to week range
-    const globalStartLocal = overallEarliestStart
-      ? moment
-          .max(
-            viewerStartLocal,
-            overallEarliestStart.utcOffset(userOffsetInMinutes)
-          )
-          .startOf("day")
-      : weekStartLocal;
+    // Step 4: Compute realStart and realEnd
+    const realStartLocal = overallEarliestStart
+      ? moment.max(
+          globalStartLocal,
+          overallEarliestStart.utcOffset(userOffsetInMinutes)
+        )
+      : globalStartLocal;
 
-    const globalEndLocal = overallLatestEnd
-      ? moment
-          .min(
-            viewerStartLocal.clone().add(6, "days").endOf("day"),
-            overallLatestEnd.utcOffset(userOffsetInMinutes)
-          )
-          .endOf("day")
-      : weekEndLocal;
+    const realEndLocal = overallLatestEnd
+      ? moment.min(
+          globalEndLocal,
+          overallLatestEnd.utcOffset(userOffsetInMinutes)
+        )
+      : globalEndLocal;
 
-    if (globalEndLocal.isBefore(globalStartLocal)) {
-      console.warn("No overlap with availability. Using default week range.");
-      return {
-        globalStart: weekStartLocal.utc().format("YYYY-MM-DDTHH:mm:ssZ"),
-        globalEnd: weekEndLocal.utc().format("YYYY-MM-DDTHH:mm:ssZ"),
-        commonDailyStart: "00:00",
-        commonDailyEnd: "23:59",
-        realStart: weekStartLocal.utc().format("YYYY-MM-DDTHH:mm:ssZ"),
-        realEnd: weekEndLocal.utc().format("YYYY-MM-DDTHH:mm:ssZ"),
-      };
-    }
-
-    // Step 5: Compute daily intersection window
+    // Step 5: Compute the daily intersection window
     const finalDailyStartMins = dailyStartInMinutesArray.length
       ? Math.max(...dailyStartInMinutesArray)
       : 0; // Default to midnight if no availability
@@ -385,21 +403,14 @@ export const schedule = async function () {
       millisecond: 0,
     });
 
-    // Step 6: Compute realStart and realEnd in user timezone
-    const realStartLocal = moment.max(
-      globalStartLocal,
-      overallEarliestStart || weekStartLocal
-    );
-    const realEndLocal = moment.min(
-      globalEndLocal,
-      overallLatestEnd || weekEndLocal
-    );
-
-    // Convert all outputs back to UTC for output
+    // Step 6: Convert all outputs back to UTC
     const globalStartUTC = globalStartLocal.clone().utc();
     const globalEndUTC = globalEndLocal.clone().utc();
     const realStartUTC = realStartLocal.clone().utc();
     const realEndUTC = realEndLocal.clone().utc();
+
+    // Check for overlap and set exit flag
+    const hasOverlap = realEndLocal.isSameOrAfter(realStartLocal);
 
     // Return results
     return {
@@ -409,6 +420,7 @@ export const schedule = async function () {
       commonDailyEnd: commonDailyEnd.format("HH:mm"),
       realStart: realStartUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
       realEnd: realEndUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
+      exit: !hasOverlap, // Exit is true if there's no overlap
     };
   }
 
@@ -416,15 +428,16 @@ export const schedule = async function () {
 
 
 
+
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
-    // Parse the incoming string and preserve the offset
+    // Parse the incoming string (with offset) and preserve the offset
     const globalStart = moment.parseZone(globalStartStr);
 
     const outputlist6 = [];
     for (let i = 0; i < totalDays; i++) {
       // Calculate day boundaries using the offset-preserved time
-      const dayStart = globalStart.clone().add(i, "days").startOf("day");
-      const dayEnd = globalStart.clone().add(i, "days").endOf("day");
+      const dayStart = globalStart.clone().add(i, "days");
+      const dayEnd = dayStart.clone().add(1, "days").subtract(1, "second");
 
       // Format in ISO8601 with the *original* offset
       outputlist6.push([
@@ -438,56 +451,79 @@ export const schedule = async function () {
 
 
 
- function generateWeeklySlots(
-   globalStartStr,
-   commonDailyStartStr,
-   commonDailyEndStr,
-   slotDuration
- ) {
-   const globalStart = moment.parseZone(globalStartStr);
+  function generateWeeklySlots(
+    globalStartStr,
+    commonDailyStartStr,
+    commonDailyEndStr,
+    slotDuration
+  ) {
+    const globalStart = moment.parseZone(globalStartStr);
 
-   const [startHour, startMinute] = commonDailyStartStr.split(":").map(Number);
-   const [endHour, endMinute] = commonDailyEndStr.split(":").map(Number);
+    const [startHour, startMinute] = commonDailyStartStr.split(":").map(Number);
+    const [endHour, endMinute] = commonDailyEndStr.split(":").map(Number);
 
-   const outputlist7 = [];
+    const outputlist7 = [];
+    let currentSlot = globalStart.clone();
 
-   // Generate slots for 7 days
-   for (let day = 0; day < 7; day++) {
-     // Calculate the start of the current day
-     const dayStart = globalStart.clone().add(day, "days").set({
-       hour: startHour,
-       minute: startMinute,
-       second: 0,
-       millisecond: 0,
-     });
+    // Adjust the first slot to align with the daily window if necessary
+    if (
+      currentSlot.hours() < startHour ||
+      (currentSlot.hours() === startHour && currentSlot.minutes() < startMinute)
+    ) {
+      currentSlot.set({
+        hour: startHour,
+        minute: startMinute,
+        second: 0,
+        millisecond: 0,
+      });
+    } else if (
+      currentSlot.hours() > endHour ||
+      (currentSlot.hours() === endHour && currentSlot.minutes() > endMinute)
+    ) {
+      currentSlot.add(1, "days").set({
+        hour: startHour,
+        minute: startMinute,
+        second: 0,
+        millisecond: 0,
+      });
+    }
 
-     const dayEnd = globalStart.clone().add(day, "days").set({
-       hour: endHour,
-       minute: endMinute,
-       second: 0,
-       millisecond: 0,
-     });
+    // Generate slots for 7 days
+    for (let day = 0; day < 7; day++) {
+      // Calculate the start of the current day
+      const dayStart = currentSlot.clone().add(day, "days").set({
+        hour: startHour,
+        minute: startMinute,
+        second: 0,
+        millisecond: 0,
+      });
 
-     // Add slots for the current day within the daily window
-     for (
-       let slotStart = dayStart.clone();
-       slotStart.isBefore(dayEnd);
-       slotStart.add(slotDuration, "minutes")
-     ) {
-       const slotEnd = slotStart.clone().add(slotDuration, "minutes");
+      // Add slots for the current day within the daily window
+      for (
+        let slotStart = dayStart.clone();
+        slotStart.hours() < endHour ||
+        (slotStart.hours() === endHour && slotStart.minutes() < endMinute);
+        slotStart.add(slotDuration, "minutes")
+      ) {
+        const slotEnd = slotStart.clone().add(slotDuration, "minutes");
 
-       // Only add slots that fully fit within the daily range
-       if (slotEnd.isAfter(dayEnd)) break;
+        // Stop adding slots if the end of the slot exceeds the daily time range
+        if (
+          slotEnd.hours() > endHour ||
+          (slotEnd.hours() === endHour && slotEnd.minutes() > endMinute)
+        ) {
+          break;
+        }
 
-       outputlist7.push([
-         slotStart.format("YYYY-MM-DDTHH:mm:ssZ"),
-         slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
-       ]);
-     }
-   }
+        outputlist7.push([
+          slotStart.format("YYYY-MM-DDTHH:mm:ssZ"),
+          slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+        ]);
+      }
+    }
 
-   return { outputlist7 };
- }
+    return { outputlist7 };
+  }
 
 
 
