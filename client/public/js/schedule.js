@@ -382,20 +382,14 @@ export const schedule = async function () {
 
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
-    // Parse the incoming string (with offset) and do NOT convert to local timezone
+    // Parse the incoming string (with offset) and preserve the offset
     const globalStart = moment.parseZone(globalStartStr);
 
     const outputlist6 = [];
     for (let i = 0; i < totalDays; i++) {
-      // dayStart: local midnight (in the *parsed* offset) for day i
-      const dayStart = globalStart.clone().add(i, "days").startOf("day");
-
-      // dayEnd: 23:59:59.999 on that same day, preserving offset
-      const dayEnd = dayStart
-        .clone()
-        .add(1, "days")
-        .startOf("day")
-        .subtract(1, "millisecond");
+      // Calculate day boundaries using the offset-preserved time
+      const dayStart = globalStart.clone().add(i, "days");
+      const dayEnd = dayStart.clone().add(1, "days").subtract(1, "second");
 
       // Format in ISO8601 with the *original* offset
       outputlist6.push([
@@ -405,6 +399,7 @@ export const schedule = async function () {
     }
     return outputlist6;
   }
+
 
 
   // 1) Helper: generate time slots in increments of `duration` minutes,
