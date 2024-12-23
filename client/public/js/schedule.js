@@ -142,7 +142,7 @@ export const schedule = async function () {
      console.log("globalStart", globalStart);
      console.log("globalEnd", globalEnd);
      console.log("commonDailyStart", commonDailyStart);
-     console.log("commonDailyEnd", commonDailyEnd);
+     console.log("commonDailyEnd", globalStart);
 
 
      // If there's an error, handle it
@@ -385,8 +385,8 @@ export const schedule = async function () {
     // 10) Return final results
     return {
       // Overlapping date range
-      globalStartDate: globalStartDate.toISOString(),
-      globalEndDate: globalEndDate.toISOString(),
+      globalStart: globalStartDate.toISOString(),
+      globalEnd: globalEndDate.toISOString(),
       commonDailyStart: commonDailyStart.format("HH:mm"), // e.g. "17:00"
       commonDailyEnd: commonDailyEnd.format("HH:mm"), // e.g. "19:00"
     };
