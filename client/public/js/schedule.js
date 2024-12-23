@@ -469,7 +469,7 @@ export const schedule = async function () {
     const outputlist7 = [];
     let currentSlot = globalStart.clone();
 
-    // Align first slot with globalStart if needed
+    // Adjust the first slot to align with globalStart
     if (
       currentSlot.hours() < startHour ||
       (currentSlot.hours() === startHour && currentSlot.minutes() < startMinute)
@@ -484,30 +484,54 @@ export const schedule = async function () {
 
     // Generate slots for 7 days
     for (let day = 0; day < 7; day++) {
+      const dayStart = currentSlot.clone().set({
+        hour: startHour,
+        minute: startMinute,
+        second: 0,
+        millisecond: 0,
+      });
+
+      const dayEnd = dayStart.clone().set({
+        hour: endHour,
+        minute: endMinute,
+        second: 0,
+        millisecond: 0,
+      });
+
+      // Adjust the first day to align with globalStart
+      let slotStart =
+        day === 0 ? moment.max(dayStart, globalStart) : dayStart.clone();
+
+      // Generate slots for the current day
       for (let slot = 0; slot < slotsPerDay; slot++) {
-        const slotEnd = currentSlot.clone().add(slotDuration, "minutes");
+        const slotEnd = slotStart.clone().add(slotDuration, "minutes");
+
+        // Stop if the slot exceeds the daily window
+        if (slotEnd.isAfter(dayEnd)) {
+          break;
+        }
+
         outputlist7.push([
-          currentSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
+          slotStart.format("YYYY-MM-DDTHH:mm:ssZ"),
           slotEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
         ]);
 
         // Move to the next slot
-        currentSlot.add(slotDuration, "minutes");
+        slotStart.add(slotDuration, "minutes");
       }
 
-      // Add 1 day to the starting point for the next day’s slots
-      currentSlot
-        .set({
-          hour: startHour,
-          minute: startMinute,
-          second: 0,
-          millisecond: 0,
-        })
-        .add(1, "days");
+      // Move to the next day
+      currentSlot.add(1, "days").set({
+        hour: startHour,
+        minute: startMinute,
+        second: 0,
+        millisecond: 0,
+      });
     }
 
     return { outputlist7 };
   }
+
 
 
 
