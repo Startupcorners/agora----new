@@ -183,7 +183,12 @@ export const schedule = async function () {
       console.log("Overlap found. Generating remaining slot outputs...");
 
       // Generate weekly slots
-      const result = generateWeeklySlots(outputlist7);
+      outputlist7 = generateWeeklySlots(
+        globalStart,
+        commonDailyStart,
+        commonDailyEnd,
+        slotDuration
+      );
       console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
 
       // Assign slot information
@@ -513,6 +518,12 @@ function generateWeeklySlots(
   commonDailyEndStr,
   slotDuration // e.g. 60
 ) {
+  console.log("Generating weekly slots...");
+  console.log("Global Start:", globalStartStr);
+  console.log("Daily Start:", commonDailyStartStr);
+  console.log("Daily End:", commonDailyEndStr);
+  console.log("Slot Duration (minutes):", slotDuration);
+
   // 1) Base day of N slots (where N is dynamic)
   const base = generateBaseDay(
     globalStartStr,
@@ -521,9 +532,15 @@ function generateWeeklySlots(
     slotDuration
   );
 
+  console.log("Base Day Slots:");
+  base.forEach(([start, end], index) => {
+    console.log(`  Slot ${index + 1}: Start: ${start}, End: ${end}`);
+  });
+
   // 2) For 7 days total, replicate
   const outputlist7 = [];
   for (let day = 0; day < 7; day++) {
+    console.log(`Generating slots for Day ${day + 1}...`);
     for (let [startStr, endStr] of base) {
       const newStart = moment.parseZone(startStr).add(day, "days");
       const newEnd = moment.parseZone(endStr).add(day, "days");
@@ -534,9 +551,13 @@ function generateWeeklySlots(
     }
   }
 
+  console.log("Generated Weekly Slots:");
+  outputlist7.forEach(([start, end], index) => {
+    console.log(`  Slot ${index + 1}: Start: ${start}, End: ${end}`);
+  });
+
   return outputlist7;
 }
-
 
 
 
