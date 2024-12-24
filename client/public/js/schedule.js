@@ -115,6 +115,8 @@ export const schedule = async function () {
     // Adjust start and end dates
     const adjustedStartDate = adjustDate(startDate, offsetInSeconds);
     const adjustedEndDate = adjustDate(endDate, offsetInSeconds);
+    console.log("adjustedStartDate", adjustedStartDate);
+    console.log("adjustedEndDate", adjustedEndDate);
 
     // Call the appropriate functions with the adjusted dates
     bubble_fn_newStart(adjustedStartDate);
