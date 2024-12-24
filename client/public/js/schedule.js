@@ -1,9 +1,10 @@
 
 export const schedule = async function () {
 
-  function generate42CalendarDates(anchorDateUTC, isStart) {
-    console.log(anchorDateUTC);
+  function generate42CalendarDates(anchorDateUTC, offsetInSeconds, isStart) {
 
+    console.log(anchorDateUTC)
+    console.log(offsetInSeconds);
     // 1) Parse the input date string into a Date object in UTC.
     const parsedDate = new Date(anchorDateUTC);
 
@@ -14,44 +15,75 @@ export const schedule = async function () {
     // 3) Build a Date for "year-month-1 00:00:00 UTC" (start of the month in UTC).
     const firstOfMonthUTC = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
 
-    // 4) Figure out the UTC day-of-week for the first of the month. (0=Sunday,...,6=Saturday)
-    const firstDayUTC = firstOfMonthUTC.getUTCDay();
+    // Helper to construct a Date object that corresponds to "local-midnight" at the given offset.
+    // local-midnight = "that day’s 00:00" in local time => which is "that day’s 00:00 - offset" in UTC
+    function makeLocalMidnight(dateUTC) {
+      // dateUTC.getTime() is the absolute UTC timestamp in ms.
+      // Subtract offsetInSeconds * 1000 => this new Date is the absolute moment of "local 00:00"
+      return new Date(dateUTC.getTime() - offsetInSeconds * 1000);
+    }
 
-    // 5) We want the calendar to start on the Sunday before or on the 1st of the month.
-    const offsetDays = firstDayUTC;
+    // 4) Convert that "start-of-month in UTC" to local-midnight for the given offset.
+    const firstOfMonthLocalMidnight = makeLocalMidnight(firstOfMonthUTC);
 
-    // 6) Calculate the start date for the 42-day calendar.
+    // 5) Figure out the local day-of-week for that day. (0=Sunday,...,6=Saturday)
+    const firstDayLocalDOW = firstOfMonthLocalMidnight.getUTCDay();
+
+    // 6) We want the calendar to start on that Sunday.
+    //    If firstDayLocalDOW=0 => Sunday => offsetDays=0
+    //    If firstDayLocalDOW=3 => Wed => offsetDays=3 => go back 3 days to Sunday, etc.
+    const offsetDays = firstDayLocalDOW;
+
+    // 7) The first Sunday "local-midnight" => firstOfMonthLocalMidnight minus offsetDays
     const oneDayMs = 24 * 60 * 60 * 1000;
-    const startDateUTC = new Date(
-      firstOfMonthUTC.getTime() - offsetDays * oneDayMs
+    const startDateLocal = new Date(
+      firstOfMonthLocalMidnight.getTime() - offsetDays * oneDayMs
     );
 
-    // 7) Build the 42 consecutive days in UTC format.
+    // 8) Build the 42 consecutive days
     const dates = [];
     for (let i = 0; i < 42; i++) {
-      // Each step is 24h after the previous day
-      const currentUTC = new Date(startDateUTC.getTime() + i * oneDayMs);
+      // Each step is 24h after the previous local-midnight
+      const currentLocalMidnight = new Date(
+        startDateLocal.getTime() + i * oneDayMs
+      );
 
-      // Format the date as UTC in "YYYY-MM-DDTHH:mm:ssZ"
-      const utcYear = currentUTC.getUTCFullYear();
-      const utcMonth = String(currentUTC.getUTCMonth() + 1).padStart(2, "0");
-      const utcDay = String(currentUTC.getUTCDate()).padStart(2, "0");
+      // 9) Format that moment as UTC in "YYYY-MM-DDTHH:mm:ssZ"
+      //    We read the UTC components, because `currentLocalMidnight` is pinned to
+      //    the absolute moment of local-midnight at the given offset.
+      //    But we want the final output as an ISO string with trailing "Z".
+      const utcYear = currentLocalMidnight.getUTCFullYear();
+      const utcMonth = String(currentLocalMidnight.getUTCMonth() + 1).padStart(
+        2,
+        "0"
+      );
+      const utcDay = String(currentLocalMidnight.getUTCDate()).padStart(2, "0");
+      const utcHour = String(currentLocalMidnight.getUTCHours()).padStart(
+        2,
+        "0"
+      );
+      const utcMinute = String(currentLocalMidnight.getUTCMinutes()).padStart(
+        2,
+        "0"
+      );
+      const utcSecond = String(currentLocalMidnight.getUTCSeconds()).padStart(
+        2,
+        "0"
+      );
 
-      // Since the times are always midnight UTC, we can hard-code the time part.
-      const dateStr = `${utcYear}-${utcMonth}-${utcDay}T00:00:00Z`;
+      const dateStr = `${utcYear}-${utcMonth}-${utcDay}T${utcHour}:${utcMinute}:${utcSecond}Z`;
       dates.push(dateStr);
     }
 
-    // 8) Return or call the appropriate function
+    // 10) Return or bubble
     console.log(dates);
     console.log(isStart);
-    if (isStart) {
-      bubble_fn_listOfStartDates(dates);
-    } else {
+    if(isStart){
+    bubble_fn_listOfStartDates(dates);
+    } else{
       bubble_fn_listOfEndDates(dates);
     }
   }
-
 
   function convertDatesToTimezone(
     startDate,
