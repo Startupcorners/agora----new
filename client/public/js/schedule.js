@@ -88,6 +88,7 @@ export const schedule = async function () {
     }
 
     // 10) Return or bubble
+    console.log("dates",dates)
     bubble_fn_listOfDates(dates);
   }
 
