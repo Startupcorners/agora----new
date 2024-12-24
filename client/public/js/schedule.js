@@ -16,7 +16,11 @@ export const schedule = async function () {
    * Example call:
    *   generate42CalendarDates("2025-01-13T10:02:22Z", -39600);
    */
-  function generate42CalendarDates(anchorDateUTC, offsetInSeconds) {
+  function generate42CalendarDates(
+    anchorDateUTC,
+    offsetInSeconds,
+    parameterString
+  ) {
     // 1) Parse the input date string into a Date object in UTC.
     const parsedDate = new Date(anchorDateUTC);
 
@@ -42,8 +46,6 @@ export const schedule = async function () {
     const firstDayLocalDOW = firstOfMonthLocalMidnight.getUTCDay();
 
     // 6) We want the calendar to start on that Sunday.
-    //    If firstDayLocalDOW=0 => Sunday => offsetDays=0
-    //    If firstDayLocalDOW=3 => Wed => offsetDays=3 => go back 3 days to Sunday, etc.
     const offsetDays = firstDayLocalDOW;
 
     // 7) The first Sunday "local-midnight" => firstOfMonthLocalMidnight minus offsetDays
@@ -61,9 +63,6 @@ export const schedule = async function () {
       );
 
       // 9) Format that moment as UTC in "YYYY-MM-DDTHH:mm:ssZ"
-      //    We read the UTC components, because `currentLocalMidnight` is pinned to
-      //    the absolute moment of local-midnight at the given offset.
-      //    But we want the final output as an ISO string with trailing "Z".
       const utcYear = currentLocalMidnight.getUTCFullYear();
       const utcMonth = String(currentLocalMidnight.getUTCMonth() + 1).padStart(
         2,
@@ -87,10 +86,11 @@ export const schedule = async function () {
       dates.push(dateStr);
     }
 
-    // 10) Return or bubble
-    console.log(dates);
-    bubble_fn_listOfDatess({outputlist1:dates});
+    // 10) Call the provided function with the generated dates
+    const runFn = new Function("dates", `${parameterString}(dates);`);
+    runFn(dates);
   }
+
 
   function convertDatesToTimezone(
     startDate,
