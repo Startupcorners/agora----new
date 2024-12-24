@@ -106,7 +106,7 @@ export const schedule = async function () {
       if (!dateISO) return null; // Return null if the date is empty
       const inputDateUTC = new Date(dateISO); // Parse the ISO string into a Date object
       const offsetMs = offsetInSeconds * 1000; // Convert seconds to milliseconds
-      const adjustedDate = new Date(inputDateUTC.getTime() + offsetMs); // Adjust the time
+      const adjustedDate = new Date(inputDateUTC.getTime() + offsetMs); // Adjust the time (add offset)
 
       // Format the adjusted date back into an ISO string with precision for milliseconds
       return adjustedDate.toISOString();
@@ -121,24 +121,6 @@ export const schedule = async function () {
     bubble_fn_newEnd(adjustedEndDate);
   }
 
-  // Example Usage:
-  function bubble_fn_newStart(startDate) {
-    console.log("Adjusted Start Date:", startDate);
-  }
-
-  function bubble_fn_newEnd(endDate) {
-    console.log("Adjusted End Date:", endDate);
-  }
-
-  // Test cases
-  adjustDatesToOffset(
-    "2024-12-24T05:58:38.901Z",
-    "2024-12-24T15:00:00.000Z",
-    -9 * 3600
-  ); // Offset for UTC-9
-  adjustDatesToOffset(null, "2024-12-24T15:00:00.000Z", -9 * 3600); // Start date is empty
-  adjustDatesToOffset("2024-12-24T05:58:38.901Z", null, -9 * 3600); // End date is empty
-  adjustDatesToOffset(null, null, -9 * 3600); // Both dates are empty
 
   function generateStartTimes(startTime, duration) {
     const times = [];
