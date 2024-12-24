@@ -19,6 +19,7 @@ export const schedule = async function () {
   function generate42CalendarDates(anchorDateUTC, offsetInSeconds, isStart) {
 
     console.log(anchorDateUTC)
+    console.log(offsetInSeconds);
     // 1) Parse the input date string into a Date object in UTC.
     const parsedDate = new Date(anchorDateUTC);
 
