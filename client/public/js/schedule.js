@@ -83,45 +83,35 @@ export const schedule = async function () {
     }
   }
 
-  function adjustDatesToOffset(startDate, endDate, offsetInSeconds) {
-    // Helper function to format a date string to remove milliseconds
-    function formatDateWithoutMilliseconds(dateISO) {
-      if (!dateISO) return "null"; // Return "null" as a string if the date is empty
-      const date = new Date(dateISO);
-      return date.toISOString().split(".")[0] + "Z"; // Remove milliseconds and add "Z"
-    }
+  function adjustDatesToOffset(oldOffsetSeconds, newOffsetSeconds, startDateISO, endDateISO) {
+  // Shift a single date from oldOffset -> newOffset
+  function shiftDate(dateISO) {
+    if (!dateISO) return null;
 
-    // Log the input dates in the desired format
-    console.log(
-      "Start Date:",
-      startDate ? `'${formatDateWithoutMilliseconds(startDate)}'` : "null"
-    );
-    console.log(
-      "End Date:",
-      endDate ? `'${formatDateWithoutMilliseconds(endDate)}'` : "null"
-    );
+    // Parse the original date string (e.g. "2024-12-10T11:00:00Z")
+    const oldDateUTC = new Date(dateISO);
 
-    // Helper function to adjust a single date to the given offset
-    function adjustDate(dateISO, offsetInSeconds) {
-      if (!dateISO) return null; // Return null if the date is empty
-      const inputDateUTC = new Date(dateISO); // Parse the ISO string into a Date object
-      const offsetMs = offsetInSeconds * 1000; // Convert seconds to milliseconds
-      const adjustedDate = new Date(inputDateUTC.getTime() + offsetMs); // Adjust the time (add offset)
+    // The difference between oldOffset and newOffset (in ms)
+    // Example: oldOffset=-39600 (-11 hours), newOffset=-36000 (-10 hours) => delta=-3600
+    const deltaSeconds = oldOffsetSeconds - newOffsetSeconds;
+    const deltaMs = deltaSeconds * 1000;
 
-      // Format the adjusted date back into an ISO string with precision for milliseconds
-      return adjustedDate.toISOString();
-    }
+    // Add the delta, shifting from old local-midnight to new local-midnight
+    const newDateUTC = new Date(oldDateUTC.getTime() + deltaMs);
 
-    // Adjust start and end dates
-    const adjustedStartDate = adjustDate(startDate, offsetInSeconds);
-    const adjustedEndDate = adjustDate(endDate, offsetInSeconds);
-    console.log("adjustedStartDate", adjustedStartDate);
-    console.log("adjustedEndDate", adjustedEndDate);
-
-    // Call the appropriate functions with the adjusted dates
-    bubble_fn_newStart(adjustedStartDate);
-    bubble_fn_newEnd(adjustedEndDate);
+    // Return the new date as an ISO string (e.g. "2024-12-10T10:00:00.000Z")
+    return newDateUTC.toISOString();
   }
+
+  // Shift the two dates
+  const adjustedStartDate = shiftDate(startDateISO);
+  const adjustedEndDate = shiftDate(endDateISO);
+
+  // Send them to Bubble
+  bubble_fn_newStart(adjustedStartDate);
+  bubble_fn_newEnd(adjustedEndDate);
+}
+
 
 
   function generateStartTimes(startTime, duration) {
