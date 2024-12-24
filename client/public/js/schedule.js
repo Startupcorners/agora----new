@@ -89,7 +89,7 @@ export const schedule = async function () {
 
     // 10) Return or bubble
     console.log(dates);
-    bubble_fn_listOfDates({outputlist1:dates});
+    bubble_fn_listOfDatess({outputlist1:dates});
   }
 
   function convertDatesToTimezone(
