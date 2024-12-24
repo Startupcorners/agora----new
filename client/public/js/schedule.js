@@ -82,7 +82,7 @@ export const schedule = async function () {
       ).padStart(2, "0");
 
       // final "local" date-time string (always T00:00).
-      const dateStr = `${localYear}-${localMonth}-${localDay}T00:00${sign}${offsetHours}:${offsetMinutes}`;
+      const dateStr = `${localYear}-${localMonth}-${localDay}T00:00${sign}${offsetHours}:${offsetMinutes}Z`;
 
       dates.push(dateStr);
     }
