@@ -1,9 +1,7 @@
 
 export const schedule = async function () {
-
   function generate42CalendarDates(anchorDateUTC, offsetInSeconds, isStart) {
-
-    console.log(anchorDateUTC)
+    console.log(anchorDateUTC);
     console.log(offsetInSeconds);
     // 1) Parse the input date string into a Date object in UTC.
     const parsedDate = new Date(anchorDateUTC);
@@ -78,88 +76,44 @@ export const schedule = async function () {
     // 10) Return or bubble
     console.log(dates);
     console.log(isStart);
-    if(isStart){
-    bubble_fn_listOfStartDates(dates);
-    } else{
+    if (isStart) {
+      bubble_fn_listOfStartDates(dates);
+    } else {
       bubble_fn_listOfEndDates(dates);
     }
   }
 
-  function convertDatesToTimezone(
-    startDate,
-    startTime,
-    endDate,
-    endTime,
-    timezoneOffsetSeconds,
-    bubbleId
-  ) {
-    function convertToLocal(dateStr, timeStr, offsetSeconds) {
-      console.log(
-        `Converting date: ${dateStr}, time: ${timeStr}, with offset: ${offsetSeconds}s`
-      );
+  function adjustDatesToOffset(startDate, endDate, offsetInSeconds) {
+    // Helper function to adjust a single date to the given offset
+    function adjustDate(dateISO, offsetInSeconds) {
+      if (!dateISO) return null; // Return null if the date is empty
+      const inputDateUTC = new Date(dateISO); // Parse the ISO string into a Date object
+      const offsetMs = offsetInSeconds * 1000; // Convert seconds to milliseconds
+      const adjustedDate = new Date(inputDateUTC.getTime() + offsetMs); // Adjust the time
 
-      // Parse the date and time
-      const [hours, minutes] = timeStr.split(":").map(Number);
-      console.log(`Parsed time - Hours: ${hours}, Minutes: ${minutes}`);
-
-      const utcDate = new Date(dateStr);
-      console.log(`Parsed UTC date: ${utcDate.toISOString()}`);
-
-      // Add timezone offset to the date
-      const offsetMilliseconds = offsetSeconds * 1000;
-      const localDate = new Date(utcDate.getTime() + offsetMilliseconds);
-      console.log(`Date after applying offset: ${localDate.toISOString()}`);
-
-      // Set the time to the provided time
-      localDate.setUTCHours(hours, minutes, 0, 0);
-      console.log(`Date after setting time: ${localDate.toISOString()}`);
-
-      // Format the timezone offset as ±HH:mm
-      const offsetSign = offsetSeconds < 0 ? "-" : "+";
-      const absOffset = Math.abs(offsetSeconds);
-      const offsetHours = String(Math.floor(absOffset / 3600)).padStart(2, "0");
-      const offsetMinutes = String((absOffset % 3600) / 60).padStart(2, "0");
-      const formattedOffset = `${offsetSign}${offsetHours}:${offsetMinutes}`;
-      console.log(`Formatted timezone offset: ${formattedOffset}`);
-
-      // Return the ISO 8601 string with the timezone offset
-      const isoString = localDate.toISOString();
-      const finalDate = isoString.replace("Z", formattedOffset);
-      console.log(`Final converted local date: ${finalDate}`);
-      return finalDate;
+      // Format the adjusted date back into an ISO string with precision for milliseconds
+      return adjustedDate.toISOString();
     }
 
-    console.log(`Starting conversion for Bubble ID: ${bubbleId}`);
-    console.log(`Start Date: ${startDate}, Start Time: ${startTime}`);
-    console.log(`End Date: ${endDate}, End Time: ${endTime}`);
-    console.log(`Timezone Offset (seconds): ${timezoneOffsetSeconds}`);
+    // Adjust start and end dates
+    const adjustedStartDate = adjustDate(startDate, offsetInSeconds);
+    const adjustedEndDate = adjustDate(endDate, offsetInSeconds);
 
-    // Convert start date/time and end date/time
-    const localStartDate = convertToLocal(
-      startDate,
-      startTime,
-      timezoneOffsetSeconds
-    );
-    const localEndDate = convertToLocal(
-      endDate,
-      endTime,
-      timezoneOffsetSeconds
-    );
-
-    console.log(`Converted Start Date: ${localStartDate}`);
-    console.log(`Converted End Date: ${localEndDate}`);
-
-    // Call the Bubble function
-    console.log(
-      `Calling Bubble function with outputs: Bubble ID: ${bubbleId}, Start Date: ${localStartDate}, End Date: ${localEndDate}`
-    );
-    bubble_fn_convert({
-      output1: bubbleId,
-      output2: localStartDate,
-      output3: localEndDate,
-    });
-    console.log(`Bubble function executed successfully.`);
+    // Call the appropriate functions with the adjusted dates
+    bubble_fn_newStart(adjustedStartDate);
+    bubble_fn_newEnd(adjustedEndDate);
   }
+
+  // Example Usage:
+  function bubble_fn_newStart(startDate) {
+    console.log("Adjusted Start Date:", startDate);
+  }
+
+  function bubble_fn_newEnd(endDate) {
+    console.log("Adjusted End Date:", endDate);
+  }
+
+
 
   function generateStartTimes(startTime, duration) {
     const times = [];
