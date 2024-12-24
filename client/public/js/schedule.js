@@ -84,6 +84,23 @@ export const schedule = async function () {
   }
 
   function adjustDatesToOffset(startDate, endDate, offsetInSeconds) {
+    // Helper function to format a date string to remove milliseconds
+    function formatDateWithoutMilliseconds(dateISO) {
+      if (!dateISO) return "null"; // Return "null" as a string if the date is empty
+      const date = new Date(dateISO);
+      return date.toISOString().split(".")[0] + "Z"; // Remove milliseconds and add "Z"
+    }
+
+    // Log the input dates in the desired format
+    console.log(
+      "Start Date:",
+      startDate ? `'${formatDateWithoutMilliseconds(startDate)}'` : "null"
+    );
+    console.log(
+      "End Date:",
+      endDate ? `'${formatDateWithoutMilliseconds(endDate)}'` : "null"
+    );
+
     // Helper function to adjust a single date to the given offset
     function adjustDate(dateISO, offsetInSeconds) {
       if (!dateISO) return null; // Return null if the date is empty
@@ -113,7 +130,15 @@ export const schedule = async function () {
     console.log("Adjusted End Date:", endDate);
   }
 
-
+  // Test cases
+  adjustDatesToOffset(
+    "2024-12-24T05:58:38.901Z",
+    "2024-12-24T15:00:00.000Z",
+    -9 * 3600
+  ); // Offset for UTC-9
+  adjustDatesToOffset(null, "2024-12-24T15:00:00.000Z", -9 * 3600); // Start date is empty
+  adjustDatesToOffset("2024-12-24T05:58:38.901Z", null, -9 * 3600); // End date is empty
+  adjustDatesToOffset(null, null, -9 * 3600); // Both dates are empty
 
   function generateStartTimes(startTime, duration) {
     const times = [];
