@@ -1,7 +1,93 @@
 
 export const schedule = async function () {
-  
+  /**
+   * Generates 42 calendar dates for the given UTC date (anchorDateUTC) and offset in seconds.
+   * The first returned date is a Sunday in "local-midnight" at the given offset,
+   * and we cover 6 consecutive weeks (42 days total).
+   *
+   * Example call:
+   *   generate42CalendarDates("2025-01-13T10:02:22Z", -39600);
+   */
+  function generate42CalendarDates(anchorDateUTC, offsetInSeconds) {
+    // 1) Parse the input date string into a Date object in UTC.
+    //    e.g. "2025-01-13T10:02:22Z"
+    const parsedDate = new Date(anchorDateUTC);
 
+    // 2) Extract the year and month from that UTC date.
+    //    We only care about year & month; the day/time in anchorDate might be arbitrary.
+    const year = parsedDate.getUTCFullYear();
+    const month = parsedDate.getUTCMonth() + 1; // (1..12)
+
+    // 3) Build a Date for "year-month-1 00:00:00 UTC".
+    //    This is the start-of-month in UTC.
+    //    We'll call this 'firstOfMonthUTC'.
+    const firstOfMonthUTC = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+
+    // Helper to construct a Date in UTC that corresponds to *local* midnight
+    // (given offsetInSeconds). local-midnight = UTC midnight minus offset.
+    function makeLocalMidnight(dateUTC) {
+      // dateUTC.getTime() is the absolute UTC timestamp (ms).
+      // We subtract offsetInSeconds * 1000 so that
+      // this new Date object represents "local-midnight" at that offset.
+      return new Date(dateUTC.getTime() - offsetInSeconds * 1000);
+    }
+
+    // 4) Convert that "start-of-month in UTC" to local-midnight for the given offset.
+    const firstOfMonthLocalMidnight = makeLocalMidnight(firstOfMonthUTC);
+
+    // 5) Figure out the local day-of-week for that day. 0=Sunday, 1=Monday, ... 6=Saturday.
+    //    We can use date.getUTCDay() because the day-of-week is the same moment globally,
+    //    so it’s still correct for "local" vs "UTC" if it’s the same absolute timestamp.
+    const firstDayLocalDOW = firstOfMonthLocalMidnight.getUTCDay();
+
+    // 6) We want the calendar to start on the SUNDAY of that week.
+    //    If the first day is already Sunday (0), offsetDays=0. If it's Wednesday (3), we go back 3 days to Sunday, etc.
+    const offsetDays = firstDayLocalDOW; // how many days we go backwards to reach Sunday
+
+    // 7) The first Sunday "local-midnight" = firstOfMonthLocalMidnight - offsetDays
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const startDateLocal = new Date(
+      firstOfMonthLocalMidnight.getTime() - offsetDays * oneDayMs
+    );
+
+    // 8) Build the 42 consecutive days
+    const dates = [];
+    for (let i = 0; i < 42; i++) {
+      // Each step is 24h in local-midnight increments
+      const currentLocalMidnight = new Date(
+        startDateLocal.getTime() + i * oneDayMs
+      );
+
+      // 9) Convert that local-midnight moment to an ISO-like string of form:
+      //    "YYYY-MM-DDT00:00±HH:MM"
+      //    We read .getUTCFullYear(), .getUTCMonth(), .getUTCDate() to get the "local" date
+      //    because currentLocalMidnight was chosen to be local-midnight in absolute terms.
+      const localYear = currentLocalMidnight.getUTCFullYear();
+      const localMonth = String(
+        currentLocalMidnight.getUTCMonth() + 1
+      ).padStart(2, "0");
+      const localDay = String(currentLocalMidnight.getUTCDate()).padStart(
+        2,
+        "0"
+      );
+
+      // Format offset
+      const sign = offsetInSeconds >= 0 ? "+" : "-";
+      const absOffset = Math.abs(offsetInSeconds);
+      const offsetHours = String(Math.floor(absOffset / 3600)).padStart(2, "0");
+      const offsetMinutes = String(
+        Math.floor((absOffset % 3600) / 60)
+      ).padStart(2, "0");
+
+      // final "local" date-time string (always T00:00).
+      const dateStr = `${localYear}-${localMonth}-${localDay}T00:00${sign}${offsetHours}:${offsetMinutes}`;
+
+      dates.push(dateStr);
+    }
+
+    // 10) Return or bubble
+    bubble_fn_listOfDates(dates);
+  }
 
   function convertDatesToTimezone(
     startDate,
@@ -78,11 +164,6 @@ export const schedule = async function () {
     });
     console.log(`Bubble function executed successfully.`);
   }
-
-  
-
-  
-
 
   function generateStartTimes(startTime, duration) {
     const times = [];
@@ -306,7 +387,6 @@ export const schedule = async function () {
     return result;
   }
 
-
   // Helper functions
   function adjustSlotsToViewerTimezone(slotList, userOffsetInSeconds) {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
@@ -329,8 +409,6 @@ export const schedule = async function () {
       bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
     );
   }
-
-
 
   function computeWeekRangeAndDailyIntersection(
     allAvailabilityLists,
@@ -452,11 +530,6 @@ export const schedule = async function () {
     };
   }
 
-
-
-
-
-
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
     // Parse the incoming string (with offset) and preserve the offset
     const globalStart = moment.parseZone(globalStartStr);
@@ -475,9 +548,6 @@ export const schedule = async function () {
     }
     return outputlist6;
   }
-
-
-
 
   function generateBaseDay(
     globalStartStr,
@@ -541,52 +611,35 @@ export const schedule = async function () {
     return baseSlots;
   }
 
-function generateWeeklySlots(
-  globalStartStr,
-  commonDailyStartStr,
-  commonDailyEndStr,
-  slotDuration // e.g. 60
-) {
-  // 1) Base day of N slots (where N is dynamic)
-  const base = generateBaseDay(
+  function generateWeeklySlots(
     globalStartStr,
     commonDailyStartStr,
     commonDailyEndStr,
-    slotDuration
-  );
+    slotDuration // e.g. 60
+  ) {
+    // 1) Base day of N slots (where N is dynamic)
+    const base = generateBaseDay(
+      globalStartStr,
+      commonDailyStartStr,
+      commonDailyEndStr,
+      slotDuration
+    );
 
-  // 2) For 7 days total, replicate
-  const outputlist7 = [];
-  for (let day = 0; day < 7; day++) {
-    for (let [startStr, endStr] of base) {
-      const newStart = moment.parseZone(startStr).add(day, "days");
-      const newEnd = moment.parseZone(endStr).add(day, "days");
-      outputlist7.push([
-        newStart.format("YYYY-MM-DDTHH:mm:ssZ"),
-        newEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
-      ]);
+    // 2) For 7 days total, replicate
+    const outputlist7 = [];
+    for (let day = 0; day < 7; day++) {
+      for (let [startStr, endStr] of base) {
+        const newStart = moment.parseZone(startStr).add(day, "days");
+        const newEnd = moment.parseZone(endStr).add(day, "days");
+        outputlist7.push([
+          newStart.format("YYYY-MM-DDTHH:mm:ssZ"),
+          newEnd.format("YYYY-MM-DDTHH:mm:ssZ"),
+        ]);
+      }
     }
+
+    return outputlist7;
   }
-
-  return outputlist7;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   function assignSlotInfo(
     outputlist7,
@@ -728,8 +781,6 @@ function generateWeeklySlots(
     return outputlist5;
   }
 
-
-
   function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
     console.log("Received Availabilities:", availabilities);
 
@@ -859,6 +910,7 @@ function generateWeeklySlots(
     generateStartTimes,
     generateEndTimes,
     convertDatesToTimezone,
+    generate42CalendarDates,
     generateSlotsForWeek,
     findOverlappingTimeRanges,
   };
