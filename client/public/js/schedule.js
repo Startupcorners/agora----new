@@ -84,6 +84,9 @@ export const schedule = async function () {
   }
 
   function adjustDatesToOffset(oldOffsetSeconds, newOffsetSeconds, startDateISO, endDateISO) {
+
+    console.log("startDateISO", startDateISO);
+    console.log("endDateISO", endDateISO);
   // Shift a single date from oldOffset -> newOffset
   function shiftDate(dateISO) {
     if (!dateISO) return null;
@@ -106,6 +109,9 @@ export const schedule = async function () {
   // Shift the two dates
   const adjustedStartDate = shiftDate(startDateISO);
   const adjustedEndDate = shiftDate(endDateISO);
+
+  console.log("adjustedStartDate", adjustedStartDate);
+  console.log("adjustedEndDate", adjustedEndDate);
 
   // Send them to Bubble
   bubble_fn_newStart(adjustedStartDate);
