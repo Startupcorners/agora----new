@@ -3,42 +3,82 @@ export const schedule = async function () {
   
 
 
-  function convertDatesToTimezone(startDate, startTime, endDate, endTime, timezoneOffsetSeconds, bubbleId) {
+  function convertDatesToTimezone(
+    startDate,
+    startTime,
+    endDate,
+    endTime,
+    timezoneOffsetSeconds,
+    bubbleId
+  ) {
     function convertToLocal(dateStr, timeStr, offsetSeconds) {
+      console.log(
+        `Converting date: ${dateStr}, time: ${timeStr}, with offset: ${offsetSeconds}s`
+      );
+
       // Parse the date and time
-      const [hours, minutes] = timeStr.split(':').map(Number);
+      const [hours, minutes] = timeStr.split(":").map(Number);
+      console.log(`Parsed time - Hours: ${hours}, Minutes: ${minutes}`);
+
       const utcDate = new Date(dateStr);
-  
+      console.log(`Parsed UTC date: ${utcDate.toISOString()}`);
+
       // Add timezone offset to the date
       const offsetMilliseconds = offsetSeconds * 1000;
       const localDate = new Date(utcDate.getTime() + offsetMilliseconds);
-  
+      console.log(`Date after applying offset: ${localDate.toISOString()}`);
+
       // Set the time to the provided time
       localDate.setUTCHours(hours, minutes, 0, 0);
-  
+      console.log(`Date after setting time: ${localDate.toISOString()}`);
+
       // Format the timezone offset as ±HH:mm
-      const offsetSign = offsetSeconds < 0 ? '-' : '+';
+      const offsetSign = offsetSeconds < 0 ? "-" : "+";
       const absOffset = Math.abs(offsetSeconds);
-      const offsetHours = String(Math.floor(absOffset / 3600)).padStart(2, '0');
-      const offsetMinutes = String((absOffset % 3600) / 60).padStart(2, '0');
+      const offsetHours = String(Math.floor(absOffset / 3600)).padStart(2, "0");
+      const offsetMinutes = String((absOffset % 3600) / 60).padStart(2, "0");
       const formattedOffset = `${offsetSign}${offsetHours}:${offsetMinutes}`;
-  
+      console.log(`Formatted timezone offset: ${formattedOffset}`);
+
       // Return the ISO 8601 string with the timezone offset
       const isoString = localDate.toISOString();
-      return isoString.replace('Z', formattedOffset);
+      const finalDate = isoString.replace("Z", formattedOffset);
+      console.log(`Final converted local date: ${finalDate}`);
+      return finalDate;
     }
-  
+
+    console.log(`Starting conversion for Bubble ID: ${bubbleId}`);
+    console.log(`Start Date: ${startDate}, Start Time: ${startTime}`);
+    console.log(`End Date: ${endDate}, End Time: ${endTime}`);
+    console.log(`Timezone Offset (seconds): ${timezoneOffsetSeconds}`);
+
     // Convert start date/time and end date/time
-    const localStartDate = convertToLocal(startDate, startTime, timezoneOffsetSeconds);
-    const localEndDate = convertToLocal(endDate, endTime, timezoneOffsetSeconds);
-  
+    const localStartDate = convertToLocal(
+      startDate,
+      startTime,
+      timezoneOffsetSeconds
+    );
+    const localEndDate = convertToLocal(
+      endDate,
+      endTime,
+      timezoneOffsetSeconds
+    );
+
+    console.log(`Converted Start Date: ${localStartDate}`);
+    console.log(`Converted End Date: ${localEndDate}`);
+
     // Call the Bubble function
+    console.log(
+      `Calling Bubble function with outputs: Bubble ID: ${bubbleId}, Start Date: ${localStartDate}, End Date: ${localEndDate}`
+    );
     bubble_fn_convert({
       output1: bubbleId,
       output2: localStartDate,
       output3: localEndDate,
     });
+    console.log(`Bubble function executed successfully.`);
   }
+
   
 
   
