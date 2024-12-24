@@ -859,7 +859,7 @@ export const schedule = async function () {
     // generateUniqueDates,
     generateStartTimes,
     generateEndTimes,
-    convertDatesToTimezone,
+    adjustDatesToOffset,
     generate42CalendarDates,
     generateSlotsForWeek,
     findOverlappingTimeRanges,
