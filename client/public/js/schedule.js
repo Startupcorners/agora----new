@@ -20,7 +20,9 @@ export const schedule = async function () {
     anchorDateUTC,
     offsetInSeconds,
     parameterString
-  ) {
+  )
+   {
+    console.log(parameterString);
     // 1) Parse the input date string into a Date object in UTC.
     const parsedDate = new Date(anchorDateUTC);
 
