@@ -50,6 +50,7 @@ function generate42CalendarDates(anchorDateUTC, offsetInSeconds, functionName) {
     dates.push(dateStr);
   }
 
+  console.log(dates)
     eval(functionName + '(dates)');
 }
 
