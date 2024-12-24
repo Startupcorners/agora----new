@@ -89,6 +89,7 @@ export const schedule = async function () {
 
     // 10) Return or bubble
     console.log(dates);
+    console.log(isStart);
     if(isStart){
     bubble_fn_listOfStartDates(dates);
     } else{
