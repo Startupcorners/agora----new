@@ -1,59 +1,48 @@
 
 export const schedule = async function () {
-  //   function generateUniqueDates(inputList) {
-  //     const availabilityList = inputList[0];
-  //     const currentUserDate = inputList[1];
-  //     const daysInAdvance = inputList[2];
-  //     const excludeWeekendAndHolidays = inputList[3];
+  
 
-  //     console.log(availabilityList);
-  //     console.log(currentUserDate);
-  //     console.log(daysInAdvance);
-  //     console.log(excludeWeekendAndHolidays);
 
-  //     const uniqueDates = new Set();
-  //     const currentMoment = moment.utc(currentUserDate);
-  //     const minBookableDate = currentMoment
-  //       .clone()
-  //       .add(daysInAdvance, "days")
-  //       .startOf("day");
+  function convertDatesToTimezone(startDate, startTime, endDate, endTime, timezoneOffsetSeconds, bubbleId) {
+    function convertToLocal(dateStr, timeStr, offsetSeconds) {
+      // Parse the date and time
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const utcDate = new Date(dateStr);
+  
+      // Add timezone offset to the date
+      const offsetMilliseconds = offsetSeconds * 1000;
+      const localDate = new Date(utcDate.getTime() + offsetMilliseconds);
+  
+      // Set the time to the provided time
+      localDate.setUTCHours(hours, minutes, 0, 0);
+  
+      // Format the timezone offset as ±HH:mm
+      const offsetSign = offsetSeconds < 0 ? '-' : '+';
+      const absOffset = Math.abs(offsetSeconds);
+      const offsetHours = String(Math.floor(absOffset / 3600)).padStart(2, '0');
+      const offsetMinutes = String((absOffset % 3600) / 60).padStart(2, '0');
+      const formattedOffset = `${offsetSign}${offsetHours}:${offsetMinutes}`;
+  
+      // Return the ISO 8601 string with the timezone offset
+      const isoString = localDate.toISOString();
+      return isoString.replace('Z', formattedOffset);
+    }
+  
+    // Convert start date/time and end date/time
+    const localStartDate = convertToLocal(startDate, startTime, timezoneOffsetSeconds);
+    const localEndDate = convertToLocal(endDate, endTime, timezoneOffsetSeconds);
+  
+    // Call the Bubble function
+    bubble_fn_convert({
+      output1: bubbleId,
+      output2: localStartDate,
+      output3: localEndDate,
+    });
+  }
+  
 
-  //     availabilityList.forEach((availability) => {
-  //       // Start and end dates are already in UTC, no need for time zone conversion
-  //       const startDate = moment.utc(availability.start_date).startOf("day");
-  //       const endDate = moment.utc(availability.end_date).endOf("day");
+  
 
-  //       let currentDate = startDate.clone();
-
-  //       while (currentDate.isSameOrBefore(endDate)) {
-  //         let dailyStart = currentDate.clone().startOf("day");
-  //         const currentDateStr = dailyStart
-  //           .utc()
-  //           .format("YYYY-MM-DDT00:00:00[Z]");
-  //         const isHoliday =
-  //           availability.holidays &&
-  //           availability.holidays.includes(currentDateStr.split("T")[0]);
-  //         const isWeekend = dailyStart.day() === 0 || dailyStart.day() === 6; // 0 = Sunday, 6 = Saturday
-
-  //         if (dailyStart.isAfter(minBookableDate)) {
-  //           if (excludeWeekendAndHolidays) {
-  //             if (!isHoliday && !isWeekend) {
-  //               uniqueDates.add(currentDateStr);
-  //             }
-  //           } else {
-  //             uniqueDates.add(currentDateStr);
-  //           }
-  //         }
-
-  //         currentDate.add(1, "days");
-  //       }
-  //     });
-
-  //     console.log("uniquedatestart");
-  //     console.log(Array.from(uniqueDates).sort());
-  //     console.log("uniquedateend");
-  //     bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
-  //   }
 
   function generateStartTimes(startTime, duration) {
     const times = [];
@@ -829,6 +818,7 @@ function generateWeeklySlots(
     // generateUniqueDates,
     generateStartTimes,
     generateEndTimes,
+    convertDatesToTimezone,
     generateSlotsForWeek,
     findOverlappingTimeRanges,
   };
@@ -1089,3 +1079,59 @@ window["schedule"] = schedule;
 //   console.log(days);
 //   bubble_fn_daysInMonth(days);
 // }
+
+
+//   function generateUniqueDates(inputList) {
+  //     const availabilityList = inputList[0];
+  //     const currentUserDate = inputList[1];
+  //     const daysInAdvance = inputList[2];
+  //     const excludeWeekendAndHolidays = inputList[3];
+
+  //     console.log(availabilityList);
+  //     console.log(currentUserDate);
+  //     console.log(daysInAdvance);
+  //     console.log(excludeWeekendAndHolidays);
+
+  //     const uniqueDates = new Set();
+  //     const currentMoment = moment.utc(currentUserDate);
+  //     const minBookableDate = currentMoment
+  //       .clone()
+  //       .add(daysInAdvance, "days")
+  //       .startOf("day");
+
+  //     availabilityList.forEach((availability) => {
+  //       // Start and end dates are already in UTC, no need for time zone conversion
+  //       const startDate = moment.utc(availability.start_date).startOf("day");
+  //       const endDate = moment.utc(availability.end_date).endOf("day");
+
+  //       let currentDate = startDate.clone();
+
+  //       while (currentDate.isSameOrBefore(endDate)) {
+  //         let dailyStart = currentDate.clone().startOf("day");
+  //         const currentDateStr = dailyStart
+  //           .utc()
+  //           .format("YYYY-MM-DDT00:00:00[Z]");
+  //         const isHoliday =
+  //           availability.holidays &&
+  //           availability.holidays.includes(currentDateStr.split("T")[0]);
+  //         const isWeekend = dailyStart.day() === 0 || dailyStart.day() === 6; // 0 = Sunday, 6 = Saturday
+
+  //         if (dailyStart.isAfter(minBookableDate)) {
+  //           if (excludeWeekendAndHolidays) {
+  //             if (!isHoliday && !isWeekend) {
+  //               uniqueDates.add(currentDateStr);
+  //             }
+  //           } else {
+  //             uniqueDates.add(currentDateStr);
+  //           }
+  //         }
+
+  //         currentDate.add(1, "days");
+  //       }
+  //     });
+
+  //     console.log("uniquedatestart");
+  //     console.log(Array.from(uniqueDates).sort());
+  //     console.log("uniquedateend");
+  //     bubble_fn_uniqueDatesBubble(Array.from(uniqueDates).sort());
+  //   }
