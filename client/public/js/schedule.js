@@ -508,54 +508,51 @@ export const schedule = async function () {
     globalStartStr,
     commonDailyStartStr,
     commonDailyEndStr,
-    slotDuration // e.g. 60 minutes
+    slotDuration // e.g., 60 minutes
   ) {
     const baseSlots = [];
     const globalStart = moment.parseZone(globalStartStr);
 
-    // daily start/end
+    // Parse daily start and end times
     const [startHour, startMin] = commonDailyStartStr.split(":").map(Number);
     const [endHour, endMin] = commonDailyEndStr.split(":").map(Number);
 
-    // Calculate the total daily minutes from start to end
-    const dailyMinutes = endHour * 60 + endMin - (startHour * 60 + startMin);
-    // Number of *full* slots that fit into that time span
-    const slotsNeeded = Math.floor(dailyMinutes / slotDuration);
-
-    // figure out "day zero" (the date of globalStart)
+    // Handle time ranges spanning midnight
     let dayZero = globalStart.clone().startOf("day");
 
-    // 01:00 or 04:00 or whatever your daily start is, on dayZero
-    let dayStart = dayZero
+    // Part 1: Evening slots (from daily start to midnight)
+    let eveningStart = dayZero
       .clone()
       .set({ hour: startHour, minute: startMin, second: 0, millisecond: 0 });
-    let dayEnd = dayZero
+    let midnight = dayZero.clone().endOf("day");
+
+    let currentStart = moment.max(globalStart, eveningStart);
+
+    while (currentStart.isBefore(midnight)) {
+      const nextSlot = currentStart.clone().add(slotDuration, "minutes");
+      if (nextSlot.isAfter(midnight)) break;
+      baseSlots.push([
+        currentStart.format("YYYY-MM-DDTHH:mm:ssZ"),
+        nextSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
+      ]);
+      currentStart = nextSlot;
+    }
+
+    // Part 2: Morning slots (from midnight to daily end)
+    let morningStart = dayZero
       .clone()
+      .add(1, "day") // Move to the next day
+      .set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
+    let morningEnd = dayZero
+      .clone()
+      .add(1, "day")
       .set({ hour: endHour, minute: endMin, second: 0, millisecond: 0 });
 
-    // Our first slot starts at the max between dailyStart or globalStart
-    let currentStart = moment.max(globalStart, dayStart);
+    currentStart = morningStart.clone();
 
-    // Keep generating slots until we have `slotsNeeded`
-    while (baseSlots.length < slotsNeeded) {
-      // If we’re already past the daily end (e.g. 19:00), then jump to next day’s daily window
-      if (currentStart.isSameOrAfter(dayEnd)) {
-        dayZero.add(1, "day");
-        dayStart = dayZero.clone().set({ hour: startHour, minute: startMin });
-        dayEnd = dayZero.clone().set({ hour: endHour, minute: endMin });
-        currentStart = dayStart.clone();
-      }
-
+    while (currentStart.isBefore(morningEnd)) {
       const nextSlot = currentStart.clone().add(slotDuration, "minutes");
-      // If adding one more slot crosses dayEnd, skip to next day
-      if (nextSlot.isAfter(dayEnd)) {
-        dayZero.add(1, "day");
-        dayStart = dayZero.clone().set({ hour: startHour, minute: startMin });
-        dayEnd = dayZero.clone().set({ hour: endHour, minute: endMin });
-        currentStart = dayStart.clone();
-        continue;
-      }
-
+      if (nextSlot.isAfter(morningEnd)) break;
       baseSlots.push([
         currentStart.format("YYYY-MM-DDTHH:mm:ssZ"),
         nextSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
@@ -565,6 +562,7 @@ export const schedule = async function () {
 
     return baseSlots;
   }
+
 
   function generateWeeklySlots(
     globalStartStr,
