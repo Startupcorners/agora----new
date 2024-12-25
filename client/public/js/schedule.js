@@ -855,6 +855,8 @@ export const schedule = async function () {
       outputlist3: finalNonOverlappingUserIds,
     });
 
+    setTimeout(() => bubble_fn_ready(), 3000);
+
     return finalOutputList1;
   }
 
