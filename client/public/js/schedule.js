@@ -508,7 +508,7 @@ export const schedule = async function () {
     globalStartStr,
     commonDailyStartStr,
     commonDailyEndStr,
-    slotDuration // e.g., 60 minutes
+    slotDuration
   ) {
     const baseSlots = [];
     const globalStart = moment.parseZone(globalStartStr);
@@ -517,42 +517,32 @@ export const schedule = async function () {
     const [startHour, startMin] = commonDailyStartStr.split(":").map(Number);
     const [endHour, endMin] = commonDailyEndStr.split(":").map(Number);
 
-    // Handle time ranges spanning midnight
-    let dayZero = globalStart.clone().startOf("day");
+    // Calculate the start and end moments for the slots
+    const startMoment = globalStart.clone().set({
+      hour: startHour,
+      minute: startMin,
+      second: 0,
+      millisecond: 0,
+    });
 
-    // Part 1: Evening slots (from daily start to midnight)
-    let eveningStart = dayZero
-      .clone()
-      .set({ hour: startHour, minute: startMin, second: 0, millisecond: 0 });
-    let midnight = dayZero.clone().endOf("day");
+    const endMoment = globalStart.clone().set({
+      hour: endHour,
+      minute: endMin,
+      second: 0,
+      millisecond: 0,
+    });
 
-    let currentStart = moment.max(globalStart, eveningStart);
-
-    while (currentStart.isBefore(midnight)) {
-      const nextSlot = currentStart.clone().add(slotDuration, "minutes");
-      if (nextSlot.isAfter(midnight)) break;
-      baseSlots.push([
-        currentStart.format("YYYY-MM-DDTHH:mm:ssZ"),
-        nextSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
-      ]);
-      currentStart = nextSlot;
+    // Adjust for cases where the end time is on the next day
+    if (endMoment.isBefore(startMoment)) {
+      endMoment.add(1, "day");
     }
 
-    // Part 2: Morning slots (from midnight to daily end)
-    let morningStart = dayZero
-      .clone()
-      .add(1, "day") // Move to the next day
-      .set({ hour: 0, minute: 0, second: 0, millisecond: 0 });
-    let morningEnd = dayZero
-      .clone()
-      .add(1, "day")
-      .set({ hour: endHour, minute: endMin, second: 0, millisecond: 0 });
+    // Generate slots
+    let currentStart = moment.max(globalStart, startMoment); // Ensure we don't start before globalStart
 
-    currentStart = morningStart.clone();
-
-    while (currentStart.isBefore(morningEnd)) {
+    while (currentStart.isBefore(endMoment)) {
       const nextSlot = currentStart.clone().add(slotDuration, "minutes");
-      if (nextSlot.isAfter(morningEnd)) break;
+      if (nextSlot.isAfter(endMoment)) break;
       baseSlots.push([
         currentStart.format("YYYY-MM-DDTHH:mm:ssZ"),
         nextSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
@@ -562,6 +552,7 @@ export const schedule = async function () {
 
     return baseSlots;
   }
+
 
 
   function generateWeeklySlots(
