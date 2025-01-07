@@ -549,9 +549,17 @@ export const schedule = async function () {
     const baseSlots = [];
     const globalStart = moment.parseZone(globalStartStr);
 
+    console.log("=== generateBaseDay ===");
+    console.log("Input - globalStartStr:", globalStartStr);
+    console.log("Input - commonDailyStartStr:", commonDailyStartStr);
+    console.log("Input - commonDailyEndStr:", commonDailyEndStr);
+    console.log("Input - slotDuration:", slotDuration);
+
     // Parse daily start and end times
     const [startHour, startMin] = commonDailyStartStr.split(":").map(Number);
     const [endHour, endMin] = commonDailyEndStr.split(":").map(Number);
+    console.log("Parsed commonDailyStart:", { startHour, startMin });
+    console.log("Parsed commonDailyEnd:", { endHour, endMin });
 
     // Calculate the start and end moments for the slots
     let startMoment = globalStart.clone().set({
@@ -561,37 +569,64 @@ export const schedule = async function () {
       millisecond: 0,
     });
 
-    const endMoment = globalStart.clone().set({
+    let endMoment = globalStart.clone().set({
       hour: endHour,
       minute: endMin,
       second: 0,
       millisecond: 0,
     });
 
+    // Log initial moments
+    console.log("Initial startMoment:", startMoment.format());
+    console.log("Initial endMoment:", endMoment.format());
+
     // Adjust for cases where the end time is on the next day
     if (endMoment.isBefore(startMoment)) {
       endMoment.add(1, "day");
+      console.log("Adjusted endMoment (next day):", endMoment.format());
     }
 
     // Ensure startMoment begins after globalStart
     if (startMoment.isBefore(globalStart)) {
       startMoment = globalStart.clone();
+      console.log("Adjusted startMoment to globalStart:", startMoment.format());
     }
 
     // Generate slots
     let currentStart = startMoment;
+    console.log("Starting slot generation...");
     while (currentStart.isBefore(endMoment)) {
       const nextSlot = currentStart.clone().add(slotDuration, "minutes");
-      if (nextSlot.isAfter(endMoment)) break;
+      if (nextSlot.isAfter(endMoment)) {
+        console.log(
+          "Next slot exceeds endMoment. Breaking loop:",
+          nextSlot.format()
+        );
+        break;
+      }
+
       baseSlots.push([
         currentStart.format("YYYY-MM-DDTHH:mm:ssZ"),
         nextSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
       ]);
+
+      console.log(
+        "Generated slot:",
+        currentStart.format("YYYY-MM-DDTHH:mm:ssZ"),
+        "to",
+        nextSlot.format("YYYY-MM-DDTHH:mm:ssZ")
+      );
+
       currentStart = nextSlot;
     }
 
+    console.log("Slot generation completed. Total slots:", baseSlots.length);
+    console.log("Generated slots:", baseSlots);
+    console.log("=== End of generateBaseDay ===");
+
     return baseSlots;
   }
+
 
 
 
