@@ -77,9 +77,9 @@ export const insights = async function () {
 
       // Check if the appointment falls within the period
       if (appointmentDate >= start && appointmentDate <= end) {
-        appointment.meetingParticipantsids.forEach((participantId) => {
+        appointment.meetingParticipantsids.forEach((participantId, index) => {
           if (participantId !== mainUserId) {
-            // Add to unique IDs set
+            // Add the participant ID to unique IDs set
             uniqueIds.add(participantId);
 
             // Increment the meeting count for the participant
@@ -87,6 +87,11 @@ export const insights = async function () {
               meetingCounts[participantId] = 0;
             }
             meetingCounts[participantId]++;
+          } else {
+            // Remove mainUserId and corresponding name/startupName
+            appointment.meetingParticipantsids.splice(index, 1);
+            appointment.name.splice(index, 1);
+            appointment.startupName.splice(index, 1);
           }
         });
       }
@@ -103,14 +108,19 @@ export const insights = async function () {
       (id, index) => colorList[index % colorList.length] // Cycle through colors
     );
 
-   
-   console.log(uniqueIdsList);
+    // Generate outputlist4 by combining name and startupName
+    const combinedNamesList = appointments.flatMap((appointment) =>
+      appointment.name.map((name, index) =>
+        appointment.startupName[index] ? appointment.startupName[index] : name
+      )
+    );
+
       bubble_fn_appointments({
         outputlist1: uniqueIdsList, // Array of unique IDs
         outputlist2: meetingCountsList, // Array of counts (matching uniqueIdsList)
         outputlist3: chartColorsList, // Array of colors (matching uniqueIdsList)
+        outputlist4: combinedNamesList, // Combined list of names and startupNames
       });
-
   }
 
   return {
