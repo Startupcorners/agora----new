@@ -1,5 +1,12 @@
 export const insights = async function () {
   function processAppointments(appointments, mainUserId, startDate, endDate) {
+    // Log the inputs received
+    console.log("processAppointments called with:");
+    console.log("appointments:", appointments);
+    console.log("mainUserId:", mainUserId);
+    console.log("startDate:", startDate);
+    console.log("endDate:", endDate);
+
     // Convert startDate and endDate to Date objects for comparison
     const start = new Date(startDate);
     const end = new Date(endDate);
