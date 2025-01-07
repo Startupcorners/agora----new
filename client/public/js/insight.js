@@ -187,6 +187,11 @@ export const insights = async function () {
       )
     );
 
+    console.log(outputlist1);
+    console.log(outputlist2);
+    console.log(outputlist3);
+    console.log(outputlist4);
+
       bubble_fn_messages({
         outputlist1: uniqueIdsList, // Array of unique IDs
         outputlist2: messageCountsList, // Array of counts (matching uniqueIdsList)
