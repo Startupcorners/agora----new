@@ -561,8 +561,8 @@ export const schedule = async function () {
     console.log("Parsed commonDailyStart:", { startHour, startMin });
     console.log("Parsed commonDailyEnd:", { endHour, endMin });
 
-    // Calculate the start and end moments for the slots
-    let startMoment = globalStart.clone().set({
+    // Calculate the start and end moments for the daily range
+    const startMoment = globalStart.clone().set({
       hour: startHour,
       minute: startMin,
       second: 0,
@@ -576,34 +576,20 @@ export const schedule = async function () {
       millisecond: 0,
     });
 
-    // Log initial moments
-    console.log("Initial startMoment:", startMoment.format());
-    console.log("Initial endMoment:", endMoment.format());
-
     // Adjust for cases where the end time is on the next day
     if (endMoment.isBefore(startMoment)) {
       endMoment.add(1, "day");
-      console.log("Adjusted endMoment (next day):", endMoment.format());
     }
 
-    // Ensure startMoment begins after globalStart
-    if (startMoment.isBefore(globalStart)) {
-      startMoment = globalStart.clone();
-      console.log("Adjusted startMoment to globalStart:", startMoment.format());
-    }
+    console.log("Daily range - startMoment:", startMoment.format());
+    console.log("Daily range - endMoment:", endMoment.format());
 
     // Generate slots
-    let currentStart = startMoment;
+    let currentStart = startMoment.clone();
     console.log("Starting slot generation...");
     while (currentStart.isBefore(endMoment)) {
       const nextSlot = currentStart.clone().add(slotDuration, "minutes");
-      if (nextSlot.isAfter(endMoment)) {
-        console.log(
-          "Next slot exceeds endMoment. Breaking loop:",
-          nextSlot.format()
-        );
-        break;
-      }
+      if (nextSlot.isAfter(endMoment)) break;
 
       baseSlots.push([
         currentStart.format("YYYY-MM-DDTHH:mm:ssZ"),
@@ -626,6 +612,7 @@ export const schedule = async function () {
 
     return baseSlots;
   }
+
 
 
 
