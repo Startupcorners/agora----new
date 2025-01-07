@@ -60,18 +60,16 @@ export const insights = async function () {
     console.log("startDate:", startDate);
     console.log("endDate:", endDate);
 
-    // Predefined list of colors
-    
 
     // Convert startDate and endDate to Date objects for comparison
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    // Set to collect unique IDs (excluding mainUserId)
-    const uniqueIds = new Set();
-
-    // Object to count meetings per ID
-    const meetingCounts = {};
+    // Outputs
+    const uniqueIdsList = [];
+    const meetingCountsList = [];
+    const chartColorsList = [];
+    const combinedNamesList = [];
 
     // Iterate through appointments
     appointments.forEach((appointment) => {
@@ -81,49 +79,41 @@ export const insights = async function () {
       if (appointmentDate >= start && appointmentDate <= end) {
         appointment.meetingParticipantsids.forEach((participantId, index) => {
           if (participantId !== mainUserId) {
-            // Add the participant ID to unique IDs set
-            uniqueIds.add(participantId);
-
-            // Increment the meeting count for the participant
-            if (!meetingCounts[participantId]) {
-              meetingCounts[participantId] = 0;
-            }
-            meetingCounts[participantId]++;
-          } else {
-            // Remove mainUserId and corresponding name/startupName
-            appointment.meetingParticipantsids.splice(index, 1);
-            appointment.name.splice(index, 1);
-            appointment.startupName.splice(index, 1);
+            // Add participant to output lists
+            uniqueIdsList.push(participantId);
+            meetingCountsList.push(1); // Each participant is counted once per appointment
+            chartColorsList.push(
+              colorList[uniqueIdsList.length % colorList.length]
+            );
+            combinedNamesList.push(
+              appointment.startupName[index] &&
+                appointment.startupName[index].trim()
+                ? appointment.startupName[index].trim()
+                : appointment.name[index].trim()
+            );
           }
         });
       }
     });
 
-    // Convert the uniqueIds Set to an array
-    const uniqueIdsList = Array.from(uniqueIds);
+    // Log results for debugging
+    console.log("Unique IDs:", uniqueIdsList);
+    console.log("Meeting Counts:", meetingCountsList);
+    console.log("Combined Names List:", combinedNamesList);
 
-    // Generate the meeting counts as an array (in the same order as uniqueIdsList)
-    const meetingCountsList = uniqueIdsList.map((id) => meetingCounts[id] || 0);
-
-    // Generate chart colors as an array (in the same order as uniqueIdsList)
-    const chartColorsList = uniqueIdsList.map(
-      (id, index) => colorList[index % colorList.length] // Cycle through colors
-    );
-
-    // Generate outputlist4 by combining name and startupName
-    const combinedNamesList = appointments.flatMap((appointment) =>
-      appointment.name.map((name, index) =>
-        appointment.startupName[index] ? appointment.startupName[index] : name
-      )
-    );
-
+    // Call Bubble function with the results
+    if (typeof bubble_fn_appointments === "function") {
       bubble_fn_appointments({
         outputlist1: uniqueIdsList, // Array of unique IDs
         outputlist2: meetingCountsList, // Array of counts (matching uniqueIdsList)
         outputlist3: chartColorsList, // Array of colors (matching uniqueIdsList)
         outputlist4: combinedNamesList, // Combined list of names and startupNames
       });
+    } else {
+      console.error("Bubble function bubble_fn_appointments is not defined.");
+    }
   }
+
 
   function processMessages(messages, mainUserId, startDate, endDate) {
     // Log the inputs received
@@ -137,11 +127,11 @@ export const insights = async function () {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    // Set to collect unique IDs (excluding mainUserId)
-    const uniqueIds = new Set();
-
-    // Object to count messages per ID
-    const messageCounts = {};
+    // Outputs
+    const uniqueIdsList = [];
+    const messageCountsList = [];
+    const chartColorsList = [];
+    const combinedNamesList = [];
 
     // Iterate through messages
     messages.forEach((message) => {
@@ -151,55 +141,40 @@ export const insights = async function () {
       if (messageDate >= start && messageDate <= end) {
         message.participantIds.forEach((participantId, index) => {
           if (participantId !== mainUserId) {
-            // Add the participant ID to unique IDs set
-            uniqueIds.add(participantId);
-
-            // Increment the message count for the participant
-            if (!messageCounts[participantId]) {
-              messageCounts[participantId] = 0;
-            }
-            messageCounts[participantId]++;
-          } else {
-            // Remove mainUserId and corresponding name/startupName
-            message.participantIds.splice(index, 1);
-            message.names.splice(index, 1);
-            message.startupNames.splice(index, 1);
+            // Add participant to output lists
+            uniqueIdsList.push(participantId);
+            messageCountsList.push(1); // Each participant is counted once per message
+            chartColorsList.push(
+              colorList[uniqueIdsList.length % colorList.length]
+            );
+            combinedNamesList.push(
+              message.startupNames[index] && message.startupNames[index].trim()
+                ? message.startupNames[index].trim()
+                : message.names[index].trim()
+            );
           }
         });
       }
     });
 
-    // Convert the uniqueIds Set to an array
-    const uniqueIdsList = Array.from(uniqueIds);
+    // Log results for debugging
+    console.log("Unique IDs:", uniqueIdsList);
+    console.log("Message Counts:", messageCountsList);
+    console.log("Combined Names List:", combinedNamesList);
 
-    // Generate the message counts as an array (in the same order as uniqueIdsList)
-    const messageCountsList = uniqueIdsList.map((id) => messageCounts[id] || 0);
-
-    // Generate chart colors as an array (in the same order as uniqueIdsList)
-    const chartColorsList = uniqueIdsList.map(
-      (id, index) => colorList[index % colorList.length] // Cycle through colors
-    );
-
-    // Generate outputlist4 by combining names and startupNames
-    const combinedNamesList = messages.flatMap((message) =>
-      message.names.map((name, index) =>
-        message.startupNames[index] ? message.startupNames[index] : name
-      )
-    );
-
-    console.log(uniqueIdsList);
-    console.log(messageCountsList);
-    console.log(chartColorsList);
-    console.log(combinedNamesList);
-
+    // Call Bubble function with the results
+    if (typeof bubble_fn_messages === "function") {
       bubble_fn_messages({
         outputlist1: uniqueIdsList, // Array of unique IDs
         outputlist2: messageCountsList, // Array of counts (matching uniqueIdsList)
         outputlist3: chartColorsList, // Array of colors (matching uniqueIdsList)
         outputlist4: combinedNamesList, // Combined list of names and startupNames
       });
-
+    } else {
+      console.error("Bubble function bubble_fn_messages is not defined.");
+    }
   }
+
 
 
   return {
