@@ -103,16 +103,14 @@ export const insights = async function () {
       (id, index) => colorList[index % colorList.length] // Cycle through colors
     );
 
-    // Call Bubble function with results in the required output format
-    if (typeof bubble_fn_appointments === "function") {
+   
+   console.log(uniqueIdsList);
       bubble_fn_appointments({
         outputlist1: uniqueIdsList, // Array of unique IDs
         outputlist2: meetingCountsList, // Array of counts (matching uniqueIdsList)
         outputlist3: chartColorsList, // Array of colors (matching uniqueIdsList)
       });
-    } else {
-      console.error("Bubble function bubble_fn_appointments is not defined.");
-    }
+
   }
 
   return {
