@@ -187,7 +187,7 @@ export const insights = async function () {
       )
     );
 
-    console.log(uniqueIdsLis);
+    console.log(uniqueIdsList);
     console.log(messageCountsList);
     console.log(chartColorsList);
     console.log(combinedNamesList);
