@@ -561,8 +561,8 @@ export const schedule = async function () {
     console.log("Parsed commonDailyStart:", { startHour, startMin });
     console.log("Parsed commonDailyEnd:", { endHour, endMin });
 
-    // Calculate the start and end moments for the daily range
-    const startMoment = globalStart.clone().set({
+    // Calculate the daily start and end times based on globalStart's day
+    let startMoment = globalStart.clone().set({
       hour: startHour,
       minute: startMin,
       second: 0,
@@ -583,6 +583,23 @@ export const schedule = async function () {
 
     console.log("Daily range - startMoment:", startMoment.format());
     console.log("Daily range - endMoment:", endMoment.format());
+
+    // Ensure slots start on or after globalStart
+    if (globalStart.isAfter(endMoment)) {
+      console.log(
+        "GlobalStart is after today's daily range. Moving to next day..."
+      );
+      startMoment.add(1, "day").set({ hour: startHour, minute: startMin });
+      endMoment.add(1, "day").set({ hour: endHour, minute: endMin });
+      console.log("Next day startMoment:", startMoment.format());
+      console.log("Next day endMoment:", endMoment.format());
+    } else if (globalStart.isAfter(startMoment)) {
+      console.log(
+        "GlobalStart is within today's range. Adjusting startMoment..."
+      );
+      startMoment = globalStart.clone();
+      console.log("Adjusted startMoment:", startMoment.format());
+    }
 
     // Generate slots
     let currentStart = startMoment.clone();
@@ -612,6 +629,7 @@ export const schedule = async function () {
 
     return baseSlots;
   }
+
 
 
 
