@@ -371,7 +371,14 @@ export const schedule = async function () {
     offset,
     userOffsetInSeconds
   ) {
+    console.log("=== Function Start ===");
+    console.log("Input - allAvailabilityLists:", allAvailabilityLists);
+    console.log("Input - viewerStartDate:", viewerStartDate);
+    console.log("Input - offset:", offset);
+    console.log("Input - userOffsetInSeconds:", userOffsetInSeconds);
+
     const userOffsetInMinutes = userOffsetInSeconds / 60;
+    console.log("Computed userOffsetInMinutes:", userOffsetInMinutes);
 
     // Step 1: Calculate viewer's start date for the given week in user timezone
     const viewerStartLocal = moment
@@ -379,6 +386,7 @@ export const schedule = async function () {
       .utcOffset(userOffsetInMinutes)
       .startOf("day")
       .add(offset * 7, "days");
+    console.log("Computed viewerStartLocal:", viewerStartLocal.format());
 
     if (!viewerStartLocal.isValid()) {
       console.error("Invalid viewerStartDate:", viewerStartDate);
@@ -391,9 +399,13 @@ export const schedule = async function () {
     let dailyEndInMinutesArray = [];
 
     // Step 2: Parse each availability and compute overall earliest/latest dates
-    allAvailabilityLists.forEach((availability) => {
+    allAvailabilityLists.forEach((availability, index) => {
+      console.log(`Processing availability [${index}]:`, availability);
+
       const availabilityStart = moment.utc(availability.start_date);
       const availabilityEnd = moment.utc(availability.end_date);
+      console.log(`Availability start_date (UTC):`, availabilityStart.format());
+      console.log(`Availability end_date (UTC):`, availabilityEnd.format());
 
       if (
         !overallEarliestStart ||
@@ -416,11 +428,21 @@ export const schedule = async function () {
 
       dailyStartInMinutesArray.push(startHour * 60 + startMin);
       dailyEndInMinutesArray.push(endHour * 60 + endMin);
+
+      console.log("Daily start (mins):", startHour * 60 + startMin);
+      console.log("Daily end (mins):", endHour * 60 + endMin);
     });
+
+    console.log("Overall earliest start:", overallEarliestStart?.format());
+    console.log("Overall latest end:", overallLatestEnd?.format());
+    console.log("Daily start times (mins):", dailyStartInMinutesArray);
+    console.log("Daily end times (mins):", dailyEndInMinutesArray);
 
     // Step 3: Compute default global range for the week
     const globalStartLocal = viewerStartLocal.clone().startOf("day");
     const globalEndLocal = globalStartLocal.clone().add(6, "days").endOf("day");
+    console.log("Global week start (local):", globalStartLocal.format());
+    console.log("Global week end (local):", globalEndLocal.format());
 
     // Step 4: Compute realStart and realEnd
     const realStartLocal = overallEarliestStart
@@ -436,6 +458,9 @@ export const schedule = async function () {
           overallLatestEnd.utcOffset(userOffsetInMinutes)
         )
       : globalEndLocal;
+
+    console.log("Real start (local):", realStartLocal.format());
+    console.log("Real end (local):", realEndLocal.format());
 
     // Step 5: Compute the daily intersection window
     const finalDailyStartMins = dailyStartInMinutesArray.length
@@ -464,16 +489,26 @@ export const schedule = async function () {
       millisecond: 0,
     });
 
+    console.log("Final daily start (UTC):", commonDailyStart.format("HH:mm"));
+    console.log("Final daily end (UTC):", commonDailyEnd.format("HH:mm"));
+
     // Step 6: Convert all outputs back to UTC
     const globalStartUTC = globalStartLocal.clone().utc();
     const globalEndUTC = globalEndLocal.clone().utc();
     const realStartUTC = realStartLocal.clone().utc();
     const realEndUTC = realEndLocal.clone().utc();
 
+    console.log("Global start (UTC):", globalStartUTC.format());
+    console.log("Global end (UTC):", globalEndUTC.format());
+    console.log("Real start (UTC):", realStartUTC.format());
+    console.log("Real end (UTC):", realEndUTC.format());
+
     // Check for overlap and set exit flag
     const hasOverlap = realEndLocal.isSameOrAfter(realStartLocal);
+    console.log("Has overlap:", hasOverlap);
 
     // Return results
+    console.log("=== Function End ===");
     return {
       globalStart: globalStartUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
       globalEnd: globalEndUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
@@ -484,6 +519,7 @@ export const schedule = async function () {
       exit: !hasOverlap, // Exit is true if there's no overlap
     };
   }
+
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
     // Parse the incoming string (with offset) and preserve the offset
