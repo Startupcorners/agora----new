@@ -554,7 +554,7 @@ export const schedule = async function () {
     const [endHour, endMin] = commonDailyEndStr.split(":").map(Number);
 
     // Calculate the start and end moments for the slots
-    const startMoment = globalStart.clone().set({
+    let startMoment = globalStart.clone().set({
       hour: startHour,
       minute: startMin,
       second: 0,
@@ -573,9 +573,13 @@ export const schedule = async function () {
       endMoment.add(1, "day");
     }
 
-    // Generate slots
-    let currentStart = moment.max(globalStart, startMoment); // Ensure we don't start before globalStart
+    // Ensure startMoment begins after globalStart
+    if (startMoment.isBefore(globalStart)) {
+      startMoment = globalStart.clone();
+    }
 
+    // Generate slots
+    let currentStart = startMoment;
     while (currentStart.isBefore(endMoment)) {
       const nextSlot = currentStart.clone().add(slotDuration, "minutes");
       if (nextSlot.isAfter(endMoment)) break;
@@ -588,6 +592,7 @@ export const schedule = async function () {
 
     return baseSlots;
   }
+
 
 
 
