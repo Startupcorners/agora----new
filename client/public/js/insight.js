@@ -41,9 +41,15 @@ export const insights = async function () {
     // Convert the uniqueIds Set to an array
     const uniqueIdsList = Array.from(uniqueIds);
 
-    // Log results to the console
-    console.log("Unique IDs:", uniqueIdsList);
-    console.log("Meeting Counts:", meetingCounts);
+    // Call Bubble function with results in an object format
+    if (typeof bubble_fn_appointments === "function") {
+      bubble_fn_appointments({
+        outputlist1: uniqueIdsList,
+        outputlist2: meetingCounts,
+      });
+    } else {
+      console.error("Bubble function bubble_fn_appointments is not defined.");
+    }
   }
 
   return {
