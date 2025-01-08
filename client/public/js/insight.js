@@ -52,6 +52,21 @@ export const insights = async function () {
     "#01579B",
   ];
 
+  function processAll(appointments, messages, mainUserId, startDate, endDate) {
+    bubble_fn_loading(true);
+    console.log("Starting to process appointments and messages...");
+
+    // Run processAppointments
+    processAppointments(appointments, mainUserId, startDate, endDate);
+
+    // Run processMessages
+    processMessages(messages, mainUserId, startDate, endDate);
+
+    // Log after both have completed
+    bubble_fn_loading(false)
+  }
+
+
   function processAppointments(appointments, mainUserId, startDate, endDate) {
     // Log the inputs received
     console.log("processAppointments called with:");
@@ -178,8 +193,7 @@ export const insights = async function () {
 
 
   return {
-    processAppointments,
-    processMessages,
+    processAll,
   };
 };
 
