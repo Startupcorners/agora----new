@@ -63,7 +63,11 @@ export const insights = async function () {
     processMessages(messages, mainUserId, startDate, endDate);
 
     // Log after both have completed
-    bubble_fn_loading(false)
+    if (typeof bubble_fn_loading === "function") {
+      bubble_fn_loading(false);
+    } else {
+      console.error("Bubble function bubble_fn_appointments is not defined.");
+    }
   }
 
 
