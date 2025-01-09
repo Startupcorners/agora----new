@@ -53,7 +53,7 @@ export const insights = async function () {
   ];
 
   function processAll(appointments, messages, mainUserId, startDate, endDate) {
-    bubble_fn_loading(true);
+    bubble_fn_loadinggg(true);
     console.log("Starting to process appointments and messages...");
 
     // Run processAppointments
@@ -64,8 +64,8 @@ export const insights = async function () {
 
     // Log after both have completed
     if (typeof bubble_fn_loading === "function") {
-      bubble_fn_loading(false);
-      console.error("Ran bubble_fn_loading(false)");
+      bubble_fn_loadinggg(false);
+      console.error("Ran bubble_fn_loadinggg(false)");
     } else {
       console.error("Bubble function bubble_fn_appointments is not defined.");
     }
