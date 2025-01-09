@@ -55,44 +55,42 @@ export const init = async function (userId) {
           }
 
           // Fetch and log calendar events
-         const today = new Date().toISOString(); // Current date in ISO format
-         const events = await listCalendarEvents(accessToken, today);
+          const today = new Date().toISOString(); // Current date in ISO format
+          const events = await listCalendarEvents(accessToken, today);
 
-         if (events && events.length > 0) {
-           console.log("Fetched Calendar Events:", events);
+          if (events && events.length > 0) {
+            console.log("Fetched Calendar Events:", events);
 
-           // Parse events into separate lists
-           const ids = [];
-           const starts = [];
-           const ends = [];
+            // Parse events into separate lists
+            const ids = [];
+            const starts = [];
+            const ends = [];
 
-           events.forEach((event) => {
-             // Skip events with the `SC` property in extendedProperties
-             const isFromSC =
-               event.extendedProperties &&
-               event.extendedProperties.private &&
-               event.extendedProperties.private.source === "SC";
+            events.forEach((event) => {
+              // Skip events with the `SC` property in extendedProperties
+              const isFromSC =
+                event.extendedProperties &&
+                event.extendedProperties.private &&
+                event.extendedProperties.private.source === "SC";
 
-             if (!isFromSC) {
-               ids.push(event.id);
-               starts.push(event.start.dateTime || event.start.date); // Support all-day events
-               ends.push(event.end.dateTime || event.end.date); // Support all-day events
-             }
-           });
+              if (!isFromSC) {
+                ids.push(event.id);
+                starts.push(event.start.dateTime || event.start.date); // Support all-day events
+                ends.push(event.end.dateTime || event.end.date); // Support all-day events
+              }
+            });
 
-           // Send parsed data to Bubble
-           if (typeof bubble_fn_calendarEvents === "function") {
-             bubble_fn_calendarEvents({
-               outputlist1: ids,
-               outputlist2: starts,
-               outputlist3: ends,
-             });
-           }
-         } else {
-           console.warn("No calendar events were retrieved.");
-         }
-
-
+            // Send parsed data to Bubble
+            if (typeof bubble_fn_calendarEvents === "function") {
+              bubble_fn_calendarEvents({
+                outputlist1: ids,
+                outputlist2: starts,
+                outputlist3: ends,
+              });
+            }
+          } else {
+            console.warn("No calendar events were retrieved.");
+          }
 
           // Send tokens and expiration back to Bubble
           if (typeof bubble_fn_token === "function") {
@@ -120,8 +118,6 @@ export const init = async function (userId) {
     }
   }
 
-
-
   // Function to initiate Google OAuth
   function initiateGoogleOAuth() {
     const clientId =
@@ -141,6 +137,15 @@ export const init = async function (userId) {
 
     // Redirect the user to Google's OAuth page
     window.location.href = authUrl;
+  }
+
+  // Automatically handle redirect if the URL contains the authorization code
+  if (
+    window.location.pathname === "/oauth-callback" &&
+    window.location.search.includes("code=")
+  ) {
+    console.log("Redirect detected, calling handleRedirect...");
+    await handleRedirect(userId);
   }
 
   // Function to list calendar events
@@ -191,63 +196,60 @@ export const init = async function (userId) {
   }
 
   // Function to set up push notifications
-async function setupPushNotifications(accessToken, userId) {
-  if (!accessToken) {
-    console.error(
-      "No access token provided. Please connect Google Calendar first."
-    );
-    return null;
-  }
-
-  if (!userId) {
-    console.error("No userId provided. Cannot set up push notifications.");
-    return null;
-  }
-
-  try {
-    const response = await fetch(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events/watch",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-          "x-user-id": userId, // Custom header to include the userId
-        },
-        body: JSON.stringify({
-          id: `channel-${Date.now()}`, // Unique channel ID
-          type: "webhook",
-          address: "https://agora-new.vercel.app/webhook", // Your webhook endpoint
-        }),
-      }
-    );
-
-    const result = await response.json();
-
-    if (response.ok) {
-      console.log("Push Notification Watch Set Up:", result);
-      // Return the resourceId, expiration, and channelId
-      return {
-        channelId: result.id,
-        resourceId: result.resourceId,
-        expiration: result.expiration,
-      };
-    } else {
-      console.error("Error setting up push notifications:", result.error);
+  async function setupPushNotifications(accessToken, userId) {
+    if (!accessToken) {
+      console.error(
+        "No access token provided. Please connect Google Calendar first."
+      );
       return null;
     }
-  } catch (error) {
-    console.error("Error setting up push notifications:", error);
-    return null;
+
+    if (!userId) {
+      console.error("No userId provided. Cannot set up push notifications.");
+      return null;
+    }
+
+    try {
+      const response = await fetch(
+        "https://www.googleapis.com/calendar/v3/calendars/primary/events/watch",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+            "x-user-id": userId, // Custom header to include the userId
+          },
+          body: JSON.stringify({
+            id: `channel-${Date.now()}`, // Unique channel ID
+            type: "webhook",
+            address: "https://agora-new.vercel.app/webhook", // Your webhook endpoint
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (response.ok) {
+        console.log("Push Notification Watch Set Up:", result);
+        // Return the resourceId, expiration, and channelId
+        return {
+          channelId: result.id,
+          resourceId: result.resourceId,
+          expiration: result.expiration,
+        };
+      } else {
+        console.error("Error setting up push notifications:", result.error);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error setting up push notifications:", error);
+      return null;
+    }
   }
-}
-
-
- 
 
   // Return the functions to expose them
   return {
-    initiateGoogleOAuth
+    initiateGoogleOAuth,
   };
 };
 
