@@ -67,6 +67,7 @@ const startCloudRecording = require("./startCloudRecording");
 const stopCloudRecording = require("./stopCloudRecording");
 const startAudioRecording = require("./startAudioRecording");
 const stopAudioRecording = require("./stopAudioRecording");
+const exchangeToken = require("./exchangeToken"); // Import the new exchange-token route
 
 // Apply routes
 app.use("/generateTokens", accessTokenGeneration);
@@ -76,6 +77,7 @@ app.use("/startCloudRecording", startCloudRecording);
 app.use("/stopCloudRecording", stopCloudRecording);
 app.use("/startAudioRecording", startAudioRecording);
 app.use("/stopAudioRecording", stopAudioRecording);
+app.use("/exchange-token", exchangeToken); // Add the new route
 
 // Error handler
 app.use((err, req, res, next) => {
@@ -89,6 +91,5 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).send(err.message || "Something broke!");
 });
 
-
-// Export appw
+// Export app
 module.exports = app;
