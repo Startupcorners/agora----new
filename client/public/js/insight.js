@@ -65,7 +65,6 @@ export const insights = async function () {
     // Log after both have completed
     if (typeof bubble_fn_loading === "function") {
       bubble_fn_loadinggg(false);
-      console.error("Ran bubble_fn_loadinggg(false)");
     } else {
       console.error("Bubble function bubble_fn_appointments is not defined.");
     }
