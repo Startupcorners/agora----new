@@ -68,7 +68,8 @@ export const init = async function () {
 
   // Function to initiate Google OAuth
   function initiateGoogleOAuth() {
-    const clientId = "YOUR_GOOGLE_CLIENT_ID"; // Replace with your Client ID
+    const clientId =
+      "870400114743-av6tv101l2mvclc468l974ust7am5l2u.apps.googleusercontent.com"; // Replace with your Client ID
     const redirectUri = "https://www.startupcorners.com/oauth-callback"; // Your Redirect URI
     const scope = "https://www.googleapis.com/auth/calendar";
     const authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
