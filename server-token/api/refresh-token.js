@@ -52,4 +52,4 @@ router.post("/", async (req, res) => {
   }
 });
 
-module.exports = { router, refreshAccessToken }; // Export both the route and the core function
+module.exports = router; // Export both the route and the core function

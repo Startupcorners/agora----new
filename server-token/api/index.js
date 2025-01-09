@@ -86,7 +86,7 @@ app.use("/stopAudioRecording", stopAudioRecording);
 app.use("/exchange-token", exchangeToken);
 
 // Use .router here instead of the entire object
-app.use("/refresh-token", refreshTokenModule.router);
+app.use("/refresh-token");
 
 app.use("/webhook", webhooks);
 app.use("/renew-watch", renewWatch);
