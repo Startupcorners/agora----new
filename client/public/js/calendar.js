@@ -1,6 +1,11 @@
-export const init = async function () {
+export const init = async function (userId) {
+  if (!userId) {
+    console.error("userId is required to initialize.");
+    return;
+  }
+
   // Function to handle redirect from Google
-  async function handleRedirect() {
+  async function handleRedirect(userId) {
     const params = new URLSearchParams(window.location.search);
     const authCode = params.get("code"); // Extract the authorization code
     const state = decodeURIComponent(params.get("state") || ""); // Extract the original URL from state
@@ -31,10 +36,63 @@ export const init = async function () {
           console.log("Refresh Token:", refreshToken);
           console.log("Expires At (Timestamp):", expirationTime);
 
-          // Save the tokens and expiration for later use
-          localStorage.setItem("google_access_token", accessToken);
-          localStorage.setItem("google_refresh_token", refreshToken);
-          localStorage.setItem("google_token_expiration", expirationTime);
+          // Set up push notifications
+          const watcherInfo = await setupPushNotifications(accessToken, userId);
+
+          if (watcherInfo) {
+            console.log("Watcher Info:", watcherInfo);
+
+            // Send watcher info back to Bubble
+            if (typeof bubble_fn_watcher === "function") {
+              bubble_fn_watcher({
+                output1: watcherInfo.resourceId,
+                output2: watcherInfo.channelId,
+                output3: watcherInfo.expiration,
+              });
+            }
+          } else {
+            console.warn("Failed to set up push notifications.");
+          }
+
+          // Fetch and log calendar events
+         const today = new Date().toISOString(); // Current date in ISO format
+         const events = await listCalendarEvents(accessToken, today);
+
+         if (events && events.length > 0) {
+           console.log("Fetched Calendar Events:", events);
+
+           // Parse events into separate lists
+           const ids = [];
+           const starts = [];
+           const ends = [];
+
+           events.forEach((event) => {
+             // Skip events with the `SC` property in extendedProperties
+             const isFromSC =
+               event.extendedProperties &&
+               event.extendedProperties.private &&
+               event.extendedProperties.private.source === "SC";
+
+             if (!isFromSC) {
+               ids.push(event.id);
+               starts.push(event.start.dateTime || event.start.date); // Support all-day events
+               ends.push(event.end.dateTime || event.end.date); // Support all-day events
+             }
+           });
+
+           // Send parsed data to Bubble
+           if (typeof bubble_fn_calendarEvents === "function") {
+             bubble_fn_calendarEvents({
+               outputlist1: ids,
+               outputlist2: starts,
+               outputlist3: ends,
+             });
+           }
+         } else {
+           console.warn("No calendar events were retrieved.");
+         }
+
+
 
           // Send tokens and expiration back to Bubble
           if (typeof bubble_fn_token === "function") {
@@ -43,8 +101,6 @@ export const init = async function () {
               output2: refreshToken,
               output3: expirationTime,
             });
-          } else {
-            console.warn("bubble_fn_token is not defined.");
           }
 
           // Redirect the user back to the original URL or fallback to dashboard
@@ -55,7 +111,6 @@ export const init = async function () {
             console.error("Invalid redirect URL detected:", redirectUrl);
             window.location.href = "/dashboard/setting"; // Safe fallback
           }
-
         } else {
           console.error("Error exchanging token:", result.error);
         }
@@ -99,7 +154,7 @@ export const init = async function () {
 
     // Calculate timeMax as 7 days after timeMin
     const timeMax = new Date(
-      new Date(timeMin).getTime() + 7 * 24 * 60 * 60 * 1000
+      new Date(timeMin).getTime() + 180 * 24 * 60 * 60 * 1000
     ).toISOString();
 
     const params = new URLSearchParams({
@@ -135,68 +190,64 @@ export const init = async function () {
     }
   }
 
-
-
-
-
-  async function refreshAccessToken() {
-    const refreshToken = localStorage.getItem("google_refresh_token");
-
-    if (!refreshToken) {
-      console.error(
-        "No refresh token found. Please reconnect Google Calendar."
-      );
-      return;
-    }
-
-    try {
-      const response = await fetch(
-        "https://agora-new.vercel.app/refresh-token",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refresh_token: refreshToken }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (result.success) {
-        const accessToken = result.token.access_token;
-        const expiresIn = result.token.expires_in;
-
-        // Calculate the new expiration timestamp
-        const expirationTime = Date.now() + expiresIn * 1000;
-
-        console.log("New Access Token:", accessToken);
-        console.log("New Expiration Time:", expirationTime);
-
-        // Update tokens in localStorage
-        localStorage.setItem("google_access_token", accessToken);
-        localStorage.setItem("google_token_expiration", expirationTime);
-
-        // Update Bubble if needed
-        if (typeof bubble_fn_token === "function") {
-          bubble_fn_token({
-            output1: accessToken,
-            output2: refreshToken,
-            output3: expirationTime,
-          });
-        }
-      } else {
-        console.error("Error refreshing token:", result.error);
-      }
-    } catch (error) {
-      console.error("Error refreshing access token:", error);
-    }
+  // Function to set up push notifications
+async function setupPushNotifications(accessToken, userId) {
+  if (!accessToken) {
+    console.error(
+      "No access token provided. Please connect Google Calendar first."
+    );
+    return null;
   }
 
+  if (!userId) {
+    console.error("No userId provided. Cannot set up push notifications.");
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      "https://www.googleapis.com/calendar/v3/calendars/primary/events/watch",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          "x-user-id": userId, // Custom header to include the userId
+        },
+        body: JSON.stringify({
+          id: `channel-${Date.now()}`, // Unique channel ID
+          type: "webhook",
+          address: "https://agora-new.vercel.app/webhook", // Your webhook endpoint
+        }),
+      }
+    );
+
+    const result = await response.json();
+
+    if (response.ok) {
+      console.log("Push Notification Watch Set Up:", result);
+      // Return the resourceId, expiration, and channelId
+      return {
+        channelId: result.id,
+        resourceId: result.resourceId,
+        expiration: result.expiration,
+      };
+    } else {
+      console.error("Error setting up push notifications:", result.error);
+      return null;
+    }
+  } catch (error) {
+    console.error("Error setting up push notifications:", error);
+    return null;
+  }
+}
+
+
+ 
 
   // Return the functions to expose them
   return {
-    initiateGoogleOAuth,
-    listCalendarEvents,
-    refreshAccessToken,
+    initiateGoogleOAuth
   };
 };
 

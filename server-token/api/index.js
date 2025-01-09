@@ -69,6 +69,8 @@ const startAudioRecording = require("./startAudioRecording");
 const stopAudioRecording = require("./stopAudioRecording");
 const exchangeToken = require("./exchangeToken"); // Import the new exchange-token route
 const refreshToken = require("./refresh-token");
+const webhooks = require("./webhooks");
+const renewWatch = require("./renew-watch");
 
 // Apply routes
 app.use("/generateTokens", accessTokenGeneration);
@@ -80,6 +82,8 @@ app.use("/startAudioRecording", startAudioRecording);
 app.use("/stopAudioRecording", stopAudioRecording);
 app.use("/exchange-token", exchangeToken); // Add the new route
 app.use("/refresh-token", refreshToken);
+app.use("/webhooks/calendar", webhooks);
+app.use("/renew-watch", renewWatch);
 // Error handler
 app.use((err, req, res, next) => {
   console.error("Error Details:", err);

@@ -1,14 +1,9 @@
-const express = require("express");
 const fetch = require("node-fetch");
+const express = require("express");
 const router = express.Router();
 
-router.post("/", async (req, res) => {
-  const { refresh_token } = req.body;
-
-  if (!refresh_token) {
-    return res.status(400).json({ success: false, error: "Refresh token is required" });
-  }
-
+// Core function for refreshing tokens
+async function refreshAccessToken(refreshToken) {
   const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
   const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
@@ -20,7 +15,7 @@ router.post("/", async (req, res) => {
       body: new URLSearchParams({
         client_id: CLIENT_ID,
         client_secret: CLIENT_SECRET,
-        refresh_token: refresh_token,
+        refresh_token: refreshToken,
         grant_type: "refresh_token",
       }),
     });
@@ -28,14 +23,33 @@ router.post("/", async (req, res) => {
     const tokenData = await response.json();
 
     if (tokenData.access_token) {
-      res.json({ success: true, token: tokenData });
+      return tokenData; // Return the full token data (access_token, expires_in, etc.)
     } else {
-      res.status(400).json({ success: false, error: tokenData });
+      console.error("Error refreshing token:", tokenData);
+      throw new Error("Failed to refresh access token");
     }
   } catch (error) {
     console.error("Error refreshing token:", error);
-    res.status(500).json({ success: false, error: "Internal Server Error" });
+    throw error;
+  }
+}
+
+// Route for refreshing tokens via POST request
+router.post("/", async (req, res) => {
+  const { refresh_token } = req.body;
+
+  if (!refresh_token) {
+    return res
+      .status(400)
+      .json({ success: false, error: "Refresh token is required" });
+  }
+
+  try {
+    const tokenData = await refreshAccessToken(refresh_token);
+    res.json({ success: true, token: tokenData });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
-module.exports = router;
+module.exports = { router, refreshAccessToken }; // Export both the route and the core function
