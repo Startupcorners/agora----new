@@ -67,8 +67,11 @@ const startCloudRecording = require("./startCloudRecording");
 const stopCloudRecording = require("./stopCloudRecording");
 const startAudioRecording = require("./startAudioRecording");
 const stopAudioRecording = require("./stopAudioRecording");
-const exchangeToken = require("./exchangeToken"); // Import the new exchange-token route
-const refreshToken = require("./refresh-token");
+const exchangeToken = require("./exchangeToken");
+
+// IMPORTANT: refresh-token exports { router, refreshAccessToken }
+const refreshTokenModule = require("./refresh-token");
+
 const webhooks = require("./webhooks");
 const renewWatch = require("./renew-watch");
 
@@ -80,10 +83,14 @@ app.use("/startCloudRecording", startCloudRecording);
 app.use("/stopCloudRecording", stopCloudRecording);
 app.use("/startAudioRecording", startAudioRecording);
 app.use("/stopAudioRecording", stopAudioRecording);
-app.use("/exchange-token", exchangeToken); // Add the new route
-app.use("/refresh-token", refreshToken);
-app.use("/webhooks/calendar", webhooks);
+app.use("/exchange-token", exchangeToken);
+
+// Use .router here instead of the entire object
+app.use("/refresh-token", refreshTokenModule.router);
+
+app.use("/webhook", webhooks);
 app.use("/renew-watch", renewWatch);
+
 // Error handler
 app.use((err, req, res, next) => {
   console.error("Error Details:", err);
@@ -96,5 +103,5 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).send(err.message || "Something broke!");
 });
 
-// Export appp
+// Export app
 module.exports = app;
