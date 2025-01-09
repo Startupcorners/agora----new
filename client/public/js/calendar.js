@@ -89,42 +89,49 @@ export const init = async function () {
   }
 
   // Function to list calendar events
-  async function listCalendarEvents() {
-    const accessToken = localStorage.getItem("google_access_token"); // Retrieve the access token
-
+  async function listCalendarEvents(accessToken, timeMin, timeMax) {
     if (!accessToken) {
       console.error(
-        "No access token found. Please connect Google Calendar first."
+        "No access token provided. Please connect Google Calendar first."
       );
       return;
     }
 
+    const params = new URLSearchParams({
+      timeMin: new Date(timeMin).toISOString(), // Start time
+      timeMax: new Date(timeMax).toISOString(), // End time
+      singleEvents: "true", // Ensure recurring events are expanded
+      orderBy: "startTime", // Sort by start time
+    });
+
     try {
       const response = await fetch(
-        "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events?${params}`,
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${accessToken}`, // Use the access token
+            Authorization: `Bearer ${accessToken}`,
           },
         }
       );
 
       const events = await response.json();
+
+      if (events.error) {
+        console.error("Error fetching calendar events:", events.error);
+        return null;
+      }
+
       console.log("Calendar Events:", events);
-      return events;
+      return events.items; // Return the list of events
     } catch (error) {
       console.error("Error fetching calendar events:", error);
+      return null;
     }
   }
 
-  // Automatically handle redirect if the URL contains the authorization code
-  if (
-    window.location.pathname === "/oauth-callback" &&
-    window.location.search.includes("code=")
-  ) {
-    handleRedirect();
-  }
+
+
 
   async function refreshAccessToken() {
     const refreshToken = localStorage.getItem("google_refresh_token");
