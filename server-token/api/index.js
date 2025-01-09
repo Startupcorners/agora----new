@@ -72,6 +72,13 @@ const refreshToken = require("./refresh-token");
 const webhooks = require("./webhooks");
 const renewWatch = require("./renew-watch");
 
+// Create Open CORS middleware for webhooks
+const openCors = cors({
+  origin: "*", // Allow all origins
+  methods: "POST", // Only allow POST requests
+  allowedHeaders: "Content-Type", // Allow only specific headers
+});
+
 // Apply routes
 app.use("/generateTokens", accessTokenGeneration);
 app.use("/acquire", acquire);
@@ -82,7 +89,10 @@ app.use("/startAudioRecording", startAudioRecording);
 app.use("/stopAudioRecording", stopAudioRecording);
 app.use("/exchange-token", exchangeToken);
 app.use("/refresh-token", refreshToken);
-app.use("/webhook", webhooks);
+
+// Apply open CORS for /webhook route
+app.use("/webhook", openCors, webhooks);
+
 app.use("/renew-watch", renewWatch);
 
 // Error handler
