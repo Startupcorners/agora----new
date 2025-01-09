@@ -68,10 +68,7 @@ const stopCloudRecording = require("./stopCloudRecording");
 const startAudioRecording = require("./startAudioRecording");
 const stopAudioRecording = require("./stopAudioRecording");
 const exchangeToken = require("./exchangeToken");
-
-// IMPORTANT: refresh-token exports { router, refreshAccessToken }
-const refreshTokenModule = require("./refresh-token");
-
+const refreshToken = require("./refresh-token");
 const webhooks = require("./webhooks");
 const renewWatch = require("./renew-watch");
 
@@ -84,10 +81,7 @@ app.use("/stopCloudRecording", stopCloudRecording);
 app.use("/startAudioRecording", startAudioRecording);
 app.use("/stopAudioRecording", stopAudioRecording);
 app.use("/exchange-token", exchangeToken);
-
-// Use .router here instead of the entire object
-app.use("/refresh-token");
-
+app.use("/refresh-token", refreshToken);
 app.use("/webhook", webhooks);
 app.use("/renew-watch", renewWatch);
 
