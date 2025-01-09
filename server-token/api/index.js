@@ -96,5 +96,5 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).send(err.message || "Something broke!");
 });
 
-// Export app
+// Export appp
 module.exports = app;
