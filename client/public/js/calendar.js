@@ -89,7 +89,7 @@ export const init = async function () {
   }
 
   // Function to list calendar events
-  async function listCalendarEvents(accessToken, timeMin, timeMax) {
+  async function listCalendarEvents(accessToken, timeMin) {
     if (!accessToken) {
       console.error(
         "No access token provided. Please connect Google Calendar first."
@@ -97,9 +97,14 @@ export const init = async function () {
       return;
     }
 
+    // Calculate timeMax as 7 days after timeMin
+    const timeMax = new Date(
+      new Date(timeMin).getTime() + 7 * 24 * 60 * 60 * 1000
+    ).toISOString();
+
     const params = new URLSearchParams({
       timeMin: new Date(timeMin).toISOString(), // Start time
-      timeMax: new Date(timeMax).toISOString(), // End time
+      timeMax: timeMax, // End time (7 days later)
       singleEvents: "true", // Ensure recurring events are expanded
       orderBy: "startTime", // Sort by start time
     });
@@ -129,6 +134,7 @@ export const init = async function () {
       return null;
     }
   }
+
 
 
 
