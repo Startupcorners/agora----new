@@ -166,12 +166,7 @@ router.post("/", async (req, res) => {
 
     // 3) Respond to the original requester with the new subscription
     res.status(200).json({
-      channelId: newSubscription.channelId,
-      resourceId: newSubscription.resourceId,
-      expiration: newSubscription.expiration,
-      validAccessToken,
-      newAccessTokenExpiration,
-      updatedRefreshToken,
+      message: "OK"
     });
   } catch (err) {
     console.error("Error in renew-watch route:", err.message);
