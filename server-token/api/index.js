@@ -72,6 +72,7 @@ const refreshToken = require("./refresh-token");
 const webhooks = require("./webhooks");
 const renewWatch = require("./renew-watch");
 const setWebhook = require("./setWebhook");
+const stopWatch = require("./stopWatch");
 
 
 
@@ -88,6 +89,7 @@ app.use("/refresh-token", refreshToken);
 app.use("/webhook", webhooks);
 app.use("/renew-watch", renewWatch);
 app.use("/setWebhook", setWebhook);
+app.use("/stopWatch", stopWatch);
 
 // Error handler
 app.use((err, req, res, next) => {
