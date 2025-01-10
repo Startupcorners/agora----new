@@ -118,7 +118,8 @@ router.post("/", async (req, res) => {
       webhookUrl
     );
 
-    // Step 3: Send new data back to Bubble as query parametersconst bubbleUrl = "https://startupcorners.com/api/1.1/wf/receiveNewInfo";
+    // Step 3: Send new data back to Bubble as query parameters
+    const bubbleUrl = "https://startupcorners.com/api/1.1/wf/receiveNewInfo";
 
     const bubblePayload = {
       userId,
