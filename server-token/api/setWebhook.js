@@ -27,6 +27,7 @@ router.post("/", async (req, res) => {
     );
 
     const result = await response.json();
+    console.log("googleResponse", result);
 
     if (!response.ok) {
       return res.status(response.status).json({
