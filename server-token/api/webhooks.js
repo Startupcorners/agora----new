@@ -26,14 +26,15 @@ router.post("/", async (req, res) => {
       const updatedEvents = await fetchUpdatedEvents(resourceId); // Call your fetch function
 
       if (updatedEvents && updatedEvents.length > 0) {
-        // Loop through each event and send it individually to Bubble
+        // Loop through each event and send its action to Bubble
         for (const event of updatedEvents) {
-          const iD = event.id;
-          const start = event.start.dateTime || event.start.date; // Support all-day events
-          const end = event.end.dateTime || event.end.date; // Support all-day events
-          const action = event.status === "cancelled" ? "deleted" : "updated";
+          const { id: iD, status, data } = event;
 
-          // Send individual event data to Bubble
+          // Extract start and end times for added/updated events
+          const start = data?.start?.dateTime || data?.start?.date || null; // Handle all-day events or null for deleted events
+          const end = data?.end?.dateTime || data?.end?.date || null; // Handle all-day events or null for deleted events
+
+          // Send event data to Bubble
           const bubbleResponse = await fetch(
             "https://startupcorners.com/api/1.1/wf/receiveEventInfo",
             {
@@ -45,7 +46,7 @@ router.post("/", async (req, res) => {
                 iD,
                 start,
                 end,
-                action,
+                action: status, // Use the new status directly (deleted, added, updated)
                 resourceId,
               }),
             }
@@ -55,9 +56,13 @@ router.post("/", async (req, res) => {
             const bubbleError = await bubbleResponse.text();
             console.error(`Error sending event ${iD} to Bubble:`, bubbleError);
           } else {
-            console.log(`Event ${iD} sent to Bubble successfully.`);
+            console.log(
+              `Event ${iD} with action "${status}" sent to Bubble successfully.`
+            );
           }
         }
+      } else {
+        console.log("No updated events to process.");
       }
     }
 
@@ -70,7 +75,7 @@ router.post("/", async (req, res) => {
 
 
 
-async function fetchUpdatedEvents(resourceId) {
+async function fetchUpdatedEvents(resourceId, storedEvents = {}) {
   if (!resourceId) {
     console.error("resourceId is required to fetch updated events.");
     return [];
@@ -105,49 +110,50 @@ async function fetchUpdatedEvents(resourceId) {
     // Step 2: Set updatedMin to the last 10 minutes
     const updatedMin = new Date(Date.now() - 10 * 60 * 1000).toISOString();
 
-    // Step 3: Fetch updated events from Google Calendar
-    const response = await fetch(
-      `https://www.googleapis.com/calendar/v3/calendars/primary/events?updatedMin=${updatedMin}&singleEvents=true&orderBy=startTime`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (response.ok) {
-      const result = await response.json();
-      console.log("Fetched updated events:", result.items);
-      return result.items || []; // Return the list of events
-    } else if (response.status === 401) {
-      // Step 4: Token expired; refresh the token
-      console.warn("Access token expired. Attempting to refresh token...");
-      const newTokenData = await refreshAccessToken(refreshToken);
-
-      if (!newTokenData.access_token) {
-        throw new Error("Failed to refresh access token");
-      }
-
-      // Step 5: Retry fetching events with the new access token
-      const newAccessToken = newTokenData.access_token;
-
-      const retryResponse = await fetch(
-        `https://www.googleapis.com/calendar/v3/calendars/primary/events?updatedMin=${updatedMin}&singleEvents=true&orderBy=startTime`,
+    // Function to fetch events with a given token
+    const fetchEvents = async (token) => {
+      const response = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events?updatedMin=${updatedMin}&singleEvents=true&orderBy=startTime&showDeleted=true`,
         {
           method: "GET",
           headers: {
-            Authorization: `Bearer ${newAccessToken}`,
+            Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
         }
       );
 
-      if (retryResponse.ok) {
-        const retryResult = await retryResponse.json();
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("TokenExpired");
+        } else {
+          const errorResult = await response.json();
+          console.error("Error fetching events:", errorResult);
+          throw new Error("Failed to fetch events from Google Calendar.");
+        }
+      }
 
-        // Step 6: Update the refreshed token back to Bubble
+      const result = await response.json();
+      return result.items || [];
+    };
+
+    // Step 3: Fetch updated events with the current token
+    let events;
+    try {
+      events = await fetchEvents(accessToken);
+    } catch (error) {
+      if (error.message === "TokenExpired") {
+        console.warn("Access token expired. Attempting to refresh token...");
+
+        // Step 4: Refresh the token
+        const newTokenData = await refreshAccessToken(refreshToken);
+        if (!newTokenData.access_token) {
+          throw new Error("Failed to refresh access token");
+        }
+
+        const newAccessToken = newTokenData.access_token;
+
+        // Update the refreshed token back to Bubble
         await fetch("https://startupcorners.com/api/1.1/wf/updateTokens", {
           method: "POST",
           headers: {
@@ -161,26 +167,52 @@ async function fetchUpdatedEvents(resourceId) {
           }),
         });
 
-        console.log(
-          "Fetched updated events after token refresh:",
-          retryResult.items
-        );
-        return retryResult.items || [];
+        // Retry fetching events with the refreshed token
+        events = await fetchEvents(newAccessToken);
       } else {
-        const retryError = await retryResponse.json();
-        console.error("Error fetching events after token refresh:", retryError);
-        throw new Error("Failed to fetch events after refreshing token");
+        throw error;
       }
-    } else {
-      const errorResult = await response.json();
-      console.error("Error fetching events:", errorResult);
-      return [];
     }
+
+    // Step 5: Determine event status (deleted/added/updated)
+    const actions = events.map((event) => {
+      const isFromMyPlatform =
+        event.extendedProperties &&
+        event.extendedProperties.private &&
+        event.extendedProperties.private.source === "my-platform";
+
+      if (isFromMyPlatform) return null; // Skip events from your platform
+
+      if (event.status === "cancelled") {
+        return { id: event.id, status: "deleted" };
+      }
+
+      if (!storedEvents[event.id]) {
+        return { id: event.id, status: "added", data: event }; // Newly added event
+      }
+
+      if (
+        storedEvents[event.id] &&
+        new Date(event.updated) > new Date(storedEvents[event.id].updated)
+      ) {
+        return { id: event.id, status: "updated", data: event }; // Updated event
+      }
+
+      return null; // No action needed
+    });
+
+    // Filter out null actions
+    const meaningfulActions = actions.filter((action) => action !== null);
+
+    console.log("Processed Event Actions:", meaningfulActions);
+    return meaningfulActions;
   } catch (error) {
     console.error("Error fetching updated events:", error.message);
     return [];
   }
 }
+
+
 
 async function refreshAccessToken(refreshToken) {
   const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
