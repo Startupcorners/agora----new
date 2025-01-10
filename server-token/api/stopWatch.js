@@ -3,7 +3,7 @@ const fetch = require("node-fetch");
 const router = express.Router();
 
 // Function to stop the subscription
-async function stopWatch(channelId, resourceId) {
+async function stopWatch(channelId, resourceId, accessToken) {
   try {
     // Step 1: Stop the existing subscription
     const stopResponse = await fetch(
@@ -11,6 +11,7 @@ async function stopWatch(channelId, resourceId) {
       {
         method: "POST",
         headers: {
+          Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -39,14 +40,14 @@ async function stopWatch(channelId, resourceId) {
 
 // Router endpoint to handle the stop request
 router.post("/", async (req, res) => {
-  const { channelId, resourceId } = req.body;
+  const { channelId, resourceId, accessToken } = req.body;
 
-  if (!channelId || !resourceId) {
+  if (!channelId || !resourceId || !accessToken) {
     return res.status(400).send("Missing required parameters");
   }
 
   try {
-    const result = await stopWatch(channelId, resourceId);
+    const result = await stopWatch(channelId, resourceId, accessToken);
 
     if (result.success) {
       return res.status(200).json({ message: result.message });
