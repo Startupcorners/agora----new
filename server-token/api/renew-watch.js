@@ -2,164 +2,44 @@ const express = require("express");
 const fetch = require("node-fetch");
 const router = express.Router();
 
-async function renewCalendarWatch(
-  channelId,
-  resourceId,
-  accessToken,
-  webhookUrl
+// --------------------------------------
+// 1) REFRESH ACCESS TOKEN IF NECESSARY
+//    (COMBINED WITH TOKEN VALIDATION)
+// --------------------------------------
+async function getValidAccessTokenAndNotifyBubble(
+  currentAccessToken,
+  refreshToken,
+  userId
 ) {
-  try {
-    // Step 1: Stop the existing subscription
-    const stopResponse = await fetch(
-      "https://www.googleapis.com/calendar/v3/channels/stop",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: channelId,
-          resourceId: resourceId,
-        }),
-      }
-    );
-
-    if (!stopResponse.ok) {
-      const stopError = await stopResponse.json();
-      console.error("Error stopping subscription:", stopError);
-      throw new Error("Failed to stop subscription");
-    }
-    console.log(`Stopped subscription for channel ${channelId}`);
-
-    // Step 2: Start a new subscription
-    const watchResponse = await fetch(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events/watch",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: `channel-${Date.now()}`, // Generate a new unique channel ID
-          type: "webhook",
-          address: webhookUrl, // Your webhook URL
-        }),
-      }
-    );
-
-    if (!watchResponse.ok) {
-      const watchError = await watchResponse.json();
-      console.error("Error starting new subscription:", watchError);
-      throw new Error("Failed to start new subscription");
-    }
-
-    const newSubscription = await watchResponse.json();
-    console.log("New subscription started:", newSubscription);
-
-    // Return the new subscription details
-    return {
-      channelId: newSubscription.id,
-      resourceId: newSubscription.resourceId,
-      expiration: newSubscription.expiration, // New expiration timestamp
-    };
-  } catch (error) {
-    console.error("Error renewing calendar watch:", error);
-    throw error;
-  }
-}
-
-router.post("/", async (req, res) => {
-  const {
-    channelId,
-    resourceId,
-    accessToken,
-    refreshToken,
-    webhookUrl,
-    userId,
-  } = req.body;
-
-  if (!channelId || !resourceId || !refreshToken || !webhookUrl || !userId) {
-    return res.status(400).send("Missing required parameters");
-  }
-
-  let validAccessToken = accessToken;
-  let newAccessTokenExpiration = null; // To store new token expiration
-  let updatedRefreshToken = refreshToken; // Default to the old refresh token
-
-  try {
-    // Step 1: Refresh the token if necessary
-    try {
-      const testResponse = await fetch(
-        "https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=" +
-          validAccessToken
-      );
-      if (!testResponse.ok) {
-        throw new Error("Access token expired or invalid.");
-      }
-    } catch (error) {
-      console.warn("Access token expired. Refreshing token...");
-      const tokenData = await refreshAccessToken(refreshToken); // Call refresh logic
-      validAccessToken = tokenData.access_token; // Update the valid access token
-      newAccessTokenExpiration = Date.now() + tokenData.expires_in * 1000; // Calculate new expiration time
-
-      // Check if a new refresh token is provided
-      if (tokenData.refresh_token) {
-        updatedRefreshToken = tokenData.refresh_token;
-      }
-    }
-
-    // Step 2: Renew the subscription
-    const newSubscription = await renewCalendarWatch(
-      channelId,
-      resourceId,
-      validAccessToken,
-      webhookUrl
-    );
-
-    // Step 3: Send new data back to Bubble as query parameters
-    const bubbleUrl = "https://startupcorners.com/api/1.1/wf/receiveNewInfo";
-
-    const bubblePayload = {
-      userId,
-      channelId: newSubscription.channelId,
-      resourceId: newSubscription.resourceId,
-      expiration: newSubscription.expiration,
-      accessToken: validAccessToken,
-      accessTokenExpiration: newAccessTokenExpiration,
-      refreshToken: updatedRefreshToken,
-    };
-
-    const bubbleResponse = await fetch(bubbleUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(bubblePayload),
-    });
-
-    if (!bubbleResponse.ok) {
-      const bubbleError = await bubbleResponse.json();
-      console.error("Error sending data to Bubble:", bubbleError);
-      throw new Error("Failed to send data to Bubble");
-    }
-
-    console.log("Data sent to Bubble successfully");
-
-    // Send back the new subscription details to the original request
-    res.status(200).json(newSubscription);
-  } catch (error) {
-    console.error("Error in renew-watch:", error.message);
-    res.status(500).send(error.message);
-  }
-});
-
-async function refreshAccessToken(refreshToken) {
   const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
   const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
   const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
+  // Bubble endpoint to notify about new token data, if refreshed
+  const BUBBLE_TOKEN_ENDPOINT =
+    "https://startupcorners.com/api/1.1/wf/receiveTokenInfo";
 
+  // 1) TEST CURRENT ACCESS TOKEN
+  try {
+    const testResponse = await fetch(
+      `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${currentAccessToken}`
+    );
+
+    if (testResponse.ok) {
+      // Token is still valid; return early with existing token info
+      console.log("Access token is valid. No need to refresh.");
+      return {
+        accessToken: currentAccessToken,
+        refreshToken, // keep existing
+        accessTokenExpiration: null, // We don't have a new expiration
+      };
+    } else {
+      console.warn("Access token invalid or expired. Will refresh now...");
+    }
+  } catch (error) {
+    console.warn("Error verifying token. Will refresh now...", error);
+  }
+
+  // 2) TOKEN IS INVALID -> REFRESH
   try {
     const response = await fetch(TOKEN_ENDPOINT, {
       method: "POST",
@@ -174,16 +54,203 @@ async function refreshAccessToken(refreshToken) {
 
     const tokenData = await response.json();
 
-    if (tokenData.access_token) {
-      return tokenData; // Return the full token data (access_token, expires_in, etc.)
-    } else {
+    if (!tokenData.access_token) {
       console.error("Error refreshing token:", tokenData);
       throw new Error("Failed to refresh access token");
     }
+
+    // Calculate new expiration
+    const newAccessTokenExpiration = Date.now() + tokenData.expires_in * 1000;
+    // If Google returns a new refresh token, use it; otherwise keep the old one
+    const updatedRefreshToken = tokenData.refresh_token || refreshToken;
+
+    // 2a) (Optional) Notify Bubble about the new token
+    const bubblePayload = {
+      userId,
+      accessToken: tokenData.access_token,
+      accessTokenExpiration: newAccessTokenExpiration,
+      refreshToken: updatedRefreshToken,
+    };
+
+    const bubbleResponse = await fetch(BUBBLE_TOKEN_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(bubblePayload),
+    });
+
+    if (!bubbleResponse.ok) {
+      const bubbleError = await bubbleResponse.json();
+      console.error("Error sending new token info to Bubble:", bubbleError);
+      throw new Error("Failed to notify Bubble about new token");
+    }
+
+    console.log("Successfully refreshed token and notified Bubble.");
+
+    return {
+      accessToken: tokenData.access_token,
+      refreshToken: updatedRefreshToken,
+      accessTokenExpiration: newAccessTokenExpiration,
+    };
   } catch (error) {
-    console.error("Error refreshing token:", error);
+    console.error("Error in getValidAccessTokenAndNotifyBubble:", error);
     throw error;
   }
 }
+
+// --------------------------------------
+// 2) STOP SUBSCRIPTION
+// --------------------------------------
+async function stopSubscription(channelId, resourceId, accessToken) {
+  try {
+    const response = await fetch(
+      "https://www.googleapis.com/calendar/v3/channels/stop",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: channelId,
+          resourceId: resourceId,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorBody = await response.json();
+      console.error("Error stopping subscription:", errorBody);
+      throw new Error("Failed to stop subscription");
+    }
+
+    console.log(`Stopped subscription for channel ${channelId}`);
+  } catch (error) {
+    console.error("Error in stopSubscription:", error);
+    throw error;
+  }
+}
+
+// --------------------------------------
+// 3) START NEW SUBSCRIPTION (AND NOTIFY BUBBLE)
+// --------------------------------------
+async function startNewSubscription(accessToken, userId) {
+  // Bubble endpoint to notify about new subscription
+  const BUBBLE_SUBSCRIPTION_ENDPOINT =
+    "https://startupcorners.com/api/1.1/wf/receiveSubscriptionInfo";
+
+  try {
+    const watchResponse = await fetch(
+      "https://www.googleapis.com/calendar/v3/calendars/primary/events/watch",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          // Unique channel ID
+          id: `channel-${Date.now()}`,
+          type: "webhook",
+          address: "https://agora-new.vercel.app/webhook",
+        }),
+      }
+    );
+
+    if (!watchResponse.ok) {
+      const watchError = await watchResponse.json();
+      console.error("Error starting new subscription:", watchError);
+      throw new Error("Failed to start new subscription");
+    }
+
+    const newSubscription = await watchResponse.json();
+    console.log("New subscription started:", newSubscription);
+
+    // Notify Bubble about the new subscription
+    const bubblePayload = {
+      userId,
+      channelId: newSubscription.id,
+      resourceId: newSubscription.resourceId,
+      expiration: newSubscription.expiration,
+    };
+
+    const bubbleResponse = await fetch(BUBBLE_SUBSCRIPTION_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(bubblePayload),
+    });
+
+    if (!bubbleResponse.ok) {
+      const bubbleError = await bubbleResponse.json();
+      console.error("Error sending subscription info to Bubble:", bubbleError);
+      throw new Error("Failed to notify Bubble about new subscription");
+    }
+
+    // Return the new subscription details
+    return {
+      channelId: newSubscription.id,
+      resourceId: newSubscription.resourceId,
+      expiration: newSubscription.expiration, // New expiration timestamp
+    };
+  } catch (error) {
+    console.error("Error in startNewSubscription:", error);
+    throw error;
+  }
+}
+
+// --------------------------------------
+// ROUTE HANDLER
+// --------------------------------------
+router.post("/", async (req, res) => {
+  const {
+    channelId,
+    resourceId,
+    accessToken,
+    refreshToken,
+    userId,
+  } = req.body;
+
+  if (!channelId || !resourceId || !refreshToken || !userId) {
+    return res.status(400).send("Missing required parameters");
+  }
+
+  try {
+    // 1) Get valid access token (refresh if necessary, else early return)
+    const {
+      accessToken: validAccessToken,
+      refreshToken: updatedRefreshToken,
+      accessTokenExpiration: newAccessTokenExpiration,
+    } = await getValidAccessTokenAndNotifyBubble(
+      accessToken,
+      refreshToken,
+      userId
+    );
+
+    // 2) Stop existing subscription
+    await stopSubscription(channelId, resourceId, validAccessToken);
+
+    // 3) Start a new subscription
+    const newSubscription = await startNewSubscription(
+      validAccessToken,
+      userId
+    );
+
+    // 4) Respond to the original requester with the new subscription
+    res.status(200).json({
+      channelId: newSubscription.channelId,
+      resourceId: newSubscription.resourceId,
+      expiration: newSubscription.expiration,
+      validAccessToken,
+      newAccessTokenExpiration,
+      updatedRefreshToken,
+    });
+  } catch (err) {
+    console.error("Error in renew-watch route:", err.message);
+    res.status(500).send(err.message);
+  }
+});
 
 module.exports = router;
