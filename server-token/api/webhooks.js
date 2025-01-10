@@ -179,7 +179,7 @@ async function fetchUpdatedEvents(resourceId) {
       const isFromMyPlatform =
         event.extendedProperties &&
         event.extendedProperties.private &&
-        event.extendedProperties.private.source === "my-platform";
+        event.extendedProperties.private.source === "SC";
 
       if (isFromMyPlatform) return null; // Skip events from your platform
 

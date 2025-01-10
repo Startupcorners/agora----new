@@ -118,22 +118,25 @@ router.post("/", async (req, res) => {
       webhookUrl
     );
 
-    // Step 3: Send new data back to Bubble as query parameters
-    const bubbleUrl = new URL(
-      "https://startupcorners.com/api/1.1/wf/receiveNewInfo"
-    );
-    bubbleUrl.searchParams.append("userId", userId);
-    bubbleUrl.searchParams.append("channelId", newSubscription.channelId);
-    bubbleUrl.searchParams.append("resourceId", newSubscription.resourceId);
-    bubbleUrl.searchParams.append("expiration", newSubscription.expiration);
-    bubbleUrl.searchParams.append("accessToken", validAccessToken);
-    bubbleUrl.searchParams.append(
-      "accessTokenExpiration",
-      newAccessTokenExpiration
-    );
-    bubbleUrl.searchParams.append("refreshToken", updatedRefreshToken);
+    // Step 3: Send new data back to Bubble as query parametersconst bubbleUrl = "https://startupcorners.com/api/1.1/wf/receiveNewInfo";
 
-    const bubbleResponse = await fetch(bubbleUrl.toString(), { method: "GET" });
+    const bubblePayload = {
+      userId,
+      channelId: newSubscription.channelId,
+      resourceId: newSubscription.resourceId,
+      expiration: newSubscription.expiration,
+      accessToken: validAccessToken,
+      accessTokenExpiration: newAccessTokenExpiration,
+      refreshToken: updatedRefreshToken,
+    };
+
+    const bubbleResponse = await fetch(bubbleUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(bubblePayload),
+    });
 
     if (!bubbleResponse.ok) {
       const bubbleError = await bubbleResponse.json();
