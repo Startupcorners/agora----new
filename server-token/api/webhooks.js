@@ -75,7 +75,7 @@ router.post("/", async (req, res) => {
 
 
 
-async function fetchUpdatedEvents(resourceId, storedEvents = {}) {
+async function fetchUpdatedEvents(resourceId) {
   if (!resourceId) {
     console.error("resourceId is required to fetch updated events.");
     return [];
@@ -174,7 +174,7 @@ async function fetchUpdatedEvents(resourceId, storedEvents = {}) {
       }
     }
 
-    // Step 5: Determine event status (deleted/added/updated)
+    // Step 5: Determine event status (deleted/addedOrUpdated)
     const actions = events.map((event) => {
       const isFromMyPlatform =
         event.extendedProperties &&
@@ -187,18 +187,8 @@ async function fetchUpdatedEvents(resourceId, storedEvents = {}) {
         return { id: event.id, status: "deleted" };
       }
 
-      if (!storedEvents[event.id]) {
-        return { id: event.id, status: "added", data: event }; // Newly added event
-      }
-
-      if (
-        storedEvents[event.id] &&
-        new Date(event.updated) > new Date(storedEvents[event.id].updated)
-      ) {
-        return { id: event.id, status: "updated", data: event }; // Updated event
-      }
-
-      return null; // No action needed
+      // For all other cases, treat the event as "addedOrUpdated"
+      return { id: event.id, status: "addedOrUpdated", data: event };
     });
 
     // Filter out null actions
@@ -211,6 +201,7 @@ async function fetchUpdatedEvents(resourceId, storedEvents = {}) {
     return [];
   }
 }
+
 
 
 
