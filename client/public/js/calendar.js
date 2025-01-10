@@ -199,7 +199,7 @@ export const init = async function (userId) {
   }
 
   // Function to set up push notifications
-  async function setupPushNotifications(accessToken, userId) {
+  async function setupPushNotifications(accessToken) {
     if (!accessToken) {
       console.error(
         "No access token provided. Please connect Google Calendar first."
@@ -213,35 +213,35 @@ export const init = async function (userId) {
     }
 
     try {
-      const response = await fetch(
-        "https://www.googleapis.com/calendar/v3/calendars/primary/events/watch",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-            "x-user-id": userId, // Custom header to include the userId
-          },
-          body: JSON.stringify({
-            id: `channel-${Date.now()}`, // Unique channel ID
-            type: "webhook",
-            address: "https://agora-new.vercel.app/webhook", // Your webhook endpoint
-          }),
-        }
-      );
+      const response = await fetch("https://agora-new.vercel.app/setWebhook", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ accessToken }),
+      });
 
       const result = await response.json();
 
-      if (response.ok) {
-        console.log("Push Notification Watch Set Up:", result);
-        // Return the resourceId, expiration, and channelId
+      if (!response.ok) {
+        console.error(
+          "Error setting up push notifications:",
+          result.error || result
+        );
+        return null;
+      }
+
+      console.log("Push Notification Watch Set Up:", result);
+      const { googleResponse } = result;
+
+      if (googleResponse) {
         return {
-          channelId: result.id,
-          resourceId: result.resourceId,
-          expiration: result.expiration,
+          channelId: googleResponse.id,
+          resourceId: googleResponse.resourceId,
+          expiration: googleResponse.expiration,
         };
       } else {
-        console.error("Error setting up push notifications:", result.error);
+        console.warn("No googleResponse in backend response:", result);
         return null;
       }
     } catch (error) {
@@ -249,6 +249,8 @@ export const init = async function (userId) {
       return null;
     }
   }
+
+
 
   // Return the functions to expose them
   return {
