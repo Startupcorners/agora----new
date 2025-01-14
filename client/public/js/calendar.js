@@ -102,15 +102,14 @@ export const init = async function (userId) {
           }
 
           // Redirect the user back to the original URL or fallback to dashboard
-          /*
-                const redirectUrl = state || "/dashboard/setting"; // Ensure the fallback is a root-relative URL
+          const redirectUrl = state || "/dashboard/setting"; // Ensure the fallback is a root-relative URL
                 if (redirectUrl.startsWith("https://www.startupcorners.com")) {
                     window.location.href = redirectUrl;
                 } else {
                     console.error("Invalid redirect URL detected:", redirectUrl);
                     window.location.href = "/dashboard/setting"; // Safe fallback
                 }
-                */
+                
         } else {
           console.error("Error exchanging token:", result.error);
         }
