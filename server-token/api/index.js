@@ -72,6 +72,7 @@ const webhooks = require("./webhooks");
 const renewWatch = require("./renew-watch");
 const setWebhook = require("./setWebhook");
 const stopWatch = require("./stopWatch");
+const handleGoogleEvents = require("./handleGoogleEvents");
 
 
 
@@ -88,6 +89,7 @@ app.use("/webhook", webhooks);
 app.use("/renew-watch", renewWatch);
 app.use("/setWebhook", setWebhook);
 app.use("/stopWatch", stopWatch);
+app.use("/handleGoogleEvents", handleGoogleEvents);
 
 // Error handler
 app.use((err, req, res, next) => {

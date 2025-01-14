@@ -250,10 +250,87 @@ export const init = async function (userId) {
   }
 
 
+  async function handleGoogleEvents(
+    action,
+    accessToken,
+    refreshToken,
+    eventDetails,
+    userId,
+    eventId = null
+  ) {
+    if (!accessToken) {
+      console.error(
+        "No access token provided. Please connect Google Calendar first."
+      );
+      return null;
+    }
+
+    if (!userId) {
+      console.error("No userId provided. Cannot set up push notifications.");
+      return null;
+    }
+
+    if (!action || !["add", "update", "delete"].includes(action)) {
+      console.error(
+        "Invalid or missing action. Must be 'add', 'update', or 'delete'."
+      );
+      return null;
+    }
+
+    try {
+      const response = await fetch(
+        "https://agora-new.vercel.app/handleGoogleEvents",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action,
+            accessToken,
+            refreshToken,
+            userId,
+            eventDetails: action !== "delete" ? eventDetails : undefined, // Only include eventDetails for add/update
+            eventId: action !== "add" ? eventId : undefined, // Only include eventId for update/delete
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error("Error handling event:", result.error || result);
+        return null;
+      }
+
+      console.log("Event handled:", result);
+
+      if (result.eventId) {
+        console.log(`Event ${action}ed successfully with ID:`, result.eventId);
+
+        // Optionally call a Bubble function to store the event ID
+        if (typeof bubble_fn_eventId === "function") {
+          bubble_fn_eventId(result.eventId);
+        }
+
+        return result.eventId;
+      } else {
+        console.warn("No eventId returned from backend:", result);
+        return null;
+      }
+    } catch (error) {
+      console.error("Error handling event:", error);
+      return null;
+    }
+  }
+
+
+
 
   // Return the functions to expose them
   return {
     initiateGoogleOAuth,
+    handleGoogleEvents,
   };
 };
 
