@@ -256,7 +256,8 @@ export const init = async function (userId) {
     refreshToken,
     eventDetails,
     userId,
-    eventId = null
+    appointmentId,
+    eventId = null,
   ) {
     if (!accessToken) {
       console.error(
@@ -310,7 +311,10 @@ export const init = async function (userId) {
 
         // Optionally call a Bubble function to store the event ID
         if (typeof bubble_fn_eventId === "function") {
-          bubble_fn_eventId({output1:result.eventId,output2:eventDetails.id});
+          bubble_fn_eventId({
+            output1: result.eventId,
+            output2: appointmentId,
+          });
         }
 
         return result.eventId;
