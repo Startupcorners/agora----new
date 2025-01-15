@@ -6,118 +6,133 @@ export const init = async function (userId) {
 
   // Function to handle redirect from Google
   async function handleRedirect(userId) {
-    const params = new URLSearchParams(window.location.search);
-    const authCode = params.get("code"); // Extract the authorization code
-    const state = decodeURIComponent(params.get("state") || ""); // Extract the original URL from state
+  const params = new URLSearchParams(window.location.search);
+  const authCode = params.get("code");
+  const state = decodeURIComponent(params.get("state") || "");
 
-    if (authCode) {
-      try {
-        // Send the authorization code to the backend
-        const response = await fetch(
-          "https://agora-new.vercel.app/exchange-token",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ code: authCode }),
-          }
-        );
+  if (!authCode) return;
 
-        const result = await response.json();
+  try {
+    const tokenResponse = await fetch("https://agora-new.vercel.app/exchange-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: authCode }),
+    });
 
-        if (result.success) {
-          const accessToken = result.token.access_token;
-          const refreshToken = result.token.refresh_token;
-          const expiresIn = result.token.expires_in; // Token expiration time in seconds
+    const tokenResult = await tokenResponse.json();
 
-          // Calculate the expiration timestamp
-          const expirationTime = Date.now() + expiresIn * 1000; // Current time + expires_in in milliseconds
-
-          console.log("Access Token:", accessToken);
-          console.log("Refresh Token:", refreshToken);
-          console.log("Expires At (Timestamp):", expirationTime);
-
-          // Set up push notifications
-          const watcherInfo = await setupPushNotifications(accessToken, userId);
-
-          if (watcherInfo) {
-            console.log("Watcher Info:", watcherInfo);
-
-            // Send watcher info back to Bubble
-            if (typeof bubble_fn_watcher === "function") {
-              bubble_fn_watcher({
-                output1: watcherInfo.resourceId,
-                output2: watcherInfo.channelId,
-                output3: watcherInfo.expiration,
-              });
-            }
-          } else {
-            console.warn("Failed to set up push notifications.");
-          }
-
-          // Fetch and log calendar events
-          const today = new Date().toISOString(); // Current date in ISO format
-          const events = await listCalendarEvents(accessToken, today);
-
-          if (events && events.length > 0) {
-            console.log("Fetched Calendar Events:", events);
-
-            // Parse events into separate lists
-            const ids = [];
-            const starts = [];
-            const ends = [];
-
-            events.forEach((event) => {
-              // Skip events with the `SC` property in extendedProperties
-              const isFromSC =
-                event.extendedProperties &&
-                event.extendedProperties.private &&
-                event.extendedProperties.private.source === "SC";
-
-              if (!isFromSC) {
-                ids.push(event.id);
-                starts.push(event.start.dateTime || event.start.date); // Support all-day events
-                ends.push(event.end.dateTime || event.end.date); // Support all-day events
-              }
-            });
-
-            // Send parsed data to Bubble
-            if (typeof bubble_fn_calendarEvents === "function") {
-              bubble_fn_calendarEvents({
-                outputlist1: ids,
-                outputlist2: starts,
-                outputlist3: ends,
-              });
-            }
-          } else {
-            console.warn("No calendar events were retrieved.");
-          }
-
-          // Send tokens and expiration back to Bubble
-          if (typeof bubble_fn_token === "function") {
-            bubble_fn_token({
-              output1: accessToken,
-              output2: refreshToken,
-              output3: expirationTime,
-            });
-          }
-
-          // Redirect the user back to the original URL or fallback to dashboard
-          const redirectUrl = state || "/dashboard/setting"; // Ensure the fallback is a root-relative URL
-                if (redirectUrl.startsWith("https://www.startupcorners.com")) {
-                    window.location.href = redirectUrl;
-                } else {
-                    console.error("Invalid redirect URL detected:", redirectUrl);
-                    window.location.href = "/dashboard/setting"; // Safe fallback
-                }
-                
-        } else {
-          console.error("Error exchanging token:", result.error);
-        }
-      } catch (error) {
-        console.error("Error handling redirect:", error);
-      }
+    if (!tokenResult.success) {
+      console.error("Error exchanging token:", tokenResult.error);
+      return;
     }
+
+    const { access_token: accessToken, refresh_token: refreshToken, expires_in: expiresIn } = tokenResult.token;
+    const expirationTime = Date.now() + expiresIn * 1000;
+
+    console.log("Access Token:", accessToken);
+    console.log("Refresh Token:", refreshToken);
+    console.log("Expires At (Timestamp):", expirationTime);
+
+    const userEmail = await fetchUserEmail(accessToken);
+    if (!userEmail) {
+      console.error("Critical Error: Email could not be retrieved.");
+      return;
+    }
+
+    const watcherInfo = await setupPushNotifications(accessToken, userId);
+    if (watcherInfo) sendWatcherInfoToBubble(watcherInfo);
+
+    const events = await listCalendarEvents(accessToken, new Date().toISOString());
+    if (events && events.length > 0) sendCalendarEventsToBubble(events);
+
+    sendTokenDataToBubble(accessToken, refreshToken, expirationTime, userEmail);
+
+    const redirectUrl = validateRedirectUrl(state) || "/dashboard/setting";
+    window.location.href = redirectUrl;
+
+  } catch (error) {
+    console.error("Error handling redirect:", error);
   }
+}
+
+// Fetch user email using access token
+async function fetchUserEmail(accessToken) {
+  try {
+    const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (response.ok) {
+      const userInfo = await response.json();
+      console.log("User Email:", userInfo.email);
+      return userInfo.email || null;
+    } else {
+      console.error("Failed to fetch user info:", response.status, response.statusText);
+    }
+  } catch (error) {
+    console.error("Error retrieving user email:", error);
+  }
+  return null;
+}
+
+// Send watcher info to Bubble
+function sendWatcherInfoToBubble(watcherInfo) {
+  if (typeof bubble_fn_watcher === "function") {
+    bubble_fn_watcher({
+      output1: watcherInfo.resourceId,
+      output2: watcherInfo.channelId,
+      output3: watcherInfo.expiration,
+    });
+  }
+}
+
+// Send calendar events to Bubble
+function sendCalendarEventsToBubble(events) {
+  const ids = [];
+  const starts = [];
+  const ends = [];
+
+  events.forEach(event => {
+    const isFromSC = event.extendedProperties?.private?.source === "SC";
+    if (!isFromSC) {
+      ids.push(event.id);
+      starts.push(event.start.dateTime || event.start.date);
+      ends.push(event.end.dateTime || event.end.date);
+    }
+  });
+
+  if (typeof bubble_fn_calendarEvents === "function") {
+    bubble_fn_calendarEvents({
+      outputlist1: ids,
+      outputlist2: starts,
+      outputlist3: ends,
+    });
+  }
+}
+
+// Send token data to Bubble
+function sendTokenDataToBubble(accessToken, refreshToken, expirationTime, userEmail) {
+  if (typeof bubble_fn_token === "function") {
+    bubble_fn_token({
+      output1: accessToken,
+      output2: refreshToken,
+      output3: expirationTime,
+      output4: userEmail,
+    });
+  }
+}
+
+// Validate the redirect URL
+function validateRedirectUrl(url) {
+  if (url.startsWith("https://www.startupcorners.com")) {
+    return url;
+  } else {
+    console.error("Invalid redirect URL detected:", url);
+    return null;
+  }
+}
+
 
 
   // Function to initiate Google OAuth
