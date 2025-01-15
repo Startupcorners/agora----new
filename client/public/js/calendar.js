@@ -353,7 +353,7 @@ function validateRedirectUrl(url) {
 
 
 
-  // Return the functions to expose them
+  // Return the functions to expose themm
   return {
     initiateGoogleOAuth,
     handleGoogleEvents,
