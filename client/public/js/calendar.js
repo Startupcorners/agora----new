@@ -144,9 +144,7 @@ function validateRedirectUrl(url) {
     // Add all required scopes: calendar, openid, email, and profile
     const scope = [
       "https://www.googleapis.com/auth/calendar",
-      "openid",
       "email",
-      "profile",
     ].join(" ");
 
     const authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
