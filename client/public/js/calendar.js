@@ -140,7 +140,15 @@ function validateRedirectUrl(url) {
     const clientId =
       "870400114743-av6tv101l2mvclc468l974ust7am5l2u.apps.googleusercontent.com"; // Replace with your Client ID
     const redirectUri = "https://www.startupcorners.com/oauth-callback"; // Your Redirect URI
-    const scope = "https://www.googleapis.com/auth/calendar";
+
+    // Add all required scopes: calendar, openid, email, and profile
+    const scope = [
+      "https://www.googleapis.com/auth/calendar",
+      "openid",
+      "email",
+      "profile",
+    ].join(" ");
+
     const authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
 
     // Capture the current page URL
@@ -164,6 +172,7 @@ function validateRedirectUrl(url) {
     console.log("Redirect detected, calling handleRedirect...");
     await handleRedirect(userId);
   }
+
 
   // Function to list calendar events
   async function listCalendarEvents(accessToken, timeMin) {
