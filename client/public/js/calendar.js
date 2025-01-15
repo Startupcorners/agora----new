@@ -281,6 +281,10 @@ function validateRedirectUrl(url) {
     appointmentId,
     eventId = null,
   ) {
+    console.log(
+      "handleGoogleEvents has been triggered"
+    );
+
     if (!accessToken) {
       console.error(
         "No access token provided. Please connect Google Calendar first."
