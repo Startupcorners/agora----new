@@ -88,16 +88,72 @@ async function getValidAccessTokenAndNotifyBubble(
     throw error;
   }
 }
+const createCalendar = async (accessToken) => {
+  const response = await fetch(
+    "https://www.googleapis.com/calendar/v3/calendars",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        summary: "StartupCorners",
+        timeZone: "UTC",
+      }),
+    }
+  );
 
-async function handleEventAction(action, accessToken, eventId, eventDetails) {
-  const GOOGLE_EVENTS_API =
-    "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+  const data = await response.json();
+  console.log("Created calendar:", data);
+  return data.id; // Save this ID to use for adding events
+};
+
+
+
+const getCalendarId = async (accessToken) => {
+  const response = await fetch(
+    "https://www.googleapis.com/calendar/v3/users/me/calendarList",
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  );
+
+  const data = await response.json();
+  const startupcornersCalendar = data.items.find(
+    (cal) => cal.summary === "StartupCorners"
+  );
+
+  if (startupcornersCalendar) {
+    console.log("Found Startupcorners Calendar ID:", startupcornersCalendar.id);
+    return startupcornersCalendar.id;
+  } else {
+    console.error("Startupcorners calendar not found.");
+    return null;
+  }
+};
+
+
+
+
+async function handleEventAction(
+  action,
+  accessToken,
+  eventId,
+  eventDetails,
+  calendarId
+) {
+  const GOOGLE_EVENTS_API = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`;
 
   try {
     let response;
 
     switch (action) {
       case "add":
+        // Add an event with attendees and extended properties
         const eventWithAttendees = {
           ...eventDetails,
           attendees: eventDetails.attendees || [],
@@ -119,9 +175,11 @@ async function handleEventAction(action, accessToken, eventId, eventDetails) {
         break;
 
       case "delete":
+        // Delete an event by ID
         if (!eventId) {
           throw new Error("Missing eventId for delete action");
         }
+
         response = await fetch(`${GOOGLE_EVENTS_API}/${eventId}`, {
           method: "DELETE",
           headers: {
@@ -131,6 +189,7 @@ async function handleEventAction(action, accessToken, eventId, eventDetails) {
         break;
 
       case "update":
+        // Update an event with attendees and extended properties
         if (!eventId) {
           throw new Error("Missing eventId for update action");
         }
@@ -159,6 +218,7 @@ async function handleEventAction(action, accessToken, eventId, eventDetails) {
         throw new Error(`Invalid action: ${action}`);
     }
 
+    // Check if the response is not OK
     if (!response.ok) {
       const errorResponse = await response.json();
       console.error(`Error in ${action} action:`, errorResponse);
@@ -167,10 +227,12 @@ async function handleEventAction(action, accessToken, eventId, eventDetails) {
       );
     }
 
+    // Return specific messages for delete action
     if (action === "delete") {
       return { message: "Event deleted successfully" };
     }
 
+    // Return the response data for add/update actions
     const responseData = await response.json();
     console.log(`Successfully handled ${action} event:`, responseData);
     return responseData;
@@ -179,6 +241,7 @@ async function handleEventAction(action, accessToken, eventId, eventDetails) {
     throw error;
   }
 }
+
 
 router.post("/", async (req, res) => {
   const { action, accessToken, refreshToken, userId, eventId, eventDetails } =
@@ -189,6 +252,7 @@ router.post("/", async (req, res) => {
   }
 
   try {
+    // Validate and refresh the access token
     const {
       accessToken: validAccessToken,
       refreshToken: updatedRefreshToken,
@@ -199,24 +263,41 @@ router.post("/", async (req, res) => {
       userId
     );
 
+    // Always retrieve or create the Startupcorners calendar
+    let calendarId = await getCalendarId(validAccessToken);
+
+    if (!calendarId) {
+      console.log("Startupcorners calendar not found. Creating a new one...");
+      const createdCalendar = await createCalendar(validAccessToken);
+      if (createdCalendar && createdCalendar.id) {
+        calendarId = createdCalendar.id;
+        console.log("New Startupcorners calendar created with ID:", calendarId);
+      } else {
+        throw new Error("Failed to create Startupcorners calendar");
+      }
+    }
+
+    // Call the function to handle event actions with the retrieved calendar ID
     const eventResponse = await handleEventAction(
       action,
       validAccessToken,
       eventId,
-      eventDetails
+      eventDetails,
+      calendarId // Use this calendar for all actions
     );
 
+    let message;
     if (action === "add" || action === "update") {
-      return res.status(200).json({
-        message: `${action} action completed successfully`,
+      message = `${action} action completed successfully`;
+      res.status(200).json({
+        message,
         eventId: eventResponse.id,
         eventData: eventResponse,
       });
+    } else {
+      message = "Event deleted successfully";
+      res.status(200).json({ message });
     }
-
-    res.status(200).json({
-      message: "Event deleted successfully",
-    });
   } catch (err) {
     console.error("Error in event route:", err.message);
     res.status(500).send(err.message);
