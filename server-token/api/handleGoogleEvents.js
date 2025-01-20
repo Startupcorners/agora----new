@@ -248,11 +248,11 @@ router.post("/", async (req, res) => {
     req.body;
 
   if (!action || !accessToken || !refreshToken || !userId) {
-    return res.status(400).send("Missing required parameters");
+    return res.status(400).json({ error: "Missing required parameters" });
   }
 
   try {
-    // Validate and refresh the access token
+    // Step 1: Validate and refresh the access token
     const {
       accessToken: validAccessToken,
       refreshToken: updatedRefreshToken,
@@ -263,44 +263,50 @@ router.post("/", async (req, res) => {
       userId
     );
 
-    // Always retrieve or create the Startupcorners calendar
+    console.log(
+      "Valid access token received:",
+      validAccessToken ? "Yes" : "No"
+    );
+
+    // Step 2: Always retrieve or create the StartupCorners calendar
     let calendarId = await getCalendarId(validAccessToken);
 
     if (!calendarId) {
       console.log("Startupcorners calendar not found. Creating a new one...");
-      const createdCalendar = await createCalendar(validAccessToken);
-      if (createdCalendar && createdCalendar.id) {
-        calendarId = createdCalendar.id;
-        console.log("New Startupcorners calendar created with ID:", calendarId);
-      } else {
+      calendarId = await createCalendar(validAccessToken);
+      if (!calendarId) {
         throw new Error("Failed to create Startupcorners calendar");
       }
+      console.log("New Startupcorners calendar created with ID:", calendarId);
     }
 
-    // Call the function to handle event actions with the retrieved calendar ID
+    // Step 3: Call the function to handle event actions with the retrieved calendar ID
+    console.log(`Handling ${action} action for event ID: ${eventId || "N/A"}`);
     const eventResponse = await handleEventAction(
       action,
       validAccessToken,
       eventId,
       eventDetails,
-      calendarId // Use this calendar for all actions
+      calendarId
     );
 
     let message;
     if (action === "add" || action === "update") {
       message = `${action} action completed successfully`;
-      res.status(200).json({
+      return res.status(200).json({
         message,
         eventId: eventResponse.id,
         eventData: eventResponse,
       });
-    } else {
+    } else if (action === "delete") {
       message = "Event deleted successfully";
-      res.status(200).json({ message });
+      return res.status(200).json({ message });
+    } else {
+      throw new Error("Invalid action type");
     }
   } catch (err) {
-    console.error("Error in event route:", err.message);
-    res.status(500).send(err.message);
+    console.error("Error in event route:", err.message || err);
+    res.status(500).json({ error: err.message || "Internal server error" });
   }
 });
 

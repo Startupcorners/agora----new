@@ -391,87 +391,97 @@ function validateRedirectUrl(url) {
   }
 
 
-  async function handleGoogleEvents(
-    action,
-    accessToken,
-    refreshToken,
-    eventDetails,
-    userId,
-    appointmentId,
-    eventId = null,
-  ) {
-    console.log(
-      "handleGoogleEvents has been triggered"
+async function handleGoogleEvents(
+  action,
+  accessToken,
+  refreshToken,
+  eventDetails,
+  userId,
+  appointmentId,
+  eventId = null
+) {
+  console.log("handleGoogleEvents has been triggered");
+
+  if (!accessToken) {
+    console.error(
+      "No access token provided. Please connect Google Calendar first."
+    );
+    return null;
+  }
+
+  if (!userId) {
+    console.error("No userId provided. Cannot set up push notifications.");
+    return null;
+  }
+
+  if (!action || !["add", "update", "delete"].includes(action)) {
+    console.error(
+      "Invalid or missing action. Must be 'add', 'update', or 'delete'."
+    );
+    return null;
+  }
+
+  try {
+    const response = await fetch(
+      "https://agora-new.vercel.app/handleGoogleEvents",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          action,
+          accessToken,
+          refreshToken,
+          userId,
+          eventDetails: action !== "delete" ? eventDetails : undefined, // Include eventDetails only for add/update
+          eventId: action !== "add" ? eventId : undefined, // Include eventId only for update/delete
+        }),
+      }
     );
 
-    if (!accessToken) {
-      console.error(
-        "No access token provided. Please connect Google Calendar first."
-      );
+    // Check the response content type before parsing JSON
+    const contentType = response.headers.get("content-type");
+    let result;
+
+    if (contentType && contentType.includes("application/json")) {
+      result = await response.json();
+    } else {
+      result = await response.text();
+      console.error("Received non-JSON response from backend:", result);
       return null;
     }
 
-    if (!userId) {
-      console.error("No userId provided. Cannot set up push notifications.");
+    if (!response.ok) {
+      console.error("Error handling event:", result.error || result);
+      console.error(`HTTP Status: ${response.status}`);
       return null;
     }
 
-    if (!action || !["add", "update", "delete"].includes(action)) {
-      console.error(
-        "Invalid or missing action. Must be 'add', 'update', or 'delete'."
-      );
-      return null;
-    }
+    console.log("Event handled successfully:", result);
 
-    try {
-      const response = await fetch(
-        "https://agora-new.vercel.app/handleGoogleEvents",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            action,
-            accessToken,
-            refreshToken,
-            userId,
-            eventDetails: action !== "delete" ? eventDetails : undefined, // Only include eventDetails for add/update
-            eventId: action !== "add" ? eventId : undefined, // Only include eventId for update/delete
-          }),
-        }
-      );
+    if (result.eventId) {
+      console.log(`Event ${action}ed successfully with ID:`, result.eventId);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        console.error("Error handling event:", result.error || result);
-        return null;
+      // Optionally call a Bubble function to store the event ID
+      if (typeof bubble_fn_eventId === "function") {
+        bubble_fn_eventId({
+          output1: result.eventId,
+          output2: appointmentId,
+        });
       }
 
-      console.log("Event handled:", result);
-
-      if (result.eventId) {
-        console.log(`Event ${action}ed successfully with ID:`, result.eventId);
-
-        // Optionally call a Bubble function to store the event ID
-        if (typeof bubble_fn_eventId === "function") {
-          bubble_fn_eventId({
-            output1: result.eventId,
-            output2: appointmentId,
-          });
-        }
-
-        return result.eventId;
-      } else {
-        console.warn("No eventId returned from backend:", result);
-        return null;
-      }
-    } catch (error) {
-      console.error("Error handling event:", error);
+      return result.eventId;
+    } else {
+      console.warn("No eventId returned from backend:", result);
       return null;
     }
+  } catch (error) {
+    console.error("Error handling event:", error.message || error);
+    return null;
   }
+}
+
 
 
 
