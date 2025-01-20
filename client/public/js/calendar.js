@@ -6,54 +6,79 @@ export const init = async function (userId) {
 
   // Function to handle redirect from Google
   async function handleRedirect(userId) {
-  const params = new URLSearchParams(window.location.search);
-  const authCode = params.get("code");
-  const state = decodeURIComponent(params.get("state") || "");
+    const params = new URLSearchParams(window.location.search);
+    const authCode = params.get("code");
+    const state = decodeURIComponent(params.get("state") || "");
 
-  if (!authCode) return;
+    if (!authCode) return;
 
-  try {
-    const tokenResponse = await fetch("https://agora-new.vercel.app/exchange-token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code: authCode }),
-    });
+    try {
+      const tokenResponse = await fetch(
+        "https://agora-new.vercel.app/exchange-token",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: authCode }),
+        }
+      );
 
-    const tokenResult = await tokenResponse.json();
+      const tokenResult = await tokenResponse.json();
 
-    if (!tokenResult.success) {
-      console.error("Error exchanging token:", tokenResult.error);
-      return;
+      if (!tokenResult.success) {
+        console.error("Error exchanging token:", tokenResult.error);
+        return;
+      }
+
+      const {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_in: expiresIn,
+      } = tokenResult.token;
+      const expirationTime = Date.now() + expiresIn * 1000;
+
+      console.log("Access Token:", accessToken);
+      console.log("Refresh Token:", refreshToken);
+      console.log("Expires At (Timestamp):", expirationTime);
+
+      // Fetch user email using the retrieved access token
+      const userEmail = await fetchUserEmail(accessToken);
+      if (!userEmail) {
+        console.error("Critical Error: Email could not be retrieved.");
+        return;
+      }
+
+      // Setup push notifications and send data to Bubble if successful
+      const watcherInfo = await setupPushNotifications(accessToken, userId);
+      if (watcherInfo) sendWatcherInfoToBubble(watcherInfo);
+
+      // Fetch Google Calendar events and send them to Bubble
+      const events = await listCalendarEvents(
+        accessToken,
+        new Date().toISOString()
+      );
+      if (events && events.length > 0) sendCalendarEventsToBubble(events);
+
+      // Send token data (access, refresh, expiration) to Bubble
+      sendTokenDataToBubble(
+        accessToken,
+        refreshToken,
+        expirationTime,
+        userEmail
+      );
+
+      // Process appointments for the given user
+      console.log(`Processing appointments for user: ${userId}`);
+      await processAppointments(userId);
+      console.log("Appointment processing completed.");
+
+      // Redirect user to the appropriate URL after processing
+      const redirectUrl = validateRedirectUrl(state) || "/dashboard/setting";
+      window.location.href = redirectUrl;
+    } catch (error) {
+      console.error("Error handling redirect:", error);
     }
-
-    const { access_token: accessToken, refresh_token: refreshToken, expires_in: expiresIn } = tokenResult.token;
-    const expirationTime = Date.now() + expiresIn * 1000;
-
-    console.log("Access Token:", accessToken);
-    console.log("Refresh Token:", refreshToken);
-    console.log("Expires At (Timestamp):", expirationTime);
-
-    const userEmail = await fetchUserEmail(accessToken);
-    if (!userEmail) {
-      console.error("Critical Error: Email could not be retrieved.");
-      return;
-    }
-
-    const watcherInfo = await setupPushNotifications(accessToken, userId);
-    if (watcherInfo) sendWatcherInfoToBubble(watcherInfo);
-
-    const events = await listCalendarEvents(accessToken, new Date().toISOString());
-    if (events && events.length > 0) sendCalendarEventsToBubble(events);
-
-    sendTokenDataToBubble(accessToken, refreshToken, expirationTime, userEmail);
-
-    const redirectUrl = validateRedirectUrl(state) || "/dashboard/setting";
-    window.location.href = redirectUrl;
-
-  } catch (error) {
-    console.error("Error handling redirect:", error);
   }
-}
+
 
 // Fetch user email using access token
 async function fetchUserEmail(accessToken) {
@@ -86,6 +111,85 @@ function sendWatcherInfoToBubble(watcherInfo) {
     });
   }
 }
+
+
+async function processAppointments(userId) {
+  try {
+    if (!userId) {
+      throw new Error("Missing userId parameter.");
+    }
+
+    // Step 1: Fetch appointments from the given API with userId as a query parameter
+    const response = await fetch(
+      `https://startupcorners.com/api/1.1/wf/retrieveAppointments?userId=${encodeURIComponent(
+        userId
+      )}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to retrieve appointments: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+
+    if (!data || !data.response || !Array.isArray(data.response)) {
+      throw new Error("Invalid response format from API");
+    }
+
+    // Step 2: Loop through the appointments and process each one
+    for (const appointment of data.response) {
+      const {
+        action, // "add", "update", or "delete"
+        accessToken, // User's Google access token
+        refreshToken, // User's Google refresh token
+        appointmentId, // The appointment ID
+        eventId, // Google event ID (for updates/deletes)
+        eventDetails, // Event details (only for add/update actions)
+      } = appointment;
+
+      if (!action || !accessToken || !refreshToken || !appointmentId) {
+        console.warn(
+          `Skipping appointment ${appointmentId} due to missing data.`
+        );
+        continue;
+      }
+
+      // Step 3: Call handleGoogleEvents for each appointment
+      const resultEventId = await handleGoogleEvents(
+        action,
+        accessToken,
+        refreshToken,
+        eventDetails,
+        userId,
+        appointmentId,
+        eventId || null // Pass eventId if available for updates/deletes
+      );
+
+      if (resultEventId) {
+        console.log(
+          `Successfully processed appointment ${appointmentId} with Google Event ID: ${resultEventId}`
+        );
+      } else {
+        console.warn(`Failed to process appointment ${appointmentId}`);
+      }
+    }
+
+    console.log("All appointments processed.");
+  } catch (error) {
+    console.error("Error processing appointments:", error);
+  }
+}
+
+
+
 
 // Send calendar events to Bubble
 function sendCalendarEventsToBubble(events) {
@@ -361,6 +465,7 @@ function validateRedirectUrl(url) {
   return {
     initiateGoogleOAuth,
     handleGoogleEvents,
+    processAppointments,
   };
 };
 
