@@ -68,7 +68,7 @@ export const init = async function (userId) {
 
       // Process appointments for the given user
       console.log(`Processing appointments for user: ${userId}`);
-      await processAppointments(userId);
+      await processAppointments(userId, accessToken,refreshToken);
       console.log("Appointment processing completed.");
 
       // Redirect user to the appropriate URL after processing
@@ -120,10 +120,12 @@ function sendWatcherInfoToBubble(watcherInfo) {
 }
 
 
-async function processAppointments(userId) {
+async function processAppointments(userId, accessToken, refreshToken) {
   try {
-    if (!userId) {
-      throw new Error("Missing userId parameter.");
+    if (!userId || !accessToken || !refreshToken) {
+      throw new Error(
+        "Missing required parameters (userId, accessToken, or refreshToken)."
+      );
     }
 
     // Step 1: Fetch appointments from the given API with userId as a query parameter
@@ -135,6 +137,7 @@ async function processAppointments(userId) {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`, // Pass access token if needed
         },
       }
     );
@@ -147,24 +150,25 @@ async function processAppointments(userId) {
 
     const data = await response.json();
 
-    console.log(data)
+    console.log("API response:", data);
 
-    if (!data || !data.response || !Array.isArray(data.response)) {
+    // Check if the response is an array directly, or inside a 'response' field
+    const appointments = Array.isArray(data) ? data : data.response;
+
+    if (!appointments || !Array.isArray(appointments)) {
       throw new Error("Invalid response format from API");
     }
 
     // Step 2: Loop through the appointments and process each one
-    for (const appointment of data.response) {
+    for (const appointment of appointments) {
       const {
         action, // "add", "update", or "delete"
-        accessToken, // User's Google access token
-        refreshToken, // User's Google refresh token
         appointmentId, // The appointment ID
         eventId, // Google event ID (for updates/deletes)
         eventDetails, // Event details (only for add/update actions)
       } = appointment;
 
-      if (!action || !accessToken || !refreshToken || !appointmentId) {
+      if (!action || !appointmentId) {
         console.warn(
           `Skipping appointment ${appointmentId} due to missing data.`
         );
@@ -174,8 +178,8 @@ async function processAppointments(userId) {
       // Step 3: Call handleGoogleEvents for each appointment
       const resultEventId = await handleGoogleEvents(
         action,
-        accessToken,
-        refreshToken,
+        accessToken, // Use the passed access token
+        refreshToken, // Use the passed refresh token
         eventDetails,
         userId,
         appointmentId,
@@ -196,6 +200,8 @@ async function processAppointments(userId) {
     console.error("Error processing appointments:", error);
   }
 }
+
+
 
 
 
