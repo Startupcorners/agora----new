@@ -147,6 +147,8 @@ async function processAppointments(userId) {
 
     const data = await response.json();
 
+    console.log(data)
+
     if (!data || !data.response || !Array.isArray(data.response)) {
       throw new Error("Invalid response format from API");
     }
