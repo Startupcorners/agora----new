@@ -389,21 +389,13 @@ function validateRedirectUrl(url) {
 
 async function handleGoogleEvents(
   action,
-  accessToken,
-  refreshToken,
   eventDetails,
   userId,
   appointmentId,
-  eventId = null
+  eventId
 ) {
   console.log("handleGoogleEvents has been triggered");
 
-  if (!accessToken) {
-    console.error(
-      "No access token provided. Please connect Google Calendar first."
-    );
-    return null;
-  }
 
   if (!userId) {
     console.error("No userId provided. Cannot set up push notifications.");
@@ -427,8 +419,6 @@ async function handleGoogleEvents(
         },
         body: JSON.stringify({
           action,
-          accessToken,
-          refreshToken,
           userId,
           eventDetails: action !== "delete" ? eventDetails : undefined, // Include eventDetails only for add/update
           eventId: action !== "add" ? eventId : undefined, // Include eventId only for update/delete
