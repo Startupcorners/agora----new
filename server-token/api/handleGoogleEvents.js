@@ -2,6 +2,8 @@ const express = require("express");
 const fetch = require("node-fetch");
 const router = express.Router();
 
+
+
 async function getValidAccessTokenAndNotifyBubble(
   currentAccessToken,
   refreshToken,
@@ -88,65 +90,15 @@ async function getValidAccessTokenAndNotifyBubble(
     throw error;
   }
 }
-const createCalendar = async (accessToken) => {
-  const response = await fetch(
-    "https://www.googleapis.com/calendar/v3/calendars",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        summary: "StartupCorners",
-        timeZone: "UTC",
-      }),
-    }
-  );
-
-  const data = await response.json();
-  console.log("Created calendar:", data);
-  return data.id; // Save this ID to use for adding events
-};
-
-
-
-const getCalendarId = async (accessToken) => {
-  const response = await fetch(
-    "https://www.googleapis.com/calendar/v3/users/me/calendarList",
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
-
-  const data = await response.json();
-  const startupcornersCalendar = data.items.find(
-    (cal) => cal.summary === "StartupCorners"
-  );
-
-  if (startupcornersCalendar) {
-    console.log("Found Startupcorners Calendar ID:", startupcornersCalendar.id);
-    return startupcornersCalendar.id;
-  } else {
-    console.error("Startupcorners calendar not found.");
-    return null;
-  }
-};
-
 
 
 
 async function handleEventAction(
   action,
-  accessToken,
   eventId,
   eventDetails,
-  calendarId
 ) {
-  const GOOGLE_EVENTS_API = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`;
+  const GOOGLE_EVENTS_API = `https://www.googleapis.com/calendar/v3/calendars/primary/events`;
 
   try {
     let response;
@@ -243,23 +195,72 @@ async function handleEventAction(
 }
 
 
-router.post("/", async (req, res) => {
-  const { action, accessToken, refreshToken, userId, eventId, eventDetails } =
-    req.body;
+// Function to get access token from Bubble API
+async function getAccessTokenFromBubble(userId) {
+  const BUBBLE_API_URL = "https://startupcorners.com/api/1.1/wf/getAccessToken";
 
-  if (!action || !accessToken || !refreshToken || !userId) {
+  try {
+    const response = await fetch(
+      `${BUBBLE_API_URL}?userId=${encodeURIComponent(userId)}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to retrieve access token from Bubble: ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+
+    // Corrected: Check the correct structure based on the expected response
+    if (!data || !data.accessToken) {
+      throw new Error("Invalid response format from Bubble API");
+    }
+
+    console.log("Access token retrieved from Bubble successfully:", data.accessToken);
+    return data.accessToken;
+  } catch (error) {
+    console.error("Error retrieving access token from Bubble:", error.message);
+    throw error;
+  }
+}
+
+
+router.post("/", async (req, res) => {
+  const { action, eventId, eventDetails } = req.body;
+
+  if (!action) {
     return res.status(400).json({ error: "Missing required parameters" });
   }
 
   try {
-    // Step 1: Validate and refresh the access token
+    // Step 1: Retrieve user ID and refresh token from environment variables
+    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN_CALENDAR;
+    const userId = process.env.MAIN_USERID;
+
+    if (!refreshToken || !userId) {
+      throw new Error(
+        "Environment variables for userId or refresh token are missing."
+      );
+    }
+
+    // Step 2: Call Bubble API to get the current access token
+    let mainAccessToken = await getAccessTokenFromBubble(userId);
+
+    // Step 3: Validate and refresh the access token if needed
     const {
       accessToken: validAccessToken,
       refreshToken: updatedRefreshToken,
       accessTokenExpiration: newAccessTokenExpiration,
     } = await getValidAccessTokenAndNotifyBubble(
-      accessToken,
-      refreshToken,
+      mainAccessToken,
+      refreshToken, // Use environment variable refresh token
       userId
     );
 
@@ -268,26 +269,13 @@ router.post("/", async (req, res) => {
       validAccessToken ? "Yes" : "No"
     );
 
-    // Step 2: Always retrieve or create the StartupCorners calendar
-    let calendarId = await getCalendarId(validAccessToken);
-
-    if (!calendarId) {
-      console.log("Startupcorners calendar not found. Creating a new one...");
-      calendarId = await createCalendar(validAccessToken);
-      if (!calendarId) {
-        throw new Error("Failed to create Startupcorners calendar");
-      }
-      console.log("New Startupcorners calendar created with ID:", calendarId);
-    }
-
-    // Step 3: Call the function to handle event actions with the retrieved calendar ID
+    // Step 4: Call the function to handle event actions
     console.log(`Handling ${action} action for event ID: ${eventId || "N/A"}`);
     const eventResponse = await handleEventAction(
       action,
       validAccessToken,
       eventId,
-      eventDetails,
-      calendarId
+      eventDetails
     );
 
     let message;
@@ -311,3 +299,4 @@ router.post("/", async (req, res) => {
 });
 
 module.exports = router;
+

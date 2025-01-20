@@ -132,50 +132,6 @@ async function stopSubscription(channelId, resourceId, accessToken) {
   }
 }
 
-const getCalendarId = async (accessToken) => {
-  const response = await fetch(
-    "https://www.googleapis.com/calendar/v3/users/me/calendarList",
-    {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
-
-  const data = await response.json();
-  const startupcornersCalendar = data.items.find(
-    (cal) => cal.summary === "StartupCorners"
-  );
-
-  if (startupcornersCalendar) {
-    console.log("Found Startupcorners Calendar ID:", startupcornersCalendar.id);
-    return startupcornersCalendar.id;
-  } else {
-    console.error("Startupcorners calendar not found.");
-    return null;
-  }
-};
-
-
-const deleteCalendar = async (accessToken, calendarId) => {
-  const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/${calendarId}`,
-    {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    }
-  );
-
-  if (response.ok) {
-    console.log("Startupcorners calendar deleted successfully.");
-  } else {
-    console.error("Error deleting calendar:", await response.json());
-  }
-};
-
 
 
 
@@ -203,19 +159,6 @@ router.post("/", async (req, res) => {
       refreshToken,
       userId
     );
-
-    // 2) Get the calendar ID
-    const calendarId = await getCalendarId(validAccessToken);
-
-    if (calendarId) {
-      console.log(`Calendar found: ${calendarId}, deleting it...`);
-
-      // 3) Delete the calendar if it exists
-      await deleteCalendar(validAccessToken, calendarId);
-      console.log(`Calendar ${calendarId} deleted successfully.`);
-    } else {
-      console.log("No calendar found to delete.");
-    }
 
     // 4) Stop existing subscription
     await stopSubscription(channelId, resourceId, validAccessToken);
