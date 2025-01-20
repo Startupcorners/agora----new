@@ -72,12 +72,19 @@ export const init = async function (userId) {
       console.log("Appointment processing completed.");
 
       // Redirect user to the appropriate URL after processing
-      const redirectUrl = validateRedirectUrl(state) || "/dashboard/setting";
-      window.location.href = redirectUrl;
+      /*
+    const redirectUrl = validateRedirectUrl(state) || "/dashboard/setting";
+    window.location.href = redirectUrl;
+    */
+      console.log(
+        "Redirect skipped. Original redirect URL would be:",
+        validateRedirectUrl(state) || "/dashboard/setting"
+      );
     } catch (error) {
       console.error("Error handling redirect:", error);
     }
   }
+
 
 
 // Fetch user email using access token
