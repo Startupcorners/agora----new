@@ -73,8 +73,8 @@ export const init = async function (userId) {
 
       // Redirect user to the appropriate URL after processing
 
-      const redirectUrl = validateRedirectUrl(state) || "/dashboard/setting";
-      window.location.href = redirectUrl;
+      //const redirectUrl = validateRedirectUrl(state) || "/dashboard/setting";
+      //window.location.href = redirectUrl;
       console.log(
         "Redirect skipped. Original redirect URL would be:",
         validateRedirectUrl(state) || "/dashboard/setting"
