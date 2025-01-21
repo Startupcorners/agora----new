@@ -5,7 +5,6 @@ export const init = async function (userId) {
   }
 
   // Function to handle redirect from Google
-  // Function to handle redirect from Google
   async function handleRedirect(userId) {
     const params = new URLSearchParams(window.location.search);
     const authCode = params.get("code");
@@ -252,21 +251,6 @@ export const init = async function (userId) {
     }
   }
 
-  // Example usage:
-  removeAttendeeFromEvents("user@example.com")
-    .then((result) => {
-      if (result) {
-        console.log("Attendee removal process completed:", result);
-      } else {
-        console.warn("No result returned from backend.");
-      }
-    })
-    .catch((error) =>
-      console.error("Error in attendee removal process:", error)
-    );
-
-
-
 
   // Send calendar events to Bubble
   function sendCalendarEventsToBubble(events) {
@@ -339,11 +323,12 @@ export const init = async function (userId) {
       redirectUri
     )}&scope=${encodeURIComponent(
       scope
-    )}&access_type=offline&prompt=consent&state=${state}`;
+    )}&access_type=offline&include_granted_scopes=true&state=${state}`;
 
     // Redirect the user to Google's OAuth page
     window.location.href = authUrl;
   }
+
 
   // Automatically handle redirect if the URL contains the authorization code
   if (
@@ -353,6 +338,7 @@ export const init = async function (userId) {
     console.log("Redirect detected, calling handleRedirect...");
     await handleRedirect(userId);
   }
+
 
   // Function to list calendar events
   async function listCalendarEvents(accessToken, timeMin) {
