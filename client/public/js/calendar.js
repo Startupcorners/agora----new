@@ -207,7 +207,7 @@ export const init = async function (userId) {
     }
   }
 
-  async function deleteEventsByAttendeeEmail(email) {
+  async function removeAttendeeFromEvents(email) {
     if (!email) {
       console.error("Email parameter is required.");
       return;
@@ -215,7 +215,7 @@ export const init = async function (userId) {
 
     try {
       const response = await fetch(
-        "https://agora-new.vercel.app/delete-events",
+        "https://agora-new.vercel.app/remove-attendee",
         {
           method: "POST",
           headers: {
@@ -238,19 +238,33 @@ export const init = async function (userId) {
       }
 
       if (!response.ok) {
-        console.error("Error deleting events:", result.error || result);
+        console.error("Error removing attendee:", result.error || result);
         return;
       }
 
-      console.log("Events deleted successfully:", result.message);
+      console.log("Attendee removed successfully:", result.message);
       return result;
     } catch (error) {
       console.error(
-        "Error calling backend for event deletion:",
+        "Error calling backend to remove attendee:",
         error.message || error
       );
     }
-  };
+  }
+
+  // Example usage:
+  removeAttendeeFromEvents("user@example.com")
+    .then((result) => {
+      if (result) {
+        console.log("Attendee removal process completed:", result);
+      } else {
+        console.warn("No result returned from backend.");
+      }
+    })
+    .catch((error) =>
+      console.error("Error in attendee removal process:", error)
+    );
+
 
 
 
@@ -524,7 +538,7 @@ export const init = async function (userId) {
     initiateGoogleOAuth,
     handleGoogleEvents,
     processAppointments,
-    deleteEventsByAttendeeEmail,
+    removeAttendeeFromEvents,
   };
 };
 

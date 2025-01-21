@@ -40,33 +40,46 @@ async function getEventsWithAttendee(accessToken, attendeeEmail) {
   }
 }
 
-// Function to delete a list of events by event IDs
-async function deleteEventsByAttendee(accessToken, eventsToDelete) {
-  if (!eventsToDelete.length) {
-    console.log("No events found for deletion.");
+// Function to remove an attendee from events
+async function removeAttendeeFromEvents(
+  accessToken,
+  eventsToProcess,
+  attendeeEmail
+) {
+  if (eventsToProcess.length === 0) {
+    console.log("No events found for attendee removal.");
     return;
   }
 
-  for (const event of eventsToDelete) {
-    const deleteUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${event.id}`;
+  for (const event of eventsToProcess) {
+    // Remove the attendee from the event
+    event.attendees = event.attendees.filter(
+      (attendee) => attendee.email !== attendeeEmail
+    );
 
-    const response = await fetch(deleteUrl, {
-      method: "DELETE",
+    const updateUrl = `https://www.googleapis.com/calendar/v3/calendars/primary/events/${event.id}`;
+
+    const updateResponse = await fetch(updateUrl, {
+      method: "PUT",
       headers: {
         Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
+      body: JSON.stringify(event),
     });
 
-    if (response.ok) {
-      console.log(`Deleted event with ID: ${event.id}`);
+    if (updateResponse.ok) {
+      console.log(`Removed attendee from event with ID: ${event.id}`);
     } else {
       console.error(
-        `Failed to delete event ${event.id}: ${response.statusText}`
+        `Failed to update event ${event.id}: ${updateResponse.statusText}`
       );
     }
   }
 
-  console.log(`Deleted ${eventsToDelete.length} events successfully.`);
+  console.log(
+    `Processed ${eventsToProcess.length} events for attendee removal.`
+  );
 }
 
 // Function to get access token from Bubble API
@@ -202,20 +215,20 @@ router.post("/", async (req, res) => {
   }
 
   try {
-    // Step 1: Retrieve user ID and refresh token from environment variables
+    // Retrieve user ID and refresh token from environment variables
     const refreshToken = process.env.GOOGLE_REFRESH_TOKEN_CALENDAR;
     const userId = process.env.MAIN_USERID;
 
     if (!refreshToken || !userId) {
       throw new Error(
-        "Environment variables for userId or refresh token are missing."
+        "Missing environment variables for userId or refresh token."
       );
     }
 
-    // Step 2: Call Bubble API to get the current access token
+    // Call Bubble API to get the current access token
     let mainAccessToken = await getAccessTokenFromBubble(userId);
 
-    // Step 3: Validate and refresh the access token if needed
+    // Validate and refresh the access token if needed
     const { accessToken: validAccessToken } =
       await getValidAccessTokenAndNotifyBubble(
         mainAccessToken,
@@ -228,16 +241,17 @@ router.post("/", async (req, res) => {
       validAccessToken ? "Yes" : "No"
     );
 
-    // Step 4: Fetch events with the given attendee email
-    const eventsToDelete = await getEventsWithAttendee(validAccessToken, email);
+    // Fetch events with the given attendee email
+    const eventsToProcess = await getEventsWithAttendee(
+      validAccessToken,
+      email
+    );
 
-    // Step 5: Delete fetched events
-    await deleteEventsByAttendee(validAccessToken, eventsToDelete);
+    // Remove attendee from the events
+    await removeAttendeeFromEvents(validAccessToken, eventsToProcess, email);
 
-    console.log("Events deleted successfully");
-
-    return res.status(200).json({
-      message: `Deleted ${eventsToDelete.length} events for attendee ${email}`,
+    res.status(200).json({
+      message: `Removed attendee from ${eventsToProcess.length} events for email: ${email}`,
     });
   } catch (err) {
     console.error("Error in event route:", err.message || err);

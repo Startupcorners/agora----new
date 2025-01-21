@@ -73,7 +73,7 @@ const renewWatch = require("./renew-watch");
 const setWebhook = require("./setWebhook");
 const stopWatch = require("./stopWatch");
 const handleGoogleEvents = require("./handleGoogleEvents");
-const deleteEvents = require("./delete-events");
+const removeAttendee = require("./remove-attendee");
 
 
 
@@ -91,7 +91,7 @@ app.use("/renew-watch", renewWatch);
 app.use("/setWebhook", setWebhook);
 app.use("/stopWatch", stopWatch);
 app.use("/handleGoogleEvents", handleGoogleEvents);
-app.use("/delete-events", deleteEvents);
+app.use("/remove-attendee", removeAttendee);
 
 // Error handler
 app.use((err, req, res, next) => {
