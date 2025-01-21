@@ -93,28 +93,40 @@ async function getValidAccessTokenAndNotifyBubble(
 
 
 
-async function handleEventAction(
-  action,
-  eventId,
-  eventDetails,
-) {
+async function handleEventAction(action, accessToken, eventId, eventDetails) {
   const GOOGLE_EVENTS_API = `https://www.googleapis.com/calendar/v3/calendars/primary/events`;
 
   try {
+    if (!accessToken) {
+      throw new Error("Missing access token.");
+    }
+
+    if (!action || !["add", "update", "delete"].includes(action)) {
+      throw new Error(
+        "Invalid or missing action. Must be 'add', 'update', or 'delete'."
+      );
+    }
+
     let response;
 
     switch (action) {
       case "add":
+        if (!eventDetails || typeof eventDetails !== "object") {
+          throw new Error("Invalid event details provided for adding event.");
+        }
+
         // Add an event with attendees and extended properties
         const eventWithAttendees = {
           ...eventDetails,
-          attendees: eventDetails.attendees || [],
+          attendees: eventDetails?.attendees || [], // Ensure attendees is always an array
           extendedProperties: {
             private: {
               source: "SC", // Identify events created by your app
             },
           },
         };
+
+        console.log("Adding event with details:", eventWithAttendees);
 
         response = await fetch(GOOGLE_EVENTS_API, {
           method: "POST",
@@ -127,10 +139,11 @@ async function handleEventAction(
         break;
 
       case "delete":
-        // Delete an event by ID
         if (!eventId) {
-          throw new Error("Missing eventId for delete action");
+          throw new Error("Missing eventId for delete action.");
         }
+
+        console.log(`Deleting event with ID: ${eventId}`);
 
         response = await fetch(`${GOOGLE_EVENTS_API}/${eventId}`, {
           method: "DELETE",
@@ -141,20 +154,27 @@ async function handleEventAction(
         break;
 
       case "update":
-        // Update an event with attendees and extended properties
         if (!eventId) {
-          throw new Error("Missing eventId for update action");
+          throw new Error("Missing eventId for update action.");
+        }
+        if (!eventDetails || typeof eventDetails !== "object") {
+          throw new Error("Invalid event details provided for updating event.");
         }
 
         const updatedEventWithAttendees = {
           ...eventDetails,
-          attendees: eventDetails.attendees || [],
+          attendees: eventDetails?.attendees || [], // Ensure attendees is always an array
           extendedProperties: {
             private: {
               source: "SC",
             },
           },
         };
+
+        console.log(
+          `Updating event with ID: ${eventId} with details:`,
+          updatedEventWithAttendees
+        );
 
         response = await fetch(`${GOOGLE_EVENTS_API}/${eventId}`, {
           method: "PUT",
@@ -181,6 +201,7 @@ async function handleEventAction(
 
     // Return specific messages for delete action
     if (action === "delete") {
+      console.log("Event deleted successfully.");
       return { message: "Event deleted successfully" };
     }
 
@@ -189,10 +210,11 @@ async function handleEventAction(
     console.log(`Successfully handled ${action} event:`, responseData);
     return responseData;
   } catch (error) {
-    console.error(`Error in handleEventAction (${action}):`, error);
+    console.error(`Error in handleEventAction (${action}):`, error.message);
     throw error;
   }
 }
+
 
 
 // Function to get access token from Bubble API
