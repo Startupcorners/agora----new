@@ -207,6 +207,53 @@ export const init = async function (userId) {
     }
   }
 
+  async function deleteEventsByAttendeeEmail(email) {
+    if (!email) {
+      console.error("Email parameter is required.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "https://agora-new.vercel.app/delete-events",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email }),
+        }
+      );
+
+      // Check the response content type before parsing JSON
+      const contentType = response.headers.get("content-type");
+      let result;
+
+      if (contentType && contentType.includes("application/json")) {
+        result = await response.json();
+      } else {
+        result = await response.text();
+        console.error("Received non-JSON response from backend:", result);
+        return;
+      }
+
+      if (!response.ok) {
+        console.error("Error deleting events:", result.error || result);
+        return;
+      }
+
+      console.log("Events deleted successfully:", result.message);
+      return result;
+    } catch (error) {
+      console.error(
+        "Error calling backend for event deletion:",
+        error.message || error
+      );
+    }
+  };
+
+
+
   // Send calendar events to Bubble
   function sendCalendarEventsToBubble(events) {
     const ids = [];
@@ -477,6 +524,7 @@ export const init = async function (userId) {
     initiateGoogleOAuth,
     handleGoogleEvents,
     processAppointments,
+    deleteEventsByAttendeeEmail,
   };
 };
 
