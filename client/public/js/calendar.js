@@ -79,8 +79,8 @@ export const init = async function (userId) {
       await processAppointments(userId, accessToken, refreshToken, calendarId);
       console.log("Appointment processing completed.");
 
-      // const redirectUrl = "/dashboard/setting";
-      // window.location.href = redirectUrl;
+      const redirectUrl = "/dashboard/setting";
+      window.location.href = redirectUrl;
     } catch (error) {
       console.error("Error handling redirect:", error);
     }
