@@ -305,7 +305,7 @@ export const schedule = async function () {
     // Adjust `outputlist6` to viewer timezone
     outputlist6 = adjustSlotsToViewerTimezone(outputlist6, userOffsetInSeconds);
 
-    console.log(outputlist3);
+    
 
     // Final output
     const result = {
@@ -320,6 +320,8 @@ export const schedule = async function () {
       outputlist9,
       exit,
     };
+
+    console.log(result);
 
     // Send result to Bubble
     bubble_fn_hours(result);
