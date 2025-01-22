@@ -176,8 +176,7 @@ export const schedule = async function () {
   }
 
   function generateSlotsForWeek(
-    mainAvailabilityList,
-    allAvailabilityLists,
+    mainAvailability,
     viewerStartDate,
     alreadyBookedList,
     modifiedSlots,
@@ -186,14 +185,7 @@ export const schedule = async function () {
     blockedByUserList
   ) {
     console.log("======== Function Start ========");
-    console.log(
-      "mainAvailabilityList:",
-      JSON.stringify(mainAvailabilityList, null, 2)
-    );
-    console.log(
-      "allAvailabilityLists:",
-      JSON.stringify(allAvailabilityLists, null, 2)
-    );
+    console.log("mainAvailability:", JSON.stringify(mainAvailability, null, 2));
     console.log("viewerStartDate:", viewerStartDate);
     console.log(
       "alreadyBookedList:",
@@ -207,19 +199,13 @@ export const schedule = async function () {
       JSON.stringify(blockedByUserList, null, 2)
     );
 
-    const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
+    console.log("mainAvailability:", mainAvailability);
 
-    // Compute week range and daily intersection
-    const {
-      globalStart,
-      globalEnd,
-      commonDailyStart,
-      commonDailyEnd,
-      realStart,
-      realEnd,
-      exit,
-    } = computeWeekRangeAndDailyIntersection(
-      allAvailabilityLists,
+    const slotDuration = mainAvailability.slot_duration_minutes;
+
+    // Compute week range
+    const { globalStart, globalEnd, exit } = computeWeekRange(
+      mainAvailability,
       viewerStartDate,
       offset,
       userOffsetInSeconds
@@ -227,14 +213,12 @@ export const schedule = async function () {
 
     console.log("globalStart:", globalStart);
     console.log("globalEnd:", globalEnd);
-    console.log("commonDailyStart:", commonDailyStart);
-    console.log("commonDailyEnd:", commonDailyEnd);
 
-    // Generate day boundaries (always necessary)
-    const outputlist6 = generateDayBoundaries(globalStart);
+    // Generate day boundaries
+    let outputlist6 = generateDayBoundaries(globalStart);
     console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
 
-    // Declare other outputs
+    // Declare slot outputs
     let outputlist7 = [];
     let outputlist1 = [];
     let outputlist2 = [];
@@ -245,13 +229,13 @@ export const schedule = async function () {
     let outputlist9 = [];
 
     if (!exit) {
-      console.log("Overlap found. Generating remaining slot outputs...");
+      console.log("Generating available slots...");
 
       // Generate weekly slots
       outputlist7 = generateWeeklySlots(
         globalStart,
-        commonDailyStart,
-        commonDailyEnd,
+        mainAvailability.daily_start_time,
+        mainAvailability.daily_end_time,
         slotDuration
       );
       console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
@@ -259,7 +243,7 @@ export const schedule = async function () {
       // Assign slot information
       const slotInfoResults = assignSlotInfo(
         outputlist7,
-        mainAvailabilityList,
+        mainAvailability,
         blockedByUserList,
         modifiedSlots
       );
@@ -290,14 +274,14 @@ export const schedule = async function () {
         return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
       });
 
-      // Generate outputlist5 (filtered slots by availability)
+      // Filter available slots based on actual availability
       outputlist5 = filterSlotsByAvailabilityRange(
         outputlist7,
-        realStart,
-        realEnd
+        globalStart,
+        globalEnd
       );
 
-      // Adjust slot ranges to viewer timezone
+      // Adjust slots to the viewer's timezone
       outputlist7 = adjustSlotsToViewerTimezone(
         outputlist7,
         userOffsetInSeconds
@@ -307,14 +291,11 @@ export const schedule = async function () {
         userOffsetInSeconds
       );
     } else {
-      console.warn("No overlap found. Skipping remaining slot generation.");
+      console.warn("No valid availability found. Skipping slot generation.");
     }
 
     // Adjust `outputlist6` to viewer timezone
-    const adjustedOutputlist6 = adjustSlotsToViewerTimezone(
-      outputlist6,
-      userOffsetInSeconds
-    );
+    outputlist6 = adjustSlotsToViewerTimezone(outputlist6, userOffsetInSeconds);
 
     // Final output
     const result = {
@@ -323,7 +304,7 @@ export const schedule = async function () {
       outputlist3,
       outputlist4,
       outputlist5,
-      outputlist6: adjustedOutputlist6,
+      outputlist6,
       outputlist7,
       outputlist8,
       outputlist9,
@@ -365,14 +346,14 @@ export const schedule = async function () {
     );
   }
 
-  function computeWeekRangeAndDailyIntersection(
-    allAvailabilityLists,
+  function computeWeekRange(
+    mainAvailability,
     viewerStartDate,
     offset,
     userOffsetInSeconds
   ) {
     console.log("=== Function Start ===");
-    console.log("Input - allAvailabilityLists:", allAvailabilityLists);
+    console.log("Input - mainAvailability:", mainAvailability);
     console.log("Input - viewerStartDate:", viewerStartDate);
     console.log("Input - offset:", offset);
     console.log("Input - userOffsetInSeconds:", userOffsetInSeconds);
@@ -380,12 +361,13 @@ export const schedule = async function () {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
     console.log("Computed userOffsetInMinutes:", userOffsetInMinutes);
 
-    // Step 1: Calculate viewer's start date for the given week in user timezone
+    // Step 1: Calculate the adjusted start date based on the user's timezone
     const viewerStartLocal = moment
       .utc(viewerStartDate)
       .utcOffset(userOffsetInMinutes)
       .startOf("day")
       .add(offset * 7, "days");
+
     console.log("Computed viewerStartLocal:", viewerStartLocal.format());
 
     if (!viewerStartLocal.isValid()) {
@@ -393,98 +375,43 @@ export const schedule = async function () {
       return { error: "Invalid start date", exit: true };
     }
 
-    let overallEarliestStart = null;
-    let overallLatestEnd = null;
-    let dailyStartInMinutesArray = [];
-    let dailyEndInMinutesArray = [];
+    // Step 2: Parse the main availability start and end dates
+    const availabilityStart = moment.utc(mainAvailability.start_date);
+    const availabilityEnd = moment.utc(mainAvailability.end_date);
 
-    // Step 2: Parse each availability and compute overall earliest/latest dates
-    allAvailabilityLists.forEach((availability, index) => {
-      console.log(`Processing availability [${index}]:`, availability);
+    console.log("Availability start_date (UTC):", availabilityStart.format());
+    console.log("Availability end_date (UTC):", availabilityEnd.format());
 
-      const availabilityStart = moment.utc(availability.start_date);
-      const availabilityEnd = moment.utc(availability.end_date);
-      console.log(`Availability start_date (UTC):`, availabilityStart.format());
-      console.log(`Availability end_date (UTC):`, availabilityEnd.format());
-
-      if (
-        !overallEarliestStart ||
-        availabilityStart.isAfter(overallEarliestStart)
-      ) {
-        overallEarliestStart = availabilityStart.clone();
-      }
-
-      if (!overallLatestEnd || availabilityEnd.isBefore(overallLatestEnd)) {
-        overallLatestEnd = availabilityEnd.clone();
-      }
-
-      // Extract daily start and end times in minutes
-      const [startHour, startMin] = availability.daily_start_time
-        .split(":")
-        .map(Number);
-      const [endHour, endMin] = availability.daily_end_time
-        .split(":")
-        .map(Number);
-
-      dailyStartInMinutesArray.push(startHour * 60 + startMin);
-      dailyEndInMinutesArray.push(endHour * 60 + endMin);
-
-      console.log("Daily start (mins):", startHour * 60 + startMin);
-      console.log("Daily end (mins):", endHour * 60 + endMin);
-    });
-
-    console.log("Overall earliest start:", overallEarliestStart?.format());
-    console.log("Overall latest end:", overallLatestEnd?.format());
-    console.log("Daily start times (mins):", dailyStartInMinutesArray);
-    console.log("Daily end times (mins):", dailyEndInMinutesArray);
-
-    // Step 3: Compute default global range for the week
+    // Step 3: Compute the global and real start/end times
     const globalStartLocal = viewerStartLocal.clone().startOf("day");
     const globalEndLocal = globalStartLocal.clone().add(6, "days").endOf("day");
-    console.log("Global week start (local):", globalStartLocal.format());
-    console.log("Global week end (local):", globalEndLocal.format());
 
-    // Step 4: Compute realStart and realEnd
-    const realStartLocal = overallEarliestStart
-      ? moment.max(
-          globalStartLocal,
-          overallEarliestStart.utcOffset(userOffsetInMinutes)
-        )
-      : globalStartLocal;
+    const realStartLocal = moment.max(globalStartLocal, availabilityStart);
+    const realEndLocal = moment.min(globalEndLocal, availabilityEnd);
 
-    const realEndLocal = overallLatestEnd
-      ? moment.min(
-          globalEndLocal,
-          overallLatestEnd.utcOffset(userOffsetInMinutes)
-        )
-      : globalEndLocal;
-
+    console.log("Global start (local):", globalStartLocal.format());
+    console.log("Global end (local):", globalEndLocal.format());
     console.log("Real start (local):", realStartLocal.format());
     console.log("Real end (local):", realEndLocal.format());
 
-    // Step 5: Compute the daily intersection window
-    const finalDailyStartMins = dailyStartInMinutesArray.length
-      ? Math.max(...dailyStartInMinutesArray)
-      : 0; // Default to midnight if no availability
-    const finalDailyEndMins = dailyEndInMinutesArray.length
-      ? Math.min(...dailyEndInMinutesArray)
-      : 23 * 60 + 59; // Default to 23:59 if no availability
-
-    const dailyStartHour = Math.floor(finalDailyStartMins / 60);
-    const dailyStartMinute = finalDailyStartMins % 60;
-    const dailyEndHour = Math.floor(finalDailyEndMins / 60);
-    const dailyEndMinute = finalDailyEndMins % 60;
+    // Step 4: Calculate the daily start and end times
+    const [startHour, startMin] = mainAvailability.daily_start_time
+      .split(":")
+      .map(Number);
+    const [endHour, endMin] = mainAvailability.daily_end_time
+      .split(":")
+      .map(Number);
 
     const commonDailyStart = moment.utc().set({
-      hour: dailyStartHour,
-      minute: dailyStartMinute,
+      hour: startHour,
+      minute: startMin,
       second: 0,
       millisecond: 0,
     });
 
     const commonDailyEnd = moment.utc().set({
-      hour: dailyEndHour,
-      minute: dailyEndMinute,
+      hour: endHour,
+      minute: endMin,
       second: 0,
       millisecond: 0,
     });
@@ -492,33 +419,34 @@ export const schedule = async function () {
     console.log("Final daily start (UTC):", commonDailyStart.format("HH:mm"));
     console.log("Final daily end (UTC):", commonDailyEnd.format("HH:mm"));
 
-    // Step 6: Convert all outputs back to UTC
-    const globalStartUTC = globalStartLocal.clone().utc();
-    const globalEndUTC = globalEndLocal.clone().utc();
-    const realStartUTC = realStartLocal.clone().utc();
-    const realEndUTC = realEndLocal.clone().utc();
+    // Step 5: Convert all outputs to UTC strings
+    const globalStartUTC = globalStartLocal.clone().utc().format();
+    const globalEndUTC = globalEndLocal.clone().utc().format();
+    const realStartUTC = realStartLocal.clone().utc().format();
+    const realEndUTC = realEndLocal.clone().utc().format();
 
-    console.log("Global start (UTC):", globalStartUTC.format());
-    console.log("Global end (UTC):", globalEndUTC.format());
-    console.log("Real start (UTC):", realStartUTC.format());
-    console.log("Real end (UTC):", realEndUTC.format());
+    console.log("Global start (UTC):", globalStartUTC);
+    console.log("Global end (UTC):", globalEndUTC);
+    console.log("Real start (UTC):", realStartUTC);
+    console.log("Real end (UTC):", realEndUTC);
 
-    // Check for overlap and set exit flag
+    // Check for overlap and determine if processing should continue
     const hasOverlap = realEndLocal.isSameOrAfter(realStartLocal);
     console.log("Has overlap:", hasOverlap);
 
-    // Return results
+    // Return computed range and exit flag
     console.log("=== Function End ===");
     return {
-      globalStart: globalStartUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
-      globalEnd: globalEndUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
+      globalStart: globalStartUTC,
+      globalEnd: globalEndUTC,
       commonDailyStart: commonDailyStart.format("HH:mm"),
       commonDailyEnd: commonDailyEnd.format("HH:mm"),
-      realStart: realStartUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
-      realEnd: realEndUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
+      realStart: realStartUTC,
+      realEnd: realEndUTC,
       exit: !hasOverlap, // Exit is true if there's no overlap
     };
   }
+
 
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
