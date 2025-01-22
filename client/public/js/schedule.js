@@ -258,6 +258,14 @@ export const schedule = async function () {
         const slotStart = moment.utc(slot[0]);
         const slotEnd = moment.utc(slot[1]);
 
+        console.log(
+          "Processing slot:",
+          slotStart.format(),
+          "-",
+          slotEnd.format()
+        );
+
+        // 1) ALREADY BOOKED CHECK
         const bookedBubbleIds = alreadyBookedList
           .filter((booked) => {
             const bookedStart = moment.utc(booked.start_date);
@@ -271,8 +279,66 @@ export const schedule = async function () {
           })
           .map((booked) => booked.bubbleId);
 
-        return bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
+        let result =
+          bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
+
+        // 2) BEFORE MINIMUM BOOKABLE DAY CHECK (only if NOT booked)
+        if (!result) {
+          const earliestBookableMoment = moment
+            .utc()
+            .add(earliestBookableDay, "days");
+          console.log(
+            `Checking earliest bookable day (${earliestBookableDay} days ahead):`,
+            earliestBookableMoment.format()
+          );
+
+          if (slotEnd.isBefore(earliestBookableMoment)) {
+            console.log(
+              "Slot before earliest bookable day:",
+              slotStart.format()
+            );
+            result = "beforeMinimumDay";
+          }
+        }
+
+        // 3) EXCLUDED DAY CHECK (only if NOT booked and NOT before min day)
+        if (!result) {
+          const { timeOffsetSeconds, excludedDays } = mainAvailability || {};
+          if (!timeOffsetSeconds || !excludedDays) {
+            console.warn(
+              "Skipping exclusion check due to missing offset or excludedDays."
+            );
+          } else {
+            // Convert slot time to the mainAvailability's timezone
+            const offsetInMinutes = timeOffsetSeconds / 60;
+            const localSlotStart = slotStart
+              .clone()
+              .utcOffset(offsetInMinutes, true);
+            const localDay = localSlotStart.day();
+
+            console.log("Checking slot against excluded days...");
+            console.log(
+              `Converted slot time with offset (${timeOffsetSeconds} seconds):`,
+              localSlotStart.format(),
+              "Day of week:",
+              localDay
+            );
+            console.log("Excluded days list:", excludedDays);
+
+            // Check if the local day is in the excludedDays array
+            if (excludedDays.includes(localDay)) {
+              console.log(
+                `Slot falls on excluded day (${localDay}), marking as excluded.`
+              );
+              result = "excludedDay";
+            }
+          }
+        }
+
+        console.log("Final slot result:", result);
+        return result;
       });
+
 
       // Filter available slots based on actual availability
       outputlist5 = filterSlotsByAvailabilityRange(
