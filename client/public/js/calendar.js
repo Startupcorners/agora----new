@@ -350,26 +350,28 @@ export const init = async function (userId) {
       "870400114743-av6tv101l2mvclc468l974ust7am5l2u.apps.googleusercontent.com"; // Replace with your Client ID
     const redirectUri = "https://www.startupcorners.com/oauth-callback"; // Your Redirect URI
 
-    // Add all required scopes: calendar, openid, email, and profile
-    const scope = ["https://www.googleapis.com/auth/calendar", "email"].join(
-      " "
-    );
+    // Add all required scopes: calendar, email, and profile
+    const scope = [
+      "https://www.googleapis.com/auth/calendar",
+      "email",
+      "profile",
+      "openid",
+    ].join(" ");
 
     const authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
 
-    // Capture the current page URL
+    // Capture the current page URL for state parameter
     const state = encodeURIComponent(window.location.href);
 
     const authUrl = `${authEndpoint}?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(
       redirectUri
     )}&scope=${encodeURIComponent(
       scope
-    )}&access_type=offline&include_granted_scopes=true&state=${state}`;
+    )}&access_type=offline&prompt=consent&include_granted_scopes=true&state=${state}`;
 
     // Redirect the user to Google's OAuth page
     window.location.href = authUrl;
   }
-
 
   // Automatically handle redirect if the URL contains the authorization code
   if (
