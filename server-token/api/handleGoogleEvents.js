@@ -168,13 +168,12 @@ async function handleEventAction(
 
 
 
-
 router.post("/", async (req, res) => {
   console.log("Incoming request to /event with body:", req.body);
 
   const {
-    receivedAccessToken,
-    receivedRefreshToken,
+    accessToken,
+    refreshToken,
     calendarId,
     userId,
     action,
@@ -183,14 +182,19 @@ router.post("/", async (req, res) => {
   } = req.body;
 
   // Check for required parameters
-  if (!action) {
-    console.error("Error: Missing required 'action' parameter");
+  if (!accessToken || !refreshToken || !calendarId || !userId || !action) {
+    console.error("Error: Missing required parameters");
     return res.status(400).json({ error: "Missing required parameters" });
   }
 
+  if ((action === "add" || action === "update") && !eventDetails) {
+    console.error(`Error: Event details required for action: ${action}`);
+    return res.status(400).json({ error: "Event details are required" });
+  }
+
   console.log("Received parameters:");
-  console.log("  receivedAccessToken:", receivedAccessToken ? "Yes" : "No");
-  console.log("  receivedRefreshToken:", receivedRefreshToken ? "Yes" : "No");
+  console.log("  accessToken received:", accessToken ? "Yes" : "No");
+  console.log("  refreshToken received:", refreshToken ? "Yes" : "No");
   console.log("  calendarId:", calendarId || "N/A");
   console.log("  userId:", userId || "N/A");
   console.log("  action:", action);
@@ -198,22 +202,15 @@ router.post("/", async (req, res) => {
   console.log("  eventDetails:", eventDetails || "N/A");
 
   try {
-    // Step 1: Retrieve user ID and refresh token from request
-    const refreshToken = receivedRefreshToken;
-    let mainAccessToken = receivedAccessToken;
-
-    console.log("Step 1: Retrieved refresh token and access token.");
-
-    // Step 2: Validate and refresh the access token if needed
-    console.log("Step 2: Validating access token...");
+    console.log("Step 1: Validating tokens...");
 
     const {
-      accessToken: validAccessToken,
-      refreshToken: updatedRefreshToken,
-      accessTokenExpiration: newAccessTokenExpiration,
+      accessToken: validAccessToken = null,
+      refreshToken: updatedRefreshToken = null,
+      accessTokenExpiration: newAccessTokenExpiration = null,
     } = await getValidAccessTokenAndNotifyBubble(
-      mainAccessToken,
-      refreshToken, // Use received refresh token
+      accessToken,
+      refreshToken,
       userId
     );
 
@@ -222,9 +219,13 @@ router.post("/", async (req, res) => {
       validAccessToken ? "Yes" : "No"
     );
     console.log("  Updated refresh token:", updatedRefreshToken || "No update");
-    console.log("  New expiration time:", newAccessTokenExpiration || "N/A");
+    console.log(
+      "  New expiration time:",
+      newAccessTokenExpiration
+        ? new Date(newAccessTokenExpiration).toLocaleString()
+        : "N/A"
+    );
 
-    // Step 3: Handle event actions (add, update, delete)
     console.log(
       `Step 3: Handling action '${action}' for event ID: ${eventId || "N/A"}`
     );
@@ -260,4 +261,3 @@ router.post("/", async (req, res) => {
 });
 
 module.exports = router;
-
