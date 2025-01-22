@@ -236,7 +236,7 @@ export const init = async function (userId) {
       }
 
       if (!response.ok) {
-        console.error("Error removing attendee:", result.error || result);
+        console.error("Error deleting events:", result.error || result);
         return;
       }
 
