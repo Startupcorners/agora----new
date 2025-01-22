@@ -596,24 +596,17 @@ export const schedule = async function () {
 
   function assignSlotInfo(
     outputlist7,
-    availabilityList,
+    mainAvailability,
     blockedByUserList,
     modifiedSlots
   ) {
     console.log("Modified slots:", modifiedSlots);
     console.log("blockedByUserList:", blockedByUserList);
     console.log("outputlist7:", outputlist7);
-    console.log("In assignSlotInfo, availabilityList:", availabilityList);
-    console.log(
-      "Array.isArray(availabilityList):",
-      Array.isArray(availabilityList)
-    );
+    console.log("In assignSlotInfo, mainAvailability:", mainAvailability);
 
-    if (!availabilityList || !Array.isArray(availabilityList)) {
-      console.error(
-        "availabilityList is undefined or not an array:",
-        availabilityList
-      );
+    if (!mainAvailability) {
+      console.error("mainAvailability is undefined:", mainAvailability);
       return {
         outputlist1: [],
         outputlist2: [],
@@ -627,77 +620,74 @@ export const schedule = async function () {
     const outputlist2 = []; // Addresses
     const outputlist4 = []; // Modified slot information
     const outputlist8 = []; // Blocked by user
-    const outputlist9 = []; // Startup corners information
+    const outputlist9 = []; // StartupCorners information
 
-    availabilityList.forEach((availability) => {
-      const startDate = moment.utc(availability.start_date).startOf("day");
-      const endDate = moment.utc(availability.end_date).endOf("day");
+    const startDate = moment.utc(mainAvailability.start_date).startOf("day");
+    const endDate = moment.utc(mainAvailability.end_date).endOf("day");
 
-      outputlist7.forEach((slotRange) => {
-        const slotStart = moment.utc(slotRange[0]);
-        const slotEnd = moment.utc(slotRange[1]);
+    outputlist7.forEach((slotRange) => {
+      const slotStart = moment.utc(slotRange[0]);
+      const slotEnd = moment.utc(slotRange[1]);
 
-        const includesCurrentDay = slotStart.isBetween(
-          startDate,
-          endDate,
-          null,
-          "[]"
-        );
+      const includesCurrentDay = slotStart.isBetween(
+        startDate,
+        endDate,
+        null,
+        "[]"
+      );
 
-        if (includesCurrentDay) {
-          let slotInfo = {
-            slotTimeRange: slotRange,
-            meetingLink: availability.meetingLink,
-            Address: availability.Address,
-            isModified: null,
-            blockedByUser: false,
-            isStartupCorners: availability.isStartupCorners,
-          };
+      if (includesCurrentDay) {
+        let slotInfo = {
+          slotTimeRange: slotRange,
+          meetingLink: mainAvailability.meetingLink,
+          Address: mainAvailability.Address,
+          isModified: null,
+          blockedByUser: false,
+          isStartupCorners: mainAvailability.isStartupCorners,
+        };
 
-          // Check if the slot is blocked by the user
-          blockedByUserList.forEach((blockedSlot) => {
-            const blockedStart = moment.utc(blockedSlot.start_date);
-            const blockedEnd = moment.utc(blockedSlot.end_date);
+        // Check if the slot is blocked by the user
+        blockedByUserList.forEach((blockedSlot) => {
+          const blockedStart = moment.utc(blockedSlot.start_date);
+          const blockedEnd = moment.utc(blockedSlot.end_date);
 
-            if (
-              slotStart.isBetween(blockedStart, blockedEnd, null, "[)") ||
-              slotEnd.isBetween(blockedStart, blockedEnd, null, "(]") ||
-              (slotStart.isSame(blockedStart) && slotEnd.isSame(blockedEnd)) ||
-              (blockedStart.isBetween(slotStart, slotEnd, null, "[)") &&
-                blockedEnd.isBetween(slotStart, slotEnd, null, "(]"))
-            ) {
-              slotInfo.blockedByUser = true;
-            }
-          });
+          if (
+            slotStart.isBetween(blockedStart, blockedEnd, null, "[)") ||
+            slotEnd.isBetween(blockedStart, blockedEnd, null, "(]") ||
+            (slotStart.isSame(blockedStart) && slotEnd.isSame(blockedEnd)) ||
+            (blockedStart.isBetween(slotStart, slotEnd, null, "[)") &&
+              blockedEnd.isBetween(slotStart, slotEnd, null, "(]"))
+          ) {
+            slotInfo.blockedByUser = true;
+          }
+        });
 
-          // Check against modified slots
-          modifiedSlots.forEach((modifiedSlot) => {
-            const modifiedStart = moment.utc(modifiedSlot.start_date);
-            const modifiedEnd = moment.utc(modifiedSlot.end_date);
+        // Check against modified slots
+        modifiedSlots.forEach((modifiedSlot) => {
+          const modifiedStart = moment.utc(modifiedSlot.start_date);
+          const modifiedEnd = moment.utc(modifiedSlot.end_date);
 
-            if (
-              slotStart.isBetween(modifiedStart, modifiedEnd, null, "[)") ||
-              slotEnd.isBetween(modifiedStart, modifiedEnd, null, "(]") ||
-              (slotStart.isSame(modifiedStart) &&
-                slotEnd.isSame(modifiedEnd)) ||
-              (modifiedStart.isBetween(slotStart, slotEnd, null, "[)") &&
-                modifiedEnd.isBetween(slotStart, slotEnd, null, "(]"))
-            ) {
-              slotInfo.isModified = modifiedSlot.bubbleId;
-              slotInfo.meetingLink = modifiedSlot.meetingLink;
-              slotInfo.Address = modifiedSlot.Address;
-              slotInfo.isStartupCorners = modifiedSlot.isStartupcorners;
-            }
-          });
+          if (
+            slotStart.isBetween(modifiedStart, modifiedEnd, null, "[)") ||
+            slotEnd.isBetween(modifiedStart, modifiedEnd, null, "(]") ||
+            (slotStart.isSame(modifiedStart) && slotEnd.isSame(modifiedEnd)) ||
+            (modifiedStart.isBetween(slotStart, slotEnd, null, "[)") &&
+              modifiedEnd.isBetween(slotStart, slotEnd, null, "(]"))
+          ) {
+            slotInfo.isModified = modifiedSlot.bubbleId;
+            slotInfo.meetingLink = modifiedSlot.meetingLink;
+            slotInfo.Address = modifiedSlot.Address;
+            slotInfo.isStartupCorners = modifiedSlot.isStartupcorners;
+          }
+        });
 
-          // Push slot info to the corresponding lists
-          outputlist1.push(slotInfo.meetingLink);
-          outputlist2.push(slotInfo.Address);
-          outputlist4.push(slotInfo.isModified);
-          outputlist8.push(slotInfo.blockedByUser);
-          outputlist9.push(slotInfo.isStartupCorners);
-        }
-      });
+        // Push slot info to the corresponding lists
+        outputlist1.push(slotInfo.meetingLink);
+        outputlist2.push(slotInfo.Address);
+        outputlist4.push(slotInfo.isModified);
+        outputlist8.push(slotInfo.blockedByUser);
+        outputlist9.push(slotInfo.isStartupCorners);
+      }
     });
 
     return {
@@ -708,6 +698,7 @@ export const schedule = async function () {
       outputlist9,
     };
   }
+
 
   function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
     const outputlist5 = [];
