@@ -136,10 +136,10 @@ export const init = async function (userId) {
       // Step 1: Fetch appointments from the given API with userId as a query parameter
       const response = await fetch(
         `https://startupcorners.com/api/1.1/wf/retrieveAppointments?userId=${encodeURIComponent(
-          userId,
-          accessToken,
-          refreshToken,
-        )}`,
+          userId
+        )}&accessToken=${encodeURIComponent(
+          accessToken
+        )}&refreshToken=${encodeURIComponent(refreshToken)}`,
         {
           method: "GET",
           headers: {
@@ -147,6 +147,7 @@ export const init = async function (userId) {
           },
         }
       );
+
 
       if (!response.ok) {
         throw new Error(
