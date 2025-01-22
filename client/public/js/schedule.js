@@ -234,7 +234,33 @@ export const schedule = async function () {
         const slotStart = moment.utc(slot[0]);
         const slotEnd = moment.utc(slot[1]);
 
-        let result = null;
+        // 1) ALREADY BOOKED CHECK
+        const bookedBubbleIds = alreadyBookedList
+          .filter((booked) => {
+            const bookedStart = moment.utc(booked.start_date);
+            const bookedEnd = moment.utc(booked.end_date);
+            return isSlotOverlapping(
+              slotStart,
+              slotEnd,
+              bookedStart,
+              bookedEnd
+            );
+          })
+          .map((booked) => booked.bubbleId);
+
+        let result =
+          bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
+
+        // 2) BEFORE MINIMUM BOOKABLE DAY CHECK (only if NOT booked)
+        if (!result) {
+          const earliestBookableMoment = moment
+            .utc()
+            .add(mainAvailability.earliestBookableDay, "days");
+
+          if (slotEnd.isBefore(earliestBookableMoment)) {
+            result = "beforeMinimumDay";
+          }
+        }
 
         // 3) EXCLUDED DAY CHECK (only if NOT booked and NOT before min day)
         if (!result) {
@@ -247,34 +273,26 @@ export const schedule = async function () {
               .utcOffset(offsetInMinutes, true);
             const localDay = localSlotStart.day();
 
-            console.log(
-              `\nChecking slot against excluded days...`,
-              `\n  Original UTC Slot Time: ${slotStart.format()}`,
-              `\n  Converted Local Slot Time (Offset: ${timeOffsetSeconds} sec): ${localSlotStart.format()}`,
-              `\n  Local Day of Week: ${localDay} (0=Sunday, 1=Monday, ..., 6=Saturday)`,
-              `\n  Excluded Days List: ${excludedDays}`
-            );
-
-            // Check if the local day is in the excludedDays array
+            // Logging whether the slot is excluded or not
             if (excludedDays.includes(localDay)) {
               console.log(
-                `  ❌ Slot falls on excluded day (${localDay}), marking as excluded.`
+                `The slot is on a day in time zone (UTC${
+                  offsetInMinutes / 60
+                }), excluding`
               );
               result = "excludedDay";
             } else {
-              console.log("  ✅ Slot is not on an excluded day.");
+              console.log(
+                `The slot is on a day in time zone (UTC${
+                  offsetInMinutes / 60
+                }), not excluding`
+              );
             }
-          } else {
-            console.warn(
-              "Skipping exclusion check due to missing time offset or excludedDays."
-            );
           }
         }
 
-        console.log("Final slot result:", result || "Available");
         return result;
       });
-
 
 
       // Filter available slots based on actual availability
