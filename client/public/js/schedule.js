@@ -268,24 +268,29 @@ export const schedule = async function () {
           if (timeOffsetSeconds && excludedDays) {
             // Convert slot time to the mainAvailability's timezone
             const offsetInMinutes = timeOffsetSeconds / 60;
-            const localSlotStart = slotStart
-              .clone()
-              .utcOffset(offsetInMinutes, true);
+
+            // Ensure slotStart is adjusted to the correct timezone
+            const localSlotStart = moment(slotStart).utcOffset(
+              offsetInMinutes,
+              true
+            );
+
+            // Extract the day of the week based on the adjusted timezone
             const localDay = localSlotStart.day();
-            const localDayName = localSlotStart.format("dddd"); // Get day name (Monday, Tuesday, etc.)
+            const localDayName = localSlotStart.format("dddd"); // Get full day name (e.g., Monday)
             const timezoneOffsetHours = offsetInMinutes / 60; // Convert to hours
 
             // Logging whether the slot is excluded or not
             if (excludedDays.includes(localDay)) {
               console.log(
-                `The slot is on ${localDayName} (UTC${
+                `The slot ${slotStart.toISOString()} is on ${localDayName} (UTC${
                   timezoneOffsetHours >= 0 ? "+" : ""
                 }${timezoneOffsetHours}), excluding`
               );
               result = "excludedDay";
             } else {
               console.log(
-                `The slot is on ${localDayName} (UTC${
+                `The slot ${slotStart.toISOString()} is on ${localDayName} (UTC${
                   timezoneOffsetHours >= 0 ? "+" : ""
                 }${timezoneOffsetHours}), not excluding`
               );
@@ -295,6 +300,7 @@ export const schedule = async function () {
 
         return result;
       });
+
 
 
 
