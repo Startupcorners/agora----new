@@ -10,34 +10,8 @@ export const scheduleAppointments = async function () {
     offset,
     userOffsetInSeconds,
     blockedByUserList,
-    earliestBookableDay,
+    earliestBookableDay
   ) {
-    console.log("======== Function Start ========");
-    console.log(
-      "mainAvailabilityList:",
-      JSON.stringify(mainAvailabilityList, null, 2)
-    );
-    console.log(
-      "allAvailabilityLists:",
-      JSON.stringify(allAvailabilityLists, null, 2)
-    );
-    console.log("viewerStartDate:", viewerStartDate);
-    console.log(
-      "alreadyBookedList:",
-      JSON.stringify(alreadyBookedList, null, 2)
-    );
-    console.log("modifiedSlots:", JSON.stringify(modifiedSlots, null, 2));
-    console.log("offset:", offset);
-    console.log("userOffsetInSeconds:", userOffsetInSeconds);
-    console.log(
-      "blockedByUserList:",
-      JSON.stringify(blockedByUserList, null, 2)
-    );
-    console.log(
-      "earliestBookableDay:",
-      JSON.stringify(earliestBookableDay, null, 2)
-    );
-
     const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
 
     // Compute week range and daily intersection
@@ -56,14 +30,8 @@ export const scheduleAppointments = async function () {
       userOffsetInSeconds
     );
 
-    console.log("globalStart:", globalStart);
-    console.log("globalEnd:", globalEnd);
-    console.log("commonDailyStart:", commonDailyStart);
-    console.log("commonDailyEnd:", commonDailyEnd);
-
     // Generate day boundaries (always necessary)
     const outputlist6 = generateDayBoundaries(globalStart);
-    console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
 
     // Declare other outputs
     let outputlist7 = [];
@@ -76,8 +44,6 @@ export const scheduleAppointments = async function () {
     let outputlist9 = [];
 
     if (!exit) {
-      console.log("Overlap found. Generating remaining slot outputs...");
-
       // Generate weekly slots
       outputlist7 = generateWeeklySlots(
         globalStart,
@@ -85,7 +51,6 @@ export const scheduleAppointments = async function () {
         commonDailyEnd,
         slotDuration
       );
-      console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
 
       // Assign slot information
       const slotInfoResults = assignSlotInfo(
@@ -104,13 +69,6 @@ export const scheduleAppointments = async function () {
       outputlist3 = outputlist7.map((slot) => {
         const slotStart = moment.utc(slot[0]);
         const slotEnd = moment.utc(slot[1]);
-
-        console.log(
-          "Processing slot:",
-          slotStart.format(),
-          "-",
-          slotEnd.format()
-        );
 
         // 1) ALREADY BOOKED CHECK
         const bookedBubbleIds = alreadyBookedList
@@ -134,16 +92,8 @@ export const scheduleAppointments = async function () {
           const earliestBookableMoment = moment
             .utc()
             .add(earliestBookableDay, "days");
-          console.log(
-            `Checking earliest bookable day (${earliestBookableDay} days ahead):`,
-            earliestBookableMoment.format()
-          );
 
           if (slotEnd.isBefore(earliestBookableMoment)) {
-            console.log(
-              "Slot before earliest bookable day:",
-              slotStart.format()
-            );
             result = "beforeMinimumDay";
           }
         }
@@ -155,34 +105,18 @@ export const scheduleAppointments = async function () {
           for (const availability of allAvailabilityLists) {
             const { timeOffsetSeconds, excludedDays } = availability || {};
             if (!timeOffsetSeconds || !excludedDays) {
-              console.warn(
-                "Skipping availability due to missing offset or excludedDays:",
-                availability
-              );
               continue;
             }
 
             // Convert the slot's UTC start to this availability's local time
             const offsetInMinutes = timeOffsetSeconds / 60;
-            const localSlotStart = slotStart
-              .clone()
-              .utcOffset(offsetInMinutes, true);
-            const localDay = localSlotStart.day();
+            const localSlotStart = moment(slotStart).utcOffset(offsetInMinutes);
 
-            console.log("Availability being checked:", availability);
-            console.log(
-              `Converted slot time with offset (${timeOffsetSeconds} seconds):`,
-              localSlotStart.format(),
-              "Day of week:",
-              localDay
-            );
-            console.log("Excluded days list:", excludedDays);
+            // Get the correct local day number
+            const localDayNumber = localSlotStart.day(); // 0 = Sunday, 1 = Monday, etc.
 
             // Check if the local day is in the excludedDays array
-            if (excludedDays.includes(localDay)) {
-              console.log(
-                `Slot falls on excluded day (${localDay}), marking as excluded.`
-              );
+            if (excludedDays.includes(localDayNumber)) {
               isExcluded = true;
               break; // Stop checking further if any availability excludes this day
             }
@@ -193,10 +127,8 @@ export const scheduleAppointments = async function () {
           }
         }
 
-        console.log("Final slot result:", result);
         return result;
       });
-
 
       // Generate outputlist5 (filtered slots by availability)
       outputlist5 = filterSlotsByAvailabilityRange(
@@ -214,8 +146,6 @@ export const scheduleAppointments = async function () {
         outputlist5,
         userOffsetInSeconds
       );
-    } else {
-      console.warn("No overlap found. Skipping remaining slot generation.");
     }
 
     // Adjust `outputlist6` to viewer timezone
@@ -238,9 +168,6 @@ export const scheduleAppointments = async function () {
       exit,
     };
 
-    console.log("Final output:", result);
-    console.log("======== Function End ========");
-
     // Send result to Bubble
     bubble_fn_hours(result);
 
@@ -249,6 +176,7 @@ export const scheduleAppointments = async function () {
 
     return result;
   }
+
 
   // Helper functions
   function adjustSlotsToViewerTimezone(slotList, userOffsetInSeconds) {
@@ -279,14 +207,7 @@ export const scheduleAppointments = async function () {
     offset,
     userOffsetInSeconds
   ) {
-    console.log("=== Function Start ===");
-    console.log("Input - allAvailabilityLists:", allAvailabilityLists);
-    console.log("Input - viewerStartDate:", viewerStartDate);
-    console.log("Input - offset:", offset);
-    console.log("Input - userOffsetInSeconds:", userOffsetInSeconds);
-
     const userOffsetInMinutes = userOffsetInSeconds / 60;
-    console.log("Computed userOffsetInMinutes:", userOffsetInMinutes);
 
     // Step 1: Calculate viewer's start date for the given week in user timezone
     const viewerStartLocal = moment
@@ -294,10 +215,8 @@ export const scheduleAppointments = async function () {
       .utcOffset(userOffsetInMinutes)
       .startOf("day")
       .add(offset * 7, "days");
-    console.log("Computed viewerStartLocal:", viewerStartLocal.format());
 
     if (!viewerStartLocal.isValid()) {
-      console.error("Invalid viewerStartDate:", viewerStartDate);
       return { error: "Invalid start date", exit: true };
     }
 
@@ -307,13 +226,9 @@ export const scheduleAppointments = async function () {
     let dailyEndInMinutesArray = [];
 
     // Step 2: Parse each availability and compute overall earliest/latest dates
-    allAvailabilityLists.forEach((availability, index) => {
-      console.log(`Processing availability [${index}]:`, availability);
-
+    allAvailabilityLists.forEach((availability) => {
       const availabilityStart = moment.utc(availability.start_date);
       const availabilityEnd = moment.utc(availability.end_date);
-      console.log(`Availability start_date (UTC):`, availabilityStart.format());
-      console.log(`Availability end_date (UTC):`, availabilityEnd.format());
 
       if (
         !overallEarliestStart ||
@@ -336,21 +251,11 @@ export const scheduleAppointments = async function () {
 
       dailyStartInMinutesArray.push(startHour * 60 + startMin);
       dailyEndInMinutesArray.push(endHour * 60 + endMin);
-
-      console.log("Daily start (mins):", startHour * 60 + startMin);
-      console.log("Daily end (mins):", endHour * 60 + endMin);
     });
-
-    console.log("Overall earliest start:", overallEarliestStart?.format());
-    console.log("Overall latest end:", overallLatestEnd?.format());
-    console.log("Daily start times (mins):", dailyStartInMinutesArray);
-    console.log("Daily end times (mins):", dailyEndInMinutesArray);
 
     // Step 3: Compute default global range for the week
     const globalStartLocal = viewerStartLocal.clone().startOf("day");
     const globalEndLocal = globalStartLocal.clone().add(6, "days").endOf("day");
-    console.log("Global week start (local):", globalStartLocal.format());
-    console.log("Global week end (local):", globalEndLocal.format());
 
     // Step 4: Compute realStart and realEnd
     const realStartLocal = overallEarliestStart
@@ -366,9 +271,6 @@ export const scheduleAppointments = async function () {
           overallLatestEnd.utcOffset(userOffsetInMinutes)
         )
       : globalEndLocal;
-
-    console.log("Real start (local):", realStartLocal.format());
-    console.log("Real end (local):", realEndLocal.format());
 
     // Step 5: Compute the daily intersection window
     const finalDailyStartMins = dailyStartInMinutesArray.length
@@ -397,26 +299,16 @@ export const scheduleAppointments = async function () {
       millisecond: 0,
     });
 
-    console.log("Final daily start (UTC):", commonDailyStart.format("HH:mm"));
-    console.log("Final daily end (UTC):", commonDailyEnd.format("HH:mm"));
-
     // Step 6: Convert all outputs back to UTC
     const globalStartUTC = globalStartLocal.clone().utc();
     const globalEndUTC = globalEndLocal.clone().utc();
     const realStartUTC = realStartLocal.clone().utc();
     const realEndUTC = realEndLocal.clone().utc();
 
-    console.log("Global start (UTC):", globalStartUTC.format());
-    console.log("Global end (UTC):", globalEndUTC.format());
-    console.log("Real start (UTC):", realStartUTC.format());
-    console.log("Real end (UTC):", realEndUTC.format());
-
     // Check for overlap and set exit flag
     const hasOverlap = realEndLocal.isSameOrAfter(realStartLocal);
-    console.log("Has overlap:", hasOverlap);
 
     // Return results
-    console.log("=== Function End ===");
     return {
       globalStart: globalStartUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
       globalEnd: globalEndUTC.format("YYYY-MM-DDTHH:mm:ssZ"),
@@ -427,6 +319,7 @@ export const scheduleAppointments = async function () {
       exit: !hasOverlap, // Exit is true if there's no overlap
     };
   }
+
 
 
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
@@ -457,17 +350,9 @@ export const scheduleAppointments = async function () {
     const baseSlots = [];
     const globalStart = moment.parseZone(globalStartStr);
 
-    console.log("=== generateBaseDay ===");
-    console.log("Input - globalStartStr:", globalStartStr);
-    console.log("Input - commonDailyStartStr:", commonDailyStartStr);
-    console.log("Input - commonDailyEndStr:", commonDailyEndStr);
-    console.log("Input - slotDuration:", slotDuration);
-
     // Parse daily start and end times
     const [startHour, startMin] = commonDailyStartStr.split(":").map(Number);
     const [endHour, endMin] = commonDailyEndStr.split(":").map(Number);
-    console.log("Parsed commonDailyStart:", { startHour, startMin });
-    console.log("Parsed commonDailyEnd:", { endHour, endMin });
 
     // Calculate the daily start and end times based on globalStart's day
     let startMoment = globalStart.clone().set({
@@ -489,29 +374,16 @@ export const scheduleAppointments = async function () {
       endMoment.add(1, "day");
     }
 
-    console.log("Daily range - startMoment:", startMoment.format());
-    console.log("Daily range - endMoment:", endMoment.format());
-
     // Ensure slots start on or after globalStart
     if (globalStart.isAfter(endMoment)) {
-      console.log(
-        "GlobalStart is after today's daily range. Moving to next day..."
-      );
       startMoment.add(1, "day").set({ hour: startHour, minute: startMin });
       endMoment.add(1, "day").set({ hour: endHour, minute: endMin });
-      console.log("Next day startMoment:", startMoment.format());
-      console.log("Next day endMoment:", endMoment.format());
     } else if (globalStart.isAfter(startMoment)) {
-      console.log(
-        "GlobalStart is within today's range. Adjusting startMoment..."
-      );
       startMoment = globalStart.clone();
-      console.log("Adjusted startMoment:", startMoment.format());
     }
 
     // Generate slots
     let currentStart = startMoment.clone();
-    console.log("Starting slot generation...");
     while (currentStart.isBefore(endMoment)) {
       const nextSlot = currentStart.clone().add(slotDuration, "minutes");
       if (nextSlot.isAfter(endMoment)) break;
@@ -521,19 +393,8 @@ export const scheduleAppointments = async function () {
         nextSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
       ]);
 
-      console.log(
-        "Generated slot:",
-        currentStart.format("YYYY-MM-DDTHH:mm:ssZ"),
-        "to",
-        nextSlot.format("YYYY-MM-DDTHH:mm:ssZ")
-      );
-
       currentStart = nextSlot;
     }
-
-    console.log("Slot generation completed. Total slots:", baseSlots.length);
-    console.log("Generated slots:", baseSlots);
-    console.log("=== End of generateBaseDay ===");
 
     return baseSlots;
   }
@@ -580,20 +441,7 @@ export const scheduleAppointments = async function () {
     blockedByUserList,
     modifiedSlots
   ) {
-    console.log("Modified slots:", modifiedSlots);
-    console.log("blockedByUserList:", blockedByUserList);
-    console.log("outputlist7:", outputlist7);
-    console.log("In assignSlotInfo, availabilityList:", availabilityList);
-    console.log(
-      "Array.isArray(availabilityList):",
-      Array.isArray(availabilityList)
-    );
-
     if (!availabilityList || !Array.isArray(availabilityList)) {
-      console.error(
-        "availabilityList is undefined or not an array:",
-        availabilityList
-      );
       return {
         outputlist1: [],
         outputlist2: [],
@@ -688,6 +536,7 @@ export const scheduleAppointments = async function () {
       outputlist9,
     };
   }
+
 
   function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
     const outputlist5 = [];
