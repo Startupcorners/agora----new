@@ -7,8 +7,8 @@ export const scheduleAppointments = async function () {
     viewerStartDate,
     alreadyBookedList,
     modifiedSlots,
-    offset = 0,
-    userOffsetInSeconds = 0,
+    offset,
+    userOffsetInSeconds,
     blockedByUserList,
     earliestBookableDay,
   ) {
