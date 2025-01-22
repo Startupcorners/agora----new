@@ -133,9 +133,9 @@ export const scheduleAppointments = async function () {
         if (!result) {
           const earliestBookableMoment = moment
             .utc()
-            .add(earliestBookableDay, "days");
+            .add(mainAvailability.earliestBookableDay, "days");
           console.log(
-            `Checking earliest bookable day (${earliestBookableDay} days ahead):`,
+            `Checking earliest bookable day (${mainAvailability.earliestBookableDay} days ahead):`,
             earliestBookableMoment.format()
           );
 
