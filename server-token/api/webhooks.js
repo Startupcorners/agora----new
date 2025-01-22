@@ -2,132 +2,35 @@ const express = require("express");
 const fetch = require("node-fetch");
 const router = express.Router();
 
-/**
- * 1) GET VALID ACCESS TOKEN (AND REFRESH IF NECESSARY)
- *    - Instead of receiving accessToken/refreshToken from the request,
- *      we fetch them from Bubble using resourceId.
- */
-async function getValidAccessTokenAndNotifyBubble(resourceId) {
-  // 1) Retrieve tokens from Bubble via resourceId
-  const getTokensUrl = "https://startupcorners.com/api/1.1/wf/getTokens"; // Bubble endpoint
-  const tokenRefreshUrl = "https://oauth2.googleapis.com/token";
-  const bubbleNotifyUrl =
-    "https://startupcorners.com/api/1.1/wf/receiveTokenInfo"; // for updated token info
+import { handleAccessTokenFlow } from "./googleTokenUtils.js";
 
-  let currentAccessToken;
-  let currentRefreshToken;
-  let userId; // Assuming Bubble also returns user info if needed
-
-  // Step A: Fetch tokens from Bubble
+export async function getValidAccessTokenAndNotifyBubble(resourceId) {
   try {
-    const bubbleResponse = await fetch(getTokensUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ resourceId }),
-    });
-
-    if (!bubbleResponse.ok) {
-      const bubbleError = await bubbleResponse.text();
-      console.error("Error retrieving tokens from Bubble:", bubbleError);
-      throw new Error("Failed to retrieve tokens from Bubble");
-    }
-
-    const tokenData = await bubbleResponse.json();
-    currentAccessToken = tokenData.accessToken;
-    currentRefreshToken = tokenData.refreshToken;
-    userId = tokenData.userId; // If Bubble returns userId here
-  } catch (err) {
-    console.error("Error in retrieving tokens from Bubble:", err.message);
-    throw err;
-  }
-
-  // Step B: Validate current access token
-  let testResponseOk = false;
-  try {
-    const testResponse = await fetch(
-      `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${currentAccessToken}`
+    console.log(
+      `Initiating token management process for resourceId: ${resourceId}`
     );
-    if (testResponse.ok) {
-      // Token is still valid
-      testResponseOk = true;
-    } else {
-      console.warn("Access token invalid or expired. Will refresh now...");
-    }
+
+    // Call the wrapper function to handle the entire process
+    const tokenData = await handleAccessTokenFlow(
+      null,
+      null,
+      null,
+      resourceId
+    );
+
+    console.log("Token management process completed successfully.", tokenData);
+
+    return tokenData;
   } catch (error) {
-    console.warn("Error verifying token. Will refresh now...", error);
-  }
-
-  if (testResponseOk) {
-    // No refresh needed, just return what we have
-    console.log("Access token is valid. No need to refresh.");
-    return {
-      accessToken: currentAccessToken,
-      refreshToken: currentRefreshToken,
-      userId,
-      accessTokenExpiration: null, // We have no new expiration if it's still valid
-    };
-  }
-
-  // Step C: Refresh token if necessary
-  try {
-    const response = await fetch(tokenRefreshUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: process.env.GOOGLE_CLIENT_ID,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET,
-        refresh_token: currentRefreshToken,
-        grant_type: "refresh_token",
-      }),
-    });
-
-    const refreshedData = await response.json();
-    if (!refreshedData.access_token) {
-      console.error("Error refreshing token:", refreshedData);
-      throw new Error("Failed to refresh access token");
-    }
-
-    // Calculate new expiration
-    const newAccessTokenExpiration =
-      Date.now() + refreshedData.expires_in * 1000;
-    // If Google returns a new refresh token, use it; otherwise keep the old one
-    const updatedRefreshToken =
-      refreshedData.refresh_token || currentRefreshToken;
-
-    // Step D: Notify Bubble about the new token
-    const bubblePayload = {
-      userId, // only if relevant
-      resourceId,
-      accessToken: refreshedData.access_token,
-      refreshToken: updatedRefreshToken,
-      accessTokenExpiration: newAccessTokenExpiration,
-    };
-
-    const bubbleUpdateResponse = await fetch(bubbleNotifyUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(bubblePayload),
-    });
-
-    if (!bubbleUpdateResponse.ok) {
-      const bubbleError = await bubbleUpdateResponse.json();
-      console.error("Error sending new token info to Bubble:", bubbleError);
-      throw new Error("Failed to notify Bubble about new token");
-    }
-
-    console.log("Successfully refreshed token and notified Bubble.");
-
-    return {
-      accessToken: refreshedData.access_token,
-      refreshToken: updatedRefreshToken,
-      userId,
-      accessTokenExpiration: newAccessTokenExpiration,
-    };
-  } catch (error) {
-    console.error("Error in refreshing token:", error);
+    console.error(
+      "Error in getValidAccessTokenAndNotifyBubble:",
+      error.message
+    );
     throw error;
   }
 }
+
+
 
 /**
  * 2) FETCH UPDATED EVENTS (AND SEND EVENT INFO TO BUBBLE)
