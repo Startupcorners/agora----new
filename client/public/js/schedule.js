@@ -184,23 +184,6 @@ export const schedule = async function () {
     userOffsetInSeconds = 0,
     blockedByUserList
   ) {
-    console.log("======== Function Start ========");
-    console.log("mainAvailability:", JSON.stringify(mainAvailability, null, 2));
-    console.log("viewerStartDate:", viewerStartDate);
-    console.log(
-      "alreadyBookedList:",
-      JSON.stringify(alreadyBookedList, null, 2)
-    );
-    console.log("modifiedSlots:", JSON.stringify(modifiedSlots, null, 2));
-    console.log("offset:", offset);
-    console.log("userOffsetInSeconds:", userOffsetInSeconds);
-    console.log(
-      "blockedByUserList:",
-      JSON.stringify(blockedByUserList, null, 2)
-    );
-
-    console.log("mainAvailability:", mainAvailability);
-
     const slotDuration = mainAvailability.slot_duration_minutes;
 
     // Compute week range
@@ -211,12 +194,8 @@ export const schedule = async function () {
       userOffsetInSeconds
     );
 
-    console.log("globalStart:", globalStart);
-    console.log("globalEnd:", globalEnd);
-
     // Generate day boundaries
     let outputlist6 = generateDayBoundaries(globalStart);
-    console.log("Generated outputlist6 (Day Boundaries):", outputlist6);
 
     // Declare slot outputs
     let outputlist7 = [];
@@ -229,8 +208,6 @@ export const schedule = async function () {
     let outputlist9 = [];
 
     if (!exit) {
-      console.log("Generating available slots...");
-
       // Generate weekly slots
       outputlist7 = generateWeeklySlots(
         globalStart,
@@ -238,7 +215,6 @@ export const schedule = async function () {
         mainAvailability.daily_end_time,
         slotDuration
       );
-      console.log("Generated outputlist7 (All Weekly Slots):", outputlist7);
 
       // Assign slot information
       const slotInfoResults = assignSlotInfo(
@@ -270,23 +246,40 @@ export const schedule = async function () {
           .filter((booked) => {
             const bookedStart = moment.utc(booked.start_date);
             const bookedEnd = moment.utc(booked.end_date);
-            return isSlotOverlapping(
+            const isOverlapping = isSlotOverlapping(
               slotStart,
               slotEnd,
               bookedStart,
               bookedEnd
             );
+
+            console.log(
+              `Checking booked slot ${bookedStart.format()} - ${bookedEnd.format()}:`,
+              isOverlapping ? "Overlapping" : "Not Overlapping"
+            );
+
+            return isOverlapping;
           })
           .map((booked) => booked.bubbleId);
 
         let result =
           bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
 
+        if (result) {
+          console.log(
+            "Slot is already booked with Bubble IDs:",
+            bookedBubbleIds
+          );
+        } else {
+          console.log("Slot is NOT booked.");
+        }
+
         // 2) BEFORE MINIMUM BOOKABLE DAY CHECK (only if NOT booked)
         if (!result) {
           const earliestBookableMoment = moment
             .utc()
             .add(mainAvailability.earliestBookableDay, "days");
+
           console.log(
             `Checking earliest bookable day (${mainAvailability.earliestBookableDay} days ahead):`,
             earliestBookableMoment.format()
@@ -294,21 +287,19 @@ export const schedule = async function () {
 
           if (slotEnd.isBefore(earliestBookableMoment)) {
             console.log(
-              "Slot before earliest bookable day:",
+              "Slot falls before earliest bookable day:",
               slotStart.format()
             );
             result = "beforeMinimumDay";
+          } else {
+            console.log("Slot is within the bookable range.");
           }
         }
 
         // 3) EXCLUDED DAY CHECK (only if NOT booked and NOT before min day)
         if (!result) {
           const { timeOffsetSeconds, excludedDays } = mainAvailability || {};
-          if (!timeOffsetSeconds || !excludedDays) {
-            console.warn(
-              "Skipping exclusion check due to missing offset or excludedDays."
-            );
-          } else {
+          if (timeOffsetSeconds && excludedDays) {
             // Convert slot time to the mainAvailability's timezone
             const offsetInMinutes = timeOffsetSeconds / 60;
             const localSlotStart = slotStart
@@ -316,13 +307,14 @@ export const schedule = async function () {
               .utcOffset(offsetInMinutes, true);
             const localDay = localSlotStart.day();
 
-            console.log("Checking slot against excluded days...");
             console.log(
-              `Converted slot time with offset (${timeOffsetSeconds} seconds):`,
+              `Checking slot against excluded days:`,
+              `Converted slot time (${timeOffsetSeconds} seconds offset):`,
               localSlotStart.format(),
-              "Day of week:",
+              "Local day of week:",
               localDay
             );
+
             console.log("Excluded days list:", excludedDays);
 
             // Check if the local day is in the excludedDays array
@@ -331,11 +323,17 @@ export const schedule = async function () {
                 `Slot falls on excluded day (${localDay}), marking as excluded.`
               );
               result = "excludedDay";
+            } else {
+              console.log("Slot is not on an excluded day.");
             }
+          } else {
+            console.warn(
+              "Skipping exclusion check due to missing offset or excludedDays."
+            );
           }
         }
 
-        console.log("Final slot result:", result);
+        console.log("Final slot result:", result || "Available");
         return result;
       });
 
@@ -356,8 +354,6 @@ export const schedule = async function () {
         outputlist5,
         userOffsetInSeconds
       );
-    } else {
-      console.warn("No valid availability found. Skipping slot generation.");
     }
 
     // Adjust `outputlist6` to viewer timezone
@@ -377,9 +373,6 @@ export const schedule = async function () {
       exit,
     };
 
-    console.log("Final output:", result);
-    console.log("======== Function End ========");
-
     // Send result to Bubble
     bubble_fn_hours(result);
 
@@ -388,6 +381,7 @@ export const schedule = async function () {
 
     return result;
   }
+
 
   // Helper functions
   function adjustSlotsToViewerTimezone(slotList, userOffsetInSeconds) {
@@ -418,14 +412,7 @@ export const schedule = async function () {
     offset,
     userOffsetInSeconds
   ) {
-    console.log("=== Function Start ===");
-    console.log("Input - mainAvailability:", mainAvailability);
-    console.log("Input - viewerStartDate:", viewerStartDate);
-    console.log("Input - offset:", offset);
-    console.log("Input - userOffsetInSeconds:", userOffsetInSeconds);
-
     const userOffsetInMinutes = userOffsetInSeconds / 60;
-    console.log("Computed userOffsetInMinutes:", userOffsetInMinutes);
 
     // Step 1: Calculate the adjusted start date based on the user's timezone
     const viewerStartLocal = moment
@@ -433,8 +420,6 @@ export const schedule = async function () {
       .utcOffset(userOffsetInMinutes)
       .startOf("day")
       .add(offset * 7, "days");
-
-    console.log("Computed viewerStartLocal:", viewerStartLocal.format());
 
     if (!viewerStartLocal.isValid()) {
       console.error("Invalid viewerStartDate:", viewerStartDate);
@@ -445,20 +430,12 @@ export const schedule = async function () {
     const availabilityStart = moment.utc(mainAvailability.start_date);
     const availabilityEnd = moment.utc(mainAvailability.end_date);
 
-    console.log("Availability start_date (UTC):", availabilityStart.format());
-    console.log("Availability end_date (UTC):", availabilityEnd.format());
-
     // Step 3: Compute the global and real start/end times
     const globalStartLocal = viewerStartLocal.clone().startOf("day");
     const globalEndLocal = globalStartLocal.clone().add(6, "days").endOf("day");
 
     const realStartLocal = moment.max(globalStartLocal, availabilityStart);
     const realEndLocal = moment.min(globalEndLocal, availabilityEnd);
-
-    console.log("Global start (local):", globalStartLocal.format());
-    console.log("Global end (local):", globalEndLocal.format());
-    console.log("Real start (local):", realStartLocal.format());
-    console.log("Real end (local):", realEndLocal.format());
 
     // Step 4: Calculate the daily start and end times
     const [startHour, startMin] = mainAvailability.daily_start_time
@@ -482,26 +459,16 @@ export const schedule = async function () {
       millisecond: 0,
     });
 
-    console.log("Final daily start (UTC):", commonDailyStart.format("HH:mm"));
-    console.log("Final daily end (UTC):", commonDailyEnd.format("HH:mm"));
-
     // Step 5: Convert all outputs to UTC strings
     const globalStartUTC = globalStartLocal.clone().utc().format();
     const globalEndUTC = globalEndLocal.clone().utc().format();
     const realStartUTC = realStartLocal.clone().utc().format();
     const realEndUTC = realEndLocal.clone().utc().format();
 
-    console.log("Global start (UTC):", globalStartUTC);
-    console.log("Global end (UTC):", globalEndUTC);
-    console.log("Real start (UTC):", realStartUTC);
-    console.log("Real end (UTC):", realEndUTC);
-
     // Check for overlap and determine if processing should continue
     const hasOverlap = realEndLocal.isSameOrAfter(realStartLocal);
-    console.log("Has overlap:", hasOverlap);
 
     // Return computed range and exit flag
-    console.log("=== Function End ===");
     return {
       globalStart: globalStartUTC,
       globalEnd: globalEndUTC,
@@ -512,6 +479,7 @@ export const schedule = async function () {
       exit: !hasOverlap, // Exit is true if there's no overlap
     };
   }
+
 
 
 
@@ -543,17 +511,9 @@ export const schedule = async function () {
     const baseSlots = [];
     const globalStart = moment.parseZone(globalStartStr);
 
-    console.log("=== generateBaseDay ===");
-    console.log("Input - globalStartStr:", globalStartStr);
-    console.log("Input - commonDailyStartStr:", commonDailyStartStr);
-    console.log("Input - commonDailyEndStr:", commonDailyEndStr);
-    console.log("Input - slotDuration:", slotDuration);
-
     // Parse daily start and end times
     const [startHour, startMin] = commonDailyStartStr.split(":").map(Number);
     const [endHour, endMin] = commonDailyEndStr.split(":").map(Number);
-    console.log("Parsed commonDailyStart:", { startHour, startMin });
-    console.log("Parsed commonDailyEnd:", { endHour, endMin });
 
     // Calculate the daily start and end times based on globalStart's day
     let startMoment = globalStart.clone().set({
@@ -575,29 +535,16 @@ export const schedule = async function () {
       endMoment.add(1, "day");
     }
 
-    console.log("Daily range - startMoment:", startMoment.format());
-    console.log("Daily range - endMoment:", endMoment.format());
-
     // Ensure slots start on or after globalStart
     if (globalStart.isAfter(endMoment)) {
-      console.log(
-        "GlobalStart is after today's daily range. Moving to next day..."
-      );
       startMoment.add(1, "day").set({ hour: startHour, minute: startMin });
       endMoment.add(1, "day").set({ hour: endHour, minute: endMin });
-      console.log("Next day startMoment:", startMoment.format());
-      console.log("Next day endMoment:", endMoment.format());
     } else if (globalStart.isAfter(startMoment)) {
-      console.log(
-        "GlobalStart is within today's range. Adjusting startMoment..."
-      );
       startMoment = globalStart.clone();
-      console.log("Adjusted startMoment:", startMoment.format());
     }
 
     // Generate slots
     let currentStart = startMoment.clone();
-    console.log("Starting slot generation...");
     while (currentStart.isBefore(endMoment)) {
       const nextSlot = currentStart.clone().add(slotDuration, "minutes");
       if (nextSlot.isAfter(endMoment)) break;
@@ -607,26 +554,11 @@ export const schedule = async function () {
         nextSlot.format("YYYY-MM-DDTHH:mm:ssZ"),
       ]);
 
-      console.log(
-        "Generated slot:",
-        currentStart.format("YYYY-MM-DDTHH:mm:ssZ"),
-        "to",
-        nextSlot.format("YYYY-MM-DDTHH:mm:ssZ")
-      );
-
       currentStart = nextSlot;
     }
 
-    console.log("Slot generation completed. Total slots:", baseSlots.length);
-    console.log("Generated slots:", baseSlots);
-    console.log("=== End of generateBaseDay ===");
-
     return baseSlots;
   }
-
-
-
-
 
 
 
@@ -666,13 +598,7 @@ export const schedule = async function () {
     blockedByUserList,
     modifiedSlots
   ) {
-    console.log("Modified slots:", modifiedSlots);
-    console.log("blockedByUserList:", blockedByUserList);
-    console.log("outputlist7:", outputlist7);
-    console.log("In assignSlotInfo, mainAvailability:", mainAvailability);
-
     if (!mainAvailability) {
-      console.error("mainAvailability is undefined:", mainAvailability);
       return {
         outputlist1: [],
         outputlist2: [],
@@ -695,14 +621,7 @@ export const schedule = async function () {
       const slotStart = moment.utc(slotRange[0]);
       const slotEnd = moment.utc(slotRange[1]);
 
-      const includesCurrentDay = slotStart.isBetween(
-        startDate,
-        endDate,
-        null,
-        "[]"
-      );
-
-      if (includesCurrentDay) {
+      if (slotStart.isBetween(startDate, endDate, null, "[]")) {
         let slotInfo = {
           slotTimeRange: slotRange,
           meetingLink: mainAvailability.meetingLink,
@@ -766,6 +685,7 @@ export const schedule = async function () {
   }
 
 
+
   function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
     const outputlist5 = [];
     console.log("Input allSlots:", allSlots);
@@ -786,8 +706,6 @@ export const schedule = async function () {
         "Global start or global end is undefined. No filtering applied."
       );
     }
-
-    console.log("Filtered slots (outputlist5):", outputlist5);
     return outputlist5;
   }
 
