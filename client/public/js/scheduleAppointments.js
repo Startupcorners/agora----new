@@ -33,6 +33,10 @@ export const scheduleAppointments = async function () {
       "blockedByUserList:",
       JSON.stringify(blockedByUserList, null, 2)
     );
+    console.log(
+      "earliestBookableDay:",
+      JSON.stringify(earliestBookableDay, null, 2)
+    );
 
     const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
 
@@ -101,6 +105,13 @@ export const scheduleAppointments = async function () {
         const slotStart = moment.utc(slot[0]);
         const slotEnd = moment.utc(slot[1]);
 
+        console.log(
+          "Processing slot:",
+          slotStart.format(),
+          "-",
+          slotEnd.format()
+        );
+
         // 1) ALREADY BOOKED CHECK
         const bookedBubbleIds = alreadyBookedList
           .filter((booked) => {
@@ -115,15 +126,24 @@ export const scheduleAppointments = async function () {
           })
           .map((booked) => booked.bubbleId);
 
-        // If any booking overlaps, store them in the result as a joined string.
-        // Otherwise, it's `null` for now.
         let result =
           bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
 
         // 2) BEFORE MINIMUM BOOKABLE DAY CHECK (only if NOT booked)
         if (!result) {
-          const earliestBookableMoment = moment.utc().add(earliestBookableDay, "days"); // e.g., 3 days
+          const earliestBookableMoment = moment
+            .utc()
+            .add(earliestBookableDay, "days");
+          console.log(
+            `Checking earliest bookable day (${earliestBookableDay} days ahead):`,
+            earliestBookableMoment.format()
+          );
+
           if (slotEnd.isBefore(earliestBookableMoment)) {
+            console.log(
+              "Slot before earliest bookable day:",
+              slotStart.format()
+            );
             result = "beforeMinimumDay";
           }
         }
@@ -135,8 +155,10 @@ export const scheduleAppointments = async function () {
           for (const availability of allAvailabilityLists) {
             const { timeOffsetSeconds, excludedDays } = availability || {};
             if (!timeOffsetSeconds || !excludedDays) {
-              // If this availability doesn't specify offset or excluded days,
-              // just skip it.
+              console.warn(
+                "Skipping availability due to missing offset or excludedDays:",
+                availability
+              );
               continue;
             }
 
@@ -145,12 +167,24 @@ export const scheduleAppointments = async function () {
             const localSlotStart = slotStart
               .clone()
               .utcOffset(offsetInMinutes, true);
+            const localDay = localSlotStart.day();
+
+            console.log("Availability being checked:", availability);
+            console.log(
+              `Converted slot time with offset (${timeOffsetSeconds} seconds):`,
+              localSlotStart.format(),
+              "Day of week:",
+              localDay
+            );
+            console.log("Excluded days list:", excludedDays);
 
             // Check if the local day is in the excludedDays array
-            // Moment day() => 0 = Sunday, 1 = Monday, etc.
-            if (excludedDays.includes(localSlotStart.day())) {
+            if (excludedDays.includes(localDay)) {
+              console.log(
+                `Slot falls on excluded day (${localDay}), marking as excluded.`
+              );
               isExcluded = true;
-              break; // If *any* availability excludes this day, we exclude the slot
+              break; // Stop checking further if any availability excludes this day
             }
           }
 
@@ -159,8 +193,10 @@ export const scheduleAppointments = async function () {
           }
         }
 
+        console.log("Final slot result:", result);
         return result;
       });
+
 
       // Generate outputlist5 (filtered slots by availability)
       outputlist5 = filterSlotsByAvailabilityRange(
