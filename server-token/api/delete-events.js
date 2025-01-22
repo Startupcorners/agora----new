@@ -46,96 +46,37 @@ async function getValidAccessTokenAndNotifyBubble(
   refreshToken,
   userId
 ) {
-  const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-  const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-  const TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token";
-  const BUBBLE_TOKEN_ENDPOINT =
-    "https://startupcorners.com/api/1.1/wf/receiveTokenInfo";
-
   try {
-    // Verify the current access token
-    const testResponse = await fetch(
-      `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${currentAccessToken}`
+    // Call the wrapper function to handle the entire process
+    const tokenData = await handleAccessTokenFlow(
+      currentAccessToken,
+      refreshToken,
+      userId,
+      null
     );
 
-    if (testResponse.ok) {
-      console.log("Access token is valid. No need to refresh.");
-      return {
-        accessToken: currentAccessToken,
-        refreshToken,
-        accessTokenExpiration: null,
-      };
-    } else {
-      console.warn("Access token invalid or expired. Refreshing...");
-    }
+    console.log("Token management process completed successfully.", tokenData);
+
+    return tokenData;
   } catch (error) {
-    console.warn("Error verifying token. Attempting to refresh...", error);
-  }
-
-  // Refresh the token
-  try {
-    const response = await fetch(TOKEN_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
-        refresh_token: refreshToken,
-        grant_type: "refresh_token",
-      }),
-    });
-
-    const tokenData = await response.json();
-
-    if (!tokenData.access_token) {
-      console.error("Error refreshing token:", tokenData);
-      throw new Error("Failed to refresh access token");
-    }
-
-    const newAccessTokenExpiration = Date.now() + tokenData.expires_in * 1000;
-    const updatedRefreshToken = tokenData.refresh_token || refreshToken;
-
-    // Notify Bubble about the new token
-    const bubblePayload = {
-      userId,
-      accessToken: tokenData.access_token,
-      accessTokenExpiration: newAccessTokenExpiration,
-      refreshToken: updatedRefreshToken,
-    };
-
-    const bubbleResponse = await fetch(BUBBLE_TOKEN_ENDPOINT, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(bubblePayload),
-    });
-
-    if (!bubbleResponse.ok) {
-      console.error("Error sending new token info to Bubble.");
-      throw new Error("Failed to notify Bubble about new token");
-    }
-
-    console.log("Successfully refreshed token and notified Bubble.");
-    return {
-      accessToken: tokenData.access_token,
-      refreshToken: updatedRefreshToken,
-      accessTokenExpiration: newAccessTokenExpiration,
-    };
-  } catch (error) {
-    console.error("Error refreshing token:", error);
+    console.error(
+      "Error in getValidAccessTokenAndNotifyBubble:",
+      error.message
+    );
     throw error;
   }
 }
 
 // Express route handler
 router.post("/", async (req, res) => {
-  const { userId, mainAccessToken, refreshToken, calendarId } = req.body;
+  const { userId, accessToken, refreshToken, calendarId } = req.body;
 
   try {
 
     // Validate and refresh the access token if needed
     const { accessToken: validAccessToken } =
       await getValidAccessTokenAndNotifyBubble(
-        mainAccessToken,
+        accessToken,
         refreshToken,
         userId
       );
@@ -152,7 +93,7 @@ router.post("/", async (req, res) => {
     );
 
     res.status(200).json({
-      message: `Removed attendee from ${eventsToProcess.length} events for email: ${email}`,
+      message: `Calendar deleted`,
     });
   } catch (err) {
     console.error("Error in event route:", err.message || err);
