@@ -272,20 +272,22 @@ export const schedule = async function () {
               .clone()
               .utcOffset(offsetInMinutes, true);
             const localDay = localSlotStart.day();
+            const localDayName = localSlotStart.format("dddd"); // Get day name (Monday, Tuesday, etc.)
+            const timezoneOffsetHours = offsetInMinutes / 60; // Convert to hours
 
             // Logging whether the slot is excluded or not
             if (excludedDays.includes(localDay)) {
               console.log(
-                `The slot is on a day in time zone (UTC${
-                  offsetInMinutes / 60
-                }), excluding`
+                `The slot is on ${localDayName} (UTC${
+                  timezoneOffsetHours >= 0 ? "+" : ""
+                }${timezoneOffsetHours}), excluding`
               );
               result = "excludedDay";
             } else {
               console.log(
-                `The slot is on a day in time zone (UTC${
-                  offsetInMinutes / 60
-                }), not excluding`
+                `The slot is on ${localDayName} (UTC${
+                  timezoneOffsetHours >= 0 ? "+" : ""
+                }${timezoneOffsetHours}), not excluding`
               );
             }
           }
@@ -293,6 +295,7 @@ export const schedule = async function () {
 
         return result;
       });
+
 
 
       // Filter available slots based on actual availability
@@ -315,6 +318,8 @@ export const schedule = async function () {
 
     // Adjust `outputlist6` to viewer timezone
     outputlist6 = adjustSlotsToViewerTimezone(outputlist6, userOffsetInSeconds);
+
+    console.log(outputlist3);
 
     // Final output
     const result = {
