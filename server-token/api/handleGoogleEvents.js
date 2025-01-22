@@ -93,12 +93,26 @@ async function getValidAccessTokenAndNotifyBubble(
 
 
 
-async function handleEventAction(action, accessToken, eventId, eventDetails) {
-  const GOOGLE_EVENTS_API = `https://www.googleapis.com/calendar/v3/calendars/primary/events`;
+
+
+async function handleEventAction(
+  accessToken,
+  calendarId,
+  action,
+  eventId,
+  eventDetails
+) {
+  const GOOGLE_EVENTS_API = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(
+    calendarId
+  )}/events`;
 
   try {
     if (!accessToken) {
       throw new Error("Missing access token.");
+    }
+
+    if (!calendarId) {
+      throw new Error("Missing calendar ID.");
     }
 
     if (!action || !["add", "update", "delete"].includes(action)) {
@@ -217,45 +231,17 @@ async function handleEventAction(action, accessToken, eventId, eventDetails) {
 
 
 
-// Function to get access token from Bubble API
-async function getAccessTokenFromBubble(userId) {
-  const BUBBLE_API_URL = "https://startupcorners.com/api/1.1/wf/getAccessToken";
-
-  try {
-    const response = await fetch(
-      `${BUBBLE_API_URL}?userId=${encodeURIComponent(userId)}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error(
-        `Failed to retrieve access token from Bubble: ${response.statusText}`
-      );
-    }
-
-    const data = await response.json();
-
-    // Corrected: Check the correct structure based on the expected response
-    if (!data || !data.accessToken) {
-      throw new Error("Invalid response format from Bubble API");
-    }
-
-    console.log("Access token retrieved from Bubble successfully:", data.accessToken);
-    return data.accessToken;
-  } catch (error) {
-    console.error("Error retrieving access token from Bubble:", error.message);
-    throw error;
-  }
-}
-
 
 router.post("/", async (req, res) => {
-  const { action, eventId, eventDetails } = req.body;
+  const {
+    receivedAccessToken,
+    receivedRefreshToken,
+    calendarId,
+    userId,
+    action,
+    eventId,
+    eventDetails,
+  } = req.body;
 
   if (!action) {
     return res.status(400).json({ error: "Missing required parameters" });
@@ -263,17 +249,8 @@ router.post("/", async (req, res) => {
 
   try {
     // Step 1: Retrieve user ID and refresh token from environment variables
-    const refreshToken = process.env.GOOGLE_REFRESH_TOKEN_CALENDAR;
-    const userId = process.env.MAIN_USERID;
-
-    if (!refreshToken || !userId) {
-      throw new Error(
-        "Environment variables for userId or refresh token are missing."
-      );
-    }
-
-    // Step 2: Call Bubble API to get the current access token
-    let mainAccessToken = await getAccessTokenFromBubble(userId);
+    const refreshToken = receivedRefreshToken;
+    let mainAccessToken = receivedAccessToken;
 
     // Step 3: Validate and refresh the access token if needed
     const {
@@ -294,8 +271,9 @@ router.post("/", async (req, res) => {
     // Step 4: Call the function to handle event actions
     console.log(`Handling ${action} action for event ID: ${eventId || "N/A"}`);
     const eventResponse = await handleEventAction(
-      action,
       validAccessToken,
+      calendarId,
+      action,
       eventId,
       eventDetails
     );

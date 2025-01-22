@@ -68,21 +68,18 @@ export const init = async function (userId) {
       );
       console.log("Token data successfully sent to Bubble.");
 
-      // Add a short pause to ensure the database updates
-      await new Promise((resolve) => setTimeout(resolve, 3000)); // 3-second delay
-      console.log("Pause completed, proceeding with next steps.");
+      const calendarId = await createStartupCornersCalendar(accessToken);
+      await sendCalendarIdToBubble(
+        calendarId
+      );
+
 
       // Process appointments for the given user
       console.log(`Processing appointments for user: ${userId}`);
-      await processAppointments(userId);
+      await processAppointments(userId, accessToken, refreshToken, calendarId);
       console.log("Appointment processing completed.");
 
-      // Redirect user to the appropriate URL after processing
-      console.log(
-        "Redirect skipped. Original redirect URL would be:",
-        validateRedirectUrl(state) || "/dashboard/setting"
-      );
-      // const redirectUrl = validateRedirectUrl(state) || "/dashboard/setting";
+      // const redirectUrl = "/dashboard/setting";
       // window.location.href = redirectUrl;
     } catch (error) {
       console.error("Error handling redirect:", error);
@@ -128,7 +125,7 @@ export const init = async function (userId) {
     }
   }
 
-  async function processAppointments(userId) {
+  async function processAppointments(userId, accessToken, refreshToken, calendarId) {
     try {
       if (!userId) {
         throw new Error(
@@ -139,7 +136,9 @@ export const init = async function (userId) {
       // Step 1: Fetch appointments from the given API with userId as a query parameter
       const response = await fetch(
         `https://startupcorners.com/api/1.1/wf/retrieveAppointments?userId=${encodeURIComponent(
-          userId
+          userId,
+          accessToken,
+          refreshToken,
         )}`,
         {
           method: "GET",
@@ -184,9 +183,12 @@ export const init = async function (userId) {
 
         // Step 3: Call handleGoogleEvents for each appointment
         const resultEventId = await handleGoogleEvents(
+          accessToken,
+          refreshToken,
+          calendarId,
+          userId,
           action,
           eventDetails,
-          userId,
           appointmentId,
           eventId || null // Pass eventId if available for updates/deletes
         );
@@ -206,21 +208,17 @@ export const init = async function (userId) {
     }
   }
 
-  async function removeAttendeeFromEvents(email) {
-    if (!email) {
-      console.error("Email parameter is required.");
-      return;
-    }
-
+  async function processDeleteEvents(userId, accessToken, refreshToken, calendarId) {
+    
     try {
       const response = await fetch(
-        "https://agora-new.vercel.app/remove-attendee",
+        "https://agora-new.vercel.app/delete-events",
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ userId, accessToken, refreshToken, calendarId }),
         }
       );
 
@@ -251,6 +249,39 @@ export const init = async function (userId) {
     }
   }
 
+  async function createStartupCornersCalendar(accessToken) {
+    const GOOGLE_CALENDAR_API = `https://www.googleapis.com/calendar/v3/calendars`;
+
+    try {
+      const calendarData = {
+        summary: "StartupCorners",
+        timeZone: "UTC", // You can change the timezone if needed
+      };
+
+      const response = await fetch(GOOGLE_CALENDAR_API, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(calendarData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create calendar: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      console.log("StartupCorners calendar created successfully:", data);
+
+      return data.id; // Return the new calendar ID
+    } catch (error) {
+      console.error("Error creating StartupCorners calendar:", error.message);
+      throw error;
+    }
+  }
+
+
 
   // Send calendar events to Bubble
   function sendCalendarEventsToBubble(events) {
@@ -276,7 +307,17 @@ export const init = async function (userId) {
     }
   }
 
-  // Send token data to Bubble
+
+  function sendCalendarIdToBubble(
+    calendarId
+  ) {
+    if (typeof bubble_fn_calendar === "function") {
+      bubble_fn_calendar({
+        output1: calendarId,
+      });
+    }
+  }
+
   function sendTokenDataToBubble(
     accessToken,
     refreshToken,
@@ -440,9 +481,12 @@ export const init = async function (userId) {
   }
 
   async function handleGoogleEvents(
+    accessToken,
+    refreshToken,
+    calendarId,
+    userId,
     action,
     eventDetails,
-    userId,
     appointmentId,
     eventId
   ) {
@@ -469,8 +513,11 @@ export const init = async function (userId) {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            action,
+            accessToken,
+            refreshToken,
+            calendarId,
             userId,
+            action,
             eventDetails: action !== "delete" ? eventDetails : undefined, // Include eventDetails only for add/update
             eventId: action !== "add" ? eventId : undefined, // Include eventId only for update/delete
           }),
@@ -524,7 +571,7 @@ export const init = async function (userId) {
     initiateGoogleOAuth,
     handleGoogleEvents,
     processAppointments,
-    removeAttendeeFromEvents,
+    processDeleteEvents,
   };
 };
 
