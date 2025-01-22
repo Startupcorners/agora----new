@@ -2,6 +2,10 @@ const express = require("express");
 const fetch = require("node-fetch");
 const router = express.Router();
 
+const BUBBLE_GET_TOKENS_URL = "https://startupcorners.com/api/1.1/wf/getTokens";
+const BUBBLE_NOTIFY_URL =
+  "https://startupcorners.com/api/1.1/wf/receiveTokenInfo";
+const TOKEN_REFRESH_URL = "https://oauth2.googleapis.com/token";
 
 export async function handleAccessTokenFlow(
   accessToken,
@@ -87,7 +91,6 @@ export async function handleAccessTokenFlow(
     throw error;
   }
 }
-
 
 // Fetch tokens from Bubble
 export async function fetchTokensFromBubble(resourceId) {
