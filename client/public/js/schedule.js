@@ -187,7 +187,14 @@ export const schedule = async function () {
     const slotDuration = mainAvailability.slot_duration_minutes;
 
     // Compute week range
-    const { globalStart, globalEnd, exit } = computeWeekRange(
+    const {
+      globalStart,
+      globalEnd,
+      commonDailyStart,
+      commonDailyEnd,
+      realStart,
+      realEnd,
+      exit,} = computeWeekRange(
       mainAvailability,
       viewerStartDate,
       offset,
@@ -211,8 +218,8 @@ export const schedule = async function () {
       // Generate weekly slots
       outputlist7 = generateWeeklySlots(
         globalStart,
-        mainAvailability.daily_start_time,
-        mainAvailability.daily_end_time,
+        commonDailyStart,
+        commonDailyEnd,
         slotDuration
       );
 
@@ -287,8 +294,8 @@ export const schedule = async function () {
       // Filter available slots based on actual availability
       outputlist5 = filterSlotsByAvailabilityRange(
         outputlist7,
-        globalStart,
-        globalEnd
+        realStart,
+        realEnd
       );
 
       // Adjust slots to the viewer's timezone
