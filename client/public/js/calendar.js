@@ -69,22 +69,25 @@ export const init = async function (userId) {
       console.log("Token data successfully sent to Bubble.");
 
       const calendarId = await createStartupCornersCalendar(accessToken);
-      await sendCalendarIdToBubble(
-        calendarId
-      );
-
+      await sendCalendarIdToBubble(calendarId);
 
       // Process appointments for the given user
       console.log(`Processing appointments for user: ${userId}`);
       await processAppointments(userId, accessToken, refreshToken, calendarId);
       console.log("Appointment processing completed.");
 
-      const redirectUrl = "/dashboard/setting";
-      window.location.href = redirectUrl;
+      // Notify Bubble process completion
+      if (typeof bubble_fn_finished === "function") {
+        console.log("Calling bubble_fn_finished...");
+        bubble_fn_finished();
+      } else {
+        console.warn("bubble_fn_finished is not defined.");
+      }
     } catch (error) {
       console.error("Error handling redirect:", error);
     }
   }
+
 
   // Fetch user email using access token
   async function fetchUserEmail(accessToken) {
