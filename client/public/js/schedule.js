@@ -234,67 +234,7 @@ export const schedule = async function () {
         const slotStart = moment.utc(slot[0]);
         const slotEnd = moment.utc(slot[1]);
 
-        console.log(
-          "Processing slot:",
-          slotStart.format(),
-          "-",
-          slotEnd.format()
-        );
-
-        // 1) ALREADY BOOKED CHECK
-        const bookedBubbleIds = alreadyBookedList
-          .filter((booked) => {
-            const bookedStart = moment.utc(booked.start_date);
-            const bookedEnd = moment.utc(booked.end_date);
-            const isOverlapping = isSlotOverlapping(
-              slotStart,
-              slotEnd,
-              bookedStart,
-              bookedEnd
-            );
-
-            console.log(
-              `Checking booked slot ${bookedStart.format()} - ${bookedEnd.format()}:`,
-              isOverlapping ? "Overlapping" : "Not Overlapping"
-            );
-
-            return isOverlapping;
-          })
-          .map((booked) => booked.bubbleId);
-
-        let result =
-          bookedBubbleIds.length > 0 ? bookedBubbleIds.join("_") : null;
-
-        if (result) {
-          console.log(
-            "Slot is already booked with Bubble IDs:",
-            bookedBubbleIds
-          );
-        } else {
-          console.log("Slot is NOT booked.");
-        }
-
-        // 2) BEFORE MINIMUM BOOKABLE DAY CHECK (only if NOT booked)
-        if (!result) {
-          const earliestBookableMoment = moment
-            .utc()
-            .add(mainAvailability.earliestBookableDay, "days");
-
-          console.log(
-            `Checking earliest bookable day (${mainAvailability.earliestBookableDay} days ahead):`,
-            earliestBookableMoment.format()
-          );
-
-          if (slotEnd.isBefore(earliestBookableMoment)) {
-            console.log(
-              "Slot falls before earliest bookable day:",
-              slotStart.format()
-            );
-            result = "beforeMinimumDay";
-          } else {
-            console.log("Slot is within the bookable range.");
-          }
-        }
+        let result = null;
 
         // 3) EXCLUDED DAY CHECK (only if NOT booked and NOT before min day)
         if (!result) {
@@ -308,27 +248,25 @@ export const schedule = async function () {
             const localDay = localSlotStart.day();
 
             console.log(
-              `Checking slot against excluded days:`,
-              `Converted slot time (${timeOffsetSeconds} seconds offset):`,
-              localSlotStart.format(),
-              "Local day of week:",
-              localDay
+              `\nChecking slot against excluded days...`,
+              `\n  Original UTC Slot Time: ${slotStart.format()}`,
+              `\n  Converted Local Slot Time (Offset: ${timeOffsetSeconds} sec): ${localSlotStart.format()}`,
+              `\n  Local Day of Week: ${localDay} (0=Sunday, 1=Monday, ..., 6=Saturday)`,
+              `\n  Excluded Days List: ${excludedDays}`
             );
-
-            console.log("Excluded days list:", excludedDays);
 
             // Check if the local day is in the excludedDays array
             if (excludedDays.includes(localDay)) {
               console.log(
-                `Slot falls on excluded day (${localDay}), marking as excluded.`
+                `  ❌ Slot falls on excluded day (${localDay}), marking as excluded.`
               );
               result = "excludedDay";
             } else {
-              console.log("Slot is not on an excluded day.");
+              console.log("  ✅ Slot is not on an excluded day.");
             }
           } else {
             console.warn(
-              "Skipping exclusion check due to missing offset or excludedDays."
+              "Skipping exclusion check due to missing time offset or excludedDays."
             );
           }
         }
@@ -336,6 +274,7 @@ export const schedule = async function () {
         console.log("Final slot result:", result || "Available");
         return result;
       });
+
 
 
       // Filter available slots based on actual availability
