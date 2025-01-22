@@ -270,21 +270,8 @@ export const schedule = async function () {
             const offsetInMinutes = timeOffsetSeconds / 60;
             const localSlotStart = moment(slotStart).utcOffset(offsetInMinutes);
 
-            // Get the correct local day name and number
-            const localDayName = localSlotStart.format("dddd");
+            // Get the correct local day number
             const localDayNumber = localSlotStart.day(); // 0 = Sunday, 1 = Monday, etc.
-            const timezoneOffsetHours = offsetInMinutes / 60;
-
-            // Logging slot details with converted local time
-            console.log(
-              `The slot ${slotStart.toISOString()} is on ${localDayName} (UTC${
-                timezoneOffsetHours >= 0 ? "+" : ""
-              }${timezoneOffsetHours}), ${
-                excludedDays.includes(localDayNumber)
-                  ? "excluding"
-                  : "not excluding"
-              }`
-            );
 
             // Check if the local day is excluded
             if (excludedDays.includes(localDayNumber)) {
@@ -295,9 +282,6 @@ export const schedule = async function () {
 
         return result;
       });
-
-
-
 
 
       // Filter available slots based on actual availability
