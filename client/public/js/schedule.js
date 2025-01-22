@@ -231,7 +231,7 @@ export const schedule = async function () {
 
       // Generate outputlist3 (already booked slots)
       outputlist3 = outputlist7.map((slot) => {
-        const slotStart = moment.utc(slot[0]);
+        const slotStart = moment.utc(slot[0]); // Parse in UTC
         const slotEnd = moment.utc(slot[1]);
 
         // 1) ALREADY BOOKED CHECK
@@ -266,40 +266,36 @@ export const schedule = async function () {
         if (!result) {
           const { timeOffsetSeconds, excludedDays } = mainAvailability || {};
           if (timeOffsetSeconds && excludedDays) {
-            // Convert slot time to the mainAvailability's timezone
+            // Convert slot time to the local timezone
             const offsetInMinutes = timeOffsetSeconds / 60;
+            const localSlotStart = moment(slotStart).utcOffset(offsetInMinutes);
 
-            // Ensure slotStart is adjusted to the correct timezone
-            const localSlotStart = moment(slotStart).utcOffset(
-              offsetInMinutes,
-              true
+            // Get the correct local day name and number
+            const localDayName = localSlotStart.format("dddd");
+            const localDayNumber = localSlotStart.day(); // 0 = Sunday, 1 = Monday, etc.
+            const timezoneOffsetHours = offsetInMinutes / 60;
+
+            // Logging slot details with converted local time
+            console.log(
+              `The slot ${slotStart.toISOString()} is on ${localDayName} (UTC${
+                timezoneOffsetHours >= 0 ? "+" : ""
+              }${timezoneOffsetHours}), ${
+                excludedDays.includes(localDayNumber)
+                  ? "excluding"
+                  : "not excluding"
+              }`
             );
 
-            // Extract the day of the week based on the adjusted timezone
-            const localDay = localSlotStart.day();
-            const localDayName = localSlotStart.format("dddd"); // Get full day name (e.g., Monday)
-            const timezoneOffsetHours = offsetInMinutes / 60; // Convert to hours
-
-            // Logging whether the slot is excluded or not
-            if (excludedDays.includes(localDay)) {
-              console.log(
-                `The slot ${slotStart.toISOString()} is on ${localDayName} (UTC${
-                  timezoneOffsetHours >= 0 ? "+" : ""
-                }${timezoneOffsetHours}), excluding`
-              );
+            // Check if the local day is excluded
+            if (excludedDays.includes(localDayNumber)) {
               result = "excludedDay";
-            } else {
-              console.log(
-                `The slot ${slotStart.toISOString()} is on ${localDayName} (UTC${
-                  timezoneOffsetHours >= 0 ? "+" : ""
-                }${timezoneOffsetHours}), not excluding`
-              );
             }
           }
         }
 
         return result;
       });
+
 
 
 
