@@ -525,11 +525,9 @@ export const scheduleAppointments = async function () {
       outputlist8,
       outputlist9,
     };
-  }
-
-  function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
+  }function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
     const outputlist5 = [];
-    console.log("Input allSlots:", allSlots);
+    console.log("Input allSlots:", JSON.stringify(allSlots, null, 2));
     console.log("Global start:", globalStart);
     console.log("Global end:", globalEnd);
 
@@ -538,8 +536,15 @@ export const scheduleAppointments = async function () {
         const slotStart = moment.utc(slotRange[0]);
         const slotEnd = moment.utc(slotRange[1]);
 
+        console.log(
+          `Checking slot ${index}: Start: ${slotStart}, End: ${slotEnd}`
+        );
+
         if (slotStart.isBefore(globalEnd) && slotEnd.isAfter(globalStart)) {
+          console.log(`Slot ${index} is within the availability range`);
           outputlist5.push(slotRange);
+        } else {
+          console.log(`Slot ${index} is outside the availability range`);
         }
       });
     } else {
@@ -548,7 +553,10 @@ export const scheduleAppointments = async function () {
       );
     }
 
-    console.log("Filtered slots (outputlist5):", outputlist5);
+    console.log(
+      "Filtered slots (outputlist5):",
+      JSON.stringify(outputlist5, null, 2)
+    );
     return outputlist5;
   }
 
@@ -556,37 +564,44 @@ export const scheduleAppointments = async function () {
     mainUserAvailabilities,
     mergedAlreadyBookedList
   ) {
-    // We'll accumulate bubble IDs and boolean results in parallel arrays
-    const outputlist1 = []; // bubble IDs
-    const outputlist2 = []; // true/false
+    const outputlist1 = [];
+    const outputlist2 = [];
 
-    // Loop over all main-user availabilities
+    console.log(
+      "Starting availability check for",
+      mainUserAvailabilities.length,
+      "availabilities"
+    );
+
     for (const availability of mainUserAvailabilities) {
-      // If each availability has a bubbleid:
       const bubbleid = availability.bubbleid;
+      console.log(`Checking availability for bubbleid: ${bubbleid}`);
 
-      // Check if there's at least one open slot
       const hasSlot = hasAnyOpenSlotForAvailability(
         availability,
         mergedAlreadyBookedList
       );
 
-      // Append to our arrays
+      console.log(
+        `Availability for bubbleid ${bubbleid}: ${
+          hasSlot ? "Has available slots" : "No available slots"
+        }`
+      );
+
       outputlist1.push(bubbleid);
       outputlist2.push(hasSlot);
     }
 
-    // Now call your Bubble function, passing the arrays
     bubble_fn_finalMainUserAvailabilityList({
       outputlist1,
       outputlist2,
-      // If Bubble expects a third list, you can add outputlist3 here
     });
 
-    // Finally, signal readiness
-    setTimeout(() => bubble_fn_ready(), 3000);
+    setTimeout(() => {
+      console.log("Bubble function ready signal sent.");
+      bubble_fn_ready();
+    }, 3000);
   }
-
 
   function hasAnyOpenSlotForAvailability(availability, alreadyBookedList) {
     const {
@@ -597,35 +612,35 @@ export const scheduleAppointments = async function () {
       slot_duration_minutes,
       timeOffsetSeconds,
       excludedDays,
-      earliestBookableDay = 0, // default if none provided
+      earliestBookableDay = 0,
     } = availability;
+
+    console.log(`Processing availability from ${start_date} to ${end_date}`);
 
     const startOfRange = moment.utc(start_date).startOf("day");
     const endOfRange = moment.utc(end_date).endOf("day");
 
-    // If invalid date or start > end, just return false
     if (
       !startOfRange.isValid() ||
       !endOfRange.isValid() ||
       endOfRange.isBefore(startOfRange)
     ) {
+      console.warn("Invalid availability date range detected");
       return false;
     }
 
-    // Parse daily start/end times (e.g. "09:00" => 9,0)
     const [startHour, startMin] = daily_start_time.split(":").map(Number);
     const [endHour, endMin] = daily_end_time.split(":").map(Number);
     const duration = slot_duration_minutes || 60;
 
-    // Earliest bookable cutoff
     const earliestBookableMoment = moment
       .utc()
       .add(earliestBookableDay, "days");
 
-    // Loop day by day in [startOfRange, endOfRange]
     let currentDay = startOfRange.clone();
     while (currentDay.isSameOrBefore(endOfRange, "day")) {
-      // Build the day's start/end within the user’s daily availability
+      console.log(`Checking day: ${currentDay.format("YYYY-MM-DD")}`);
+
       const dayStart = currentDay
         .clone()
         .set({ hour: startHour, minute: startMin, second: 0 });
@@ -633,20 +648,19 @@ export const scheduleAppointments = async function () {
         .clone()
         .set({ hour: endHour, minute: endMin, second: 0 });
 
-      // If daily end < daily start, assume it crosses midnight
       if (dayEnd.isBefore(dayStart)) {
         dayEnd.add(1, "day");
       }
 
-      // Skip if no overlap with overall availability
       const actualDayStart = moment.max(dayStart, startOfRange);
       const actualDayEnd = moment.min(dayEnd, endOfRange);
+
       if (actualDayEnd.isBefore(actualDayStart)) {
+        console.log("Skipping due to out of range time.");
         currentDay.add(1, "day");
         continue;
       }
 
-      // Check excludedDays if provided
       let dayIsExcluded = false;
       if (
         excludedDays &&
@@ -655,52 +669,53 @@ export const scheduleAppointments = async function () {
       ) {
         const offsetInMinutes = timeOffsetSeconds / 60;
         const localDayStart = actualDayStart.clone().utcOffset(offsetInMinutes);
-        const localDayNumber = localDayStart.day(); // 0=Sunday,...6=Saturday
+        const localDayNumber = localDayStart.day();
         if (excludedDays.includes(localDayNumber)) {
+          console.log(
+            `Excluding day due to excludedDays restriction: ${localDayNumber}`
+          );
           dayIsExcluded = true;
         }
       }
 
       if (!dayIsExcluded) {
-        // Generate slot increments
         let slotStart = actualDayStart.clone();
         while (slotStart.isBefore(actualDayEnd)) {
           const slotEnd = slotStart.clone().add(duration, "minutes");
+
           if (slotEnd.isAfter(actualDayEnd)) {
             break;
           }
 
-          // Earliest bookable check
           if (slotEnd.isBefore(earliestBookableMoment)) {
+            console.log(
+              `Skipping slot ${slotStart} - before earliest bookable day`
+            );
             slotStart = slotEnd;
             continue;
           }
 
-          // Check if booked/blocked
           if (!isSlotOverlapped(slotStart, slotEnd, alreadyBookedList)) {
-            // Found a slot that is not booked => free
+            console.log(`Found available slot: ${slotStart} to ${slotEnd}`);
             return true;
+          } else {
+            console.log(`Slot ${slotStart} to ${slotEnd} is booked`);
           }
 
           slotStart = slotEnd;
         }
       }
 
-      // Move to next day
       currentDay.add(1, "day");
     }
 
-    // If we reached here, no free slot was found
+    console.log("No available slots found for this availability.");
     return false;
   }
 
-  /**
-   * isSlotOverlapped
-   *   Returns true if the given slot (slotStart, slotEnd) overlaps
-   *   with *any* item in bookedList. Otherwise false.
-   */
   function isSlotOverlapped(slotStart, slotEnd, bookedList) {
     if (!bookedList || bookedList.length === 0) return false;
+
     for (const booked of bookedList) {
       const bookedStart = moment.utc(booked.start_date);
       const bookedEnd = moment.utc(booked.end_date);
@@ -711,11 +726,16 @@ export const scheduleAppointments = async function () {
         bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
         bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
       ) {
-        return true; // Overlap found
+        console.log(
+          `Slot overlaps with a booking from ${booked.start_date} to ${booked.end_date}`
+        );
+        return true;
       }
     }
+
     return false;
   }
+
 
   return {
     generateSlotsForWeek,
