@@ -1,6 +1,5 @@
 
 export const scheduleAppointments = async function () {
-
   function generateSlotsForWeek(
     mainAvailabilityList,
     allAvailabilityLists,
@@ -177,7 +176,6 @@ export const scheduleAppointments = async function () {
     return result;
   }
 
-
   // Helper functions
   function adjustSlotsToViewerTimezone(slotList, userOffsetInSeconds) {
     const userOffsetInMinutes = userOffsetInSeconds / 60;
@@ -320,8 +318,6 @@ export const scheduleAppointments = async function () {
     };
   }
 
-
-
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
     // Parse the incoming string (with offset) and preserve the offset
     const globalStart = moment.parseZone(globalStartStr);
@@ -398,12 +394,6 @@ export const scheduleAppointments = async function () {
 
     return baseSlots;
   }
-
-
-
-
-
-
 
   function generateWeeklySlots(
     globalStartStr,
@@ -537,7 +527,6 @@ export const scheduleAppointments = async function () {
     };
   }
 
-
   function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
     const outputlist5 = [];
     console.log("Input allSlots:", allSlots);
@@ -563,135 +552,174 @@ export const scheduleAppointments = async function () {
     return outputlist5;
   }
 
-  function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
-    console.log("Received Availabilities:", availabilities);
+  function checkAllMainUserAvailabilities(
+    mainUserAvailabilities,
+    mergedAlreadyBookedList
+  ) {
+    // We'll accumulate bubble IDs and boolean results in parallel arrays
+    const outputlist1 = []; // bubble IDs
+    const outputlist2 = []; // true/false
 
-    // Validate input
-    if (!Array.isArray(availabilities)) {
-      console.error("Invalid input: availabilities should be an array.");
-      return [];
+    // Loop over all main-user availabilities
+    for (const availability of mainUserAvailabilities) {
+      // If each availability has a bubbleid:
+      const bubbleid = availability.bubbleid;
+
+      // Check if there's at least one open slot
+      const hasSlot = hasAnyOpenSlotForAvailability(
+        availability,
+        mergedAlreadyBookedList
+      );
+
+      // Append to our arrays
+      outputlist1.push(bubbleid);
+      outputlist2.push(hasSlot);
     }
 
-    // Map bubbleids to userids
-    const bubbleToUser = {};
-    const allUserIds = new Set();
-    for (const a of availabilities) {
-      if (!a.bubbleid || !a.userid) {
-        console.error(
-          "Invalid availability object: missing bubbleid or userid."
-        );
-        return [];
-      }
-      bubbleToUser[a.bubbleid] = a.userid;
-      allUserIds.add(a.userid);
-    }
-
-    const overlappingBubbleIds = new Set();
-
-    // Compare each availability with all others
-    for (let i = 0; i < availabilities.length; i++) {
-      const availability1 = availabilities[i];
-      const dateStart1 = moment.utc(availability1.start_date);
-      const dateEnd1 = moment.utc(availability1.end_date);
-
-      for (let j = i + 1; j < availabilities.length; j++) {
-        const availability2 = availabilities[j];
-        const dateStart2 = moment.utc(availability2.start_date);
-        const dateEnd2 = moment.utc(availability2.end_date);
-
-        // Check if the date ranges overlap
-        const dateOverlap =
-          dateStart1.isBefore(dateEnd2) && dateStart2.isBefore(dateEnd1);
-
-        if (!dateOverlap) {
-          continue; // Skip if no date overlap
-        }
-
-        // Check daily time ranges for overlap
-        const dailyStart1 = moment.utc(
-          "1970-01-01T" + availability1.daily_start_time + ":00Z"
-        );
-        const dailyEnd1 = moment.utc(
-          "1970-01-01T" + availability1.daily_end_time + ":00Z"
-        );
-        const dailyStart2 = moment.utc(
-          "1970-01-01T" + availability2.daily_start_time + ":00Z"
-        );
-        const dailyEnd2 = moment.utc(
-          "1970-01-01T" + availability2.daily_end_time + ":00Z"
-        );
-
-        // Adjust for crossing midnight
-        if (dailyEnd1.isBefore(dailyStart1)) dailyEnd1.add(1, "day");
-        if (dailyEnd2.isBefore(dailyStart2)) dailyEnd2.add(1, "day");
-
-        const dailyOverlap =
-          dailyStart1.isBefore(dailyEnd2) && dailyStart2.isBefore(dailyEnd1);
-
-        if (dailyOverlap) {
-          console.log(
-            `Overlap found between Bubble IDs ${availability1.bubbleid} and ${availability2.bubbleid}`
-          );
-          overlappingBubbleIds.add(availability1.bubbleid);
-          overlappingBubbleIds.add(availability2.bubbleid);
-        }
-      }
-    }
-
-    const overlappingBubbleIdsArray = Array.from(overlappingBubbleIds);
-
-    // Determine which user IDs overlap
-    const overlappingUserIds = new Set(
-      overlappingBubbleIdsArray.map((bid) => bubbleToUser[bid])
-    );
-
-    // Determine user IDs that do not overlap (among those who had availabilities)
-    const nonOverlappingUserIds = Array.from(allUserIds).filter(
-      (uid) => !overlappingUserIds.has(uid)
-    );
-
-    // Find user IDs that have no availabilities at all
-    const noAvailabilityUserIds = userids.filter((uid) => !allUserIds.has(uid));
-
-    // Combine non-overlapping with no-availability user IDs
-    const finalNonOverlappingUserIds = nonOverlappingUserIds.concat(
-      noAvailabilityUserIds
-    );
-
-    // Convert sets to arrays
-    const overlappingUserIdsArray = Array.from(overlappingUserIds);
-
-    // Special case: Only one userid or no overlaps
-    let finalOutputList1 = overlappingBubbleIdsArray;
-    if (userids.length === 1 || overlappingBubbleIdsArray.length === 0) {
-      // Include all availabilities of mainuserid
-      finalOutputList1 = availabilities
-        .filter((a) => a.userid === mainuserid)
-        .map((a) => a.bubbleid);
-    }
-
-    console.log(
-      "Final iteration completed. Sending results to Bubble.",
-      finalOutputList1,
-      overlappingUserIdsArray,
-      finalNonOverlappingUserIds
-    );
-
-    // Send to bubble in a similar format as requested
-    bubble_fn_overlapAvailabilities({
-      outputlist1: finalOutputList1,
-      outputlist2: overlappingUserIdsArray,
-      outputlist3: finalNonOverlappingUserIds,
+    // Now call your Bubble function, passing the arrays
+    bubble_fn_finalMainUserAvailabilityList({
+      outputlist1,
+      outputlist2,
+      // If Bubble expects a third list, you can add outputlist3 here
     });
 
+    // Finally, signal readiness
     setTimeout(() => bubble_fn_ready(), 3000);
+  }
 
-    return finalOutputList1;
+
+  function hasAnyOpenSlotForAvailability(availability, alreadyBookedList) {
+    const {
+      start_date,
+      end_date,
+      daily_start_time,
+      daily_end_time,
+      slot_duration_minutes,
+      timeOffsetSeconds,
+      excludedDays,
+      earliestBookableDay = 0, // default if none provided
+    } = availability;
+
+    const startOfRange = moment.utc(start_date).startOf("day");
+    const endOfRange = moment.utc(end_date).endOf("day");
+
+    // If invalid date or start > end, just return false
+    if (
+      !startOfRange.isValid() ||
+      !endOfRange.isValid() ||
+      endOfRange.isBefore(startOfRange)
+    ) {
+      return false;
+    }
+
+    // Parse daily start/end times (e.g. "09:00" => 9,0)
+    const [startHour, startMin] = daily_start_time.split(":").map(Number);
+    const [endHour, endMin] = daily_end_time.split(":").map(Number);
+    const duration = slot_duration_minutes || 60;
+
+    // Earliest bookable cutoff
+    const earliestBookableMoment = moment
+      .utc()
+      .add(earliestBookableDay, "days");
+
+    // Loop day by day in [startOfRange, endOfRange]
+    let currentDay = startOfRange.clone();
+    while (currentDay.isSameOrBefore(endOfRange, "day")) {
+      // Build the day's start/end within the user’s daily availability
+      const dayStart = currentDay
+        .clone()
+        .set({ hour: startHour, minute: startMin, second: 0 });
+      const dayEnd = currentDay
+        .clone()
+        .set({ hour: endHour, minute: endMin, second: 0 });
+
+      // If daily end < daily start, assume it crosses midnight
+      if (dayEnd.isBefore(dayStart)) {
+        dayEnd.add(1, "day");
+      }
+
+      // Skip if no overlap with overall availability
+      const actualDayStart = moment.max(dayStart, startOfRange);
+      const actualDayEnd = moment.min(dayEnd, endOfRange);
+      if (actualDayEnd.isBefore(actualDayStart)) {
+        currentDay.add(1, "day");
+        continue;
+      }
+
+      // Check excludedDays if provided
+      let dayIsExcluded = false;
+      if (
+        excludedDays &&
+        excludedDays.length > 0 &&
+        typeof timeOffsetSeconds === "number"
+      ) {
+        const offsetInMinutes = timeOffsetSeconds / 60;
+        const localDayStart = actualDayStart.clone().utcOffset(offsetInMinutes);
+        const localDayNumber = localDayStart.day(); // 0=Sunday,...6=Saturday
+        if (excludedDays.includes(localDayNumber)) {
+          dayIsExcluded = true;
+        }
+      }
+
+      if (!dayIsExcluded) {
+        // Generate slot increments
+        let slotStart = actualDayStart.clone();
+        while (slotStart.isBefore(actualDayEnd)) {
+          const slotEnd = slotStart.clone().add(duration, "minutes");
+          if (slotEnd.isAfter(actualDayEnd)) {
+            break;
+          }
+
+          // Earliest bookable check
+          if (slotEnd.isBefore(earliestBookableMoment)) {
+            slotStart = slotEnd;
+            continue;
+          }
+
+          // Check if booked/blocked
+          if (!isSlotOverlapped(slotStart, slotEnd, alreadyBookedList)) {
+            // Found a slot that is not booked => free
+            return true;
+          }
+
+          slotStart = slotEnd;
+        }
+      }
+
+      // Move to next day
+      currentDay.add(1, "day");
+    }
+
+    // If we reached here, no free slot was found
+    return false;
+  }
+
+  /**
+   * isSlotOverlapped
+   *   Returns true if the given slot (slotStart, slotEnd) overlaps
+   *   with *any* item in bookedList. Otherwise false.
+   */
+  function isSlotOverlapped(slotStart, slotEnd, bookedList) {
+    if (!bookedList || bookedList.length === 0) return false;
+    for (const booked of bookedList) {
+      const bookedStart = moment.utc(booked.start_date);
+      const bookedEnd = moment.utc(booked.end_date);
+
+      if (
+        slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
+        slotEnd.isBetween(bookedStart, bookedEnd, null, "(]") ||
+        bookedStart.isBetween(slotStart, slotEnd, null, "[)") ||
+        bookedEnd.isBetween(slotStart, slotEnd, null, "(]")
+      ) {
+        return true; // Overlap found
+      }
+    }
+    return false;
   }
 
   return {
     generateSlotsForWeek,
-    findOverlappingTimeRanges,
+    checkAllMainUserAvailabilities,
   };
 };
 
