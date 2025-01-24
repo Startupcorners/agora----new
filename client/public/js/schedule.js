@@ -16,17 +16,18 @@ export const schedule = async function () {
         }
       );
 
-      // Check if the response is successful
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
 
       const result = await response.json();
+      console.log("Full response received:", result);
 
-      if (!result.success) {
+      // Adjusting the success check based on the actual response format
+      if (result.status !== "success") {
         console.error(
           "Error generating poll:",
-          result.error || "Unknown error"
+          result.response?.error || "Unexpected response format"
         );
         return null; // Return null to indicate failure
       }
@@ -35,9 +36,11 @@ export const schedule = async function () {
       return result; // Return the poll result
     } catch (error) {
       console.error("Error in generatePoll function:", error.message);
+      console.error("Stack Trace:", error.stack);
       return null; // Return null in case of an exception
     }
   }
+
 
 
   function generate42CalendarDates(anchorDateUTC, offsetInSeconds, isStart) {
