@@ -3,7 +3,7 @@ const fetch = require("node-fetch"); // Required for external API calls
 const router = express.Router();
 
 // OpenAI API key (replace with your own)
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const OPENAI_API_KEY = process.env.OPEN_AI_KEY;
 const bubbleApiUrl = "https://sccopy-38403.bubbleapps.io/api/1.1/wf/newpoll";
 
 // Function to call OpenAI API
