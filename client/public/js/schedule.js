@@ -2,7 +2,7 @@
 export const schedule = async function () {
 
 
-  async function generatePoll(availabilities, bookedSlots, duration, poll) {
+  async function generatePoll(slots, poll) {
     try {
       const response = await fetch(
         "https://agora-new.vercel.app/generatePoll",
@@ -10,9 +10,7 @@ export const schedule = async function () {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            availabilities,
-            bookedSlots,
-            duration,
+            slots,
             poll,
           }),
         }
