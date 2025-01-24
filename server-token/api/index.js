@@ -74,6 +74,7 @@ const setWebhook = require("./setWebhook");
 const stopWatch = require("./stopWatch");
 const handleGoogleEvents = require("./handleGoogleEvents");
 const deleteEvents = require("./delete-events");
+const generatePoll = require("./generatePoll");
 
 
 
@@ -92,6 +93,7 @@ app.use("/setWebhook", setWebhook);
 app.use("/stopWatch", stopWatch);
 app.use("/handleGoogleEvents", handleGoogleEvents);
 app.use("/delete-events", deleteEvents);
+app.use("/generatePoll", generatePoll);
 
 // Error handler
 app.use((err, req, res, next) => {
