@@ -1,5 +1,47 @@
 
 export const schedule = async function () {
+
+
+  async function generatePoll(availabilities, bookedSlots, duration, poll) {
+    try {
+      const response = await fetch(
+        "https://agora-new.vercel.app/generatePoll",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            availabilities,
+            bookedSlots,
+            duration,
+            poll,
+          }),
+        }
+      );
+
+      // Check if the response is successful
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        console.error(
+          "Error generating poll:",
+          result.error || "Unknown error"
+        );
+        return null; // Return null to indicate failure
+      }
+
+      console.log("Poll generated successfully:", result);
+      return result; // Return the poll result
+    } catch (error) {
+      console.error("Error in generatePoll function:", error.message);
+      return null; // Return null in case of an exception
+    }
+  }
+
+
   function generate42CalendarDates(anchorDateUTC, offsetInSeconds, isStart) {
     console.log(anchorDateUTC);
     console.log(offsetInSeconds);
@@ -800,6 +842,7 @@ export const schedule = async function () {
     generate42CalendarDates,
     generateSlotsForWeek,
     findOverlappingTimeRanges,
+    generatePoll,
   };
 };
 
