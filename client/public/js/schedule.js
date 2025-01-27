@@ -116,26 +116,27 @@ export const schedule = async function () {
     while (
       currentDate <= new Date(new Date(endDate).setUTCHours(23, 59, 59, 999))
     ) {
-      overlappingSlots.forEach((hour) => {
+      for (let hour of overlappingSlots) {
+        if (availableSlots.length >= 40) {
+          return availableSlots; // Stop once 40 items are added
+        }
+
         let utcTime = new Date(currentDate);
         utcTime.setUTCHours(hour, 0, 0, 0);
 
         let endTime = new Date(utcTime);
         endTime.setMinutes(utcTime.getMinutes() + durationInMinutes);
 
-        availableSlots.push(
-          `${utcTime.toISOString().replace(".000", "")}_${endTime
-            .toISOString()
-            .replace(".000", "")}`
-        );
-      });
+        // Push start and end times as separate items
+        availableSlots.push(utcTime.toISOString().replace(".000", "") + "Z");
+        availableSlots.push(endTime.toISOString().replace(".000", "") + "Z");
+      }
 
-      let nextDate = new Date(currentDate);
-      nextDate.setUTCDate(currentDate.getUTCDate() + 1);
-      currentDate = nextDate;
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
-    return availableSlots;
+    return availableSlots.slice(0, 40); // Ensure exactly 40 items
   }
+
   // Function to generate the poll
   async function generatePoll(slots, poll) {
     try {
