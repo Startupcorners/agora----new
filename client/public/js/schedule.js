@@ -1,180 +1,193 @@
 
 export const schedule = async function () {
-
-async function runProcess(
-  timezoneOffsets,
-  startDate,
-  endDate,
-  poll,
-  bookedSlots,
-  durationInMinutes
-) {
-  let maxDaysToAdd = 7;
-  let updatedStartDate = new Date(startDate);
-  let updatedEndDate = new Date(endDate);
-  let WORKING_HOURS_START = 8; // Default start time
-  let WORKING_HOURS_END = 20; // Default end time
-
-  let selectedSlots = [];
-
-  while (selectedSlots.length < 40 && maxDaysToAdd >= 0) {
-    const overlappingSlots = findOverlappingSlots(
-      timezoneOffsets,
-      WORKING_HOURS_START,
-      WORKING_HOURS_END
-    );
-
-    let availableSlots = generateAvailableSlots(
-      updatedStartDate,
-      updatedEndDate,
-      overlappingSlots,
-      durationInMinutes
-    );
-
-    // Filter out booked slots
-    availableSlots = availableSlots.filter(
-      (slot) => !bookedSlots.includes(slot)
-    );
-
-    // Select 20 evenly distributed slots
-    selectedSlots = availableSlots
-      .filter(
-        (_, index) =>
-          index % Math.max(1, Math.floor(availableSlots.length / 40)) === 0
-      )
-      .slice(0, 40);
-
-    console.log(
-      `[${new Date().toISOString()}] Attempt with endDate ${updatedEndDate.toISOString()}, Found Slots: ${
-        selectedSlots.length
-      }`
-    );
-
-    if (selectedSlots.length >= 40) {
-      break;
-    }
-
-    // Extend end date by one more day if maxDaysToAdd is still available
-    updatedEndDate.setUTCDate(updatedEndDate.getUTCDate() + 1);
-    maxDaysToAdd--;
-
-    // If all days are added but still not enough slots, adjust working hours
-    if (maxDaysToAdd === 0 && selectedSlots.length < 40) {
-      console.log(
-        `[${new Date().toISOString()}] Adjusting working hours to extend availability...`
-      );
-      WORKING_HOURS_START = Math.max(WORKING_HOURS_START - 1, 0);
-      WORKING_HOURS_END = Math.min(WORKING_HOURS_END + 1, 24);
-      maxDaysToAdd = 7; // Reset max days to check again with adjusted hours
-    }
-  }
-
-  if (selectedSlots.length > 0) {
-    const pollResult = await generatePoll(selectedSlots, poll);
-    if (pollResult) {
-      console.log("Poll created successfully:", pollResult);
-    } else {
-      console.error("Failed to create poll.");
-    }
-  } else {
-    console.error("No available slots found.");
-  }
-}
-
-// Function to find overlapping working hours across multiple time zones
-function findOverlappingSlots(timezoneOffsets, startHour, endHour) {
-  let overlappingSlots = [];
-
-  for (let hour = 0; hour < 24; hour++) {
-    let utcTime = new Date(Date.UTC(2025, 0, 28, hour)); // January 28, 2025 in UTC
-
-    // Check if the hour fits in all timezone working hours
-    let isOverlapping = timezoneOffsets.every((offsetInSeconds) => {
-      let localTime = new Date(utcTime.getTime() + offsetInSeconds * 1000);
-      return (
-        localTime.getUTCHours() >= startHour &&
-        localTime.getUTCHours() < endHour
-      );
-    });
-
-    if (isOverlapping) {
-      overlappingSlots.push(hour);
-    }
-  }
-  return overlappingSlots;
-}
-
-// Function to generate available slots within overlapping hours
-function generateAvailableSlots(
-  startDate,
-  endDate,
-  overlappingSlots,
-  durationInMinutes
-) {
-  let availableSlots = [];
-  let currentDate = new Date(startDate);
-
-  while (
-    currentDate <= new Date(new Date(endDate).setUTCHours(23, 59, 59, 999))
+  async function runProcess(
+    timezoneOffsets,
+    startDate,
+    endDate,
+    poll,
+    bookedSlots,
+    durationInMinutes
   ) {
-    overlappingSlots.forEach((hour) => {
-      let utcTime = new Date(currentDate);
-      utcTime.setUTCHours(hour, 0, 0, 0);
+    let maxDaysToAdd = 7;
+    let updatedStartDate = new Date(startDate);
+    let updatedEndDate = new Date(endDate);
+    let WORKING_HOURS_START = 8; // Default start time
+    let WORKING_HOURS_END = 20; // Default end time
 
-      let endTime = new Date(utcTime);
-      endTime.setMinutes(utcTime.getMinutes() + durationInMinutes);
+    let selectedSlots = [];
 
-      availableSlots.push(
-        `${utcTime.toISOString().replace(".000", "")}Z_${endTime
-          .toISOString()
-          .replace(".000", "")}Z`
+    while (selectedSlots.length < 40 && maxDaysToAdd >= 0) {
+      const overlappingSlots = findOverlappingSlots(
+        timezoneOffsets,
+        WORKING_HOURS_START,
+        WORKING_HOURS_END
       );
-    });
 
-    let nextDate = new Date(currentDate);
-    nextDate.setUTCDate(currentDate.getUTCDate() + 1);
-    currentDate = nextDate;
-  }
-  return availableSlots;
-}
+      let availableSlots = generateAvailableSlots(
+        updatedStartDate,
+        updatedEndDate,
+        overlappingSlots,
+        durationInMinutes
+      );
 
-// Function to generate the poll
-async function generatePoll(slots, poll) {
-  try {
-    const response = await fetch("https://agora-new.vercel.app/generatePoll", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        slots,
-        poll,
-      }),
-    });
+      // Filter out booked slots
+      availableSlots = availableSlots.filter(
+        (slot) => !bookedSlots.includes(slot)
+      );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
+      // Select 20 evenly distributed slots
+      selectedSlots = availableSlots
+        .filter(
+          (_, index) =>
+            index % Math.max(1, Math.floor(availableSlots.length / 40)) === 0
+        )
+        .slice(0, 40);
+
+      console.log(
+        `[${new Date().toISOString()}] Attempt with endDate ${updatedEndDate.toISOString()}, Found Slots: ${
+          selectedSlots.length
+        }`
+      );
+
+      if (selectedSlots.length >= 40) {
+        break;
+      }
+
+      // Extend end date by one more day if maxDaysToAdd is still available
+      updatedEndDate.setUTCDate(updatedEndDate.getUTCDate() + 1);
+      maxDaysToAdd--;
+
+      // If all days are added but still not enough slots, adjust working hours
+      if (maxDaysToAdd === 0 && selectedSlots.length < 40) {
+        console.log(
+          `[${new Date().toISOString()}] Adjusting working hours to extend availability...`
+        );
+        WORKING_HOURS_START = Math.max(WORKING_HOURS_START - 1, 0);
+        WORKING_HOURS_END = Math.min(WORKING_HOURS_END + 1, 24);
+        maxDaysToAdd = 7; // Reset max days to check again with adjusted hours
+      }
     }
 
-    const result = await response.json();
-    console.log("Full response received:", result);
+    if (selectedSlots.length > 0) {
+      const pollResult = await generatePoll(selectedSlots, poll);
+      if (pollResult) {
+        console.log("Poll created successfully:", pollResult);
+      } else {
+        console.error("Failed to create poll.");
+      }
+    } else {
+      console.error("No available slots found.");
+    }
+  }
 
-    if (result.status !== "success") {
-      console.error(
-        "Error generating poll:",
-        result.response?.error || "Unexpected response format"
+  // Function to find overlapping working hours across multiple time zones
+  function findOverlappingSlots(timezoneOffsets, startHour, endHour) {
+    let overlappingSlots = [];
+
+    for (let hour = 0; hour < 24; hour++) {
+      let utcTime = new Date(Date.UTC(2025, 0, 28, hour)); // January 28, 2025 in UTC
+
+      // Check if the hour fits in all timezone working hours
+      let isOverlapping = timezoneOffsets.every((offsetInSeconds) => {
+        let localTime = new Date(utcTime.getTime() + offsetInSeconds * 1000);
+        return (
+          localTime.getUTCHours() >= startHour &&
+          localTime.getUTCHours() < endHour
+        );
+      });
+
+      if (isOverlapping) {
+        overlappingSlots.push(hour);
+      }
+    }
+    return overlappingSlots;
+  }
+
+  // Function to generate available slots within overlapping hours
+  function generateAvailableSlots(
+    startDate,
+    endDate,
+    overlappingSlots,
+    durationInMinutes
+  ) {
+    let availableSlots = [];
+    let currentDate = new Date(startDate);
+
+    while (
+      currentDate <= new Date(new Date(endDate).setUTCHours(23, 59, 59, 999))
+    ) {
+      overlappingSlots.forEach((hour) => {
+        let utcTime = new Date(currentDate);
+        utcTime.setUTCHours(hour, 0, 0, 0);
+
+        let endTime = new Date(utcTime);
+        endTime.setMinutes(utcTime.getMinutes() + durationInMinutes);
+
+        availableSlots.push(
+          `${utcTime.toISOString().replace(".000", "")}Z_${endTime
+            .toISOString()
+            .replace(".000", "")}Z`
+        );
+      });
+
+      let nextDate = new Date(currentDate);
+      nextDate.setUTCDate(currentDate.getUTCDate() + 1);
+      currentDate = nextDate;
+    }
+    return availableSlots;
+  }
+  // Function to generate the poll
+  async function generatePoll(slots, poll) {
+    try {
+      // Sort slots chronologically before sending
+      const sortedSlots = slots
+        .slice()
+        .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+
+      const requestBody = {
+        slots: sortedSlots, // Ensuring slots are properly formatted and sorted
+        poll: poll,
+        iteration: 1, // Default iteration value
+        iteration_plus_one: 2, // Required field for tracking
+      };
+
+      console.log(
+        `[${new Date().toISOString()}] Sending poll request with body:`,
+        requestBody
       );
+
+      const response = await fetch(
+        "https://agora-new.vercel.app/generatePoll",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Full response received:", result);
+
+      if (!result.success) {
+        console.error(
+          "Error generating poll:",
+          result.response?.error || "Unexpected response format"
+        );
+        return null;
+      }
+
+      console.log("Poll generated successfully:", result);
+      return result;
+    } catch (error) {
+      console.error("Error in generatePoll function:", error.message);
+      console.error("Stack Trace:", error.stack);
       return null;
     }
-
-    console.log("Poll generated successfully:", result);
-    return result;
-  } catch (error) {
-    console.error("Error in generatePoll function:", error.message);
-    console.error("Stack Trace:", error.stack);
-    return null;
   }
-}
-
-
 
   function generate42CalendarDates(anchorDateUTC, offsetInSeconds, isStart) {
     console.log(anchorDateUTC);
