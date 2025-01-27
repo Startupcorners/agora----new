@@ -68,8 +68,8 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "Missing or invalid slots data" });
   }
 
-  if (!poll || typeof poll !== "object") {
-    console.error("Error: Missing or invalid poll data");
+  if (!poll || typeof poll !== "string") {
+    console.error("Error: Missing or invalid poll data", poll);
     return res.status(400).json({ error: "Missing or invalid poll data" });
   }
 
