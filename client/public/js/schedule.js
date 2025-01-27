@@ -59,10 +59,10 @@ export const schedule = async function () {
     // Helper to construct a Date object that corresponds to "local-midnight" at the given offset.
     // local-midnight = "that day’s 00:00" in local time => which is "that day’s 00:00 - offset" in UTC
     function makeLocalMidnight(dateUTC) {
-      // dateUTC.getTime() is the absolute UTC timestamp in ms.
-      // Subtract offsetInSeconds * 1000 => this new Date is the absolute moment of "local 00:00"
-      return new Date(dateUTC.getTime() - offsetInSeconds * 1000);
+      // Fix: add the offset instead of subtracting to correctly handle positive and negative timezones
+      return new Date(dateUTC.getTime() + offsetInSeconds * 1000);
     }
+
 
     // 4) Convert that "start-of-month in UTC" to local-midnight for the given offset.
     const firstOfMonthLocalMidnight = makeLocalMidnight(firstOfMonthUTC);
