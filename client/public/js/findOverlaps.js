@@ -1,7 +1,3 @@
-// Import Moment.js and Moment Timezone if using a module system
-// If using in the browser, ensure Moment.js and Moment Timezone are included via script tags
-import moment from "moment";
-import "moment-timezone";
 
 export const checkOverlaps = async function () {
   function generateLocalDateRanges({
