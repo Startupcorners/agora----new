@@ -1,3 +1,7 @@
+// Import Moment.js and Moment Timezone if using a module system
+// If using in the browser, ensure Moment.js and Moment Timezone are included via script tags
+import moment from "moment";
+import "moment-timezone";
 
 export const checkOverlaps = async function () {
   function generateLocalDateRanges({
@@ -83,12 +87,10 @@ export const checkOverlaps = async function () {
       current.add(1, "day");
     }
 
-    return ranges;
+    return ranges.length > 0 ? ranges : [];
   }
 
-
   // Step 2: Convert Local Date Ranges to UTC
-
   function convertRangesToUTC(rangesLocal) {
     return rangesLocal.map(([localStart, localEnd]) => {
       const utcStart = localStart.clone().utc();
@@ -112,10 +114,10 @@ export const checkOverlaps = async function () {
       }
     }
 
-    return overlappingRanges;
+    return overlappingRanges.length > 0 ? overlappingRanges : [];
   }
 
-  //Step 3: Generate UTC Time Slots
+  // Step 3: Generate UTC Time Slots
   function generateTimeSlotsUTC(utcStart, utcEnd, slotDurationMinutes) {
     const slots = [];
     let current = utcStart.clone();
@@ -135,36 +137,31 @@ export const checkOverlaps = async function () {
     return slots;
   }
 
-  //Step 4: Filter Out Already Booked Slots
-
+  // Step 4: Filter Out Already Booked Slots
   function filterAlreadyBookedSlotsUTC(allSlotsUTC, alreadyBookedListUTC) {
     return allSlotsUTC.filter(([slotStart, slotEnd]) => {
       return !alreadyBookedListUTC.some(([bookedStart, bookedEnd]) => {
-        // Overlap exists if slotStart < bookedEnd AND slotEnd > bookedStart
         return slotStart.isBefore(bookedEnd) && slotEnd.isAfter(bookedStart);
       });
     });
   }
 
-  //Step 5: Intersect Slot Lists Across Users
-
+  // Step 5: Intersect Slot Lists Across Users
   function intersectSlotListsUTC(slotsA, slotsB) {
     const common = [];
 
     for (const [startA, endA] of slotsA) {
       for (const [startB, endB] of slotsB) {
-        // Check if slotA is completely within slotB
         if (startA.isSameOrAfter(startB) && endA.isSameOrBefore(endB)) {
           common.push([startA.clone(), endA.clone()]);
         }
       }
     }
 
-    return common;
+    return common.length > 0 ? common : [];
   }
 
-  //Main Function: Check Common Available Slots
-
+  // Main Function: Check Common Available Slots
   async function checkCommonAvailableSlots(
     allAvailabilities,
     alreadyBookedList,
@@ -178,6 +175,7 @@ export const checkOverlaps = async function () {
       ]
     );
 
+    let commonDateRangesUTC = null;
     let commonSlots = null;
 
     for (const userAvailability of allAvailabilities) {
@@ -191,7 +189,6 @@ export const checkOverlaps = async function () {
         timeOffsetSeconds,
       } = userAvailability;
 
-      // Step 1: Generate local date ranges
       const localDateRanges = generateLocalDateRanges({
         startDate: start_date,
         endDate: end_date,
@@ -202,10 +199,12 @@ export const checkOverlaps = async function () {
         timeOffsetSeconds,
       });
 
-      // Step 2: Convert date ranges to UTC
-      const utcDateRanges = convertRangesToUTC(localDateRanges);
+      const utcDateRanges = convertRangesToUTC(localDateRanges || []);
 
-      // Step 2.5: Find overlapping date ranges
+      if (!Array.isArray(utcDateRanges) || utcDateRanges.length === 0) {
+        return "no";
+      }
+
       if (commonDateRangesUTC === null) {
         commonDateRangesUTC = utcDateRanges;
       } else {
@@ -214,13 +213,11 @@ export const checkOverlaps = async function () {
           utcDateRanges
         );
 
-        // Early exit if no overlapping date ranges remain
         if (commonDateRangesUTC.length === 0) {
           return "no";
         }
       }
 
-      // Step 3: Generate time slots in UTC based on overlapping date ranges
       let userSlotsUTC = [];
       for (const [utcRangeStart, utcRangeEnd] of commonDateRangesUTC) {
         const slots = generateTimeSlotsUTC(
@@ -231,28 +228,22 @@ export const checkOverlaps = async function () {
         userSlotsUTC.push(...slots);
       }
 
-      // Step 4: Filter out already booked slots
       userSlotsUTC = filterAlreadyBookedSlotsUTC(
         userSlotsUTC,
         alreadyBookedListUTC
       );
 
-      // Step 5: Intersect with common slots
       if (commonSlots === null) {
-        // First user's available slots
         commonSlots = userSlotsUTC;
       } else {
-        // Intersect with existing common slots
         commonSlots = intersectSlotListsUTC(commonSlots, userSlotsUTC);
       }
 
-      // Early exit if no common slots remain
       if (commonSlots.length === 0) {
         return "no";
       }
     }
 
-    // After processing all users, determine if any common slots exist
     return commonSlots.length > 0 ? "yes" : "no";
   }
 
@@ -261,5 +252,4 @@ export const checkOverlaps = async function () {
   };
 };
 
-// Attach to window for Bubble (if working in a browser environment)
 window["checkOverlaps"] = checkOverlaps;
