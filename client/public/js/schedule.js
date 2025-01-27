@@ -218,6 +218,8 @@ export const schedule = async function () {
     bubble_fn_endTime(times);
   }
 
+
+
   function generateSlotsForWeek(
     mainAvailability,
     viewerStartDate,
@@ -844,6 +846,7 @@ export const schedule = async function () {
     generateSlotsForWeek,
     findOverlappingTimeRanges,
     generatePoll,
+    hasOverlappingSlots,
   };
 };
 
