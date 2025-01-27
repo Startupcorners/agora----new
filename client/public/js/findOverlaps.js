@@ -124,15 +124,24 @@ export const checkOverlaps = async function () {
   }
 
   // Example usage with availability data and booked slots
-function checkCommonAvailableSlots(availabilities, bookedSlots, earliestBookableDate) {
-    const availableSlots = findOverlappingSlots(availabilities, bookedSlots, earliestBookableDate);
-    console.log(`Available Slots Count: ${availableSlots.length}`);
-    
-    if (availableSlots.length === 0) {
-        console.log("No available slots found.");
-    }
+function checkCommonAvailableSlots(
+  availabilities,
+  bookedSlots,
+  earliestBookableDate
+) {
+  const availableSlots = findOverlappingSlots(
+    availabilities,
+    bookedSlots,
+    earliestBookableDate
+  );
 
-    return availableSlots;
+  if (availableSlots.length > 0) {
+    bubble_fn_overlaps("yes");
+  } else {
+    bubble_fn_overlaps("no");
+  }
+
+  return availableSlots;
 }
 
 
