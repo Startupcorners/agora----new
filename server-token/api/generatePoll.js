@@ -10,20 +10,19 @@ if (!OPENAI_API_KEY) {
 }
 
 // Function to send a POST request to Bubble API
-async function sendRequest(slotsString, poll) {
+async function sendRequest(slotsArray, poll) {
   try {
-    if (!slotsString.includes("_")) {
-      throw new Error("Invalid slot format received.");
+    if (!Array.isArray(slotsArray) || slotsArray.length === 0) {
+      throw new Error("Invalid slots format received.");
     }
 
-    let slotPairs = slotsString.split(",").map((slot) => slot.trim());
-    let slotsArray = slotPairs.flatMap((slot) =>
-      slot.split("_").map((s) => s.trim())
-    );
-
+    // Sort the slots chronologically
     slotsArray.sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
 
-    console.log("Formatted slots for Bubble:", slotsArray);
+    console.log(
+      `[${new Date().toISOString()}] Formatted slots for Bubble:`,
+      slotsArray
+    );
 
     const response = await fetch(bubbleApiUrl, {
       method: "POST",
@@ -45,27 +44,43 @@ async function sendRequest(slotsString, poll) {
     const data = await response.json();
     console.log(`Successfully sent slots: ${JSON.stringify(slotsArray)}`);
     console.log(`Response: ${JSON.stringify(data)}`);
+    return data;
   } catch (error) {
-    console.error(`Error sending request for poll ${poll}:`, error.message);
+    console.error(
+      `Error sending request for poll ${poll.title || poll}:`,
+      error.message
+    );
+    throw error;
   }
 }
 
 // Express route
 router.post("/", async (req, res) => {
-  console.log("Incoming request to /event with body:", req.body);
+  console.log(
+    `[${new Date().toISOString()}] Incoming request to /event with body:`,
+    req.body
+  );
 
   const { slots, poll } = req.body;
 
-  if (!slots || !poll) {
-    console.error("Error: Missing required parameters");
-    return res.status(400).json({ error: "Missing required parameters" });
+  if (!slots || !Array.isArray(slots) || slots.length === 0) {
+    console.error("Error: Missing or invalid slots data");
+    return res.status(400).json({ error: "Missing or invalid slots data" });
+  }
+
+  if (!poll || typeof poll !== "object") {
+    console.error("Error: Missing or invalid poll data");
+    return res.status(400).json({ error: "Missing or invalid poll data" });
   }
 
   try {
-    await sendRequest(slots, poll);
-    return res
-      .status(200)
-      .json({ message: "Slots successfully created", slots });
+    const result = await sendRequest(slots, poll);
+    return res.status(200).json({
+      success: true,
+      message: "Slots successfully created",
+      slots,
+      response: result,
+    });
   } catch (err) {
     console.error("Error in event route:", err.message || err);
     res.status(500).json({ error: err.message || "Internal server error" });

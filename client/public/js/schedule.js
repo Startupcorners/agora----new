@@ -1,46 +1,166 @@
 
 export const schedule = async function () {
 
+async function runProcess(
+  timezoneOffsets,
+  startDate,
+  endDate,
+  poll,
+  bookedSlots
+) {
+  let maxDaysToAdd = 7;
+  let updatedStartDate = new Date(startDate);
+  let updatedEndDate = new Date(endDate);
+  let WORKING_HOURS_START = 8; // Default start time
+  let WORKING_HOURS_END = 20; // Default end time
 
-  async function generatePoll(slots, poll) {
-    try {
-      const response = await fetch(
-        "https://agora-new.vercel.app/generatePoll",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            slots,
-            poll,
-          }),
-        }
-      );
+  let selectedSlots = [];
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
+  while (selectedSlots.length < 40 && maxDaysToAdd >= 0) {
+    const overlappingSlots = findOverlappingSlots(
+      timezoneOffsets,
+      WORKING_HOURS_START,
+      WORKING_HOURS_END
+    );
+    let availableSlots = generateAvailableSlots(
+      updatedStartDate,
+      updatedEndDate,
+      overlappingSlots
+    );
 
-      const result = await response.json();
-      console.log("Full response received:", result);
+    // Filter out booked slots
+    availableSlots = availableSlots.filter(
+      (slot) => !bookedSlots.includes(slot)
+    );
 
-      // Adjusting the success check based on the actual response format
-      if (result.status !== "success") {
-        console.error(
-          "Error generating poll:",
-          result.response?.error || "Unexpected response format"
-        );
-        return null; // Return null to indicate failure
-      }
+    // Select 20 evenly distributed slots
+    selectedSlots = availableSlots
+      .filter(
+        (_, index) =>
+          index % Math.max(1, Math.floor(availableSlots.length / 40)) === 0
+      )
+      .slice(0, 40);
 
-      console.log("Poll generated successfully:", result);
-      return result; // Return the poll result
-    } catch (error) {
-      console.error("Error in generatePoll function:", error.message);
-      console.error("Stack Trace:", error.stack);
-      return null; // Return null in case of an exception
+    console.log(
+      `Attempt with endDate ${updatedEndDate.toISOString()}, Found Slots:`,
+      selectedSlots.length
+    );
+
+    if (selectedSlots.length >= 40) {
+      break;
+    }
+
+    // Extend end date by one more day if maxDaysToAdd is still available
+    updatedEndDate.setUTCDate(updatedEndDate.getUTCDate() + 1);
+    maxDaysToAdd--;
+
+    // If all days are added but still not enough slots, adjust working hours
+    if (maxDaysToAdd === 0 && selectedSlots.length < 40) {
+      console.log("Adjusting working hours to extend availability...");
+      WORKING_HOURS_START = Math.max(WORKING_HOURS_START - 1, 0);
+      WORKING_HOURS_END = Math.min(WORKING_HOURS_END + 1, 24);
+      maxDaysToAdd = 7; // Reset max days to check again with adjusted hours
     }
   }
 
+  if (selectedSlots.length > 0) {
+    const pollResult = await generatePoll(selectedSlots, poll);
+    if (pollResult) {
+      console.log("Poll created successfully:", pollResult);
+    } else {
+      console.error("Failed to create poll.");
+    }
+  } else {
+    console.error("No available slots found.");
+  }
+}
+
+// Function to find overlapping working hours across multiple time zones
+function findOverlappingSlots(timezoneOffsets, startHour, endHour) {
+  let overlappingSlots = [];
+
+  for (let hour = 0; hour < 24; hour++) {
+    let utcTime = new Date(Date.UTC(2025, 0, 28, hour)); // January 28, 2025 in UTC
+
+    // Check if the hour fits in all timezone working hours
+    let isOverlapping = timezoneOffsets.every((offset) => {
+      let localTime = new Date(utcTime.getTime() + offset * 1000);
+      return (
+        localTime.getUTCHours() >= startHour &&
+        localTime.getUTCHours() < endHour
+      );
+    });
+
+    if (isOverlapping) {
+      overlappingSlots.push(hour);
+    }
+  }
+  return overlappingSlots;
+}
+
+// Function to generate available slots within overlapping hours
+function generateAvailableSlots(startDate, endDate, overlappingSlots) {
+  let availableSlots = [];
+  let currentDate = new Date(startDate);
+
+  while (
+    currentDate <= new Date(new Date(endDate).setUTCHours(23, 59, 59, 999))
+  ) {
+    overlappingSlots.forEach((hour) => {
+      let utcTime = new Date(currentDate);
+      utcTime.setUTCHours(hour, 0, 0, 0);
+      let endTime = new Date(utcTime);
+      endTime.setUTCHours(utcTime.getUTCHours() + 1);
+
+      availableSlots.push(
+        `${utcTime.toISOString().replace(".000", "")}Z_${endTime
+          .toISOString()
+          .replace(".000", "")}Z`
+      );
+    });
+
+    let nextDate = new Date(currentDate);
+    nextDate.setUTCDate(currentDate.getUTCDate() + 1);
+    currentDate = nextDate;
+  }
+  return availableSlots;
+}
+
+// Function to generate the poll
+async function generatePoll(slots, poll) {
+  try {
+    const response = await fetch("https://agora-new.vercel.app/generatePoll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        slots,
+        poll,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log("Full response received:", result);
+
+    if (result.status !== "success") {
+      console.error(
+        "Error generating poll:",
+        result.response?.error || "Unexpected response format"
+      );
+      return null;
+    }
+
+    console.log("Poll generated successfully:", result);
+    return result;
+  } catch (error) {
+    console.error("Error in generatePoll function:", error.message);
+    console.error("Stack Trace:", error.stack);
+    return null;
+  }
+}
 
 
   function generate42CalendarDates(anchorDateUTC, offsetInSeconds, isStart) {
@@ -62,7 +182,6 @@ export const schedule = async function () {
       // Fix: add the offset instead of subtracting to correctly handle positive and negative timezones
       return new Date(dateUTC.getTime() + offsetInSeconds * 1000);
     }
-
 
     // 4) Convert that "start-of-month in UTC" to local-midnight for the given offset.
     const firstOfMonthLocalMidnight = makeLocalMidnight(firstOfMonthUTC);
@@ -126,42 +245,44 @@ export const schedule = async function () {
     }
   }
 
-  function adjustDatesToOffset(oldOffsetSeconds, newOffsetSeconds, startDateISO, endDateISO) {
-
+  function adjustDatesToOffset(
+    oldOffsetSeconds,
+    newOffsetSeconds,
+    startDateISO,
+    endDateISO
+  ) {
     console.log("startDateISO", startDateISO);
     console.log("endDateISO", endDateISO);
-  // Shift a single date from oldOffset -> newOffset
-  function shiftDate(dateISO) {
-    if (!dateISO) return null;
+    // Shift a single date from oldOffset -> newOffset
+    function shiftDate(dateISO) {
+      if (!dateISO) return null;
 
-    // Parse the original date string (e.g. "2024-12-10T11:00:00Z")
-    const oldDateUTC = new Date(dateISO);
+      // Parse the original date string (e.g. "2024-12-10T11:00:00Z")
+      const oldDateUTC = new Date(dateISO);
 
-    // The difference between oldOffset and newOffset (in ms)
-    // Example: oldOffset=-39600 (-11 hours), newOffset=-36000 (-10 hours) => delta=-3600
-    const deltaSeconds = oldOffsetSeconds - newOffsetSeconds;
-    const deltaMs = deltaSeconds * 1000;
+      // The difference between oldOffset and newOffset (in ms)
+      // Example: oldOffset=-39600 (-11 hours), newOffset=-36000 (-10 hours) => delta=-3600
+      const deltaSeconds = oldOffsetSeconds - newOffsetSeconds;
+      const deltaMs = deltaSeconds * 1000;
 
-    // Add the delta, shifting from old local-midnight to new local-midnight
-    const newDateUTC = new Date(oldDateUTC.getTime() + deltaMs);
+      // Add the delta, shifting from old local-midnight to new local-midnight
+      const newDateUTC = new Date(oldDateUTC.getTime() + deltaMs);
 
-    // Return the new date as an ISO string (e.g. "2024-12-10T10:00:00.000Z")
-    return newDateUTC.toISOString();
+      // Return the new date as an ISO string (e.g. "2024-12-10T10:00:00.000Z")
+      return newDateUTC.toISOString();
+    }
+
+    // Shift the two dates
+    const adjustedStartDate = shiftDate(startDateISO);
+    const adjustedEndDate = shiftDate(endDateISO);
+
+    console.log("adjustedStartDate", adjustedStartDate);
+    console.log("adjustedEndDate", adjustedEndDate);
+
+    // Send them to Bubble
+    bubble_fn_newStart(adjustedStartDate);
+    bubble_fn_newEnd(adjustedEndDate);
   }
-
-  // Shift the two dates
-  const adjustedStartDate = shiftDate(startDateISO);
-  const adjustedEndDate = shiftDate(endDateISO);
-
-  console.log("adjustedStartDate", adjustedStartDate);
-  console.log("adjustedEndDate", adjustedEndDate);
-
-  // Send them to Bubble
-  bubble_fn_newStart(adjustedStartDate);
-  bubble_fn_newEnd(adjustedEndDate);
-}
-
-
 
   function generateStartTimes(startTime, duration) {
     const times = [];
@@ -218,8 +339,6 @@ export const schedule = async function () {
     bubble_fn_endTime(times);
   }
 
-
-
   function generateSlotsForWeek(
     mainAvailability,
     viewerStartDate,
@@ -239,7 +358,8 @@ export const schedule = async function () {
       commonDailyEnd,
       realStart,
       realEnd,
-      exit,} = computeWeekRange(
+      exit,
+    } = computeWeekRange(
       mainAvailability,
       viewerStartDate,
       offset,
@@ -335,7 +455,6 @@ export const schedule = async function () {
         return result;
       });
 
-
       // Filter available slots based on actual availability
       outputlist5 = filterSlotsByAvailabilityRange(
         outputlist7,
@@ -356,8 +475,6 @@ export const schedule = async function () {
 
     // Adjust `outputlist6` to viewer timezone
     outputlist6 = adjustSlotsToViewerTimezone(outputlist6, userOffsetInSeconds);
-
-    
 
     // Final output
     const result = {
@@ -383,7 +500,6 @@ export const schedule = async function () {
 
     return result;
   }
-
 
   // Helper functions
   function adjustSlotsToViewerTimezone(slotList, userOffsetInSeconds) {
@@ -482,9 +598,6 @@ export const schedule = async function () {
     };
   }
 
-
-
-
   function generateDayBoundaries(globalStartStr, totalDays = 7) {
     // Parse the incoming string (with offset) and preserve the offset
     const globalStart = moment.parseZone(globalStartStr);
@@ -561,8 +674,6 @@ export const schedule = async function () {
 
     return baseSlots;
   }
-
-
 
   function generateWeeklySlots(
     globalStartStr,
@@ -685,8 +796,6 @@ export const schedule = async function () {
       outputlist9,
     };
   }
-
-
 
   function filterSlotsByAvailabilityRange(allSlots, globalStart, globalEnd) {
     const outputlist5 = [];
@@ -845,7 +954,7 @@ export const schedule = async function () {
     generate42CalendarDates,
     generateSlotsForWeek,
     findOverlappingTimeRanges,
-    generatePoll,
+    runProcess,
   };
 };
 
