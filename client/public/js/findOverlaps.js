@@ -1,4 +1,6 @@
 export const checkOverlaps = async function () {
+export const checkOverlaps = async function () {
+  const moment = require("moment-timezone");
 
   // Function to generate slots for each user while considering excluded days, time offset, availability period, and earliest bookable date
   function generateUserSlots(
@@ -14,7 +16,7 @@ export const checkOverlaps = async function () {
     const localTz = moment().utcOffset(timeOffsetSeconds / 60);
     const now = localTz.startOf("day").add(earliestBookableDate, "days");
 
-    // Determine the effective start date (the later of startDate or now + earliestBookableDate)
+    // Determine the effective start date (whichever is later: startDate or now + earliestBookableDate)
     const startDay = moment
       .tz(startDate, "YYYY-MM-DD", localTz.tz())
       .startOf("day")
@@ -67,12 +69,8 @@ export const checkOverlaps = async function () {
     return slots;
   }
 
-  // Function to process availabilities and find overlapping slots, filtering out booked slots and respecting earliest bookable date
-  function findOverlappingSlots(
-    availabilities,
-    bookedSlots,
-    earliestBookableDate = 0
-  ) {
+  // Function to process availabilities and find overlapping slots, filtering out booked slots
+  function findOverlappingSlots(availabilities, bookedSlots, earliestBookableDate = 0) {
     let userSlots = {};
 
     availabilities.forEach((availability) => {
@@ -103,9 +101,7 @@ export const checkOverlaps = async function () {
       overlappingSlots = new Set([...userSlots[userIds[0]]]);
       for (let i = 1; i < userIds.length; i++) {
         overlappingSlots = new Set(
-          [...overlappingSlots].filter((slot) =>
-            userSlots[userIds[i]].has(slot)
-          )
+          [...overlappingSlots].filter((slot) => userSlots[userIds[i]].has(slot))
         );
       }
     } else if (userIds.length === 1) {
@@ -113,24 +109,33 @@ export const checkOverlaps = async function () {
     }
 
     // Remove booked slots from available slots
-    bookedSlots.forEach((bookedSlot) => overlappingSlots.delete(bookedSlot));
+    bookedSlots.forEach((bookedSlot) => {
+      const bookedStart = moment(bookedSlot.start_date);
+      const bookedEnd = moment(bookedSlot.end_date);
+
+      overlappingSlots.forEach((slot) => {
+        const slotMoment = moment(slot);
+        if (slotMoment.isBetween(bookedStart, bookedEnd, null, "[)")) {
+          overlappingSlots.delete(slot);
+        }
+      });
+    });
 
     return [...overlappingSlots];
   }
 
   // Example usage with availability data and booked slots
-  function checkCommonAvailableSlots(
-    availabilities,
-    bookedSlots,
-    earliestBookableDate
-  ) {
-    const availableSlots = findOverlappingSlots(
-      availabilities,
-      bookedSlots,
-      earliestBookableDate
-    );
+function checkCommonAvailableSlots(availabilities, bookedSlots, earliestBookableDate) {
+    const availableSlots = findOverlappingSlots(availabilities, bookedSlots, earliestBookableDate);
+    console.log(`Available Slots Count: ${availableSlots.length}`);
+    
+    if (availableSlots.length === 0) {
+        console.log("No available slots found.");
+    }
+
     return availableSlots;
-  }
+}
+
 
   return {
     checkCommonAvailableSlots,
