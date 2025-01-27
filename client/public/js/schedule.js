@@ -128,8 +128,9 @@ export const schedule = async function () {
         endTime.setMinutes(utcTime.getMinutes() + durationInMinutes);
 
         // Push start and end times as separate items
-        availableSlots.push(utcTime.toISOString().replace(".000", "") + "Z");
-        availableSlots.push(endTime.toISOString().replace(".000", "") + "Z");
+        availableSlots.push(utcTime.toISOString().replace(".000Z", "Z"));
+        availableSlots.push(endTime.toISOString().replace(".000Z", "Z"));
+
       }
 
       currentDate.setUTCDate(currentDate.getUTCDate() + 1);
