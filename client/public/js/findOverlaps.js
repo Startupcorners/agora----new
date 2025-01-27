@@ -1,6 +1,5 @@
+
 export const checkOverlaps = async function () {
-export const checkOverlaps = async function () {
-  const moment = require("moment-timezone");
 
   // Function to generate slots for each user while considering excluded days, time offset, availability period, and earliest bookable date
   function generateUserSlots(
