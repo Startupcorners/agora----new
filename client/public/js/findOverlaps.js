@@ -1,116 +1,186 @@
+// Import Moment.js and Moment Timezone if using a module system
+// If using in the browser, ensure Moment.js and Moment Timezone are included via script tags
+import moment from "moment";
+import "moment-timezone";
+
 export const checkOverlaps = async function () {
-  // Helper function to generate available date ranges within the next 7 days considering different time zones
-  function generateDateRanges(
+  function generateLocalDateRanges({
     startDate,
     endDate,
     excludedDays,
+    earliestBookableDay,
+    dailyStartTime,
+    dailyEndTime,
     timeOffsetSeconds,
-    earliestBookableDay
-  ) {
-    console.log("Generating date ranges...");
+  }) {
+    console.log("Generating local date ranges...");
     console.log("Start Date:", startDate);
     console.log("End Date:", endDate);
     console.log("Excluded Days:", excludedDays);
-    console.log("Time Offset (seconds):", timeOffsetSeconds);
     console.log("Earliest Bookable Day:", earliestBookableDay);
+    console.log("Daily Start Time:", dailyStartTime);
+    console.log("Daily End Time:", dailyEndTime);
+    console.log("Time Offset (seconds):", timeOffsetSeconds);
+
+    const [startHour, startMinute] = dailyStartTime.split(":").map(Number);
+    const [endHour, endMinute] = dailyEndTime.split(":").map(Number);
+
+    const localOffsetMinutes = timeOffsetSeconds / 60;
+
+    // Parse start and end dates in UTC, then shift to local time
+    let localStart = moment
+      .utc(startDate)
+      .utcOffset(localOffsetMinutes)
+      .startOf("day");
+
+    let localEnd = moment
+      .utc(endDate)
+      .utcOffset(localOffsetMinutes)
+      .endOf("day");
+
+    // Apply the constraint to not generate past today + 7 days in local time
+    const maxEnd = moment
+      .utc()
+      .utcOffset(localOffsetMinutes)
+      .startOf("day")
+      .add(7, "days");
+    localEnd = moment.min(localEnd, maxEnd);
+
+    // Calculate the earliest possible start date based on earliestBookableDay
+    const earliestStart = moment
+      .utc()
+      .utcOffset(localOffsetMinutes)
+      .startOf("day")
+      .add(earliestBookableDay, "days");
+
+    // Ensure localStart is not before now + earliestBookableDay
+    localStart = moment.max(localStart, earliestStart);
+
+    // Ensure localStart is not before today in local time
+    const nowLocal = moment.utc().utcOffset(localOffsetMinutes).startOf("day");
+    localStart = moment.max(localStart, nowLocal);
 
     const ranges = [];
-    const start = moment
-      .utc()
-      .add(earliestBookableDay, "days")
-      .startOf("day")
-      .utcOffset(timeOffsetSeconds / 60);
-    const end = moment
-      .utc()
-      .add(earliestBookableDay + 7, "days")
-      .endOf("day")
-      .utcOffset(timeOffsetSeconds / 60);
-    let current = moment.max(
-      start,
-      moment
-        .utc(startDate)
-        .utcOffset(timeOffsetSeconds / 60)
-        .startOf("day")
-    );
-    const maxEnd = moment.min(
-      end,
-      moment
-        .utc(endDate)
-        .utcOffset(timeOffsetSeconds / 60)
-        .endOf("day")
-    );
+    let current = localStart.clone();
 
-    console.log("Start Date (localized):", start.format());
-    console.log("End Date (localized):", end.format());
-
-    while (current.isSameOrBefore(maxEnd)) {
+    while (current.isSameOrBefore(localEnd, "day")) {
       if (!excludedDays.includes(current.day())) {
-        ranges.push(current.clone().utc());
+        // 0 = Sunday, 6 = Saturday
+        // Set daily start and end times in local time
+        const dayStart = current.clone().set({
+          hour: startHour,
+          minute: startMinute,
+          second: 0,
+          millisecond: 0,
+        });
+        let dayEnd = current
+          .clone()
+          .set({ hour: endHour, minute: endMinute, second: 0, millisecond: 0 });
+
+        // If end time is before start time, assume it crosses to next day
+        if (dayEnd.isBefore(dayStart)) {
+          dayEnd.add(1, "day");
+        }
+
+        ranges.push([dayStart.clone(), dayEnd.clone()]);
       }
       current.add(1, "day");
     }
 
-    console.log(
-      "Generated Date Ranges (UTC):",
-      ranges.map((r) => r.format())
-    );
     return ranges;
   }
 
-  // Helper function to generate time slots for each available day considering different time zones
-  function generateTimeSlots(
-    date,
-    dailyStartTime,
-    dailyEndTime,
-    slotDurationMinutes,
-    timeOffsetSeconds
-  ) {
-    console.log("Generating time slots...");
-    console.log("Date:", date.format());
-    console.log("Daily Start Time:", dailyStartTime);
-    console.log("Daily End Time:", dailyEndTime);
-    console.log("Slot Duration (minutes):", slotDurationMinutes);
-    console.log("Time Offset (seconds):", timeOffsetSeconds);
 
+  // Step 2: Convert Local Date Ranges to UTC
+
+  function convertRangesToUTC(rangesLocal) {
+    return rangesLocal.map(([localStart, localEnd]) => {
+      const utcStart = localStart.clone().utc();
+      const utcEnd = localEnd.clone().utc();
+      return [utcStart, utcEnd];
+    });
+  }
+
+  // Step 2.5: Find overlapping UTC date ranges
+  function findOverlappingDateRanges(rangesA, rangesB) {
+    const overlappingRanges = [];
+
+    for (const [startA, endA] of rangesA) {
+      for (const [startB, endB] of rangesB) {
+        // Check for overlap between the date ranges
+        if (startA.isBefore(endB) && endA.isAfter(startB)) {
+          const overlapStart = moment.max(startA, startB);
+          const overlapEnd = moment.min(endA, endB);
+          overlappingRanges.push([overlapStart, overlapEnd]);
+        }
+      }
+    }
+
+    return overlappingRanges;
+  }
+
+  //Step 3: Generate UTC Time Slots
+  function generateTimeSlotsUTC(utcStart, utcEnd, slotDurationMinutes) {
     const slots = [];
-    const [startHour, startMinute] = dailyStartTime.split(":").map(Number);
-    const [endHour, endMinute] = dailyEndTime.split(":").map(Number);
+    let current = utcStart.clone();
 
-    const localStart = date
-      .clone()
-      .utcOffset(timeOffsetSeconds / 60)
-      .set({ hour: startHour, minute: startMinute, second: 0 });
-    let localEnd = date
-      .clone()
-      .utcOffset(timeOffsetSeconds / 60)
-      .set({ hour: endHour, minute: endMinute, second: 0 });
-    if (localEnd.isBefore(localStart)) {
-      localEnd.add(1, "day");
+    while (current.isBefore(utcEnd)) {
+      const slotStart = current.clone();
+      const slotEnd = current.clone().add(slotDurationMinutes, "minutes");
+
+      if (slotEnd.isAfter(utcEnd)) {
+        break; // Do not include partial slots that exceed the range
+      }
+
+      slots.push([slotStart.clone(), slotEnd.clone()]);
+      current.add(slotDurationMinutes, "minutes");
     }
 
-    let slotStart = localStart.clone().utc();
-    while (slotStart.isBefore(localEnd.utc())) {
-      const slotEnd = slotStart.clone().add(slotDurationMinutes, "minutes");
-      slots.push([slotStart.clone().format(), slotEnd.clone().format()]);
-      slotStart = slotEnd;
-    }
-
-    console.log("Generated Slots (UTC):", slots);
     return slots;
   }
+
+  //Step 4: Filter Out Already Booked Slots
+
+  function filterAlreadyBookedSlotsUTC(allSlotsUTC, alreadyBookedListUTC) {
+    return allSlotsUTC.filter(([slotStart, slotEnd]) => {
+      return !alreadyBookedListUTC.some(([bookedStart, bookedEnd]) => {
+        // Overlap exists if slotStart < bookedEnd AND slotEnd > bookedStart
+        return slotStart.isBefore(bookedEnd) && slotEnd.isAfter(bookedStart);
+      });
+    });
+  }
+
+  //Step 5: Intersect Slot Lists Across Users
+
+  function intersectSlotListsUTC(slotsA, slotsB) {
+    const common = [];
+
+    for (const [startA, endA] of slotsA) {
+      for (const [startB, endB] of slotsB) {
+        // Check if slotA is completely within slotB
+        if (startA.isSameOrAfter(startB) && endA.isSameOrBefore(endB)) {
+          common.push([startA.clone(), endA.clone()]);
+        }
+      }
+    }
+
+    return common;
+  }
+
+  //Main Function: Check Common Available Slots
 
   async function checkCommonAvailableSlots(
     allAvailabilities,
     alreadyBookedList,
     earliestBookableDay
   ) {
-    console.log("Checking common available slots...");
-    console.log(
-      "All Availabilities:",
-      JSON.stringify(allAvailabilities, null, 2)
+    // Convert alreadyBookedList to UTC moments
+    const alreadyBookedListUTC = alreadyBookedList.map(
+      ([bookedStart, bookedEnd]) => [
+        moment.utc(bookedStart),
+        moment.utc(bookedEnd),
+      ]
     );
-    console.log("Already Booked List:", alreadyBookedList);
-    console.log("Earliest Bookable Day:", earliestBookableDay);
 
     let commonSlots = null;
 
@@ -125,61 +195,68 @@ export const checkOverlaps = async function () {
         timeOffsetSeconds,
       } = userAvailability;
 
-      console.log("Processing user availability...");
-      console.log("User Availability:", userAvailability);
-
-      const dateRanges = generateDateRanges(
-        start_date,
-        end_date,
+      // Step 1: Generate local date ranges
+      const localDateRanges = generateLocalDateRanges({
+        startDate: start_date,
+        endDate: end_date,
         excludedDays,
+        earliestBookableDay,
+        dailyStartTime: daily_start_time,
+        dailyEndTime: daily_end_time,
         timeOffsetSeconds,
-        earliestBookableDay
-      );
-      let userSlots = [];
-
-      for (const date of dateRanges) {
-        const slots = generateTimeSlots(
-          date,
-          daily_start_time,
-          daily_end_time,
-          slot_duration_minutes,
-          timeOffsetSeconds
-        );
-        userSlots.push(...slots);
-      }
-
-      console.log("User Slots before filtering:", userSlots);
-
-      userSlots = userSlots.filter(([slotStart, slotEnd]) => {
-        return !alreadyBookedList.some(([bookedStart, bookedEnd]) => {
-          return (
-            moment.utc(slotStart).isBefore(moment.utc(bookedEnd)) &&
-            moment.utc(slotEnd).isAfter(moment.utc(bookedStart))
-          );
-        });
       });
 
-      console.log("User Slots after filtering:", userSlots);
+      // Step 2: Convert date ranges to UTC
+      const utcDateRanges = convertRangesToUTC(localDateRanges);
 
-      if (commonSlots === null) {
-        commonSlots = userSlots;
+      // Step 2.5: Find overlapping date ranges
+      if (commonDateRangesUTC === null) {
+        commonDateRangesUTC = utcDateRanges;
       } else {
-        commonSlots = commonSlots.filter(([startA, endA]) =>
-          userSlots.some(
-            ([startB, endB]) =>
-              moment.utc(startA).isSameOrAfter(moment.utc(startB)) &&
-              moment.utc(endA).isSameOrBefore(moment.utc(endB))
-          )
+        commonDateRangesUTC = findOverlappingDateRanges(
+          commonDateRangesUTC,
+          utcDateRanges
         );
+
+        // Early exit if no overlapping date ranges remain
+        if (commonDateRangesUTC.length === 0) {
+          return "no";
+        }
       }
 
+      // Step 3: Generate time slots in UTC based on overlapping date ranges
+      let userSlotsUTC = [];
+      for (const [utcRangeStart, utcRangeEnd] of commonDateRangesUTC) {
+        const slots = generateTimeSlotsUTC(
+          utcRangeStart,
+          utcRangeEnd,
+          slot_duration_minutes
+        );
+        userSlotsUTC.push(...slots);
+      }
+
+      // Step 4: Filter out already booked slots
+      userSlotsUTC = filterAlreadyBookedSlotsUTC(
+        userSlotsUTC,
+        alreadyBookedListUTC
+      );
+
+      // Step 5: Intersect with common slots
+      if (commonSlots === null) {
+        // First user's available slots
+        commonSlots = userSlotsUTC;
+      } else {
+        // Intersect with existing common slots
+        commonSlots = intersectSlotListsUTC(commonSlots, userSlotsUTC);
+      }
+
+      // Early exit if no common slots remain
       if (commonSlots.length === 0) {
-        console.log("No common slots found.");
         return "no";
       }
     }
 
-    console.log("Final common slots:", JSON.stringify(commonSlots, null, 2));
+    // After processing all users, determine if any common slots exist
     return commonSlots.length > 0 ? "yes" : "no";
   }
 
@@ -188,5 +265,5 @@ export const checkOverlaps = async function () {
   };
 };
 
-// Attach to window for Bubble
+// Attach to window for Bubble (if working in a browser environment)
 window["checkOverlaps"] = checkOverlaps;
