@@ -6,7 +6,8 @@ async function runProcess(
   startDate,
   endDate,
   poll,
-  bookedSlots
+  bookedSlots,
+  durationInMinutes
 ) {
   let maxDaysToAdd = 7;
   let updatedStartDate = new Date(startDate);
@@ -22,10 +23,12 @@ async function runProcess(
       WORKING_HOURS_START,
       WORKING_HOURS_END
     );
+
     let availableSlots = generateAvailableSlots(
       updatedStartDate,
       updatedEndDate,
-      overlappingSlots
+      overlappingSlots,
+      durationInMinutes
     );
 
     // Filter out booked slots
@@ -42,8 +45,9 @@ async function runProcess(
       .slice(0, 40);
 
     console.log(
-      `Attempt with endDate ${updatedEndDate.toISOString()}, Found Slots:`,
-      selectedSlots.length
+      `[${new Date().toISOString()}] Attempt with endDate ${updatedEndDate.toISOString()}, Found Slots: ${
+        selectedSlots.length
+      }`
     );
 
     if (selectedSlots.length >= 40) {
@@ -56,7 +60,9 @@ async function runProcess(
 
     // If all days are added but still not enough slots, adjust working hours
     if (maxDaysToAdd === 0 && selectedSlots.length < 40) {
-      console.log("Adjusting working hours to extend availability...");
+      console.log(
+        `[${new Date().toISOString()}] Adjusting working hours to extend availability...`
+      );
       WORKING_HOURS_START = Math.max(WORKING_HOURS_START - 1, 0);
       WORKING_HOURS_END = Math.min(WORKING_HOURS_END + 1, 24);
       maxDaysToAdd = 7; // Reset max days to check again with adjusted hours
@@ -83,8 +89,8 @@ function findOverlappingSlots(timezoneOffsets, startHour, endHour) {
     let utcTime = new Date(Date.UTC(2025, 0, 28, hour)); // January 28, 2025 in UTC
 
     // Check if the hour fits in all timezone working hours
-    let isOverlapping = timezoneOffsets.every((offset) => {
-      let localTime = new Date(utcTime.getTime() + offset * 1000);
+    let isOverlapping = timezoneOffsets.every((offsetInSeconds) => {
+      let localTime = new Date(utcTime.getTime() + offsetInSeconds * 1000);
       return (
         localTime.getUTCHours() >= startHour &&
         localTime.getUTCHours() < endHour
@@ -99,7 +105,12 @@ function findOverlappingSlots(timezoneOffsets, startHour, endHour) {
 }
 
 // Function to generate available slots within overlapping hours
-function generateAvailableSlots(startDate, endDate, overlappingSlots) {
+function generateAvailableSlots(
+  startDate,
+  endDate,
+  overlappingSlots,
+  durationInMinutes
+) {
   let availableSlots = [];
   let currentDate = new Date(startDate);
 
@@ -109,8 +120,9 @@ function generateAvailableSlots(startDate, endDate, overlappingSlots) {
     overlappingSlots.forEach((hour) => {
       let utcTime = new Date(currentDate);
       utcTime.setUTCHours(hour, 0, 0, 0);
+
       let endTime = new Date(utcTime);
-      endTime.setUTCHours(utcTime.getUTCHours() + 1);
+      endTime.setMinutes(utcTime.getMinutes() + durationInMinutes);
 
       availableSlots.push(
         `${utcTime.toISOString().replace(".000", "")}Z_${endTime
@@ -161,6 +173,7 @@ async function generatePoll(slots, poll) {
     return null;
   }
 }
+
 
 
   function generate42CalendarDates(anchorDateUTC, offsetInSeconds, isStart) {
