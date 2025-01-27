@@ -846,7 +846,6 @@ export const schedule = async function () {
     generateSlotsForWeek,
     findOverlappingTimeRanges,
     generatePoll,
-    hasOverlappingSlots,
   };
 };
 
