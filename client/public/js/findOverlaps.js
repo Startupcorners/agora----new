@@ -1,12 +1,8 @@
-// Make sure you import moment if needed
-// import moment from "moment";
-// or
-// const moment = require("moment");
 
 export const checkOverlaps = async function () {
   function checkCommonAvailableSlots(
     allAvailabilities, // Single list of availabilities with userId
-    alreadyBookedList, // List of booked slots
+    alreadyBookedList, // List of booked slots, e.g. [["2025-05-01T10:00:00Z", "2025-05-01T11:00:00Z"], ...]
     earliestBookableDay // Minimum bookable day in days
   ) {
     console.log("Received availabilities:", JSON.stringify(allAvailabilities));
@@ -24,12 +20,11 @@ export const checkOverlaps = async function () {
       .add(earliestBookableDay, "days")
       .startOf("day");
     const periodEnd = periodStart.clone().add(7, "days").endOf("day");
-
     console.log(
       `Checking availability between: ${periodStart.format()} - ${periodEnd.format()}`
     );
 
-    // Step 1: Group availabilities by userId
+    // Step 1: Group all availabilities by userId
     const groupedAvailabilities = allAvailabilities.reduce(
       (acc, availability) => {
         if (!acc[availability.userId]) {
@@ -45,7 +40,7 @@ export const checkOverlaps = async function () {
       JSON.stringify(groupedAvailabilities)
     );
 
-    // Step 2: Generate available time slots for each user
+    // Step 2: Generate available time slots for each user (raw slots, not yet excluding booked)
     const usersProcessedSlots = Object.values(groupedAvailabilities).map(
       (availabilityList) => {
         let userSlots = [];
@@ -68,8 +63,21 @@ export const checkOverlaps = async function () {
           );
           console.log(`Excluded days (based on local time): ${excludedDays}`);
 
-          const startDate = moment.max(moment.utc(start_date), periodStart);
-          const endDate = moment.min(moment.utc(end_date), periodEnd);
+          // Convert start and end dates to a day-based range in local time
+          const startDate = moment.max(
+            moment
+              .utc(start_date)
+              .utcOffset(timeOffsetSeconds / 60)
+              .startOf("day"),
+            periodStart
+          );
+          const endDate = moment.min(
+            moment
+              .utc(end_date)
+              .utcOffset(timeOffsetSeconds / 60)
+              .endOf("day"),
+            periodEnd
+          );
 
           let currentDate = startDate.clone();
 
@@ -82,40 +90,51 @@ export const checkOverlaps = async function () {
 
             // If today's local day is NOT excluded:
             if (!excludedDays.includes(dayOfWeekLocal)) {
-              const localStart = localDate
-                .clone()
-                .set({
-                  hour: parseInt(daily_start_time.split(":")[0], 10),
-                  minute: parseInt(daily_start_time.split(":")[1], 10),
-                  second: 0,
-                })
-                .utc(); // Convert back to UTC
+              // Parse daily schedule
+              const [startHour, startMinute] = daily_start_time
+                .split(":")
+                .map((val) => parseInt(val, 10));
+              const [endHour, endMinute] = daily_end_time
+                .split(":")
+                .map((val) => parseInt(val, 10));
 
-              const localEnd = localDate
-                .clone()
-                .set({
-                  hour: parseInt(daily_end_time.split(":")[0], 10),
-                  minute: parseInt(daily_end_time.split(":")[1], 10),
-                  second: 0,
-                })
-                .utc(); // Convert back to UTC
+              const localStart = localDate.clone().set({
+                hour: startHour,
+                minute: startMinute,
+                second: 0,
+              });
 
-              let slotStart = localStart.clone();
+              const localEnd = localDate.clone().set({
+                hour: endHour,
+                minute: endMinute,
+                second: 0,
+              });
 
-              while (slotStart.isBefore(localEnd)) {
+              // Handle local availability that might span past midnight
+              if (localEnd.isBefore(localStart)) {
+                localEnd.add(1, "day");
+              }
+
+              // Convert back to UTC for consistency
+              const utcStart = localStart.utc();
+              const utcEnd = localEnd.utc();
+
+              let slotStart = utcStart.clone();
+
+              while (slotStart.isBefore(utcEnd)) {
                 const slotEnd = slotStart
                   .clone()
                   .add(slot_duration_minutes, "minutes");
 
-                // Skip if the entire slot ends before the earliest bookable moment
+                // If the slot ends before the earliestBookableMoment, skip it
                 if (slotEnd.isBefore(earliestBookableMoment)) {
                   slotStart.add(slot_duration_minutes, "minutes");
                   continue;
                 }
 
                 userSlots.push([
-                  slotStart.clone().utc().format(),
-                  slotEnd.clone().utc().format(),
+                  slotStart.clone().format(), // store as ISO string
+                  slotEnd.clone().format(),
                 ]);
 
                 slotStart.add(slot_duration_minutes, "minutes");
@@ -138,60 +157,62 @@ export const checkOverlaps = async function () {
       JSON.stringify(usersProcessedSlots, null, 2)
     );
 
-    // Step 3: Remove booked slots (FIXED LOGIC)
-    const filteredUserSlots = usersProcessedSlots.map((userSlots) => {
-      return userSlots.filter(([slotStart, slotEnd]) => {
-        // 'hasOverlap' will be true if this slot overlaps ANY booking
-        const hasOverlap = alreadyBookedList.some((booked) => {
-          const bookedStart = moment.utc(booked.start_date);
-          const bookedEnd = moment.utc(booked.end_date);
-          return isSlotOverlapping(
-            moment.utc(slotStart),
-            moment.utc(slotEnd),
-            bookedStart,
-            bookedEnd
-          );
-        });
+    // Step 2.1: EXCLUDE ALREADY BOOKED SLOTS
+    // For each user's slot list, remove those that overlap with any booked slot
+    const cleanedUserSlots = usersProcessedSlots.map((userSlots) => {
+      return userSlots.filter(([slotStartStr, slotEndStr]) => {
+        const slotStart = moment.utc(slotStartStr);
+        const slotEnd = moment.utc(slotEndStr);
 
-        if (hasOverlap) {
-          console.log(
-            `Slot ${slotStart} - ${slotEnd} removed due to booking conflict.`
-          );
-          return false; // exclude this slot
-        }
-        return true; // keep this slot
+        // Check if this slot overlaps with any in the alreadyBookedList
+        const isOverlapped = alreadyBookedList.some(
+          ([bookedStartStr, bookedEndStr]) => {
+            const bookedStart = moment.utc(bookedStartStr);
+            const bookedEnd = moment.utc(bookedEndStr);
+            return isSlotOverlapping(
+              slotStart,
+              slotEnd,
+              bookedStart,
+              bookedEnd
+            );
+          }
+        );
+
+        // Keep only if it does NOT overlap
+        return !isOverlapped;
       });
     });
 
     console.log(
-      "Filtered slots after booked removal:",
-      JSON.stringify(filteredUserSlots, null, 2)
+      "Slots after excluding booked times (one array per user):",
+      JSON.stringify(cleanedUserSlots, null, 2)
     );
 
-    // Step 4: Find common slots across all users
-    // Start with the first user's filtered slots as the "base"
-    let commonSlots = filteredUserSlots[0];
+    // Step 3: Find the intersection of slots across all users
+    let commonSlots = cleanedUserSlots[0] || [];
 
-    // Intersect with each subsequent user's slots
-    for (let i = 1; i < filteredUserSlots.length; i++) {
+    for (let i = 1; i < cleanedUserSlots.length; i++) {
+      // Filter the current commonSlots by checking containment in the next user's slots
       commonSlots = commonSlots.filter(([startA, endA]) => {
-        return filteredUserSlots[i].some(([startB, endB]) => {
+        const startAMoment = moment.utc(startA);
+        const endAMoment = moment.utc(endA);
+
+        // We say the slot from user A is valid only if we find it contained in user B's time ranges
+        return cleanedUserSlots[i].some(([startB, endB]) => {
+          const startBMoment = moment.utc(startB);
+          const endBMoment = moment.utc(endB);
+          // Check if user B's slot fully contains user A's slot
           return (
-            moment.utc(startA).isSameOrAfter(moment.utc(startB)) &&
-            moment.utc(endA).isSameOrBefore(moment.utc(endB))
+            startAMoment.isSameOrAfter(startBMoment) &&
+            endAMoment.isSameOrBefore(endBMoment)
           );
         });
       });
 
-      console.log(
-        `Common slots after checking with user ${i + 1}:`,
-        JSON.stringify(commonSlots, null, 2)
-      );
-
       if (commonSlots.length === 0) {
         console.log("No common slots found.");
-        // bubble_fn_overlaps("no"); // <-- your Bubble function
-        return "no"; // or whatever you do to handle no slots
+        bubble_fn_overlaps("no");
+        return "no";
       }
     }
 
@@ -199,28 +220,22 @@ export const checkOverlaps = async function () {
       "Final common slots found:",
       JSON.stringify(commonSlots, null, 2)
     );
+    bubble_fn_overlaps("yes");
 
-    // If there are common slots, return "yes", otherwise "no"
-    if (commonSlots.length > 0) {
-      bubble_fn_overlaps("yes");
-      return "yes";
-    } else {
-      bubble_fn_overlaps("no");
-      return "no";
-    }
+    // Return "yes" if at least one common slot remains
+    return commonSlots.length > 0 ? "yes" : "no";
   }
 
-  // Expose function for Bubble
   return {
     checkCommonAvailableSlots,
   };
 };
 
-// Helper function to check overlap
+// Helper function to check if two slots overlap at all
 function isSlotOverlapping(startA, endA, startB, endB) {
-  // Overlap if the start is before the other end, and the end is after the other start
+  // Overlap if times cross at all
   return startA.isBefore(endB) && endA.isAfter(startB);
 }
 
-// Attach to window
+// Attach to window for Bubble
 window["checkOverlaps"] = checkOverlaps;
