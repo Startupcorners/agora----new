@@ -124,9 +124,9 @@ export const schedule = async function () {
         endTime.setMinutes(utcTime.getMinutes() + durationInMinutes);
 
         availableSlots.push(
-          `${utcTime.toISOString().replace(".000", "")}Z_${endTime
+          `${utcTime.toISOString().replace(".000", "")}_${endTime
             .toISOString()
-            .replace(".000", "")}Z`
+            .replace(".000", "")}`
         );
       });
 
