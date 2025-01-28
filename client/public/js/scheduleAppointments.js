@@ -246,7 +246,6 @@ function findEarliestAndLatestSlotsUserTime(slots, userOffsetInSeconds) {
   return { earliestTime, latestTime };
 }
 
-
 function generateStandardizedSlots(
   earliestTime,
   latestTime,
@@ -269,7 +268,6 @@ function generateStandardizedSlots(
   }
 
   for (let i = 0; i < daysInWeek; i++) {
-    const daySlots = [];
     // Clone the earliestTime and add 'i' days
     const currentDay = earliestTime.clone().add(i, "days");
 
@@ -292,8 +290,7 @@ function generateStandardizedSlots(
       console.warn(
         `No slot generation for day ${i}: slotStartLocal (${slotStartLocal.format()}) is not before slotEndLocal (${slotEndLocal.format()}).`
       );
-      standardizedSlots.push(daySlots); // Push empty array
-      continue;
+      continue; // Skip to next day
     }
 
     // Safeguard: Limit the number of slots per day to prevent infinite loops
@@ -318,7 +315,8 @@ function generateStandardizedSlots(
         .subtract(userOffsetInSeconds, "seconds")
         .toISOString();
 
-      daySlots.push([slotStartUTC, slotEndUTC]);
+      // Push as a single date range
+      standardizedSlots.push([slotStartUTC, slotEndUTC]);
 
       slotStartLocal = slotEndLocalTime;
       slotsGenerated++;
@@ -329,12 +327,11 @@ function generateStandardizedSlots(
         `Maximum slot generation limit reached for day ${i}. Potential infinite loop detected.`
       );
     }
-
-    standardizedSlots.push(daySlots);
   }
 
   return standardizedSlots;
 }
+
 
 
 
