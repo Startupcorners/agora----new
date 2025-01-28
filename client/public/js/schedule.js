@@ -595,11 +595,11 @@ export const schedule = async function () {
       return [[], [], [], [], []]; // Empty arrays for urls, addresses, isModified, isStartupCorners, and isBlockedByUser
     }
 
-    const urls = []; // Meeting links
-    const addresses = []; // Addresses
-    const isModified = []; // Modified slot info (null for non-modified, bubbleId for modified)
-    const isStartupCorners = []; // Startup corners information
-    const isBlockedByUser = []; // Blocked by user (null or bubbleId)
+    const urls = [];
+    const addresses = [];
+    const isModified = [];
+    const isStartupCorners = [];
+    const isBlockedByUser = [];
 
     generatedSlots.forEach((slot) => {
       const slotStart = moment.utc(slot.start_date);
@@ -608,9 +608,9 @@ export const schedule = async function () {
       let slotInfo = {
         meetingLink: mainAvailability.meetingLink,
         Address: mainAvailability.Address,
-        isModified: null, // Default: not modified
+        isModified: null,
         isStartupCorners: mainAvailability.isStartupCorners,
-        isBlockedByUser: null, // Default: not blocked
+        isBlockedByUser: null,
       };
 
       // Check if the slot is modified
@@ -619,23 +619,15 @@ export const schedule = async function () {
         const modEnd = moment.utc(modSlot.end_date);
 
         return (
-          slotStart.isBetween(modStart, modEnd, null, "[)") ||
-          slotEnd.isBetween(modStart, modEnd, null, "(]") ||
-          (slotStart.isSame(modStart) && slotEnd.isSame(modEnd)) ||
-          (modStart.isBetween(slotStart, slotEnd, null, "[)") &&
-            modEnd.isBetween(slotStart, slotEnd, null, "(]"))
+          slotStart.isSameOrAfter(modStart) && slotEnd.isSameOrBefore(modEnd)
         );
       });
 
       if (modifiedSlot) {
-        // Use modified slot info
-        slotInfo = {
-          meetingLink: modifiedSlot.meetingLink,
-          Address: modifiedSlot.Address,
-          isModified: modifiedSlot.bubbleId || true, // Mark as modified
-          isStartupCorners: modifiedSlot.isStartupcorners,
-          isBlockedByUser: null, // Reset default for modified slots
-        };
+        slotInfo.meetingLink = modifiedSlot.meetingLink;
+        slotInfo.Address = modifiedSlot.Address;
+        slotInfo.isModified = modifiedSlot.bubbleId || true;
+        slotInfo.isStartupCorners = modifiedSlot.isStartupcorners;
       }
 
       // Check if the slot is blocked by the user
@@ -644,16 +636,12 @@ export const schedule = async function () {
         const blockedEnd = moment.utc(blockedSlot.end_date);
 
         return (
-          slotStart.isBetween(blockedStart, blockedEnd, null, "[)") ||
-          slotEnd.isBetween(blockedStart, blockedEnd, null, "(]") ||
-          (slotStart.isSame(blockedStart) && slotEnd.isSame(blockedEnd)) ||
-          (blockedStart.isBetween(slotStart, slotEnd, null, "[)") &&
-            blockedEnd.isBetween(slotStart, slotEnd, null, "(]"))
+          slotStart.isSameOrAfter(blockedStart) &&
+          slotEnd.isSameOrBefore(blockedEnd)
         );
       });
 
       if (blockedSlot) {
-        // Mark slot as blocked by the user's bubbleId
         slotInfo.isBlockedByUser = blockedSlot.bubbleId || null;
       }
 
@@ -667,6 +655,7 @@ export const schedule = async function () {
 
     return [urls, addresses, isModified, isStartupCorners, isBlockedByUser];
   }
+
 
 
 
