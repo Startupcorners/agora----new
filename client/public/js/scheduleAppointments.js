@@ -276,12 +276,12 @@ export const scheduleAppointments = async function () {
 
     // Send result to Bubble
     bubble_fn_hours({
-      outputList1: outputList1,
-      outputList2: outputList2,
-      outputList4: outputList4,
-      outputList5: outputList5,
-      outputList6: outputList6,
-      outputList9: outputList9,
+      outputlist1: outputlist1,
+      outputlist2: outputlist2,
+      outputlist4: outputlist4,
+      outputlist5: outputlist5,
+      outputlist6: outputlist6,
+      outputlist9: outputlist9,
     });
 
     return {
