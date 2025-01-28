@@ -4,7 +4,6 @@ export const scheduleAppointments = async function () {
     allAvailabilityLists,
     viewerDate,
     alreadyBookedList,
-    modifiedSlots,
     offset,
     userOffsetInSeconds,
     earliestBookableDay
@@ -16,8 +15,9 @@ export const scheduleAppointments = async function () {
       .startOf("day")
       .subtract(userOffsetInSeconds, "seconds");
 
-    const weekStart = adjustedViewerDate.clone();
-    const weekEnd = weekStart.clone().add(7, "days").subtract(1, "second");
+    // Adjust the range to start 2 days before viewerDate and end 9 days after
+    const rangeStart = adjustedViewerDate.clone().subtract(2, "days");
+    const rangeEnd = adjustedViewerDate.clone().add(9, "days").endOf("day");
 
     // Calculate the earliest bookable time (now + earliestBookableDay)
     const earliestBookableTime = moment()
@@ -73,7 +73,7 @@ export const scheduleAppointments = async function () {
     }
 
     // Generate main availability slots
-    const mainSlots = generateSlots(mainAvailability, weekStart, weekEnd);
+    const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
 
     // If allAvailabilityLists is empty, return main slots
     if (!allAvailabilityLists || allAvailabilityLists.length === 0) {
@@ -98,17 +98,13 @@ export const scheduleAppointments = async function () {
                   "(]"
                 )
             )
-        )
-        .filter(
-          (slot) =>
-            !modifiedSlots.some((mod) => mod.start_date === slot.start_date)
         );
     }
 
     // Generate other availability slots and find common slots
     let commonSlots = [...mainSlots];
     allAvailabilityLists.forEach((availability) => {
-      const slots = generateSlots(availability, weekStart, weekEnd);
+      const slots = generateSlots(availability, rangeStart, rangeEnd);
       commonSlots = commonSlots.filter((mainSlot) =>
         slots.some(
           (slot) =>
@@ -143,16 +139,9 @@ export const scheduleAppointments = async function () {
         )
     );
 
-    // Exclude modified slots if needed
-    const modifiedSlotKeys = new Set(
-      modifiedSlots.map((slot) => slot.start_date + slot.end_date)
-    );
-    commonSlots = commonSlots.filter(
-      (slot) => !modifiedSlotKeys.has(slot.start_date + slot.end_date)
-    );
-
     return commonSlots;
   }
+
 
   function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
     const moment = window.moment; // Assume moment.js is loaded
@@ -208,7 +197,6 @@ export const scheduleAppointments = async function () {
     allAvailabilityLists,
     viewerDate,
     alreadyBookedList,
-    modifiedSlots,
     offset,
     userOffsetInSeconds,
     earliestBookableDay
