@@ -27,38 +27,35 @@ export const scheduleAppointments = async function () {
     // Helper function to calculate slots for a given availability
     function generateSlots(availability, start, end) {
       const slots = [];
-      const localStart = start
-        .clone()
-        .add(availability.timeOffsetSeconds, "seconds");
-      const localEnd = end
-        .clone()
-        .add(availability.timeOffsetSeconds, "seconds");
+      const timeOffsetSeconds = availability.timeOffsetSeconds;
+      const dailyStartDuration = moment.duration(availability.daily_start_time);
+      const dailyEndDuration = moment.duration(availability.daily_end_time);
 
-      let current = localStart.clone();
-      while (current.isBefore(localEnd)) {
+      let current = start.clone();
+      while (current.isBefore(end)) {
         const dayOfWeek = current.day();
         if (!availability.excludedDays.includes(dayOfWeek)) {
-          // Adjust daily start and end times for the local time zone
-          const dayStart = current
+          // Calculate dayStartUTC and dayEndUTC by converting local times to UTC
+          const dayStartUTC = current
             .clone()
             .startOf("day")
-            .add(availability.timeOffsetSeconds, "seconds")
-            .add(moment.duration(availability.daily_start_time));
-          const dayEnd = current
-            .clone()
-            .startOf("day")
-            .add(availability.timeOffsetSeconds, "seconds")
-            .add(moment.duration(availability.daily_end_time));
+            .subtract(timeOffsetSeconds, "seconds")
+            .add(dailyStartDuration);
 
-          let slot = dayStart.clone();
-          while (slot.isBefore(dayEnd) && slot.isBefore(localEnd)) {
-            if (slot.isAfter(localStart)) {
+          const dayEndUTC = current
+            .clone()
+            .startOf("day")
+            .subtract(timeOffsetSeconds, "seconds")
+            .add(dailyEndDuration);
+
+          let slot = dayStartUTC.clone();
+          while (slot.isBefore(dayEndUTC) && slot.isBefore(end)) {
+            if (slot.isSameOrAfter(start)) {
               slots.push([
-                slot.clone().utc().toISOString(),
+                slot.clone().toISOString(),
                 slot
                   .clone()
                   .add(availability.slot_duration_minutes, "minutes")
-                  .utc()
                   .toISOString(),
               ]);
             }
@@ -74,7 +71,7 @@ export const scheduleAppointments = async function () {
     // Generate main availability slots
     const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
 
-    // If allAvailabilityLists is empty, return main slots
+    // If allAvailabilityLists is empty, return main slots filtered by earliestBookableTime
     if (!allAvailabilityLists || allAvailabilityLists.length === 0) {
       return mainSlots.filter((slot) => {
         const slotStart = moment.utc(slot[0]);
