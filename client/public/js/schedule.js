@@ -662,7 +662,7 @@ export const schedule = async function () {
 function generateAllPossibleSlots(slots, weekRanges) {
   const allPossibleSlots = new Set();
 
-  const addSlotForWeekRange = (baseSlot, dayOffsets, duration) => {
+  const addSlotForWeekRange = (baseSlot, dayOffsets, duration, weekRange) => {
     const baseDate = new Date(baseSlot);
 
     dayOffsets.forEach((offset) => {
@@ -670,18 +670,27 @@ function generateAllPossibleSlots(slots, weekRanges) {
       newStartDate.setDate(baseDate.getDate() + offset);
       const newEndDate = new Date(newStartDate.getTime() + duration);
 
-      // Check if the slot is already in the set
-      const slotPair = JSON.stringify([
-        newStartDate.toISOString(),
-        newEndDate.toISOString(),
-      ]);
-      if (allPossibleSlots.has(slotPair)) {
-        console.warn("Duplicate Slot Found:", slotPair);
-      } else {
-        allPossibleSlots.add(slotPair);
-        console.log(
-          `Adding slot: Start=${newStartDate.toISOString()} End=${newEndDate.toISOString()}`
-        );
+      // Check if the slot is within the week range
+      const weekStart = new Date(weekRange[0]);
+      const weekEnd = new Date(weekRange[1]);
+
+      if (
+        newStartDate.getTime() >= weekStart.getTime() &&
+        newEndDate.getTime() <= weekEnd.getTime()
+      ) {
+        const slotPair = JSON.stringify([
+          newStartDate.toISOString(),
+          newEndDate.toISOString(),
+        ]);
+
+        if (allPossibleSlots.has(slotPair)) {
+          console.warn("Duplicate Slot Found:", slotPair);
+        } else {
+          allPossibleSlots.add(slotPair);
+          console.log(
+            `Adding slot: Start=${newStartDate.toISOString()} End=${newEndDate.toISOString()}`
+          );
+        }
       }
     });
   };
@@ -696,7 +705,7 @@ function generateAllPossibleSlots(slots, weekRanges) {
       const dayOffsets = Array.from({ length: 7 }, (_, i) => i - 3);
 
       // Propagate slots for this week range
-      addSlotForWeekRange(slotStart, dayOffsets, slotDuration);
+      addSlotForWeekRange(slotStart, dayOffsets, slotDuration, weekRange);
     });
   });
 
@@ -707,6 +716,7 @@ function generateAllPossibleSlots(slots, weekRanges) {
     .map((slotPair) => JSON.parse(slotPair))
     .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
 }
+
 
 
 
