@@ -298,107 +298,100 @@ function generateAllPossibleSlots(slots, weekRanges) {
 
   // Wrapper function
   function generateScheduleWrapper(
+  mainAvailability,
+  allAvailabilityLists,
+  viewerDate,
+  alreadyBookedList,
+  modifiedSlots,
+  offset,
+  userOffsetInSeconds,
+  earliestBookableDay,
+  blockedByUser // Function parameter
+) {
+  console.log("generateScheduleWrapper received:");
+  console.log("mainAvailability:", mainAvailability);
+  console.log("modifiedSlots:", modifiedSlots);
+  console.log("viewerDate:", viewerDate);
+  console.log("offset:", offset);
+  console.log("userOffsetInSeconds:", userOffsetInSeconds);
+  console.log("earliestBookableDay:", earliestBookableDay);
+  console.log("blockedByUser:", blockedByUser);
+
+  // Generate the slots for the expanded range (-2 days to +9 days)
+  const slots = generateSlotsForWeek(
     mainAvailability,
     allAvailabilityLists,
     viewerDate,
     alreadyBookedList,
-    modifiedSlots,
     offset,
     userOffsetInSeconds,
-    earliestBookableDay,
-    blockedByUser,
-  ) {
-    console.log("generateScheduleWrapper received:");
-    console.log("mainAvailability:", mainAvailability);
-    console.log("modifiedSlots:", modifiedSlots);
-    console.log("viewerDate:", viewerDate);
-    console.log("offset:", offset);
-    console.log("userOffsetInSeconds:", userOffsetInSeconds);
-    console.log("earliestBookableDay:", earliestBookableDay);
-    console.log("blockedByUser:", blockedByUser);
-    // Generate the slots for the expanded range (-2 days to +9 days)
-    const slots = generateSlotsForWeek(
+    earliestBookableDay
+  );
+
+  // Generate the week ranges
+  const weekRanges = generateWeekRanges(viewerDate, offset, userOffsetInSeconds);
+
+  const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
+
+  // Get the outputs from assignSimplifiedSlotInfo
+  const [urls, addresses, isModified, isStartupCorners, blockedByUserOutput] =
+    assignSimplifiedSlotInfo(
       mainAvailability,
-      allAvailabilityLists,
-      viewerDate,
-      alreadyBookedList,
-      offset,
-      userOffsetInSeconds,
-      earliestBookableDay
+      modifiedSlots,
+      allPossibleSlots.map((slot) => ({
+        start_date: slot[0],
+        end_date: slot[1],
+      })), // Convert back to object format for compatibility
+      blockedByUser // Pass the original blockedByUser parameter
     );
 
-    // Generate the week ranges
-    const weekRanges = generateWeekRanges(
-      viewerDate,
-      offset,
-      userOffsetInSeconds
-    );
+  // Assign outputs to the appropriate variables
+  let outputlist1 = urls; // Meeting links
+  let outputlist2 = addresses; // Addresses
+  let outputlist4 = isModified; // Modified slot info
+  let outputlist5 = slots; // The slots themselves (array of arrays)
+  let outputlist6 = weekRanges; // Week ranges
+  let outputlist7 = allPossibleSlots; // All possible slots
+  let outputlist8 = blockedByUserOutput; // Output from assignSimplifiedSlotInfo
+  let outputlist9 = isStartupCorners; // Startup corners information
 
-    const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
+  console.log({
+    outputlist1,
+    outputlist2,
+    outputlist4,
+    outputlist9,
+    outputlist5,
+    outputlist7,
+    outputlist8,
+    outputlist6,
+  });
 
-    // Get the outputs from assignSimplifiedSlotInfo
-    const [urls, addresses, isModified, isStartupCorners, blockedByUser] =
-      assignSimplifiedSlotInfo(
-        mainAvailability,
-        modifiedSlots,
-        allPossibleSlots.map((slot) => ({
-          start_date: slot[0],
-          end_date: slot[1],
-        })), // Convert back to object format for compatibility
-        blockedByUser
-      );
-
-    // Assign outputs to the appropriate variables
-    let outputlist1 = urls; // Meeting links
-    let outputlist2 = addresses; // Addresses
-    let outputlist4 = isModified; // Modified slot info
-    let outputlist5 = slots; // The slots themselves (array of arrays)
-    let outputlist6 = weekRanges; // Week ranges
-    let outputlist7 = allPossibleSlots; // All possible slots
-    let outputlist8 = blockedByUser; // All possible slots
-    let outputlist9 = isStartupCorners; // Startup corners information
-
-    console.log({
-      outputlist1,
-      outputlist2,
-      outputlist4,
-      outputlist9,
-      outputlist5,
-      outputlist7,
-      outputlist8,
-      outputlist6,
-    });
-
-    // Send result to Bubble
-    bubble_fn_hours({
-      outputlist1: outputlist1,
-      outputlist2: outputlist2,
-      outputlist4: outputlist4,
-      outputlist5: outputlist5,
-      outputlist6: outputlist6,
-      outputlist7: outputlist7,
-      outputlist8: outputlist8,
-      outputlist9: outputlist9,
-    });
-
-    return {
-      outputlist1,
-      outputlist2,
-      outputlist4,
-      outputlist9,
-      outputlist5,
-      outputlist6,
-      outputlist8,
-      outputlist7,
-    };
-  }
-
-
-
+  // Send result to Bubble
+  bubble_fn_hours({
+    outputlist1: outputlist1,
+    outputlist2: outputlist2,
+    outputlist4: outputlist4,
+    outputlist5: outputlist5,
+    outputlist6: outputlist6,
+    outputlist7: outputlist7,
+    outputlist8: outputlist8,
+    outputlist9: outputlist9,
+  });
 
   return {
-    generateScheduleWrapper,
+    outputlist1,
+    outputlist2,
+    outputlist4,
+    outputlist9,
+    outputlist5,
+    outputlist6,
+    outputlist8,
+    outputlist7,
   };
+}
+
+return {
+  generateScheduleWrapper,
 };
 
 window["scheduleAppointments"] = scheduleAppointments;
