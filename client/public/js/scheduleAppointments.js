@@ -208,6 +208,7 @@ export const scheduleAppointments = async function () {
     allAvailabilityLists,
     viewerDate,
     alreadyBookedList,
+    modifiedSlots,
     offset,
     userOffsetInSeconds,
     earliestBookableDay
