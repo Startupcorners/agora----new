@@ -220,23 +220,19 @@ export const scheduleAppointments = async function () {
 function generateAllPossibleSlots(slots, weekRanges) {
   const allPossibleSlots = new Set();
 
-  const isSlotInRange = (slot, range) => {
-    const slotTime = new Date(slot).getTime();
-    const rangeStart = new Date(range[0]).getTime();
-    const rangeEnd = new Date(range[1]).getTime();
-    return slotTime >= rangeStart && slotTime <= rangeEnd;
-  };
-
-  const addSlotAndNeighbors = (baseSlot, dayOffsets, duration) => {
+  const addSlotForWeekRange = (baseSlot, dayOffsets, duration) => {
     const baseDate = new Date(baseSlot);
+
     dayOffsets.forEach((offset) => {
       const newStartDate = new Date(baseDate);
       newStartDate.setDate(baseDate.getDate() + offset);
       const newEndDate = new Date(newStartDate.getTime() + duration);
+
       const slotPair = JSON.stringify([
         newStartDate.toISOString(),
         newEndDate.toISOString(),
       ]);
+
       allPossibleSlots.add(slotPair);
     });
   };
@@ -247,14 +243,11 @@ function generateAllPossibleSlots(slots, weekRanges) {
       new Date(slotEnd).getTime() - new Date(slotStart).getTime();
 
     weekRanges.forEach((weekRange, index) => {
-      if (isSlotInRange(slotStart, weekRange)) {
-        const dayOffsets =
-          index === 0
-            ? [0, 1, 2, 3, 4, 5, 6, 7] // Week 0 offsets
-            : [-1, 0, 1, 2, 3, 4, 5, 6]; // Other week offsets
+      // Create day offsets for each week range relative to the current slot
+      const dayOffsets = Array.from({ length: 7 }, (_, i) => i - 3); // Generate [-3, -2, -1, 0, 1, 2, 3]
 
-        addSlotAndNeighbors(slotStart, dayOffsets, slotDuration);
-      }
+      // Propagate slots for this week range
+      addSlotForWeekRange(slotStart, dayOffsets, slotDuration);
     });
   });
 
