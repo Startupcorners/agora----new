@@ -5,7 +5,7 @@ export const schedule = async function () {
     alreadyBookedList,
     offset,
     userOffsetInSeconds,
-    earliestBookableDay,
+    earliestBookableDay
   ) {
     // Adjust the viewerDate based on the offset (number of weeks)
     const adjustedViewerDate = moment(viewerDate)
@@ -23,7 +23,7 @@ export const schedule = async function () {
       .utc()
       .add(earliestBookableDay, "days");
 
-    // Helper function to calculate slots for a given availability
+    // Helper function to generate slots for mainAvailability
     function generateSlots(availability, start, end) {
       const slots = [];
       const timeOffsetSeconds = availability.timeOffsetSeconds;
@@ -70,31 +70,14 @@ export const schedule = async function () {
     // Generate main availability slots
     const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
 
-    // If allAvailabilityLists is empty, return main slots filtered by earliestBookableTime
-    if (!allAvailabilityLists || allAvailabilityLists.length === 0) {
-      return mainSlots.filter((slot) => {
-        const slotStart = moment.utc(slot[0]);
-        return slotStart.isSameOrAfter(earliestBookableTime);
-      });
-    }
-
-    // Generate other availability slots and find common slots
-    let commonSlots = [...mainSlots];
-    allAvailabilityLists.forEach((availability) => {
-      const slots = generateSlots(availability, rangeStart, rangeEnd);
-      commonSlots = commonSlots.filter((mainSlot) =>
-        slots.some((slot) => slot[0] === mainSlot[0] && slot[1] === mainSlot[1])
-      );
-    });
-
     // Filter out slots before the earliest bookable time
-    commonSlots = commonSlots.filter((slot) => {
+    const filteredSlots = mainSlots.filter((slot) => {
       const slotStart = moment.utc(slot[0]);
       return slotStart.isSameOrAfter(earliestBookableTime);
     });
 
     // Exclude already booked slots
-    commonSlots = commonSlots.filter((slot) => {
+    const availableSlots = filteredSlots.filter((slot) => {
       const slotStart = moment.utc(slot[0]);
       const slotEnd = moment.utc(slot[1]);
       return !alreadyBookedList.some((booked) => {
@@ -107,8 +90,9 @@ export const schedule = async function () {
       });
     });
 
-    return commonSlots;
+    return availableSlots;
   }
+
 
 
 
@@ -299,7 +283,6 @@ function generateAllPossibleSlots(slots, weekRanges) {
   // Wrapper function
   function generateScheduleWrapper(
   mainAvailability,
-  allAvailabilityLists,
   viewerDate,
   alreadyBookedList,
   modifiedSlots,
@@ -320,7 +303,6 @@ function generateAllPossibleSlots(slots, weekRanges) {
   // Generate the slots for the expanded range (-2 days to +9 days)
   const slots = generateSlotsForWeek(
     mainAvailability,
-    allAvailabilityLists,
     viewerDate,
     alreadyBookedList,
     offset,
