@@ -324,44 +324,51 @@ export const scheduleAppointments = async function () {
 
     return standardizedSlots;
   }
+function distributeSlotsByDay(slots, weekRanges) {
+  // Initialize day variables as empty arrays
+  const days = {
+    dayOne: [],
+    dayTwo: [],
+    dayThree: [],
+    dayFour: [],
+    dayFive: [],
+    daySix: [],
+    daySeven: [],
+  };
 
-  function distributeSlotsByDay(slots, weekRanges) {
-    // Initialize day variables as empty arrays
-    const days = {
-      dayOne: [],
-      dayTwo: [],
-      dayThree: [],
-      dayFour: [],
-      dayFive: [],
-      daySix: [],
-      daySeven: [],
-    };
+  // Define an array to map index to day names
+  const dayNames = [
+    "dayOne",
+    "dayTwo",
+    "dayThree",
+    "dayFour",
+    "dayFive",
+    "daySix",
+    "daySeven",
+  ];
 
-    // Iterate through each slot
-    slots.forEach((slot) => {
-      const slotStart = moment.utc(slot[0]);
-      const slotEnd = moment.utc(slot[1]);
+  // Iterate through each slot
+  slots.forEach((slot) => {
+    const slotStart = moment.utc(slot[0]);
+    const slotEnd = moment.utc(slot[1]);
 
-      // Iterate through each week range to find where the slot belongs
-      for (let i = 0; i < weekRanges.length; i++) {
-        const dayRange = weekRanges[i];
-        const dayStart = moment.utc(dayRange[0]);
-        const dayEnd = moment.utc(dayRange[1]);
+    // Iterate through each week range to find where the slot belongs
+    for (let i = 0; i < weekRanges.length; i++) {
+      const dayRange = weekRanges[i];
+      const dayStart = moment.utc(dayRange[0]);
+      const dayEnd = moment.utc(dayRange[1]);
 
-        // Check if the slot falls within the current day range
-        if (
-          slotStart.isSameOrAfter(dayStart) &&
-          slotEnd.isSameOrBefore(dayEnd)
-        ) {
-          const dayKey = `day${i + 1}`; // dayOne, dayTwo, etc.
-          days[dayKey].push(slot);
-          break; // Move to the next slot after assigning
-        }
+      // Check if the slot falls within the current day range
+      if (slotStart.isSameOrAfter(dayStart) && slotEnd.isSameOrBefore(dayEnd)) {
+        const dayKey = dayNames[i]; // Correctly map to 'dayOne', 'dayTwo', etc.
+        days[dayKey].push(slot);
+        break; // Move to the next slot after assigning
       }
-    });
+    }
+  });
 
-    return days;
-  }
+  return days;
+}
 
   function findEarliestAndLatestFromDistributedDays(
     distributedDays,
