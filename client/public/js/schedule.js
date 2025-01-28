@@ -393,5 +393,5 @@ function generateAllPossibleSlots(slots, weekRanges) {
 return {
   generateScheduleWrapper,
 };
-
+}
 window["scheduleAppointments"] = scheduleAppointments;
