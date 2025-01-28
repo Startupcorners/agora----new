@@ -33,23 +33,22 @@ export const scheduleAppointments = async function () {
       const localEnd = end
         .clone()
         .add(availability.timeOffsetSeconds, "seconds");
-      const startOfDay = moment(availability.daily_start_time, "HH:mm");
-      const endOfDay = moment(availability.daily_end_time, "HH:mm");
 
       let current = localStart.clone();
       while (current.isBefore(localEnd)) {
         const dayOfWeek = current.day();
         if (!availability.excludedDays.includes(dayOfWeek)) {
+          // Adjust daily start and end times for the local time zone
           const dayStart = current
             .clone()
             .startOf("day")
-            .add(startOfDay.hours(), "hours")
-            .add(startOfDay.minutes(), "minutes");
+            .add(availability.timeOffsetSeconds, "seconds")
+            .add(moment.duration(availability.daily_start_time));
           const dayEnd = current
             .clone()
             .startOf("day")
-            .add(endOfDay.hours(), "hours")
-            .add(endOfDay.minutes(), "minutes");
+            .add(availability.timeOffsetSeconds, "seconds")
+            .add(moment.duration(availability.daily_end_time));
 
           let slot = dayStart.clone();
           while (slot.isBefore(dayEnd) && slot.isBefore(localEnd)) {
@@ -114,6 +113,8 @@ export const scheduleAppointments = async function () {
 
     return commonSlots;
   }
+
+
 
 
 
