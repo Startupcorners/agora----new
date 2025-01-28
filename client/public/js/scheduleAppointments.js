@@ -803,11 +803,15 @@ export const scheduleAppointments = async function () {
         userOffsetInSeconds
       );
 
+      console.log("slots", slots);
+
       // Step 3: Distribute slots into day-specific variables
       const convertedSlots = convertSlotsToUserTimeZone(
         slots,
         userOffsetInSeconds
       );
+
+      console.log("convertedSlots", convertedSlots);
 
       // Step 4: Find the earliest and latest times from the distributed slots
       const { earliestTime, latestTime } =
@@ -860,19 +864,27 @@ export const scheduleAppointments = async function () {
 
       // Step 8: Assign outputs to descriptive variables
       const output = {
-        meetingLinks: urls,
-        addresses: addresses,
-        modifiedSlotInfo: isModified,
-        slots: slots,
-        weekRanges: weekRanges,
-        allPossibleSlots: allPossibleSlots, // Corrected typo
-        startupCorners: isStartupCorners,
+        outputlist1: urls,
+        outputlist2: addresses,
+        outputlist4: isModified,
+        outputlist5: slots,
+        outputlist6: weekRanges,
+        outputlist7: allPossibleSlots, // Corrected typo
+        outputlist9: isStartupCorners,
       };
 
       console.log("Output:", output);
 
       // Step 9: Send the results to Bubble
-      bubble_fn_hours(output);
+      bubble_fn_hours({
+        outputlist1: outputlist1,
+        outputlist2: outputlist2,
+        outputlist4: outputlist4,
+        outputlist5: outputlist5,
+        outputlist6: outputlist6,
+        outputlist7: outputlist7,
+        outputlist9: outputlist9,
+      });
 
       // Return the outputs for potential further use
       return output;
