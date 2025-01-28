@@ -91,22 +91,24 @@ export const scheduleAppointments = async function () {
     // Filter out slots before the earliest bookable time
     commonSlots = commonSlots.filter((slot) => {
       const slotStart = moment.utc(slot[0]);
-      return slotStart.isSameOrAfter(earliestBookableTime);
-    });
-
-    // Exclude already booked slots
-    commonSlots = commonSlots.filter((slot) => {
-      const slotStart = moment.utc(slot[0]);
       const slotEnd = moment.utc(slot[1]);
+
+      // Exclude the slot if it overlaps with any already booked slot
       return !alreadyBookedList.some((booked) => {
         const bookedStart = moment.utc(booked.start_date);
         const bookedEnd = moment.utc(booked.end_date);
+
+        // Check for overlap
         return (
-          slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
-          slotEnd.isBetween(bookedStart, bookedEnd, null, "(]")
+          (slotStart.isSameOrAfter(bookedStart) &&
+            slotStart.isBefore(bookedEnd)) || // Slot starts inside booked range
+          (slotEnd.isAfter(bookedStart) && slotEnd.isSameOrBefore(bookedEnd)) || // Slot ends inside booked range
+          (slotStart.isSameOrBefore(bookedStart) &&
+            slotEnd.isSameOrAfter(bookedEnd)) // Slot completely covers the booked range
         );
       });
     });
+
 
     return commonSlots;
   }
