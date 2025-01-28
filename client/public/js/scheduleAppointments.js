@@ -116,7 +116,7 @@ export const scheduleAppointments = async function () {
 
 
   function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
-    const moment = window.moment; // Assume moment.js is loaded
+    const moment = window.moment; // Ensure moment.js is loaded
 
     // Adjust viewerDate based on the offset (number of weeks)
     const adjustedViewerDate = moment(viewerDate)
@@ -142,6 +142,7 @@ export const scheduleAppointments = async function () {
 
     return weekRanges;
   }
+
 
 
 
