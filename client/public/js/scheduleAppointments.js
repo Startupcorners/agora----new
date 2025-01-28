@@ -545,12 +545,17 @@ function distributeSlotsByDay(slots, weekRanges) {
     // Step 3: Distribute slots into day-specific variables
     const distributedDays = distributeSlotsByDay(slots, weekRanges);
 
+    console.log("distributedDays", distributedDays);
+
     // Step 4: Find the earliest and latest times from the distributed slots
     const { earliestTime, latestTime } =
       findEarliestAndLatestFromDistributedDays(
         distributedDays,
         userOffsetInSeconds
       );
+
+      console.log("earliestTime", earliestTime);
+      console.log("latestTime", latestTime);
 
     // Step 5: Generate all slots for the week range based on earliest and latest times
     const allSlotsForWeekRange = createAllSlotsForWeekRange(
