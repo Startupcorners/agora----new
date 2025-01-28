@@ -213,6 +213,8 @@ export const schedule = async function () {
       dates.push(currentDate.toISOString());
     }
 
+    console.log(dates)
+
     // Output the dates to the appropriate function based on isStart.
     if (isStart) {
       bubble_fn_listOfStartDates(dates);
