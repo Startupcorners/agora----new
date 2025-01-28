@@ -439,107 +439,123 @@ export const schedule = async function () {
   }
 
 
+function generateSlotsForWeek(
+  mainAvailability,
+  viewerDate,
+  alreadyBookedList,
+  offset,
+  userOffsetInSeconds,
+  earliestBookableDay
+) {
+  // Adjust the viewerDate based on the offset (number of weeks)
+  const adjustedViewerDate = moment(viewerDate)
+    .add(offset, "weeks")
+    .utc()
+    .startOf("day")
+    .subtract(userOffsetInSeconds, "seconds");
 
-  function generateSlotsForWeek(
-    mainAvailability,
-    viewerDate,
-    alreadyBookedList,
-    offset,
-    userOffsetInSeconds,
-    earliestBookableDay
-  ) {
-    // Adjust the viewerDate based on the offset (number of weeks)
-    const adjustedViewerDate = moment(viewerDate)
-      .add(offset, "weeks")
-      .utc()
-      .startOf("day")
-      .subtract(userOffsetInSeconds, "seconds");
+  // Adjust the range to start 2 days before viewerDate and end 9 days after
+  const rangeStart = adjustedViewerDate.clone().subtract(2, "days");
+  const rangeEnd = adjustedViewerDate.clone().add(9, "days").endOf("day");
 
-    // Adjust the range to start 2 days before viewerDate and end 9 days after
-    const rangeStart = adjustedViewerDate.clone().subtract(2, "days");
-    const rangeEnd = adjustedViewerDate.clone().add(9, "days").endOf("day");
+  // Calculate the earliest bookable time (now + earliestBookableDay)
+  const earliestBookableTime = moment().utc().add(earliestBookableDay, "days");
 
-    // Calculate the earliest bookable time (now + earliestBookableDay)
-    const earliestBookableTime = moment()
-      .utc()
-      .add(earliestBookableDay, "days");
+  // Helper function to generate slots for mainAvailability
+  function generateSlots(availability, start, end) {
+    const slots = [];
+    const timeOffsetSeconds = availability.timeOffsetSeconds;
+    const dailyStartDuration = moment.duration(availability.daily_start_time);
+    const dailyEndDuration = moment.duration(availability.daily_end_time);
 
-    // Helper function to generate slots for mainAvailability
-    function generateSlots(availability, start, end) {
-      const slots = [];
-      const timeOffsetSeconds = availability.timeOffsetSeconds;
-      const dailyStartDuration = moment.duration(availability.daily_start_time);
-      const dailyEndDuration = moment.duration(availability.daily_end_time);
+    let current = start.clone();
+    while (current.isBefore(end)) {
+      const dayOfWeek = current.day();
+      if (!availability.excludedDays.includes(dayOfWeek)) {
+        // Calculate dayStartUTC and dayEndUTC by converting local times to UTC
+        const dayStartUTC = current
+          .clone()
+          .startOf("day")
+          .subtract(timeOffsetSeconds, "seconds")
+          .add(dailyStartDuration);
 
-      let current = start.clone();
-      while (current.isBefore(end)) {
-        const dayOfWeek = current.day();
-        if (!availability.excludedDays.includes(dayOfWeek)) {
-          // Calculate dayStartUTC and dayEndUTC by converting local times to UTC
-          const dayStartUTC = current
-            .clone()
-            .startOf("day")
-            .subtract(timeOffsetSeconds, "seconds")
-            .add(dailyStartDuration);
+        const dayEndUTC = current
+          .clone()
+          .startOf("day")
+          .subtract(timeOffsetSeconds, "seconds")
+          .add(dailyEndDuration);
 
-          const dayEndUTC = current
-            .clone()
-            .startOf("day")
-            .subtract(timeOffsetSeconds, "seconds")
-            .add(dailyEndDuration);
-
-          let slot = dayStartUTC.clone();
-          while (slot.isBefore(dayEndUTC) && slot.isBefore(end)) {
-            if (slot.isSameOrAfter(start)) {
-              slots.push([
-                slot.clone().toISOString(),
-                slot
-                  .clone()
-                  .add(availability.slot_duration_minutes, "minutes")
-                  .toISOString(),
-              ]);
-            }
-            slot.add(availability.slot_duration_minutes, "minutes");
+        let slot = dayStartUTC.clone();
+        while (slot.isBefore(dayEndUTC) && slot.isBefore(end)) {
+          if (slot.isSameOrAfter(start)) {
+            slots.push([
+              slot.clone().toISOString(),
+              slot
+                .clone()
+                .add(availability.slot_duration_minutes, "minutes")
+                .toISOString(),
+            ]);
           }
+          slot.add(availability.slot_duration_minutes, "minutes");
         }
-        current.add(1, "day");
       }
-
-      return slots;
+      current.add(1, "day");
     }
 
-    // Generate main availability slots
-    const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
-
-    // Filter out slots before the earliest bookable time
-    const filteredSlots = mainSlots.filter((slot) => {
-      const slotStart = moment.utc(slot[0]);
-      return slotStart.isSameOrAfter(earliestBookableTime);
-    });
-
-    // Exclude already booked slots
-    const availableSlots = filteredSlots.filter((slot) => {
-      const slotStart = moment.utc(slot[0]);
-      const slotEnd = moment.utc(slot[1]);
-
-      return !alreadyBookedList.some((booked) => {
-        const bookedStart = moment.utc(booked.start_date);
-        const bookedEnd = moment.utc(booked.end_date);
-
-        // Check for overlap
-        return (
-          (slotStart.isSameOrAfter(bookedStart) &&
-            slotStart.isBefore(bookedEnd)) || // Slot starts inside booked range
-          (slotEnd.isAfter(bookedStart) && slotEnd.isSameOrBefore(bookedEnd)) || // Slot ends inside booked range
-          (slotStart.isSameOrBefore(bookedStart) &&
-            slotEnd.isSameOrAfter(bookedEnd)) // Slot completely covers the booked range
-        );
-      });
-    });
-
-
-    return availableSlots;
+    return slots;
   }
+
+  // Generate main availability slots
+  const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
+  console.log("Generated mainSlots:", mainSlots);
+
+  // Filter out slots before the earliest bookable time
+  const filteredSlots = mainSlots.filter((slot) => {
+    const slotStart = moment.utc(slot[0]);
+    return slotStart.isSameOrAfter(earliestBookableTime);
+  });
+  console.log("Filtered slots after earliestBookableTime:", filteredSlots);
+
+  // Exclude already booked slots
+  const availableSlots = filteredSlots.filter((slot) => {
+    const slotStart = moment.utc(slot[0]);
+    const slotEnd = moment.utc(slot[1]);
+
+    const isOverlapping = alreadyBookedList.some((booked) => {
+      const bookedStart = moment.utc(booked.start_date);
+      const bookedEnd = moment.utc(booked.end_date);
+
+      const overlap =
+        (slotStart.isSameOrAfter(bookedStart) &&
+          slotStart.isBefore(bookedEnd)) || // Slot starts inside booked range
+        (slotEnd.isAfter(bookedStart) && slotEnd.isSameOrBefore(bookedEnd)) || // Slot ends inside booked range
+        (slotStart.isSameOrBefore(bookedStart) &&
+          slotEnd.isSameOrAfter(bookedEnd)); // Slot completely covers the booked range
+
+      if (overlap) {
+        console.log("Overlapping Slot Found:");
+        console.log("  Slot Start:", slotStart.toISOString());
+        console.log("  Slot End:", slotEnd.toISOString());
+        console.log("  Booked Start:", bookedStart.toISOString());
+        console.log("  Booked End:", bookedEnd.toISOString());
+      }
+
+      return overlap;
+    });
+
+    if (!isOverlapping) {
+      console.log("Slot is available:");
+      console.log("  Slot Start:", slotStart.toISOString());
+      console.log("  Slot End:", slotEnd.toISOString());
+    }
+
+    return !isOverlapping;
+  });
+
+  console.log("Final available slots:", availableSlots);
+
+  return availableSlots;
+}
 
 
 

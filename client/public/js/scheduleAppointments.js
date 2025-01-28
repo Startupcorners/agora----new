@@ -71,12 +71,57 @@ export const scheduleAppointments = async function () {
     // Generate main availability slots
     const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
 
-    // If allAvailabilityLists is empty, return main slots filtered by earliestBookableTime
+    // If allAvailabilityLists is empty, filter mainSlots by earliestBookableTime and alreadyBookedList
     if (!allAvailabilityLists || allAvailabilityLists.length === 0) {
-      return mainSlots.filter((slot) => {
+      console.log(
+        "No additional availability lists. Filtering mainSlots by earliest bookable time and booked slots."
+      );
+
+      // Filter slots by earliestBookableTime
+      const filteredSlots = mainSlots.filter((slot) => {
         const slotStart = moment.utc(slot[0]);
         return slotStart.isSameOrAfter(earliestBookableTime);
       });
+
+      // Exclude already booked slots
+      const availableSlots = filteredSlots.filter((slot) => {
+        const slotStart = moment.utc(slot[0]);
+        const slotEnd = moment.utc(slot[1]);
+
+        console.log("Checking for Overlapping in Early Return");
+        const isOverlapping = alreadyBookedList.some((booked) => {
+          const bookedStart = moment.utc(booked.start_date);
+          const bookedEnd = moment.utc(booked.end_date);
+
+          const overlap =
+            (slotStart.isSameOrAfter(bookedStart) &&
+              slotStart.isBefore(bookedEnd)) || // Slot starts inside booked range
+            (slotEnd.isAfter(bookedStart) &&
+              slotEnd.isSameOrBefore(bookedEnd)) || // Slot ends inside booked range
+            (slotStart.isSameOrBefore(bookedStart) &&
+              slotEnd.isSameOrAfter(bookedEnd)); // Slot completely covers the booked range
+
+          if (overlap) {
+            console.log("Overlapping Slot Found:");
+            console.log("  Slot Start:", slotStart.toISOString());
+            console.log("  Slot End:", slotEnd.toISOString());
+            console.log("  Booked Start:", bookedStart.toISOString());
+            console.log("  Booked End:", bookedEnd.toISOString());
+          }
+
+          return overlap;
+        });
+
+        if (!isOverlapping) {
+          console.log("Slot is available in Early Return:");
+          console.log("  Slot Start:", slotStart.toISOString());
+          console.log("  Slot End:", slotEnd.toISOString());
+        }
+
+        return !isOverlapping;
+      });
+
+      return availableSlots;
     }
 
     // Generate other availability slots and find common slots
@@ -93,13 +138,11 @@ export const scheduleAppointments = async function () {
       const slotStart = moment.utc(slot[0]);
       const slotEnd = moment.utc(slot[1]);
 
-      // Exclude the slot if it overlaps with any already booked slot
-      console.log("Checking for Overlapping");
+      console.log("Checking for Overlapping in Common Slots");
       const isOverlapping = alreadyBookedList.some((booked) => {
         const bookedStart = moment.utc(booked.start_date);
         const bookedEnd = moment.utc(booked.end_date);
 
-        // Log details of the overlap check
         const overlap =
           (slotStart.isSameOrAfter(bookedStart) &&
             slotStart.isBefore(bookedEnd)) || // Slot starts inside booked range
@@ -119,7 +162,7 @@ export const scheduleAppointments = async function () {
       });
 
       if (!isOverlapping) {
-        console.log("Slot is available:");
+        console.log("Slot is available in Common Slots:");
         console.log("  Slot Start:", slotStart.toISOString());
         console.log("  Slot End:", slotEnd.toISOString());
       }
