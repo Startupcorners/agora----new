@@ -54,14 +54,14 @@ export const scheduleAppointments = async function () {
           let slot = dayStart.clone();
           while (slot.isBefore(dayEnd) && slot.isBefore(localEnd)) {
             if (slot.isAfter(localStart)) {
-              slots.push({
-                start_date: slot.clone().utc().toISOString(),
-                end_date: slot
+              slots.push([
+                slot.clone().utc().toISOString(),
+                slot
                   .clone()
                   .add(availability.slot_duration_minutes, "minutes")
                   .utc()
                   .toISOString(),
-              });
+              ]);
             }
             slot.add(availability.slot_duration_minutes, "minutes");
           }
@@ -77,28 +77,10 @@ export const scheduleAppointments = async function () {
 
     // If allAvailabilityLists is empty, return main slots
     if (!allAvailabilityLists || allAvailabilityLists.length === 0) {
-      return mainSlots
-        .filter((slot) =>
-          moment(slot.start_date).isSameOrAfter(earliestBookableTime)
-        )
-        .filter(
-          (slot) =>
-            !alreadyBookedList.some(
-              (booked) =>
-                moment(slot.start_date).isBetween(
-                  booked.start_date,
-                  booked.end_date,
-                  null,
-                  "[)"
-                ) ||
-                moment(slot.end_date).isBetween(
-                  booked.start_date,
-                  booked.end_date,
-                  null,
-                  "(]"
-                )
-            )
-        );
+      return mainSlots.filter((slot) => {
+        const slotStart = moment.utc(slot[0]);
+        return slotStart.isSameOrAfter(earliestBookableTime);
+      });
     }
 
     // Generate other availability slots and find common slots
@@ -106,41 +88,33 @@ export const scheduleAppointments = async function () {
     allAvailabilityLists.forEach((availability) => {
       const slots = generateSlots(availability, rangeStart, rangeEnd);
       commonSlots = commonSlots.filter((mainSlot) =>
-        slots.some(
-          (slot) =>
-            slot.start_date === mainSlot.start_date &&
-            slot.end_date === mainSlot.end_date
-        )
+        slots.some((slot) => slot[0] === mainSlot[0] && slot[1] === mainSlot[1])
       );
     });
 
     // Filter out slots before the earliest bookable time
-    commonSlots = commonSlots.filter((slot) =>
-      moment(slot.start_date).isSameOrAfter(earliestBookableTime)
-    );
+    commonSlots = commonSlots.filter((slot) => {
+      const slotStart = moment.utc(slot[0]);
+      return slotStart.isSameOrAfter(earliestBookableTime);
+    });
 
     // Exclude already booked slots
-    commonSlots = commonSlots.filter(
-      (slot) =>
-        !alreadyBookedList.some(
-          (booked) =>
-            moment(slot.start_date).isBetween(
-              booked.start_date,
-              booked.end_date,
-              null,
-              "[)"
-            ) ||
-            moment(slot.end_date).isBetween(
-              booked.start_date,
-              booked.end_date,
-              null,
-              "(]"
-            )
-        )
-    );
+    commonSlots = commonSlots.filter((slot) => {
+      const slotStart = moment.utc(slot[0]);
+      const slotEnd = moment.utc(slot[1]);
+      return !alreadyBookedList.some((booked) => {
+        const bookedStart = moment.utc(booked.start_date);
+        const bookedEnd = moment.utc(booked.end_date);
+        return (
+          slotStart.isBetween(bookedStart, bookedEnd, null, "[)") ||
+          slotEnd.isBetween(bookedStart, bookedEnd, null, "(]")
+        );
+      });
+    });
 
     return commonSlots;
   }
+
 
 
   function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
@@ -157,14 +131,16 @@ export const scheduleAppointments = async function () {
       const dayStart = adjustedViewerDate.clone().add(i, "days");
       const dayEnd = dayStart.clone().add(1, "day").subtract(1, "second"); // Full day in local time
 
-      weekRanges.push({
-        start: dayStart.format("YYYY-MM-DDTHH:mm:ss.SSSZ"), // Keep it in the viewer's time zone
-        end: dayEnd.format("YYYY-MM-DDTHH:mm:ss.SSSZ"),
-      });
+      // Push the range as an array [start_date, end_date]
+      weekRanges.push([
+        dayStart.toISOString(), // ISO format for consistency
+        dayEnd.toISOString(),
+      ]);
     }
 
     return weekRanges;
   }
+
 
 
   function assignSimplifiedSlotInfo(mainAvailability, modifiedSlots, generatedSlots) {
@@ -255,13 +231,17 @@ export const scheduleAppointments = async function () {
 
     // Get the outputs from assignSimplifiedSlotInfo
     const [urls, addresses, isModified, isStartupCorners] =
-      assignSimplifiedSlotInfo(mainAvailability, modifiedSlots, slots);
+      assignSimplifiedSlotInfo(
+        mainAvailability,
+        modifiedSlots,
+        slots.map((slot) => ({ start_date: slot[0], end_date: slot[1] })) // Convert back to object format for compatibility
+      );
 
     // Assign outputs to the appropriate variables
     let outputlist1 = urls; // Meeting links
     let outputlist2 = addresses; // Addresses
     let outputlist4 = isModified; // Modified slot info
-    let outputlist5 = slots; // The slots themselves
+    let outputlist5 = slots; // The slots themselves (array of arrays)
     let outputlist6 = weekRanges; // Week ranges
     let outputlist9 = isStartupCorners; // Startup corners information
 
@@ -293,6 +273,7 @@ export const scheduleAppointments = async function () {
       outputlist6,
     };
   }
+
 
 
 
