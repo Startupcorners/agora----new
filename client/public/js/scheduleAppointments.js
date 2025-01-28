@@ -205,14 +205,13 @@ export const scheduleAppointments = async function () {
   // Wrapper function
   function generateScheduleWrapper(
     mainAvailability,
-    modifiedSlots,
+    allAvailabilityLists,
     viewerDate,
+    alreadyBookedList,
     offset,
     userOffsetInSeconds,
     earliestBookableDay
   ) {
-
-
     console.log("generateScheduleWrapper received:");
     console.log("mainAvailability:", mainAvailability);
     console.log("modifiedSlots:", modifiedSlots);
@@ -223,9 +222,9 @@ export const scheduleAppointments = async function () {
     // Generate the slots for the expanded range (-2 days to +9 days)
     const slots = generateSlotsForWeek(
       mainAvailability,
-      [], // No additional availability lists
+      allAvailabilityLists,
       viewerDate,
-      [], // No already booked slots
+      alreadyBookedList,
       offset,
       userOffsetInSeconds,
       earliestBookableDay
