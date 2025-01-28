@@ -211,6 +211,15 @@ export const scheduleAppointments = async function () {
     userOffsetInSeconds,
     earliestBookableDay
   ) {
+
+
+    console.log("generateScheduleWrapper received:");
+    console.log("mainAvailability:", mainAvailability);
+    console.log("modifiedSlots:", modifiedSlots);
+    console.log("viewerDate:", viewerDate);
+    console.log("offset:", offset);
+    console.log("userOffsetInSeconds:", userOffsetInSeconds);
+    console.log("earliestBookableDay:", earliestBookableDay);
     // Generate the slots for the expanded range (-2 days to +9 days)
     const slots = generateSlotsForWeek(
       mainAvailability,
