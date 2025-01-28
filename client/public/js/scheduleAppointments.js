@@ -557,7 +557,7 @@ function distributeSlotsByDay(slots, weekRanges) {
       weekRanges,
       earliestTime,
       latestTime,
-      mainAvailability.duration,
+      mainAvailability.slot_duration_minutes,
       userOffsetInSeconds
     );
 
