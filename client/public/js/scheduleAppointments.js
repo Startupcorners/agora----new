@@ -177,6 +177,28 @@ export const scheduleAppointments = async function () {
 
   // Wrapper function
   function generateScheduleWrapper(
+  mainAvailability,
+  allAvailabilityLists,
+  viewerDate,
+  alreadyBookedList,
+  modifiedSlots,
+  offset,
+  userOffsetInSeconds,
+  earliestBookableDay
+) {
+  // Log all the arguments received
+  console.log("generateScheduleWrapper called with:");
+  console.log("mainAvailability:", mainAvailability);
+  console.log("allAvailabilityLists:", allAvailabilityLists);
+  console.log("viewerDate:", viewerDate);
+  console.log("alreadyBookedList:", alreadyBookedList);
+  console.log("modifiedSlots:", modifiedSlots);
+  console.log("offset:", offset);
+  console.log("userOffsetInSeconds:", userOffsetInSeconds);
+  console.log("earliestBookableDay:", earliestBookableDay);
+
+  // Generate slots for the week
+  const slots = generateSlotsForWeek(
     mainAvailability,
     allAvailabilityLists,
     viewerDate,
@@ -185,29 +207,22 @@ export const scheduleAppointments = async function () {
     offset,
     userOffsetInSeconds,
     earliestBookableDay
-  ) {
-    const slots = generateSlotsForWeek(
-      mainAvailability,
-      allAvailabilityLists,
-      viewerDate,
-      alreadyBookedList,
-      modifiedSlots,
-      offset,
-      userOffsetInSeconds,
-      earliestBookableDay
-    );
+  );
 
-    const weekRanges = generateWeekRanges(
-      viewerDate,
-      offset,
-      userOffsetInSeconds
-    );
+  // Generate the 7 day ranges for the week
+  const weekRanges = generateWeekRanges(
+    viewerDate,
+    offset,
+    userOffsetInSeconds
+  );
 
-    console.log("Week Ranges:", weekRanges);
-    console.log("Slots:", slots);
+  // Log the results
+  console.log("Week Ranges:", weekRanges);
+  console.log("Slots:", slots);
 
-    return { weekRanges, slots };
-  }
+  return { weekRanges, slots };
+}
+
 
   return {
     generateScheduleWrapper,
