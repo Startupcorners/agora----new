@@ -218,6 +218,90 @@ export const scheduleAppointments = async function () {
 
 
 
+function findEarliestAndLatestSlotsUserTime(slots, userOffsetInSeconds) {
+  let earliest = null;
+  let latest = null;
+
+  slots.forEach((slot) => {
+    // Convert slot times from UTC to user's local time
+    const slotStartLocal = moment
+      .utc(slot[0])
+      .add(userOffsetInSeconds, "seconds");
+    const slotEndLocal = moment
+      .utc(slot[1])
+      .add(userOffsetInSeconds, "seconds");
+
+    if (!earliest || slotStartLocal.isBefore(earliest)) {
+      earliest = slotStartLocal.clone();
+    }
+    if (!latest || slotEndLocal.isAfter(latest)) {
+      latest = slotEndLocal.clone();
+    }
+  });
+
+  // Normalize earliest and latest to start and end of their respective days
+  const earliestTime = earliest.clone().startOf("day");
+  const latestTime = latest.clone().endOf("day");
+
+  return { earliestTime, latestTime };
+}
+
+
+function generateStandardizedSlots(
+  earliestTime,
+  latestTime,
+  slotDurationMinutes
+) {
+  const standardizedSlots = [];
+  const daysInWeek = 7;
+
+  for (let i = 0; i < daysInWeek; i++) {
+    const daySlots = [];
+    // Clone the earliestTime and add 'i' days
+    const currentDay = earliestTime.clone().add(i, "days");
+
+    // Set the start and end times for the day based on earliest and latest times
+    let slotStartLocal = currentDay
+      .clone()
+      .hour(earliestTime.hour())
+      .minute(earliestTime.minute())
+      .second(0)
+      .millisecond(0);
+    const slotEndLocal = currentDay
+      .clone()
+      .hour(latestTime.hour())
+      .minute(latestTime.minute())
+      .second(0)
+      .millisecond(0);
+
+    while (slotStartLocal.isBefore(slotEndLocal)) {
+      const slotEndLocalTime = slotStartLocal
+        .clone()
+        .add(slotDurationMinutes, "minutes");
+
+      // Convert back to UTC for consistency
+      const slotStartUTC = slotStartLocal
+        .clone()
+        .subtract(userOffsetInSeconds, "seconds")
+        .toISOString();
+      const slotEndUTC = slotEndLocalTime
+        .clone()
+        .subtract(userOffsetInSeconds, "seconds")
+        .toISOString();
+
+      daySlots.push([slotStartUTC, slotEndUTC]);
+
+      slotStartLocal = slotEndLocalTime;
+    }
+
+    standardizedSlots.push(daySlots);
+  }
+
+  return standardizedSlots;
+}
+
+
+
 
 
   // Wrapper function
@@ -256,12 +340,25 @@ export const scheduleAppointments = async function () {
       userOffsetInSeconds
     );
 
+    // Step 1: Find earliest and latest slot times in user's local time
+    const { earliestTime, latestTime } = findEarliestAndLatestSlotsUserTime(
+      slots,
+      userOffsetInSeconds
+    );
+
+    // Step 2: Generate standardized slots
+    const allSlots = generateStandardizedSlots(
+      earliestTime,
+      latestTime,
+      mainAvailability.duration
+    );
+
     // Get the outputs from assignSimplifiedSlotInfo
     const [urls, addresses, isModified, isStartupCorners] =
       assignSimplifiedSlotInfo(
         mainAvailability,
         modifiedSlots,
-        slots.map((slot) => ({ start_date: slot[0], end_date: slot[1] })) // Convert back to object format for compatibility
+        allSlots.map((slot) => ({ start_date: slot[0], end_date: slot[1] })) // Convert back to object format for compatibility
       );
 
     // Assign outputs to the appropriate variables
@@ -270,6 +367,7 @@ export const scheduleAppointments = async function () {
     let outputlist4 = isModified; // Modified slot info
     let outputlist5 = slots; // The slots themselves (array of arrays)
     let outputlist6 = weekRanges; // Week ranges
+    let outputlist7 = allSlots; // Week ranges
     let outputlist9 = isStartupCorners; // Startup corners information
 
     console.log({
@@ -278,6 +376,7 @@ export const scheduleAppointments = async function () {
       outputlist4,
       outputlist9,
       outputlist5,
+      outputlist7,
       outputlist6,
     });
 
@@ -288,6 +387,7 @@ export const scheduleAppointments = async function () {
       outputlist4: outputlist4,
       outputlist5: outputlist5,
       outputlist6: outputlist6,
+      outputlist7: outputlist7,
       outputlist9: outputlist9,
     });
 
@@ -298,6 +398,7 @@ export const scheduleAppointments = async function () {
       outputlist9,
       outputlist5,
       outputlist6,
+      outputlist7,
     };
   }
 
