@@ -155,6 +155,8 @@ export const scheduleAppointments = async function () {
       (slot) => !modifiedSlotKeys.has(slot.start_date + slot.end_date)
     );
 
+    console.log(commonSlots)
+
     return commonSlots;
   }
 
