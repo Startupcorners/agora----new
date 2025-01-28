@@ -384,7 +384,7 @@ function generateStandardizedSlots(
     const allSlots = generateStandardizedSlots(
       earliestTime,
       latestTime,
-      mainAvailability.duration,
+      mainAvailability.slot_duration_minutes,
       userOffsetInSeconds
     );
 
