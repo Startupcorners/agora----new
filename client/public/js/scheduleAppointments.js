@@ -122,22 +122,27 @@ export const scheduleAppointments = async function () {
     const adjustedViewerDate = moment(viewerDate)
       .add(offset, "weeks")
       .startOf("day")
-      .add(userOffsetInSeconds, "seconds"); // Align with the viewer's local time
+      .subtract(userOffsetInSeconds, "seconds"); // Correct: Subtract to align with UTC
 
     const weekRanges = [];
     for (let i = 0; i < 7; i++) {
-      const dayStart = adjustedViewerDate.clone().add(i, "days");
-      const dayEnd = dayStart.clone().add(1, "day").subtract(1, "second"); // Full day in local time
+      const dayStartUTC = adjustedViewerDate
+        .clone()
+        .add(i, "days")
+        .toISOString();
+      const dayEndUTC = adjustedViewerDate
+        .clone()
+        .add(i, "days")
+        .add(1, "day")
+        .subtract(1, "second")
+        .toISOString();
 
-      // Push the range as an array [start_date, end_date]
-      weekRanges.push([
-        dayStart.toISOString(), // ISO format for consistency
-        dayEnd.toISOString(),
-      ]);
+      weekRanges.push([dayStartUTC, dayEndUTC]);
     }
 
     return weekRanges;
   }
+
 
 
 
