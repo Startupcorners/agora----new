@@ -94,6 +94,7 @@ export const scheduleAppointments = async function () {
       const slotEnd = moment.utc(slot[1]);
 
       // Exclude the slot if it overlaps with any already booked slot
+      console.log("Checking for Overlapping");
       const isOverlapping = alreadyBookedList.some((booked) => {
         const bookedStart = moment.utc(booked.start_date);
         const bookedEnd = moment.utc(booked.end_date);
