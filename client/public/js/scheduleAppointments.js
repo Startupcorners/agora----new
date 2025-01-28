@@ -348,6 +348,7 @@ function generateAllPossibleSlots(slots, weekRanges) {
     console.log("offset:", offset);
     console.log("userOffsetInSeconds:", userOffsetInSeconds);
     console.log("earliestBookableDay:", earliestBookableDay);
+    console.log("alreadyBookedList:", alreadyBookedList);
     // Generate the slots for the expanded range (-2 days to +9 days)
     const slots = generateSlotsForWeek(
       mainAvailability,
