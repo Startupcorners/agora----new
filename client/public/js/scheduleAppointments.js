@@ -218,87 +218,43 @@ export const scheduleAppointments = async function () {
 
 
 
-function findEarliestAndLatestSlotsUserTime(slots, userOffsetInSeconds) {
-  let earliest = null;
-  let latest = null;
+function generateAllPossibleSlots(slots, weekRanges) {
+  const allPossibleSlots = new Set();
 
-  slots.forEach((slot) => {
-    // Convert slot times from UTC to user's local time
-    const slotStartLocal = moment
-      .utc(slot[0])
-      .add(userOffsetInSeconds, "seconds");
-    const slotEndLocal = moment
-      .utc(slot[1])
-      .add(userOffsetInSeconds, "seconds");
+  const isSlotInRange = (slot, range) => {
+    const slotTime = new Date(slot).getTime();
+    const rangeStart = new Date(range[0]).getTime();
+    const rangeEnd = new Date(range[1]).getTime();
+    return slotTime >= rangeStart && slotTime <= rangeEnd;
+  };
 
-    if (!earliest || slotStartLocal.isBefore(earliest)) {
-      earliest = slotStartLocal.clone();
-    }
-    if (!latest || slotEndLocal.isAfter(latest)) {
-      latest = slotEndLocal.clone();
-    }
+  const addSlotAndNeighbors = (baseSlot, dayOffsets) => {
+    const baseDate = new Date(baseSlot);
+    dayOffsets.forEach((offset) => {
+      const newDate = new Date(baseDate);
+      newDate.setDate(baseDate.getDate() + offset);
+      allPossibleSlots.add(newDate.toISOString());
+    });
+  };
+
+  slots.forEach((slotRange) => {
+    const [slotStart] = slotRange;
+
+    weekRanges.forEach((weekRange, index) => {
+      if (isSlotInRange(slotStart, weekRange)) {
+        const dayOffsets =
+          index === 0
+            ? [0, 1, 2, 3, 4, 5, 6, 7] // Week 0 offsets
+            : [-1, 0, 1, 2, 3, 4, 5, 6]; // Other week offsets
+
+        addSlotAndNeighbors(slotStart, dayOffsets);
+      }
+    });
   });
 
-  // Normalize earliest and latest to start and end of their respective days
-  const earliestTime = earliest.clone().startOf("day");
-  const latestTime = latest.clone().endOf("day");
-
-  return { earliestTime, latestTime };
+  return Array.from(allPossibleSlots).sort();
 }
 
-
-function generateStandardizedSlots(
-  earliestTime,
-  latestTime,
-  slotDurationMinutes
-) {
-  const standardizedSlots = [];
-  const daysInWeek = 7;
-
-  for (let i = 0; i < daysInWeek; i++) {
-    const daySlots = [];
-    // Clone the earliestTime and add 'i' days
-    const currentDay = earliestTime.clone().add(i, "days");
-
-    // Set the start and end times for the day based on earliest and latest times
-    let slotStartLocal = currentDay
-      .clone()
-      .hour(earliestTime.hour())
-      .minute(earliestTime.minute())
-      .second(0)
-      .millisecond(0);
-    const slotEndLocal = currentDay
-      .clone()
-      .hour(latestTime.hour())
-      .minute(latestTime.minute())
-      .second(0)
-      .millisecond(0);
-
-    while (slotStartLocal.isBefore(slotEndLocal)) {
-      const slotEndLocalTime = slotStartLocal
-        .clone()
-        .add(slotDurationMinutes, "minutes");
-
-      // Convert back to UTC for consistency
-      const slotStartUTC = slotStartLocal
-        .clone()
-        .subtract(userOffsetInSeconds, "seconds")
-        .toISOString();
-      const slotEndUTC = slotEndLocalTime
-        .clone()
-        .subtract(userOffsetInSeconds, "seconds")
-        .toISOString();
-
-      daySlots.push([slotStartUTC, slotEndUTC]);
-
-      slotStartLocal = slotEndLocalTime;
-    }
-
-    standardizedSlots.push(daySlots);
-  }
-
-  return standardizedSlots;
-}
 
 
 
@@ -340,26 +296,18 @@ function generateStandardizedSlots(
       userOffsetInSeconds
     );
 
+    const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
+
     // Get the outputs from assignSimplifiedSlotInfo
     const [urls, addresses, isModified, isStartupCorners] =
       assignSimplifiedSlotInfo(
         mainAvailability,
         modifiedSlots,
-        slots.map((slot) => ({ start_date: slot[0], end_date: slot[1] })) // Convert back to object format for compatibility
+        allPossibleSlots.map((slot) => ({
+          start_date: slot[0],
+          end_date: slot[1],
+        })) // Convert back to object format for compatibility
       );
-
-    // Step 1: Find earliest and latest slot times in user's local time
-    const { earliestTime, latestTime } = findEarliestAndLatestSlotsUserTime(
-      slots,
-      userOffsetInSeconds
-    );
-
-    // Step 2: Generate standardized slots
-    const allSlots = generateStandardizedSlots(
-      earliestTime,
-      latestTime,
-      mainAvailability.duration
-    );
 
     // Assign outputs to the appropriate variables
     let outputlist1 = urls; // Meeting links
@@ -367,7 +315,7 @@ function generateStandardizedSlots(
     let outputlist4 = isModified; // Modified slot info
     let outputlist5 = slots; // The slots themselves (array of arrays)
     let outputlist6 = weekRanges; // Week ranges
-    let outputlist7 = allSlots; // Week ranges
+    let outputlist7 = allPossibleSlots; // All possible slots
     let outputlist9 = isStartupCorners; // Startup corners information
 
     console.log({
@@ -398,7 +346,6 @@ function generateStandardizedSlots(
       outputlist9,
       outputlist5,
       outputlist6,
-      outputlist7,
     };
   }
 
