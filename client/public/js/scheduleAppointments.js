@@ -155,11 +155,14 @@ export const scheduleAppointments = async function () {
   }
 
   function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
+    const moment = window.moment; // Assume moment.js is loaded
+
+    // Adjust viewerDate based on the offset (number of weeks)
     const adjustedViewerDate = moment(viewerDate)
       .add(offset, "weeks")
       .utc()
       .startOf("day")
-      .subtract(userOffsetInSeconds, "seconds");
+      .add(userOffsetInSeconds, "seconds"); // Align with user's time zone
 
     const weekRanges = [];
     for (let i = 0; i < 7; i++) {
@@ -174,6 +177,7 @@ export const scheduleAppointments = async function () {
 
     return weekRanges;
   }
+
 
   // Wrapper function
   function generateScheduleWrapper(
