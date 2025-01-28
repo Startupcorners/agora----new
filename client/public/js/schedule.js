@@ -192,26 +192,24 @@ export const schedule = async function () {
   }
 
   function generate42CalendarDates(anchorDate, isStart) {
-    // Parse the input date (e.g., "2025/02/28").
-    const [year, month] = anchorDate.split("/").map(Number); // Year = 2025, Month = 2
+    // Parse the input date (e.g., "2025-01-28") into a UTC Date object.
+    const [year, month, day] = anchorDate.split("-").map(Number); // Split into year, month, and day.
+    const parsedDate = new Date(Date.UTC(year, month - 1, day)); // Month is 0-based.
 
-    // Set the date to the 1st of the given month.
-    const firstOfMonth = new Date(Date.UTC(year, month - 1, 1));
+    // Find the day of the week for the parsed date (0 = Sunday, 6 = Saturday).
+    const dayOfWeek = parsedDate.getUTCDay();
 
-    // Determine the day of the week for the 1st of the month.
-    const firstDayOfWeek = firstOfMonth.getUTCDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-
-    // Calculate the start date (the nearest previous Sunday).
+    // Calculate the nearest Sunday before or on the given date.
+    const offsetDays = dayOfWeek; // If it's a Friday (5), go back 5 days to Sunday.
     const startDateUTC = new Date(
-      firstOfMonth.getTime() - firstDayOfWeek * 24 * 60 * 60 * 1000
+      parsedDate.getTime() - offsetDays * 24 * 60 * 60 * 1000
     );
 
     // Generate 42 consecutive dates starting from the calculated Sunday.
+    const oneDayMs = 24 * 60 * 60 * 1000; // Milliseconds in one day.
     const dates = [];
     for (let i = 0; i < 42; i++) {
-      const currentDate = new Date(
-        startDateUTC.getTime() + i * 24 * 60 * 60 * 1000
-      );
+      const currentDate = new Date(startDateUTC.getTime() + i * oneDayMs);
       dates.push(currentDate.toISOString());
     }
 
@@ -222,6 +220,8 @@ export const schedule = async function () {
       bubble_fn_listOfEndDates(dates);
     }
   }
+
+
 
 
 
