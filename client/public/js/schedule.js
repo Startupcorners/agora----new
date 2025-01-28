@@ -670,12 +670,19 @@ function generateAllPossibleSlots(slots, weekRanges) {
       newStartDate.setDate(baseDate.getDate() + offset);
       const newEndDate = new Date(newStartDate.getTime() + duration);
 
+      // Check if the slot is already in the set
       const slotPair = JSON.stringify([
         newStartDate.toISOString(),
         newEndDate.toISOString(),
       ]);
-
-      allPossibleSlots.add(slotPair);
+      if (allPossibleSlots.has(slotPair)) {
+        console.warn("Duplicate Slot Found:", slotPair);
+      } else {
+        allPossibleSlots.add(slotPair);
+        console.log(
+          `Adding slot: Start=${newStartDate.toISOString()} End=${newEndDate.toISOString()}`
+        );
+      }
     });
   };
 
@@ -685,18 +692,23 @@ function generateAllPossibleSlots(slots, weekRanges) {
       new Date(slotEnd).getTime() - new Date(slotStart).getTime();
 
     weekRanges.forEach((weekRange, index) => {
-      // Create day offsets for each week range relative to the current slot
-      const dayOffsets = Array.from({ length: 7 }, (_, i) => i - 3); // Generate [-3, -2, -1, 0, 1, 2, 3]
+      // Generate dayOffsets [-3, -2, -1, 0, 1, 2, 3]
+      const dayOffsets = Array.from({ length: 7 }, (_, i) => i - 3);
 
       // Propagate slots for this week range
       addSlotForWeekRange(slotStart, dayOffsets, slotDuration);
     });
   });
 
+  // Debugging: Check the total slots and ensure they match expectations
+  console.log("Total unique slots generated:", allPossibleSlots.size);
+
   return Array.from(allPossibleSlots)
     .map((slotPair) => JSON.parse(slotPair))
     .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
 }
+
+
 
 
 
