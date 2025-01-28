@@ -250,7 +250,8 @@ function findEarliestAndLatestSlotsUserTime(slots, userOffsetInSeconds) {
 function generateStandardizedSlots(
   earliestTime,
   latestTime,
-  slotDurationMinutes
+  slotDurationMinutes,
+  userOffsetInSeconds
 ) {
   const standardizedSlots = [];
   const daysInWeek = 7;
@@ -350,7 +351,8 @@ function generateStandardizedSlots(
     const allSlots = generateStandardizedSlots(
       earliestTime,
       latestTime,
-      mainAvailability.duration
+      mainAvailability.duration,
+      userOffsetInSeconds
     );
 
     // Get the outputs from assignSimplifiedSlotInfo
