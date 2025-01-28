@@ -256,6 +256,18 @@ function generateStandardizedSlots(
   const standardizedSlots = [];
   const daysInWeek = 7;
 
+  // Validate slotDurationMinutes
+  if (
+    typeof slotDurationMinutes !== "number" ||
+    slotDurationMinutes <= 0 ||
+    !Number.isInteger(slotDurationMinutes)
+  ) {
+    console.warn(
+      "Invalid slotDurationMinutes provided. Defaulting to 30 minutes."
+    );
+    slotDurationMinutes = 30; // Default value
+  }
+
   for (let i = 0; i < daysInWeek; i++) {
     const daySlots = [];
     // Clone the earliestTime and add 'i' days
@@ -275,7 +287,23 @@ function generateStandardizedSlots(
       .second(0)
       .millisecond(0);
 
-    while (slotStartLocal.isBefore(slotEndLocal)) {
+    // Check if slotStartLocal is before slotEndLocal
+    if (!slotStartLocal.isBefore(slotEndLocal)) {
+      console.warn(
+        `No slot generation for day ${i}: slotStartLocal (${slotStartLocal.format()}) is not before slotEndLocal (${slotEndLocal.format()}).`
+      );
+      standardizedSlots.push(daySlots); // Push empty array
+      continue;
+    }
+
+    // Safeguard: Limit the number of slots per day to prevent infinite loops
+    let maxSlotsPerDay = 100; // Arbitrary large number
+    let slotsGenerated = 0;
+
+    while (
+      slotStartLocal.isBefore(slotEndLocal) &&
+      slotsGenerated < maxSlotsPerDay
+    ) {
       const slotEndLocalTime = slotStartLocal
         .clone()
         .add(slotDurationMinutes, "minutes");
@@ -293,6 +321,13 @@ function generateStandardizedSlots(
       daySlots.push([slotStartUTC, slotEndUTC]);
 
       slotStartLocal = slotEndLocalTime;
+      slotsGenerated++;
+    }
+
+    if (slotsGenerated >= maxSlotsPerDay) {
+      console.error(
+        `Maximum slot generation limit reached for day ${i}. Potential infinite loop detected.`
+      );
     }
 
     standardizedSlots.push(daySlots);
@@ -300,6 +335,7 @@ function generateStandardizedSlots(
 
   return standardizedSlots;
 }
+
 
 
 
