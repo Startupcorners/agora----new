@@ -192,28 +192,25 @@ export const schedule = async function () {
   }
 
   function generate42CalendarDates(anchorDate, isStart) {
-    // Parse the input date (e.g., "2025-01-28") into a UTC Date object.
-    const [year, month, day] = anchorDate.split("-").map(Number); // Split into year, month, and day.
-    const parsedDate = new Date(Date.UTC(year, month - 1, day)); // Month is 0-based.
+    // Parse the input date (e.g., "2025-02-28") into year, month, and day.
+    const [year, month] = anchorDate.split("-").map(Number);
 
-    // Find the day of the week for the parsed date (0 = Sunday, 6 = Saturday).
-    const dayOfWeek = parsedDate.getUTCDay();
+    // Set the first day of the month based on the input date.
+    const firstDayOfMonth = new Date(Date.UTC(year, month - 1, 1)); // 0-based month.
 
-    // Calculate the nearest Sunday before or on the given date.
-    const offsetDays = dayOfWeek; // If it's a Friday (5), go back 5 days to Sunday.
-    const startDateUTC = new Date(
-      parsedDate.getTime() - offsetDays * 24 * 60 * 60 * 1000
+    // Find the nearest Sunday before or on the first day of the month.
+    const dayOfWeek = firstDayOfMonth.getUTCDay(); // 0=Sunday, ..., 6=Saturday.
+    const nearestSunday = new Date(
+      firstDayOfMonth.getTime() - dayOfWeek * 24 * 60 * 60 * 1000
     );
 
-    // Generate 42 consecutive dates starting from the calculated Sunday.
+    // Generate 42 consecutive dates starting from the nearest Sunday.
     const oneDayMs = 24 * 60 * 60 * 1000; // Milliseconds in one day.
     const dates = [];
     for (let i = 0; i < 42; i++) {
-      const currentDate = new Date(startDateUTC.getTime() + i * oneDayMs);
+      const currentDate = new Date(nearestSunday.getTime() + i * oneDayMs);
       dates.push(currentDate.toISOString());
     }
-
-    console.log(dates)
 
     // Output the dates to the appropriate function based on isStart.
     if (isStart) {
@@ -222,6 +219,7 @@ export const schedule = async function () {
       bubble_fn_listOfEndDates(dates);
     }
   }
+
 
 
 
