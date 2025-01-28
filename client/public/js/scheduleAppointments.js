@@ -324,354 +324,580 @@ export const scheduleAppointments = async function () {
 
     return standardizedSlots;
   }
-function distributeSlotsByDay(slots, weekRanges) {
-  // Initialize day variables as empty arrays
-  const days = {
-    dayOne: [],
-    dayTwo: [],
-    dayThree: [],
-    dayFour: [],
-    dayFive: [],
-    daySix: [],
-    daySeven: [],
-  };
+  function distributeSlotsByDay(slots, weekRanges) {
+    // Initialize day variables as empty arrays
+    const days = {
+      dayOne: [],
+      dayTwo: [],
+      dayThree: [],
+      dayFour: [],
+      dayFive: [],
+      daySix: [],
+      daySeven: [],
+    };
 
-  // Define an array to map index to day names
-  const dayNames = [
-    "dayOne",
-    "dayTwo",
-    "dayThree",
-    "dayFour",
-    "dayFive",
-    "daySix",
-    "daySeven",
-  ];
+    // Define an array to map index to day names
+    const dayNames = [
+      "dayOne",
+      "dayTwo",
+      "dayThree",
+      "dayFour",
+      "dayFive",
+      "daySix",
+      "daySeven",
+    ];
 
-  // Iterate through each slot
-  slots.forEach((slot) => {
-    const slotStart = moment.utc(slot[0]);
-    const slotEnd = moment.utc(slot[1]);
+    // Iterate through each slot
+    slots.forEach((slot) => {
+      const slotStart = moment.utc(slot[0]);
+      const slotEnd = moment.utc(slot[1]);
 
-    // Iterate through each week range to find where the slot belongs
-    for (let i = 0; i < weekRanges.length; i++) {
-      const dayRange = weekRanges[i];
-      const dayStart = moment.utc(dayRange[0]);
-      const dayEnd = moment.utc(dayRange[1]);
+      // Iterate through each week range to find where the slot belongs
+      for (let i = 0; i < weekRanges.length; i++) {
+        const dayRange = weekRanges[i];
+        const dayStart = moment.utc(dayRange[0]);
+        const dayEnd = moment.utc(dayRange[1]);
 
-      // Check if the slot falls within the current day range
-      if (slotStart.isSameOrAfter(dayStart) && slotEnd.isSameOrBefore(dayEnd)) {
-        const dayKey = dayNames[i]; // Correctly map to 'dayOne', 'dayTwo', etc.
-        days[dayKey].push(slot);
-        break; // Move to the next slot after assigning
+        // Check if the slot falls within the current day range
+        if (
+          slotStart.isSameOrAfter(dayStart) &&
+          slotEnd.isSameOrBefore(dayEnd)
+        ) {
+          const dayKey = dayNames[i]; // Correctly map to 'dayOne', 'dayTwo', etc.
+          days[dayKey].push(slot);
+          break; // Move to the next slot after assigning
+        }
       }
+    });
+
+    return days;
+  }
+
+  /**
+   * Converts an array of scheduling slots from UTC to the user's local timezone.
+   *
+   * @param {Array<Array<String | Date>>} slots - The array of slots to convert. Each slot is an array with [startDate, endDate].
+   * @param {number} userOffsetInSeconds - The user's timezone offset from UTC in seconds.
+   * @returns {Array<Array<Date>>} - A new array of slots with start and end times adjusted to the user's timezone.
+   */
+  function convertSlotsToUserTimeZone(slots, userOffsetInSeconds) {
+    if (!Array.isArray(slots)) {
+      throw new TypeError("The 'slots' parameter must be an array.");
     }
-  });
 
-  return days;
-}
+    if (typeof userOffsetInSeconds !== "number") {
+      throw new TypeError(
+        "The 'userOffsetInSeconds' parameter must be a number."
+      );
+    }
 
-  function findEarliestAndLatestFromDistributedDays(
-    distributedDays,
-    userOffsetInSeconds
-  ) {
+    // Convert the offset from seconds to milliseconds for Date manipulation
+    const offsetInMilliseconds = userOffsetInSeconds * 1000;
+
+    // Map through each slot and adjust the start and end times
+    const convertedSlots = slots.map((slot, index) => {
+      if (
+        !Array.isArray(slot) ||
+        slot.length !== 2 ||
+        (typeof slot[0] !== "string" && !(slot[0] instanceof Date)) ||
+        (typeof slot[1] !== "string" && !(slot[1] instanceof Date))
+      ) {
+        console.warn(`Invalid slot format at index ${index}:`, slot);
+        return [null, null];
+      }
+
+      // Parse the start and end dates
+      const startDateUTC =
+        typeof slot[0] === "string"
+          ? new Date(slot[0])
+          : new Date(slot[0].getTime());
+      const endDateUTC =
+        typeof slot[1] === "string"
+          ? new Date(slot[1])
+          : new Date(slot[1].getTime());
+
+      if (isNaN(startDateUTC) || isNaN(endDateUTC)) {
+        console.warn(`Invalid date in slot at index ${index}:`, slot);
+        return [null, null];
+      }
+
+      // Adjust the dates by the user's offset
+      const startDateLocal = new Date(
+        startDateUTC.getTime() + offsetInMilliseconds
+      );
+      const endDateLocal = new Date(
+        endDateUTC.getTime() + offsetInMilliseconds
+      );
+
+      return [startDateLocal, endDateLocal];
+    });
+
+    return convertedSlots;
+  }
+
+  /**
+   * Finds the earliest start time and the latest end time from an array of converted scheduling slots,
+   * considering only the time components (hours and minutes).
+   *
+   * @param {Array<Array<Date>>} convertedSlots - The array of converted slots. Each slot is an array with [startDateLocal, endDateLocal].
+   * @returns {{ earliestTime: string | null, latestTime: string | null }} - An object containing the earliest start time and the latest end time in "HH:MM" format.
+   */
+  function findEarliestAndLatestFromTheConvertedSlots(convertedSlots) {
+    if (!Array.isArray(convertedSlots)) {
+      throw new TypeError("The 'convertedSlots' parameter must be an array.");
+    }
+
+    let earliestTimeInMinutes = null; // Minutes since midnight
+    let latestTimeInMinutes = null; // Minutes since midnight
+
+    convertedSlots.forEach((slot, index) => {
+      if (
+        !Array.isArray(slot) ||
+        slot.length !== 2 ||
+        !(slot[0] instanceof Date) ||
+        !(slot[1] instanceof Date)
+      ) {
+        console.warn(`Invalid slot format at index ${index}:`, slot);
+        return; // Skip invalid slots
+      }
+
+      const [startDate, endDate] = slot;
+
+      if (isNaN(startDate) || isNaN(endDate)) {
+        console.warn(`Invalid dates in slot at index ${index}:`, slot);
+        return; // Skip slots with invalid dates
+      }
+
+      // Extract hours and minutes from startDate
+      const startHours = startDate.getHours();
+      const startMinutes = startDate.getMinutes();
+      const startTimeInMinutes = startHours * 60 + startMinutes;
+
+      // Extract hours and minutes from endDate
+      const endHours = endDate.getHours();
+      const endMinutes = endDate.getMinutes();
+      const endTimeInMinutes = endHours * 60 + endMinutes;
+
+      // Update earliestTimeInMinutes
+      if (
+        earliestTimeInMinutes === null ||
+        startTimeInMinutes < earliestTimeInMinutes
+      ) {
+        earliestTimeInMinutes = startTimeInMinutes;
+      }
+
+      // Update latestTimeInMinutes
+      if (
+        latestTimeInMinutes === null ||
+        endTimeInMinutes > latestTimeInMinutes
+      ) {
+        latestTimeInMinutes = endTimeInMinutes;
+      }
+    });
+
+    // Helper function to convert minutes since midnight to "HH:MM" format
+    function minutesToHHMM(minutes) {
+      const hrs = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+      const paddedHrs = String(hrs).padStart(2, "0");
+      const paddedMins = String(mins).padStart(2, "0");
+      return `${paddedHrs}:${paddedMins}`;
+    }
+
     let earliestTime = null;
     let latestTime = null;
 
-    // Iterate through each day
-    Object.keys(distributedDays).forEach((dayKey) => {
-      const daySlots = distributedDays[dayKey];
+    if (earliestTimeInMinutes !== null) {
+      earliestTime = minutesToHHMM(earliestTimeInMinutes);
+      console.log("Earliest Time Found:", earliestTime);
+    } else {
+      console.warn("No valid slots to determine earliest time.");
+    }
 
-      daySlots.forEach((slot) => {
-        const slotStartLocal = moment
-          .utc(slot[0])
-          .add(userOffsetInSeconds, "seconds");
-        const slotEndLocal = moment
-          .utc(slot[1])
-          .add(userOffsetInSeconds, "seconds");
-
-        if (!earliestTime || slotStartLocal.isBefore(earliestTime)) {
-          earliestTime = slotStartLocal.clone();
-        }
-
-        if (!latestTime || slotEndLocal.isAfter(latestTime)) {
-          latestTime = slotEndLocal.clone();
-        }
-      });
-    });
-
-    // Handle cases where there are no slots
-    if (!earliestTime || !latestTime) {
-      console.warn(
-        "No slots available to determine earliest and latest times. Setting default time range."
-      );
-      // Set default times, e.g., 8 AM to 8 PM in user's local time
-      earliestTime = moment()
-        .utc()
-        .add(userOffsetInSeconds, "seconds")
-        .startOf("day")
-        .add(8, "hours");
-      latestTime = moment()
-        .utc()
-        .add(userOffsetInSeconds, "seconds")
-        .startOf("day")
-        .add(20, "hours");
+    if (latestTimeInMinutes !== null) {
+      latestTime = minutesToHHMM(latestTimeInMinutes);
+      console.log("Latest Time Found:", latestTime);
+    } else {
+      console.warn("No valid slots to determine latest time.");
     }
 
     return { earliestTime, latestTime };
   }
 
-  
-  function createAllSlotsForWeekRange(
-    weekRanges,
-    earliestTime,
-    latestTime,
-    slotDurationMinutes,
-  ) {
-    const allGeneratedSlots = [];
-
-    // Validate slotDurationMinutes
-    if (
-      typeof slotDurationMinutes !== "number" ||
-      slotDurationMinutes <= 0 ||
-      !Number.isInteger(slotDurationMinutes)
-    ) {
-      console.warn(
-        "Invalid slotDurationMinutes provided. Defaulting to 30 minutes."
-      );
-      slotDurationMinutes = 30; // Default value
+  /**
+   * Converts week ranges based on the user's timezone offset.
+   *
+   * @param {Array<Array<String>>} weekRanges - Array of week ranges. Each week range is an array with [startDateStr, endDateStr] in UTC.
+   * @param {number} userOffsetInSeconds - The user's timezone offset from UTC in seconds.
+   * @returns {Array<Array<String>>} - A new array of week ranges with adjusted start and end times in UTC.
+   */
+  function convertweekRange(weekRanges, userOffsetInSeconds) {
+    // Input Validation
+    if (!Array.isArray(weekRanges)) {
+      throw new TypeError("The 'weekRanges' parameter must be an array.");
     }
 
-    weekRanges.forEach((dayRange, index) => {
-      const dayStartUTC = moment.utc(dayRange[0]);
-      const dayEndUTC = moment.utc(dayRange[1]);
+    if (typeof userOffsetInSeconds !== "number") {
+      throw new TypeError(
+        "The 'userOffsetInSeconds' parameter must be a number."
+      );
+    }
 
-      // Determine the day's earliest and latest times in UTC
-      let currentDayEarliestUTC = earliestTime.clone().utc();
-      let currentDayLatestUTC = latestTime.clone().utc();
-
-      // Adjust earliest and latest times per day
-      // Ensure that earliestTime and latestTime are within the day's range
-      if (currentDayEarliestUTC.isBefore(dayStartUTC)) {
-        currentDayEarliestUTC = dayStartUTC.clone();
+    // Helper function to parse ISO string to Date
+    function parseISOToDate(isoString) {
+      const date = new Date(isoString);
+      if (isNaN(date)) {
+        throw new Error(`Invalid ISO date string: ${isoString}`);
       }
-      if (currentDayLatestUTC.isAfter(dayEndUTC)) {
-        currentDayLatestUTC = dayEndUTC.clone();
+      return date;
+    }
+
+    // Helper function to format Date to ISO string
+    function formatDateToISO(date) {
+      return date.toISOString();
+    }
+
+    // Convert offset from seconds to milliseconds
+    const offsetInMilliseconds = userOffsetInSeconds * 1000;
+
+    // Convert each weekRange by adjusting start and end times based on user offset
+    const convertedWeekRanges = weekRanges.map((range, index) => {
+      if (!Array.isArray(range) || range.length !== 2) {
+        console.warn(`Invalid weekRange format at index ${index}:`, range);
+        return [null, null]; // Or handle as per your requirements
       }
 
-      // If after adjustments, earliest is not before latest, skip slot generation for the day
-      if (!currentDayEarliestUTC.isBefore(currentDayLatestUTC)) {
+      const [startStr, endStr] = range;
+
+      let startDate, endDate;
+
+      try {
+        startDate = parseISOToDate(startStr);
+        endDate = parseISOToDate(endStr);
+      } catch (error) {
         console.warn(
-          `No slot generation for day ${
-            index + 1
-          }: earliest (${currentDayEarliestUTC.toISOString()}) is not before latest (${currentDayLatestUTC.toISOString()}).`
+          `Error parsing dates for weekRange at index ${index}:`,
+          error.message
         );
-        return; // Skip to the next day
+        return [null, null]; // Or handle as per your requirements
       }
 
-      let slotStartUTC = currentDayEarliestUTC.clone();
-      let slotEndUTC = slotStartUTC.clone().add(slotDurationMinutes, "minutes");
+      // Adjust the start and end dates by adding the offset
+      const adjustedStartDate = new Date(
+        startDate.getTime() + offsetInMilliseconds
+      );
+      const adjustedEndDate = new Date(
+        endDate.getTime() + offsetInMilliseconds
+      );
 
-      // Safeguard: Limit the number of slots per day to prevent infinite loops
-      let maxSlotsPerDay = 100; // Arbitrary large number
-      let slotsGenerated = 0;
+      return [
+        formatDateToISO(adjustedStartDate),
+        formatDateToISO(adjustedEndDate),
+      ];
+    });
 
-      while (
-        slotEndUTC.isSameOrBefore(currentDayLatestUTC) &&
-        slotsGenerated < maxSlotsPerDay
+    return convertedWeekRanges;
+  }
+
+  /**
+   * Creates all possible scheduling slots within the specified week ranges,
+   * bounded by the earliest and latest times, and adhering to the defined slot duration.
+   *
+   * @param {Array<Array<String>>} convertedWeekRanges - Array representing each day's availability.
+   *                                                    Each element is an array with [startDateStr, endDateStr] in UTC.
+   * @param {string} earliestTime - The earliest start time across all slots in "HH:MM" format.
+   * @param {string} latestTime - The latest end time across all slots in "HH:MM" format.
+   * @param {number} slotDurationMinutes - The duration of each slot in minutes.
+   * @returns {Array<Array<Date>>} - Array of all possible slots. Each slot is [startDateUTC, endDateUTC].
+   */
+  function createAllPossibleSlots(
+    convertedWeekRanges,
+    earliestTime,
+    latestTime,
+    slotDurationMinutes
+  ) {
+    // Input Validation
+    if (!Array.isArray(convertedWeekRanges)) {
+      throw new TypeError(
+        "The 'convertedWeekRanges' parameter must be an array."
+      );
+    }
+
+    if (typeof earliestTime !== "string" || typeof latestTime !== "string") {
+      throw new TypeError(
+        "The 'earliestTime' and 'latestTime' parameters must be strings in 'HH:MM' format."
+      );
+    }
+
+    if (typeof slotDurationMinutes !== "number" || slotDurationMinutes <= 0) {
+      throw new TypeError(
+        "The 'slotDurationMinutes' parameter must be a positive number."
+      );
+    }
+
+    // Helper function to convert "HH:MM" to minutes since midnight
+    function timeStringToMinutes(timeStr) {
+      const [hours, minutes] = timeStr.split(":").map(Number);
+      if (
+        isNaN(hours) ||
+        isNaN(minutes) ||
+        hours < 0 ||
+        hours > 23 ||
+        minutes < 0 ||
+        minutes > 59
       ) {
-        // Push the slot as [start, end] in ISO format
-        allGeneratedSlots.push([
-          slotStartUTC.toISOString(),
-          slotEndUTC.toISOString(),
-        ]);
+        throw new Error(`Invalid time string: ${timeStr}`);
+      }
+      return hours * 60 + minutes;
+    }
 
-        // Advance to the next slot
-        slotStartUTC = slotEndUTC.clone();
-        slotEndUTC = slotStartUTC.clone().add(slotDurationMinutes, "minutes");
-        slotsGenerated++;
+    // Helper function to set time on a Date object based on minutes since midnight
+    function setTimeOnDate(date, minutesSinceMidnight) {
+      const newDate = new Date(date); // Clone the date
+      newDate.setUTCHours(0, 0, 0, 0); // Reset time to midnight UTC
+      const hours = Math.floor(minutesSinceMidnight / 60);
+      const minutes = minutesSinceMidnight % 60;
+      newDate.setUTCHours(hours, minutes, 0, 0); // Set the desired time
+      return newDate;
+    }
+
+    // Convert earliestTime and latestTime to minutes
+    const earliestMinutes = timeStringToMinutes(earliestTime);
+    const latestMinutes = timeStringToMinutes(latestTime);
+
+    if (earliestMinutes >= latestMinutes) {
+      throw new Error("earliestTime must be earlier than latestTime.");
+    }
+
+    const allPossibleSlots = [];
+
+    convertedWeekRanges.forEach((range, index) => {
+      if (!Array.isArray(range) || range.length !== 2) {
+        console.warn(`Invalid weekRange format at index ${index}:`, range);
+        return; // Skip invalid range
       }
 
-      if (slotsGenerated >= maxSlotsPerDay) {
-        console.error(
-          `Maximum slot generation limit reached for day ${
-            index + 1
-          }. Potential infinite loop detected.`
+      const [startStr, endStr] = range;
+
+      let dayStartUTC, dayEndUTC;
+
+      try {
+        dayStartUTC = new Date(startStr);
+        dayEndUTC = new Date(endStr);
+
+        if (isNaN(dayStartUTC) || isNaN(dayEndUTC)) {
+          throw new Error("Invalid date.");
+        }
+
+        if (dayStartUTC >= dayEndUTC) {
+          console.warn(
+            `Start date is not before end date in weekRange at index ${index}.`
+          );
+          return; // Skip invalid range
+        }
+      } catch (error) {
+        console.warn(
+          `Error parsing dates for weekRange at index ${index}:`,
+          error.message
+        );
+        return; // Skip invalid date range
+      }
+
+      // Calculate the date (year, month, day) from dayStartUTC
+      const year = dayStartUTC.getUTCFullYear();
+      const month = dayStartUTC.getUTCMonth(); // Months are zero-indexed
+      const day = dayStartUTC.getUTCDate();
+
+      // Create a base date for the day
+      const baseDate = new Date(Date.UTC(year, month, day));
+
+      // Set earliest and latest times on the base date
+      const slotStartUTC = setTimeOnDate(baseDate, earliestMinutes);
+      const slotEndUTC = setTimeOnDate(baseDate, latestMinutes);
+
+      // Ensure that slotStartUTC and slotEndUTC are within the weekRange
+      if (slotStartUTC < dayStartUTC) {
+        console.warn(
+          `Adjusted slotStartUTC is before dayStartUTC for weekRange at index ${index}. Adjusting to dayStartUTC.`
+        );
+        slotStartUTC.setTime(dayStartUTC.getTime());
+      }
+
+      if (slotEndUTC > dayEndUTC) {
+        console.warn(
+          `Adjusted slotEndUTC is after dayEndUTC for weekRange at index ${index}. Adjusting to dayEndUTC.`
+        );
+        slotEndUTC.setTime(dayEndUTC.getTime());
+      }
+
+      // Recalculate minutes in case adjustments were made
+      const adjustedStartMinutes =
+        slotStartUTC.getUTCHours() * 60 + slotStartUTC.getUTCMinutes();
+      const adjustedEndMinutes =
+        slotEndUTC.getUTCHours() * 60 + slotEndUTC.getUTCMinutes();
+
+      if (adjustedStartMinutes >= adjustedEndMinutes) {
+        console.warn(
+          `No available slots for weekRange at index ${index} after adjustments.`
+        );
+        return; // Skip if no valid time range
+      }
+
+      // Generate slots within the adjusted time range
+      let currentStart = slotStartUTC;
+      let currentEnd = new Date(
+        currentStart.getTime() + slotDurationMinutes * 60000
+      ); // Add slotDurationMinutes
+
+      while (currentEnd <= slotEndUTC) {
+        allPossibleSlots.push([new Date(currentStart), new Date(currentEnd)]);
+        // Move to the next slot
+        currentStart = currentEnd;
+        currentEnd = new Date(
+          currentStart.getTime() + slotDurationMinutes * 60000
         );
       }
     });
 
-    return allGeneratedSlots;
+    console.log(`Generated ${allPossibleSlots.length} possible slots.`);
+    return allPossibleSlots;
   }
 
   // Wrapper function
   function generateScheduleWrapper(
-  mainAvailability,
-  allAvailabilityLists,
-  viewerDate,
-  alreadyBookedList,
-  modifiedSlots,
-  offset,
-  userOffsetInSeconds,
-  earliestBookableDay
-) {
-  try {
-    // Log received parameters for debugging
-    console.log("generateScheduleWrapper received:");
-    console.log("mainAvailability:", mainAvailability);
-    console.log("modifiedSlots:", modifiedSlots);
-    console.log("viewerDate:", viewerDate);
-    console.log("offset:", offset);
-    console.log("userOffsetInSeconds:", userOffsetInSeconds);
-    console.log("earliestBookableDay:", earliestBookableDay);
-    
-    // Step 1: Generate initial slots based on availability
-    const slots = generateSlotsForWeek(
-      mainAvailability,
-      allAvailabilityLists,
-      viewerDate,
-      alreadyBookedList,
-      offset,
-      userOffsetInSeconds,
-      earliestBookableDay
-    );
+    mainAvailability,
+    allAvailabilityLists,
+    viewerDate,
+    alreadyBookedList,
+    modifiedSlots,
+    offset,
+    userOffsetInSeconds,
+    earliestBookableDay
+  ) {
+    try {
+      // Log received parameters for debugging
+      console.log("generateScheduleWrapper received:", {
+        mainAvailability,
+        modifiedSlots,
+        viewerDate,
+        offset,
+        userOffsetInSeconds,
+        earliestBookableDay,
+      });
 
-    // Step 2: Generate week ranges (start and end times for each day)
-    const weekRanges = generateWeekRanges(
-      viewerDate,
-      offset,
-      userOffsetInSeconds
-    );
+      // Step 1: Generate initial slots based on availability
+      const slots = generateSlotsForWeek(
+        mainAvailability,
+        allAvailabilityLists,
+        viewerDate,
+        alreadyBookedList,
+        offset,
+        userOffsetInSeconds,
+        earliestBookableDay
+      );
 
-    // Step 3: Distribute slots into day-specific variables
-    const distributedDays = distributeSlotsByDay(slots, weekRanges);
-
-    console.log("distributedDays", distributedDays);
-
-    // Step 4: Find the earliest and latest times from the distributed slots
-    const { earliestTime, latestTime } =
-      findEarliestAndLatestFromDistributedDays(
-        distributedDays,
+      // Step 2: Generate week ranges (start and end times for each day)
+      const weekRanges = generateWeekRanges(
+        viewerDate,
+        offset,
         userOffsetInSeconds
       );
 
-      console.log("earliestTime", earliestTime);
-      console.log("latestTime", latestTime);
-
-    // Step 5: Generate all slots for the week range based on earliest and latest times
-    const allSlotsForWeekRange = createAllSlotsForWeekRange(
-      weekRanges,
-      earliestTime,
-      latestTime,
-      mainAvailability.slot_duration_minutes,
-      userOffsetInSeconds
-    );
-
-    // Step 6: Assign simplified slot information for Bubble
-    const [urls, addresses, isModified, isStartupCorners] =
-      assignSimplifiedSlotInfo(
-        mainAvailability,
-        modifiedSlots,
-        allSlotsForWeekRange.map((slot) => ({
-          start_date: slot[0],
-          end_date: slot[1],
-        })) // Convert back to object format for compatibility
+      // Step 3: Distribute slots into day-specific variables
+      const convertedSlots = convertSlotsToUserTimeZone(
+        slots,
+        userOffsetInSeconds
       );
 
-    // Step 7: Check if slots are available after processing
-    if (!slots || slots.length === 0) {
-      console.warn("No available slots generated.");
+      // Step 4: Find the earliest and latest times from the distributed slots
+      const { earliestTime, latestTime } =
+        findEarliestAndLatestFromTheConvertedSlots(convertedSlots);
 
-      // Initialize all output lists as empty
-      const emptyOutput = {
-        outputlist1: [], // Meeting links
-        outputlist2: [], // Addresses
-        outputlist4: [], // Modified slot info
-        outputlist5: [], // The slots themselves (array of arrays)
-        outputlist6: [], // Week ranges
-        outputlist7: [], // All slots for week range
-        outputlist9: [], // Startup corners information
+      console.log("earliestTime:", earliestTime, "latestTime:", latestTime);
+
+      const convertedWeekRanges = convertweekRange(
+        weekRanges,
+        userOffsetInSeconds
+      );
+
+      // Step 5: Generate all slots for the week range based on earliest and latest times
+      const allPossibleSlots = createAllPossibleSlots(
+        convertedWeekRanges,
+        earliestTime,
+        latestTime,
+        mainAvailability.slot_duration_minutes
+      );
+
+      // Step 6: Assign simplified slot information for Bubble
+      const [urls, addresses, isModified, isStartupCorners] =
+        assignSimplifiedSlotInfo(
+          mainAvailability,
+          modifiedSlots,
+          allPossibleSlots.map((slot) => ({
+            start_date: slot[0],
+            end_date: slot[1],
+          }))
+        );
+
+      // Step 7: Check if slots are available after processing
+      if (!slots || slots.length === 0) {
+        console.warn("No available slots generated.");
+
+        const emptyOutput = {
+          meetingLinks: [],
+          addresses: [],
+          modifiedSlotInfo: [],
+          slots: [],
+          weekRanges: [],
+          allPossibleSlots: [],
+          startupCorners: [],
+        };
+
+        console.log("Empty Output:", emptyOutput);
+        bubble_fn_hours(emptyOutput);
+        return emptyOutput;
+      }
+
+      // Step 8: Assign outputs to descriptive variables
+      const output = {
+        meetingLinks: urls,
+        addresses: addresses,
+        modifiedSlotInfo: isModified,
+        slots: slots,
+        weekRanges: weekRanges,
+        allPossibleSlots: allPossibleSlots, // Corrected typo
+        startupCorners: isStartupCorners,
       };
 
-      // Log the empty output for debugging
-      console.log("Empty Output:", emptyOutput);
+      console.log("Output:", output);
 
-      // Send empty data to Bubble
+      // Step 9: Send the results to Bubble
+      bubble_fn_hours(output);
+
+      // Return the outputs for potential further use
+      return output;
+    } catch (error) {
+      console.error("Error in generateScheduleWrapper:", error);
+
+      const emptyOutput = {
+        meetingLinks: [],
+        addresses: [],
+        modifiedSlotInfo: [],
+        slots: [],
+        weekRanges: [],
+        allPossibleSlots: [],
+        startupCorners: [],
+      };
+
+      console.log("Empty Output due to Error:", emptyOutput);
       bubble_fn_hours(emptyOutput);
-
-      // Return empty output
       return emptyOutput;
     }
-
-    // Step 8: Assign outputs to the appropriate variables with descriptive names
-    let outputlist1 = urls; // Meeting links
-    let outputlist2 = addresses; // Addresses
-    let outputlist4 = isModified; // Modified slot info
-    let outputlist5 = slots; // The slots themselves (array of arrays)
-    let outputlist6 = weekRanges; // Week ranges
-    let outputlist7 = allSlotsForWeekRange; // All slots for week range
-    let outputlist9 = isStartupCorners; // Startup corners information
-
-    // Log the outputs for debugging
-    console.log({
-      outputlist1,
-      outputlist2,
-      outputlist4,
-      outputlist9,
-      outputlist5,
-      outputlist7,
-      outputlist6,
-    });
-
-    // Step 9: Send the results to Bubble
-    bubble_fn_hours({
-      outputlist1: outputlist1,
-      outputlist2: outputlist2,
-      outputlist4: outputlist4,
-      outputlist5: outputlist5,
-      outputlist6: outputlist6,
-      outputlist7: outputlist7,
-      outputlist9: outputlist9,
-    });
-
-    // Return the outputs for potential further use
-    return {
-      outputlist1,
-      outputlist2,
-      outputlist4,
-      outputlist9,
-      outputlist5,
-      outputlist6,
-      outputlist7,
-    };
-  } catch (error) {
-    // Handle any unexpected errors
-    console.error("Error in generateScheduleWrapper:", error);
-
-    // Initialize output lists as empty arrays to prevent Bubble from crashing
-    const emptyOutput = {
-      outputlist1: [], // Meeting links
-      outputlist2: [], // Addresses
-      outputlist4: [], // Modified slot info
-      outputlist5: [], // The slots themselves (array of arrays)
-      outputlist6: [], // Week ranges
-      outputlist7: [], // All slots for week range
-      outputlist9: [], // Startup corners information
-    };
-
-    // Log the empty output for debugging
-    console.log("Empty Output due to Error:", emptyOutput);
-
-    // Send empty data to Bubble to maintain consistency
-    bubble_fn_hours(emptyOutput);
-
-    // Return empty outputs
-    return emptyOutput;
   }
-}
 
-return {
-  generateScheduleWrapper,
-};
+  return {
+    generateScheduleWrapper,
+  };
 };
 
 window["scheduleAppointments"] = scheduleAppointments;
