@@ -1,4 +1,4 @@
-export const scheduleAppointments = async function () {
+export const schedule = async function () {
   function generateSlotsForWeek(
     mainAvailability,
     viewerDate,
@@ -394,4 +394,4 @@ return {
   generateScheduleWrapper,
 };
 }
-window["scheduleAppointments"] = scheduleAppointments;
+window["schedule"] = schedule;
