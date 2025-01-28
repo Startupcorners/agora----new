@@ -160,14 +160,15 @@ export const scheduleAppointments = async function () {
     // Adjust viewerDate based on the offset (number of weeks)
     const adjustedViewerDate = moment(viewerDate)
       .add(offset, "weeks")
-      .utc()
-      .startOf("day")
-      .add(userOffsetInSeconds, "seconds"); // Align with user's time zone
+      .startOf("day"); // Start at 00:00 in UTC
 
     const weekRanges = [];
     for (let i = 0; i < 7; i++) {
-      const dayStart = adjustedViewerDate.clone().add(i, "days");
-      const dayEnd = dayStart.clone().endOf("day");
+      const dayStart = adjustedViewerDate
+        .clone()
+        .add(i, "days")
+        .add(userOffsetInSeconds, "seconds");
+      const dayEnd = dayStart.clone().add(1, "day").subtract(1, "second"); // End at 23:59:59 local time
 
       weekRanges.push({
         start: dayStart.toISOString(),
@@ -177,6 +178,7 @@ export const scheduleAppointments = async function () {
 
     return weekRanges;
   }
+
 
 
   // Wrapper function
