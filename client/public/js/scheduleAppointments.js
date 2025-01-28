@@ -167,54 +167,133 @@ export const scheduleAppointments = async function () {
   }
 
 
+  function assignSimplifiedSlotInfo(mainAvailability, modifiedSlots, generatedSlots) {
+  if (!mainAvailability || !Array.isArray(generatedSlots)) {
+    return [[], [], [], []]; // Empty arrays for urls, addresses, isModified, and isStartupCorners
+  }
+
+  const urls = []; // Meeting links
+  const addresses = []; // Addresses
+  const isModified = []; // Modified slot info (null for non-modified, bubbleId for modified)
+  const isStartupCorners = []; // Startup corners information
+
+  generatedSlots.forEach((slot) => {
+    const slotStart = moment.utc(slot.start_date);
+    const slotEnd = moment.utc(slot.end_date);
+
+    let slotInfo = {
+      meetingLink: mainAvailability.meetingLink,
+      Address: mainAvailability.Address,
+      isModified: null, // Default: not modified
+      isStartupCorners: mainAvailability.isStartupCorners,
+    };
+
+    // Check if the slot is modified
+    const modifiedSlot = modifiedSlots.find((modSlot) => {
+      const modStart = moment.utc(modSlot.start_date);
+      const modEnd = moment.utc(modSlot.end_date);
+
+      return (
+        slotStart.isBetween(modStart, modEnd, null, "[)") ||
+        slotEnd.isBetween(modStart, modEnd, null, "(]") ||
+        (slotStart.isSame(modStart) && slotEnd.isSame(modEnd)) ||
+        (modStart.isBetween(slotStart, slotEnd, null, "[)") &&
+          modEnd.isBetween(slotStart, slotEnd, null, "(]"))
+      );
+    });
+
+    if (modifiedSlot) {
+      // Use modified slot info
+      slotInfo = {
+        meetingLink: modifiedSlot.meetingLink,
+        Address: modifiedSlot.Address,
+        isModified: modifiedSlot.bubbleId || true, // Mark as modified
+        isStartupCorners: modifiedSlot.isStartupcorners,
+      };
+    }
+
+    // Push slot info to output lists
+    urls.push(slotInfo.meetingLink);
+    addresses.push(slotInfo.Address);
+    isModified.push(slotInfo.isModified);
+    isStartupCorners.push(slotInfo.isStartupCorners);
+  });
+
+  return [urls, addresses, isModified, isStartupCorners];
+}
+
+
+
 
 
   // Wrapper function
   function generateScheduleWrapper(
-  mainAvailability,
-  allAvailabilityLists,
-  viewerDate,
-  alreadyBookedList,
-  modifiedSlots,
-  offset,
-  userOffsetInSeconds,
-  earliestBookableDay
-) {
-  // Log all the arguments received
-  console.log("generateScheduleWrapper called with:");
-  console.log("mainAvailability:", mainAvailability);
-  console.log("allAvailabilityLists:", allAvailabilityLists);
-  console.log("viewerDate:", viewerDate);
-  console.log("alreadyBookedList:", alreadyBookedList);
-  console.log("modifiedSlots:", modifiedSlots);
-  console.log("offset:", offset);
-  console.log("userOffsetInSeconds:", userOffsetInSeconds);
-  console.log("earliestBookableDay:", earliestBookableDay);
-
-  // Generate slots for the week
-  const slots = generateSlotsForWeek(
     mainAvailability,
-    allAvailabilityLists,
+    modifiedSlots,
     viewerDate,
-    alreadyBookedList,
     offset,
     userOffsetInSeconds,
     earliestBookableDay
-  );
+  ) {
+    // Generate the slots for the expanded range (-2 days to +9 days)
+    const slots = generateSlotsForWeek(
+      mainAvailability,
+      [], // No additional availability lists
+      viewerDate,
+      [], // No already booked slots
+      offset,
+      userOffsetInSeconds,
+      earliestBookableDay
+    );
 
-  // Generate the 7 day ranges for the week
-  const weekRanges = generateWeekRanges(
-    viewerDate,
-    offset,
-    userOffsetInSeconds
-  );
+    // Generate the week ranges
+    const weekRanges = generateWeekRanges(
+      viewerDate,
+      offset,
+      userOffsetInSeconds
+    );
 
-  // Log the results
-  console.log("Week Ranges:", weekRanges);
-  console.log("Slots:", slots);
+    // Get the outputs from assignSimplifiedSlotInfo
+    const [urls, addresses, isModified, isStartupCorners] =
+      assignSimplifiedSlotInfo(mainAvailability, modifiedSlots, slots);
 
-  return { weekRanges, slots };
-}
+    // Assign outputs to the appropriate variables
+    let outputlist1 = urls; // Meeting links
+    let outputlist2 = addresses; // Addresses
+    let outputlist4 = isModified; // Modified slot info
+    let outputlist5 = slots; // The slots themselves
+    let outputlist6 = weekRanges; // Week ranges
+    let outputlist9 = isStartupCorners; // Startup corners information
+
+    console.log({
+      outputlist1,
+      outputlist2,
+      outputlist4,
+      outputlist9,
+      outputlist5,
+      outputlist6,
+    });
+
+    // Send result to Bubble
+    bubble_fn_hours({
+      outputList1: outputList1,
+      outputList2: outputList2,
+      outputList4: outputList4,
+      outputList5: outputList5,
+      outputList6: outputList6,
+      outputList9: outputList9,
+    });
+
+    return {
+      outputlist1,
+      outputlist2,
+      outputlist4,
+      outputlist9,
+      outputlist5,
+      outputlist6,
+    };
+  }
+
 
 
   return {
