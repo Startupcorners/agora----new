@@ -220,7 +220,7 @@ export const scheduleAppointments = async function () {
 function generateAllPossibleSlots(slots, weekRanges) {
   const allPossibleSlots = new Set();
 
-  const addSlotForWeekRange = (baseSlot, dayOffsets, duration) => {
+  const addSlotForWeekRange = (baseSlot, dayOffsets, duration, weekRange) => {
     const baseDate = new Date(baseSlot);
 
     dayOffsets.forEach((offset) => {
@@ -228,12 +228,20 @@ function generateAllPossibleSlots(slots, weekRanges) {
       newStartDate.setDate(baseDate.getDate() + offset);
       const newEndDate = new Date(newStartDate.getTime() + duration);
 
-      const slotPair = JSON.stringify([
-        newStartDate.toISOString(),
-        newEndDate.toISOString(),
-      ]);
+      // Check if the slot is within the week range
+      const weekStart = new Date(weekRange[0]);
+      const weekEnd = new Date(weekRange[1]);
 
-      allPossibleSlots.add(slotPair);
+      if (
+        newStartDate.getTime() >= weekStart.getTime() &&
+        newEndDate.getTime() <= weekEnd.getTime()
+      ) {
+        const slotPair = JSON.stringify([
+          newStartDate.toISOString(),
+          newEndDate.toISOString(),
+        ]);
+        allPossibleSlots.add(slotPair);
+      }
     });
   };
 
@@ -242,12 +250,12 @@ function generateAllPossibleSlots(slots, weekRanges) {
     const slotDuration =
       new Date(slotEnd).getTime() - new Date(slotStart).getTime();
 
-    weekRanges.forEach((weekRange, index) => {
-      // Create day offsets for each week range relative to the current slot
-      const dayOffsets = Array.from({ length: 7 }, (_, i) => i - 3); // Generate [-3, -2, -1, 0, 1, 2, 3]
+    weekRanges.forEach((weekRange) => {
+      // Generate dayOffsets [-3, -2, -1, 0, 1, 2, 3]
+      const dayOffsets = Array.from({ length: 7 }, (_, i) => i - 3);
 
       // Propagate slots for this week range
-      addSlotForWeekRange(slotStart, dayOffsets, slotDuration);
+      addSlotForWeekRange(slotStart, dayOffsets, slotDuration, weekRange);
     });
   });
 
@@ -255,7 +263,6 @@ function generateAllPossibleSlots(slots, weekRanges) {
     .map((slotPair) => JSON.parse(slotPair))
     .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
 }
-
 
 
 
