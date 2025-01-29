@@ -313,8 +313,8 @@ function generateAllPossibleSlots(slots, weekRanges) {
       new Date(slotEnd).getTime() - new Date(slotStart).getTime();
 
     weekRanges.forEach((weekRange) => {
-      // Instead of [-3..3], use [0..6] for each day of the week
-      const dayOffsets = Array.from({ length: 7 }, (_, i) => i);
+      // Generate dayOffsets [-3, -2, -1, 0, 1, 2, 3]
+      const dayOffsets = Array.from({ length: 15 }, (_, i) => i - 7);
 
       // Propagate slots for this week range
       addSlotForWeekRange(slotStart, dayOffsets, slotDuration, weekRange);
@@ -325,7 +325,6 @@ function generateAllPossibleSlots(slots, weekRanges) {
     .map((slotPair) => JSON.parse(slotPair))
     .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
 }
-
 
 
 
@@ -349,7 +348,7 @@ function generateAllPossibleSlots(slots, weekRanges) {
     console.log("offset:", offset);
     console.log("userOffsetInSeconds:", userOffsetInSeconds);
     console.log("earliestBookableDay:", earliestBookableDay);
-    console.log("alreadyBookedList:", alreadyBookedList);
+    
     // Generate the slots for the expanded range (-2 days to +9 days)
     const slots = generateSlotsForWeek(
       mainAvailability,
