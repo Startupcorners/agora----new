@@ -538,48 +538,29 @@ return availableSlots;
 
 
 
+function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
+  const moment = window.moment; // Ensure moment.js is loaded
 
+  // Parse viewerDate as UTC to prevent local time interpretation
+  const viewerDateUTC = moment.utc(viewerDate, "YYYY-MM-DD");
 
-  function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
-    const moment = window.moment; // Ensure moment.js is loaded
+  // Adjust viewerDate based on the offset (number of weeks)
+  const adjustedViewerDate = viewerDateUTC
+    .add(offset, "weeks")
+    .startOf("day")
+    .subtract(userOffsetInSeconds, "seconds"); // Convert local midnight to UTC
 
-    console.log("----- generateWeekRanges -----");
-    console.log("Input Parameters:");
-    console.log("viewerDate:", viewerDate);
-    console.log("offset (weeks):", offset);
-    console.log("userOffsetInSeconds:", userOffsetInSeconds);
+  const weekRanges = [];
+  for (let i = 0; i < 7; i++) {
+    const dayStartUTC = adjustedViewerDate.clone().add(i, "days");
+    const dayEndUTC = dayStartUTC.clone().add(1, "day").subtract(1, "second");
 
-    // Parse viewerDate as UTC to prevent local time interpretation
-    const viewerDateUTC = moment.utc(viewerDate, "YYYY-MM-DD");
-    console.log("Parsed viewerDate as UTC:", viewerDateUTC.toISOString());
-
-    // Adjust viewerDate based on the offset (number of weeks)
-    const adjustedViewerDate = viewerDateUTC
-      .add(offset, "weeks")
-      .startOf("day")
-      .subtract(userOffsetInSeconds, "seconds"); // Convert local midnight to UTC
-
-    console.log(
-      "Adjusted Viewer Date (UTC):",
-      adjustedViewerDate.toISOString()
-    );
-
-    const weekRanges = [];
-    for (let i = 0; i < 7; i++) {
-      const dayStartUTC = adjustedViewerDate.clone().add(i, "days");
-      const dayEndUTC = dayStartUTC.clone().add(1, "day").subtract(1, "second");
-
-      console.log(`Day ${i} Start UTC:`, dayStartUTC.toISOString());
-      console.log(`Day ${i} End UTC:  `, dayEndUTC.toISOString());
-
-      weekRanges.push([dayStartUTC.toISOString(), dayEndUTC.toISOString()]);
-    }
-
-    console.log("Generated Week Ranges:", weekRanges);
-    console.log("----- End of generateWeekRanges -----\n");
-
-    return weekRanges;
+    weekRanges.push([dayStartUTC.toISOString(), dayEndUTC.toISOString()]);
   }
+
+  return weekRanges;
+}
+
 
 
 
