@@ -313,8 +313,8 @@ function generateAllPossibleSlots(slots, weekRanges) {
       new Date(slotEnd).getTime() - new Date(slotStart).getTime();
 
     weekRanges.forEach((weekRange) => {
-      // Generate dayOffsets [-3, -2, -1, 0, 1, 2, 3]
-      const dayOffsets = Array.from({ length: 7 }, (_, i) => i - 3);
+      // Instead of [-3..3], use [0..6] for each day of the week
+      const dayOffsets = Array.from({ length: 7 }, (_, i) => i);
 
       // Propagate slots for this week range
       addSlotForWeekRange(slotStart, dayOffsets, slotDuration, weekRange);
@@ -325,6 +325,7 @@ function generateAllPossibleSlots(slots, weekRanges) {
     .map((slotPair) => JSON.parse(slotPair))
     .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
 }
+
 
 
 
