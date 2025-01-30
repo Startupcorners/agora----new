@@ -224,7 +224,8 @@ function checkCommonAvailableSlots(
   mainAvailabilities,
   availabilities,
   bookedSlots,
-  earliestBookableDate
+  earliestBookableDate,
+  duration
 ) {
   console.log("checkCommonAvailableSlots called with:");
   console.log("mainAvailabilities:", mainAvailabilities);
@@ -255,14 +256,28 @@ function checkCommonAvailableSlots(
   console.log("overlappingSlots:", overlappingSlots);
 
   if (overlappingSlots.length > 0) {
-    bubble_fn_overlaps("yes");
-    bubble_fn_availabilityIds({
-      outputlist1: intersectingMainAvailabilityBubbleIds,
-      outputlist2: intersectingNonMainAvailabilityBubbleIds,
-    });
+    if (duration === 30) {
+      bubble_fn_overlapsShort("yes");
+      bubble_fn_availabilityIdsShort({
+        outputlist1: intersectingMainAvailabilityBubbleIds,
+        outputlist2: intersectingNonMainAvailabilityBubbleIds,
+      });
+    } else {
+      bubble_fn_overlapsLong("yes");
+      bubble_fn_availabilityIdsLong({
+        outputlist1: intersectingMainAvailabilityBubbleIds,
+        outputlist2: intersectingNonMainAvailabilityBubbleIds,
+      });
+    }
   } else {
-    bubble_fn_overlaps("no");
+    if (duration === 30) {
+      bubble_fn_overlapsShort("no");
+    } else {
+      bubble_fn_overlapsLong("no");
+    }
   }
+
+
 
   return overlappingSlots;
 }

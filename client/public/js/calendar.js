@@ -356,10 +356,8 @@ export const init = async function (userId) {
 
     // Add all required scopes: calendar, email, and profile
     const scope = [
-      "https://www.googleapis.com/auth/calendar",
+      "https://www.googleapis.com/auth/calendar.events",
       "email",
-      "profile",
-      "openid",
     ].join(" ");
 
     const authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
