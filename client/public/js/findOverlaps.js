@@ -258,7 +258,7 @@ function checkCommonAvailableSlots(
     bubble_fn_overlaps("yes");
     bubble_fn_availabilityIds({
       outputlist1: intersectingMainAvailabilityBubbleIds,
-      outputlist2: nintersectingNonMainAvailabilityBubbleIds,
+      outputlist2: intersectingNonMainAvailabilityBubbleIds,
     });
   } else {
     bubble_fn_overlaps("no");
