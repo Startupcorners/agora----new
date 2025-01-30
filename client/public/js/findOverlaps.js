@@ -232,24 +232,30 @@ function checkCommonAvailableSlots(
   console.log("bookedSlots:", bookedSlots);
   console.log("earliestBookableDate:", earliestBookableDate);
 
-  const { intersectingBubbleIds, nonIntersectingBubbleIds, overlappingSlots } =
-    findOverlappingSlots(
-      mainAvailabilities,
-      availabilities,
-      bookedSlots,
-      earliestBookableDate
-    );
+  const {
+    intersectingMainAvailabilityBubbleIds,
+    intersectingNonMainAvailabilityBubbleIds,
+    overlappingSlots,
+  } = findOverlappingSlots(
+    mainAvailabilities,
+    availabilities,
+    bookedSlots,
+    earliestBookableDate
+  );
 
   console.log("findOverlappingSlots returned:");
-  console.log("intersectingBubbleIds:", intersectingBubbleIds);
-  console.log("nonIntersectingBubbleIds:", nonIntersectingBubbleIds);
+  console.log("intersectingBubbleIds:", intersectingMainAvailabilityBubbleIds);
+  console.log(
+    "nonIntersectingBubbleIds:",
+    intersectingNonMainAvailabilityBubbleIds
+  );
   console.log("overlappingSlots:", overlappingSlots);
 
   if (overlappingSlots.length > 0) {
     bubble_fn_overlaps("yes");
     bubble_fn_availabilityIds({
-      outputlist1: intersectingBubbleIds,
-      outputlist2: nonIntersectingBubbleIds,
+      outputlist1: intersectingMainAvailabilityBubbleIds,
+      outputlist2: nintersectingNonMainAvailabilityBubbleIds,
     });
   } else {
     bubble_fn_overlaps("no");
