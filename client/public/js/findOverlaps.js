@@ -104,6 +104,8 @@ export const checkOverlaps = async function () {
         earliestBookableDate
       );
 
+      console.log("generateUserSlots", generateUserSlots);
+
       bubbleIdToUser.set(bubbleId, userId);
 
       slots.forEach((slotObj) => {
