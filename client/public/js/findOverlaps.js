@@ -1,5 +1,3 @@
-import { listen } from "../../../server-token/api";
-
 export const checkOverlaps = async function () {
 
   // Function to generate slots for each user while considering excluded days, time offset, availability period, and earliest bookable date
