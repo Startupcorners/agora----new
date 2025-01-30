@@ -244,9 +244,12 @@ function checkCommonAvailableSlots(
   );
 
   console.log("findOverlappingSlots returned:");
-  console.log("intersectingBubbleIds:", intersectingMainAvailabilityBubbleIds);
   console.log(
-    "nonIntersectingBubbleIds:",
+    "intersectingMainAvailabilityBubbleIds:",
+    intersectingMainAvailabilityBubbleIds
+  );
+  console.log(
+    "intersectingNonMainAvailabilityBubbleIds:",
     intersectingNonMainAvailabilityBubbleIds
   );
   console.log("overlappingSlots:", overlappingSlots);
