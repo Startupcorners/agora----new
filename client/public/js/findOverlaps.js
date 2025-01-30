@@ -1,3 +1,4 @@
+import { listen } from "../../../server-token/api";
 
 export const checkOverlaps = async function () {
 
@@ -69,11 +70,18 @@ export const checkOverlaps = async function () {
   }
 
   // Function to process availabilities and find overlapping slots, filtering out booked slots
-  function findOverlappingSlots(availabilities, bookedSlots, earliestBookableDate = 0) {
+  function findOverlappingSlots(
+    mainAvailabilities,
+    availabilities,
+    bookedSlots,
+    earliestBookableDate = 0
+  ) {
     let userSlots = {};
+    let bubbleIdMap = {}; // Map userId to bubbleId for tracking
 
     availabilities.forEach((availability) => {
       const userId = availability.userId;
+      const bubbleId = availability.bubbleId;
       const slots = generateUserSlots(
         availability.daily_start_time,
         availability.daily_end_time,
@@ -82,11 +90,13 @@ export const checkOverlaps = async function () {
         availability.timeOffsetSeconds,
         availability.start_date,
         availability.end_date,
+        bubbleId,
         earliestBookableDate
       );
 
       if (!userSlots[userId]) {
         userSlots[userId] = new Set(slots);
+        bubbleIdMap[userId] = bubbleId;
       } else {
         slots.forEach((slot) => userSlots[userId].add(slot));
       }
@@ -100,7 +110,9 @@ export const checkOverlaps = async function () {
       overlappingSlots = new Set([...userSlots[userIds[0]]]);
       for (let i = 1; i < userIds.length; i++) {
         overlappingSlots = new Set(
-          [...overlappingSlots].filter((slot) => userSlots[userIds[i]].has(slot))
+          [...overlappingSlots].filter((slot) =>
+            userSlots[userIds[i]].has(slot)
+          )
         );
       }
     } else if (userIds.length === 1) {
@@ -120,29 +132,73 @@ export const checkOverlaps = async function () {
       });
     });
 
-    return [...overlappingSlots];
+    // Determine which bubbleIds intersect with mainAvailabilities
+    let intersectingBubbleIds = new Set();
+    let nonIntersectingBubbleIds = new Set();
+
+    userIds.forEach((userId) => {
+      const bubbleId = bubbleIdMap[userId];
+      if (bubbleId) {
+        const hasOverlap = [...userSlots[userId]].some((slot) =>
+          overlappingSlots.has(slot)
+        );
+
+        if (hasOverlap && mainAvailabilities.includes(bubbleId)) {
+          intersectingBubbleIds.add(bubbleId);
+        } else if (!hasOverlap && mainAvailabilities.includes(bubbleId)) {
+          nonIntersectingBubbleIds.add(bubbleId);
+        }
+      }
+    });
+
+    return {
+      intersectingBubbleIds: [...intersectingBubbleIds],
+      nonIntersectingBubbleIds: [...nonIntersectingBubbleIds],
+      overlappingSlots: [...overlappingSlots], // Keep the overlapping slots for reference
+    };
   }
+
 
   // Example usage with availability data and booked slots
 function checkCommonAvailableSlots(
+  mainAvailabilities,
   availabilities,
   bookedSlots,
   earliestBookableDate
 ) {
-  const availableSlots = findOverlappingSlots(
-    availabilities,
-    bookedSlots,
-    earliestBookableDate
-  );
+  console.log("checkCommonAvailableSlots called with:");
+  console.log("mainAvailabilities:", mainAvailabilities);
+  console.log("availabilities:", availabilities);
+  console.log("bookedSlots:", bookedSlots);
+  console.log("earliestBookableDate:", earliestBookableDate);
 
-  if (availableSlots.length > 0) {
+  const { intersectingBubbleIds, nonIntersectingBubbleIds, overlappingSlots } =
+    findOverlappingSlots(
+      mainAvailabilities,
+      availabilities,
+      bookedSlots,
+      earliestBookableDate
+    );
+
+  console.log("findOverlappingSlots returned:");
+  console.log("intersectingBubbleIds:", intersectingBubbleIds);
+  console.log("nonIntersectingBubbleIds:", nonIntersectingBubbleIds);
+  console.log("overlappingSlots:", overlappingSlots);
+
+  if (overlappingSlots.length > 0) {
     bubble_fn_overlaps("yes");
+    bubble_fn_availabilityIds({
+      outputlist1: intersectingBubbleIds,
+      outputlist2: nonIntersectingBubbleIds,
+    });
   } else {
     bubble_fn_overlaps("no");
   }
 
-  return availableSlots;
+  return overlappingSlots;
 }
+
+
 
 
   return {
