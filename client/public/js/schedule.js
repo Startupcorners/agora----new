@@ -5,7 +5,8 @@ export const schedule = async function () {
     endDate,
     poll,
     bookedSlots,
-    durationInMinutes
+    durationInMinutes,
+    previouslyCreated
   ) {
     let maxDaysToAdd = 7;
     let updatedStartDate = new Date(startDate);
@@ -14,8 +15,9 @@ export const schedule = async function () {
     let WORKING_HOURS_END = 20; // Default end time
 
     let selectedSlots = [];
+    const previouslyCreatedSet = new Set(previouslyCreated); // Convert to Set for fast lookup
 
-    while (selectedSlots.length < 40 && maxDaysToAdd >= 0) {
+    while (selectedSlots.length < 20 && maxDaysToAdd >= 0) {
       const overlappingSlots = findOverlappingSlots(
         timezoneOffsets,
         WORKING_HOURS_START,
@@ -29,18 +31,18 @@ export const schedule = async function () {
         durationInMinutes
       );
 
-      // Filter out booked slots
+      // Filter out booked slots and previously created slots
       availableSlots = availableSlots.filter(
-        (slot) => !bookedSlots.includes(slot)
+        (slot) => !bookedSlots.includes(slot) && !previouslyCreatedSet.has(slot)
       );
 
       // Select 20 evenly distributed slots
       selectedSlots = availableSlots
         .filter(
           (_, index) =>
-            index % Math.max(1, Math.floor(availableSlots.length / 40)) === 0
+            index % Math.max(1, Math.floor(availableSlots.length / 20)) === 0
         )
-        .slice(0, 40);
+        .slice(0, 20);
 
       console.log(
         `[${new Date().toISOString()}] Attempt with endDate ${updatedEndDate.toISOString()}, Found Slots: ${
@@ -48,7 +50,7 @@ export const schedule = async function () {
         }`
       );
 
-      if (selectedSlots.length >= 40) {
+      if (selectedSlots.length >= 20) {
         break;
       }
 
@@ -57,7 +59,7 @@ export const schedule = async function () {
       maxDaysToAdd--;
 
       // If all days are added but still not enough slots, adjust working hours
-      if (maxDaysToAdd === 0 && selectedSlots.length < 40) {
+      if (maxDaysToAdd === 0 && selectedSlots.length < 20) {
         console.log(
           `[${new Date().toISOString()}] Adjusting working hours to extend availability...`
         );
@@ -78,6 +80,7 @@ export const schedule = async function () {
       console.error("No available slots found.");
     }
   }
+
 
   // Function to find overlapping working hours across multiple time zones
   function findOverlappingSlots(timezoneOffsets, startHour, endHour) {
