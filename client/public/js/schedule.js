@@ -99,36 +99,86 @@ export const schedule = async function () {
   }
 
   function pickPairsPerDay(slotPairs, maxTotalPairs = 40, pairsPerDay = 3) {
-    // 1. Group by the day portion of .start (or .end, as long as it's consistent)
     const groupedByDay = {};
     for (const pair of slotPairs) {
-      const dayKey = pair.start.substring(0, 10); // e.g. "2025-01-28"
+      const dayKey = pair.start.substring(0, 10);
       if (!groupedByDay[dayKey]) {
         groupedByDay[dayKey] = [];
       }
       groupedByDay[dayKey].push(pair);
     }
 
-    // 2. Sort day keys
-    const sortedDays = Object.keys(groupedByDay).sort(); // "2025-01-28" < "2025-01-29" etc.
+    const sortedDays = Object.keys(groupedByDay).sort();
 
-    // 3. Build the final list: pick up to `pairsPerDay` from each day
     const selected = [];
     for (const day of sortedDays) {
-      // Sort pairs within this day by their .start time
+      // Sort by time
       groupedByDay[day].sort((a, b) => a.start.localeCompare(b.start));
 
-      // Take up to `pairsPerDay`
-      for (const p of groupedByDay[day].slice(0, pairsPerDay)) {
-        selected.push(p);
-        if (selected.length >= maxTotalPairs) {
-          return selected;
+      const daySlots = groupedByDay[day];
+      const total = daySlots.length;
+
+      // If the day doesn't have enough slots to fill "all segments"
+      // just take as many as we can (up to pairsPerDay)
+      if (total <= pairsPerDay) {
+        // pick them all (or pick the entire day if you prefer)
+        for (const p of daySlots.slice(0, pairsPerDay)) {
+          selected.push(p);
+          if (selected.length >= maxTotalPairs) {
+            return selected;
+          }
+        }
+      } else {
+        // do the segmentation approach
+        const segmentSize = Math.floor(total / 3);
+
+        let picksForThisDay = [];
+
+        // Segment 1 (morning)
+        if (segmentSize > 0 && picksForThisDay.length < pairsPerDay) {
+          picksForThisDay.push(daySlots[0]);
+        }
+        // Segment 2 (midday)
+        if (
+          segmentSize > 0 &&
+          2 * segmentSize < total &&
+          picksForThisDay.length < pairsPerDay
+        ) {
+          picksForThisDay.push(daySlots[segmentSize]);
+        }
+        // Segment 3 (evening)
+        if (
+          segmentSize > 0 &&
+          3 * segmentSize < total &&
+          picksForThisDay.length < pairsPerDay
+        ) {
+          picksForThisDay.push(daySlots[2 * segmentSize]);
+        }
+
+        // If you still have space to pick more within the same day
+        // (for example, if pairsPerDay is 3 but you only picked 2),
+        // you can pick from the remaining times as a fallback:
+        while (
+          picksForThisDay.length < pairsPerDay &&
+          picksForThisDay.length < daySlots.length
+        ) {
+          picksForThisDay.push(daySlots[picksForThisDay.length]);
+        }
+
+        // Add the picks for this day to the global selection
+        for (const p of picksForThisDay) {
+          selected.push(p);
+          if (selected.length >= maxTotalPairs) {
+            return selected;
+          }
         }
       }
     }
 
     return selected;
   }
+
+
 
   // Function to generate available slots within overlapping hours
   function generateAvailableSlots(
