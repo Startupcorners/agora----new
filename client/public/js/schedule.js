@@ -1,76 +1,80 @@
 export const schedule = async function () {
+  const MIN_SLOTS_REQUIRED = 20; // or 40, etc.
+
   async function runProcess(
     timezoneOffsets,
     startDate,
     endDate,
     poll,
-    bookedSlots,
+    bookedSlots, // e.g. ["2025-01-28T08:00:00Z_2025-01-28T08:15:00Z", ...]
     durationInMinutes,
     previouslyCreated
   ) {
     let maxDaysToAdd = 7;
     let updatedStartDate = new Date(startDate);
     let updatedEndDate = new Date(endDate);
-    let WORKING_HOURS_START = 8; // Default start time
-    let WORKING_HOURS_END = 20; // Default end time
+    let WORKING_HOURS_START = 8;
+    let WORKING_HOURS_END = 20;
 
-    let selectedSlots = [];
-    const previouslyCreatedSet = new Set(previouslyCreated); // Convert to Set for fast lookup
+    let selectedPairs = [];
 
-    while (selectedSlots.length < 20 && maxDaysToAdd >= 0) {
-      const overlappingSlots = findOverlappingSlots(
+    while (selectedPairs.length < MIN_SLOTS_REQUIRED && maxDaysToAdd >= 0) {
+      // 1. Find overlapping hours in the given working-hour window
+      const overlappingHours = findOverlappingSlots(
         timezoneOffsets,
         WORKING_HOURS_START,
         WORKING_HOURS_END
       );
 
-      let availableSlots = generateAvailableSlots(
+      // 2. Generate *all* slot pairs from startDate..endDate
+      let allPairs = generateAvailableSlots(
         updatedStartDate,
         updatedEndDate,
-        overlappingSlots,
+        overlappingHours,
         durationInMinutes
       );
 
-      // Filter out booked slots and previously created slots
-      availableSlots = availableSlots.filter(
-        (slot) => !bookedSlots.includes(slot) && !previouslyCreatedSet.has(slot)
-      );
+      // 3. Filter out booked or previously created
+      allPairs = filterOutBooked(allPairs, bookedSlots, previouslyCreated);
 
-      // Select 20 evenly distributed slots
-      selectedSlots = availableSlots
-        .filter(
-          (_, index) =>
-            index % Math.max(1, Math.floor(availableSlots.length / 20)) === 0
-        )
-        .slice(0, 20);
+      // 4. Pick up to 2–3 pairs per day, or however many you like
+      //    Because pickPairsPerDay also has a maxTotalPairs argument,
+      //    we should ensure we allow at least MIN_SLOTS_REQUIRED in there.
+      selectedPairs = pickPairsPerDay(allPairs, MIN_SLOTS_REQUIRED, 3);
 
       console.log(
-        `[${new Date().toISOString()}] Attempt with endDate ${updatedEndDate.toISOString()}, Found Slots: ${
-          selectedSlots.length
-        }`
+        `[${new Date().toISOString()}] Attempt with endDate ${updatedEndDate.toISOString()} -> found ${
+          selectedPairs.length
+        } slots`
       );
 
-      if (selectedSlots.length >= 20) {
+      if (selectedPairs.length >= MIN_SLOTS_REQUIRED) {
+        // Enough slots
         break;
       }
 
-      // Extend end date by one more day if maxDaysToAdd is still available
+      // We still haven't got enough -> extend the end date by 1 day
       updatedEndDate.setUTCDate(updatedEndDate.getUTCDate() + 1);
       maxDaysToAdd--;
 
-      // If all days are added but still not enough slots, adjust working hours
-      if (maxDaysToAdd === 0 && selectedSlots.length < 20) {
-        console.log(
-          `[${new Date().toISOString()}] Adjusting working hours to extend availability...`
-        );
+      // If we run out of extra days, expand working hours and reset the counter
+      if (maxDaysToAdd === 0 && selectedPairs.length < MIN_SLOTS_REQUIRED) {
+        console.log("Expanding working hours...");
         WORKING_HOURS_START = Math.max(WORKING_HOURS_START - 1, 0);
         WORKING_HOURS_END = Math.min(WORKING_HOURS_END + 1, 24);
-        maxDaysToAdd = 7; // Reset max days to check again with adjusted hours
+        maxDaysToAdd = 7; // reset
       }
     }
 
-    if (selectedSlots.length > 0) {
-      const pollResult = await generatePoll(selectedSlots, poll);
+    // If we got at least 1 pair, create the poll
+    if (selectedPairs.length > 0) {
+      // Flatten if your poll function needs [start, end, start, end, ...]
+      const finalSlots = selectedPairs.flatMap(({ start, end }) => [
+        start,
+        end,
+      ]);
+
+      const pollResult = await generatePoll(finalSlots, poll);
       if (pollResult) {
         console.log("Poll created successfully:", pollResult);
       } else {
@@ -82,27 +86,48 @@ export const schedule = async function () {
   }
 
 
-  // Function to find overlapping working hours across multiple time zones
-  function findOverlappingSlots(timezoneOffsets, startHour, endHour) {
-    let overlappingSlots = [];
+  function filterOutBooked(slotPairs, bookedSlots, previouslyCreated) {
+    // Convert arrays to Sets for faster lookup
+    const bookedSet = new Set(bookedSlots);
+    const createdSet = new Set(previouslyCreated);
 
-    for (let hour = 0; hour < 24; hour++) {
-      let utcTime = new Date(Date.UTC(2025, 0, 28, hour)); // January 28, 2025 in UTC
+    return slotPairs.filter(({ start, end }) => {
+      const key = `${start}_${end}`;
+      // Keep the pair only if it's NOT in bookedSet or createdSet
+      return !bookedSet.has(key) && !createdSet.has(key);
+    });
+  }
 
-      // Check if the hour fits in all timezone working hours
-      let isOverlapping = timezoneOffsets.every((offsetInSeconds) => {
-        let localTime = new Date(utcTime.getTime() + offsetInSeconds * 1000);
-        return (
-          localTime.getUTCHours() >= startHour &&
-          localTime.getUTCHours() < endHour
-        );
-      });
+  function pickPairsPerDay(slotPairs, maxTotalPairs = 40, pairsPerDay = 3) {
+    // 1. Group by the day portion of .start (or .end, as long as it's consistent)
+    const groupedByDay = {};
+    for (const pair of slotPairs) {
+      const dayKey = pair.start.substring(0, 10); // e.g. "2025-01-28"
+      if (!groupedByDay[dayKey]) {
+        groupedByDay[dayKey] = [];
+      }
+      groupedByDay[dayKey].push(pair);
+    }
 
-      if (isOverlapping) {
-        overlappingSlots.push(hour);
+    // 2. Sort day keys
+    const sortedDays = Object.keys(groupedByDay).sort(); // "2025-01-28" < "2025-01-29" etc.
+
+    // 3. Build the final list: pick up to `pairsPerDay` from each day
+    const selected = [];
+    for (const day of sortedDays) {
+      // Sort pairs within this day by their .start time
+      groupedByDay[day].sort((a, b) => a.start.localeCompare(b.start));
+
+      // Take up to `pairsPerDay`
+      for (const p of groupedByDay[day].slice(0, pairsPerDay)) {
+        selected.push(p);
+        if (selected.length >= maxTotalPairs) {
+          return selected;
+        }
       }
     }
-    return overlappingSlots;
+
+    return selected;
   }
 
   // Function to generate available slots within overlapping hours
@@ -119,24 +144,21 @@ export const schedule = async function () {
       currentDate <= new Date(new Date(endDate).setUTCHours(23, 59, 59, 999))
     ) {
       for (let hour of overlappingSlots) {
-        if (availableSlots.length >= 40) {
-          return availableSlots; // Stop once 40 items are added
-        }
-
         let utcTime = new Date(currentDate);
         utcTime.setUTCHours(hour, 0, 0, 0);
 
         let endTime = new Date(utcTime);
         endTime.setMinutes(utcTime.getMinutes() + durationInMinutes);
 
-        // Push start and end times as separate items
-        availableSlots.push(utcTime.toISOString().replace(".000Z", "Z"));
-        availableSlots.push(endTime.toISOString().replace(".000Z", "Z"));
+        availableSlots.push({
+          start: utcTime.toISOString().replace(".000Z", "Z"),
+          end: endTime.toISOString().replace(".000Z", "Z"),
+        });
       }
-
       currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
-    return availableSlots.slice(0, 40); // Ensure exactly 40 items
+
+    return availableSlots; // Return all pairs
   }
 
   // Function to generate the poll
@@ -190,6 +212,29 @@ export const schedule = async function () {
       console.error("Stack Trace:", error.stack);
       return null;
     }
+  }
+
+  // Function to find overlapping working hours across multiple time zones
+  function findOverlappingSlots(timezoneOffsets, startHour, endHour) {
+    let overlappingSlots = [];
+
+    for (let hour = 0; hour < 24; hour++) {
+      let utcTime = new Date(Date.UTC(2025, 0, 28, hour)); // January 28, 2025 in UTC
+
+      // Check if the hour fits in all timezone working hours
+      let isOverlapping = timezoneOffsets.every((offsetInSeconds) => {
+        let localTime = new Date(utcTime.getTime() + offsetInSeconds * 1000);
+        return (
+          localTime.getUTCHours() >= startHour &&
+          localTime.getUTCHours() < endHour
+        );
+      });
+
+      if (isOverlapping) {
+        overlappingSlots.push(hour);
+      }
+    }
+    return overlappingSlots;
   }
 
   function generate42CalendarDates(anchorDate, isStart) {
@@ -266,7 +311,6 @@ export const schedule = async function () {
       bubble_fn_listOfEndDates(dates);
     }
   }
-
 
   function adjustDatesToOffset(
     oldOffsetSeconds,
@@ -488,134 +532,129 @@ export const schedule = async function () {
     return finalOutputList1;
   }
 
+  function generateSlotsForWeek(
+    mainAvailability,
+    viewerDate,
+    alreadyBookedList,
+    offset,
+    userOffsetInSeconds,
+    earliestBookableDay
+  ) {
+    // Adjust the viewerDate based on the offset (number of weeks)
+    const adjustedViewerDate = moment(viewerDate)
+      .add(offset, "weeks")
+      .utc()
+      .startOf("day")
+      .subtract(userOffsetInSeconds, "seconds");
 
-function generateSlotsForWeek(
-  mainAvailability,
-  viewerDate,
-  alreadyBookedList,
-  offset,
-  userOffsetInSeconds,
-  earliestBookableDay
-) {
-  // Adjust the viewerDate based on the offset (number of weeks)
-  const adjustedViewerDate = moment(viewerDate)
-    .add(offset, "weeks")
-    .utc()
-    .startOf("day")
-    .subtract(userOffsetInSeconds, "seconds");
+    // Adjust the range to start 2 days before viewerDate and end 9 days after
+    const rangeStart = adjustedViewerDate.clone().subtract(2, "days");
+    const rangeEnd = adjustedViewerDate.clone().add(9, "days").endOf("day");
 
-  // Adjust the range to start 2 days before viewerDate and end 9 days after
-  const rangeStart = adjustedViewerDate.clone().subtract(2, "days");
-  const rangeEnd = adjustedViewerDate.clone().add(9, "days").endOf("day");
+    // Calculate the earliest bookable time (now + earliestBookableDay)
+    const earliestBookableTime = moment()
+      .utc()
+      .add(earliestBookableDay, "days");
 
-  // Calculate the earliest bookable time (now + earliestBookableDay)
-  const earliestBookableTime = moment().utc().add(earliestBookableDay, "days");
+    // Helper function to generate slots for mainAvailability
+    function generateSlots(availability, start, end) {
+      const slots = [];
+      const timeOffsetSeconds = availability.timeOffsetSeconds;
+      const dailyStartDuration = moment.duration(availability.daily_start_time);
+      const dailyEndDuration = moment.duration(availability.daily_end_time);
 
-  // Helper function to generate slots for mainAvailability
-  function generateSlots(availability, start, end) {
-  const slots = [];
-  const timeOffsetSeconds = availability.timeOffsetSeconds;
-  const dailyStartDuration = moment.duration(availability.daily_start_time);
-  const dailyEndDuration = moment.duration(availability.daily_end_time);
+      let current = start.clone();
+      while (current.isBefore(end)) {
+        const dayOfWeek = current.day();
+        if (!availability.excludedDays.includes(dayOfWeek)) {
+          // Calculate dayStartUTC and dayEndUTC by converting local times to UTC
+          const dayStartUTC = current
+            .clone()
+            .startOf("day")
+            .subtract(timeOffsetSeconds, "seconds")
+            .add(dailyStartDuration);
 
-  let current = start.clone();
-  while (current.isBefore(end)) {
-    const dayOfWeek = current.day();
-    if (!availability.excludedDays.includes(dayOfWeek)) {
-      // Calculate dayStartUTC and dayEndUTC by converting local times to UTC
-      const dayStartUTC = current
-        .clone()
-        .startOf("day")
-        .subtract(timeOffsetSeconds, "seconds")
-        .add(dailyStartDuration);
+          const dayEndUTC = current
+            .clone()
+            .startOf("day")
+            .subtract(timeOffsetSeconds, "seconds")
+            .add(dailyEndDuration);
 
-      const dayEndUTC = current
-        .clone()
-        .startOf("day")
-        .subtract(timeOffsetSeconds, "seconds")
-        .add(dailyEndDuration);
-
-      let slot = dayStartUTC.clone();
-      while (slot.isBefore(dayEndUTC) && slot.isBefore(end)) {
-        if (slot.isSameOrAfter(start)) {
-          slots.push([
-            slot.clone().toISOString(),
-            slot
-              .clone()
-              .add(availability.slot_duration_minutes, "minutes")
-              .toISOString(),
-          ]);
+          let slot = dayStartUTC.clone();
+          while (slot.isBefore(dayEndUTC) && slot.isBefore(end)) {
+            if (slot.isSameOrAfter(start)) {
+              slots.push([
+                slot.clone().toISOString(),
+                slot
+                  .clone()
+                  .add(availability.slot_duration_minutes, "minutes")
+                  .toISOString(),
+              ]);
+            }
+            slot.add(availability.slot_duration_minutes, "minutes");
+          }
         }
-        slot.add(availability.slot_duration_minutes, "minutes");
+        current.add(1, "day");
       }
+
+      return slots;
     }
-    current.add(1, "day");
+
+    // Generate main availability slots
+    const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
+
+    // Filter out slots before the earliest bookable time
+    const filteredSlots = mainSlots.filter((slot) => {
+      const slotStart = moment.utc(slot[0]);
+      return slotStart.isSameOrAfter(earliestBookableTime);
+    });
+
+    // Exclude already booked slots
+    const availableSlots = filteredSlots.filter((slot) => {
+      const slotStart = moment.utc(slot[0]);
+      const slotEnd = moment.utc(slot[1]);
+
+      const isOverlapping = alreadyBookedList.some((booked) => {
+        const bookedStart = moment.utc(booked.start_date);
+        const bookedEnd = moment.utc(booked.end_date);
+
+        return (
+          (slotStart.isSameOrAfter(bookedStart) &&
+            slotStart.isBefore(bookedEnd)) ||
+          (slotEnd.isAfter(bookedStart) && slotEnd.isSameOrBefore(bookedEnd)) ||
+          (slotStart.isSameOrBefore(bookedStart) &&
+            slotEnd.isSameOrAfter(bookedEnd))
+        );
+      });
+
+      return !isOverlapping;
+    });
+
+    return availableSlots;
   }
 
-  return slots;
-}
+  function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
+    const moment = window.moment; // Ensure moment.js is loaded
 
-// Generate main availability slots
-const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
+    // Parse viewerDate as UTC to prevent local time interpretation
+    const viewerDateUTC = moment.utc(viewerDate, "YYYY-MM-DD");
 
-// Filter out slots before the earliest bookable time
-const filteredSlots = mainSlots.filter((slot) => {
-  const slotStart = moment.utc(slot[0]);
-  return slotStart.isSameOrAfter(earliestBookableTime);
-});
+    // Adjust viewerDate based on the offset (number of weeks)
+    const adjustedViewerDate = viewerDateUTC
+      .add(offset, "weeks")
+      .startOf("day")
+      .subtract(userOffsetInSeconds, "seconds"); // Convert local midnight to UTC
 
-// Exclude already booked slots
-const availableSlots = filteredSlots.filter((slot) => {
-  const slotStart = moment.utc(slot[0]);
-  const slotEnd = moment.utc(slot[1]);
+    const weekRanges = [];
+    for (let i = 0; i < 7; i++) {
+      const dayStartUTC = adjustedViewerDate.clone().add(i, "days");
+      const dayEndUTC = dayStartUTC.clone().add(1, "day").subtract(1, "second");
 
-  const isOverlapping = alreadyBookedList.some((booked) => {
-    const bookedStart = moment.utc(booked.start_date);
-    const bookedEnd = moment.utc(booked.end_date);
+      weekRanges.push([dayStartUTC.toISOString(), dayEndUTC.toISOString()]);
+    }
 
-    return (
-      (slotStart.isSameOrAfter(bookedStart) && slotStart.isBefore(bookedEnd)) ||
-      (slotEnd.isAfter(bookedStart) && slotEnd.isSameOrBefore(bookedEnd)) ||
-      (slotStart.isSameOrBefore(bookedStart) && slotEnd.isSameOrAfter(bookedEnd))
-    );
-  });
-
-  return !isOverlapping;
-});
-
-return availableSlots;
-}
-
-
-
-function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
-  const moment = window.moment; // Ensure moment.js is loaded
-
-  // Parse viewerDate as UTC to prevent local time interpretation
-  const viewerDateUTC = moment.utc(viewerDate, "YYYY-MM-DD");
-
-  // Adjust viewerDate based on the offset (number of weeks)
-  const adjustedViewerDate = viewerDateUTC
-    .add(offset, "weeks")
-    .startOf("day")
-    .subtract(userOffsetInSeconds, "seconds"); // Convert local midnight to UTC
-
-  const weekRanges = [];
-  for (let i = 0; i < 7; i++) {
-    const dayStartUTC = adjustedViewerDate.clone().add(i, "days");
-    const dayEndUTC = dayStartUTC.clone().add(1, "day").subtract(1, "second");
-
-    weekRanges.push([dayStartUTC.toISOString(), dayEndUTC.toISOString()]);
+    return weekRanges;
   }
-
-  return weekRanges;
-}
-
-
-
-
-
-
 
   function assignSimplifiedSlotInfo(
     mainAvailability,
@@ -688,145 +727,139 @@ function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
     return [urls, addresses, isModified, isStartupCorners, isBlockedByUser];
   }
 
+  function generateAllPossibleSlots(slots, weekRanges) {
+    const allPossibleSlots = new Set();
 
-function generateAllPossibleSlots(slots, weekRanges) {
-  const allPossibleSlots = new Set();
+    const addSlotForWeekRange = (baseSlot, dayOffsets, duration, weekRange) => {
+      const baseDate = new Date(baseSlot);
 
-  const addSlotForWeekRange = (baseSlot, dayOffsets, duration, weekRange) => {
-    const baseDate = new Date(baseSlot);
+      dayOffsets.forEach((offset) => {
+        const newStartDate = new Date(baseDate);
+        newStartDate.setDate(baseDate.getDate() + offset);
+        const newEndDate = new Date(newStartDate.getTime() + duration);
 
-    dayOffsets.forEach((offset) => {
-      const newStartDate = new Date(baseDate);
-      newStartDate.setDate(baseDate.getDate() + offset);
-      const newEndDate = new Date(newStartDate.getTime() + duration);
+        // Check if the slot is within the week range
+        const weekStart = new Date(weekRange[0]);
+        const weekEnd = new Date(weekRange[1]);
 
-      // Check if the slot is within the week range
-      const weekStart = new Date(weekRange[0]);
-      const weekEnd = new Date(weekRange[1]);
+        if (
+          newStartDate.getTime() >= weekStart.getTime() &&
+          newEndDate.getTime() <= weekEnd.getTime()
+        ) {
+          const slotPair = JSON.stringify([
+            newStartDate.toISOString(),
+            newEndDate.toISOString(),
+          ]);
+          allPossibleSlots.add(slotPair);
+        }
+      });
+    };
 
-      if (
-        newStartDate.getTime() >= weekStart.getTime() &&
-        newEndDate.getTime() <= weekEnd.getTime()
-      ) {
-        const slotPair = JSON.stringify([
-          newStartDate.toISOString(),
-          newEndDate.toISOString(),
-        ]);
-        allPossibleSlots.add(slotPair);
-      }
+    slots.forEach((slotRange) => {
+      const [slotStart, slotEnd] = slotRange;
+      const slotDuration =
+        new Date(slotEnd).getTime() - new Date(slotStart).getTime();
+
+      weekRanges.forEach((weekRange) => {
+        // Generate dayOffsets [-3, -2, -1, 0, 1, 2, 3]
+        const dayOffsets = Array.from({ length: 15 }, (_, i) => i - 7);
+
+        // Propagate slots for this week range
+        addSlotForWeekRange(slotStart, dayOffsets, slotDuration, weekRange);
+      });
     });
-  };
 
-  slots.forEach((slotRange) => {
-    const [slotStart, slotEnd] = slotRange;
-    const slotDuration =
-      new Date(slotEnd).getTime() - new Date(slotStart).getTime();
-
-    weekRanges.forEach((weekRange) => {
-      // Generate dayOffsets [-3, -2, -1, 0, 1, 2, 3]
-      const dayOffsets = Array.from({ length: 15 }, (_, i) => i - 7);
-
-      // Propagate slots for this week range
-      addSlotForWeekRange(slotStart, dayOffsets, slotDuration, weekRange);
-    });
-  });
-
-  return Array.from(allPossibleSlots)
-    .map((slotPair) => JSON.parse(slotPair))
-    .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
-}
-
-
-
-
-
-
-
-
-
+    return Array.from(allPossibleSlots)
+      .map((slotPair) => JSON.parse(slotPair))
+      .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
+  }
 
   // Wrapper function
   function generateScheduleWrapper(
-  mainAvailability,
-  viewerDate,
-  alreadyBookedList,
-  modifiedSlots,
-  offset,
-  userOffsetInSeconds,
-  earliestBookableDay,
-  blockedByUser // Function parameter
-) {
-  // Generate the slots for the expanded range (-2 days to +9 days)
-  const slots = generateSlotsForWeek(
     mainAvailability,
     viewerDate,
     alreadyBookedList,
+    modifiedSlots,
     offset,
     userOffsetInSeconds,
-    earliestBookableDay
-  );
-
-  // Generate the week ranges
-  const weekRanges = generateWeekRanges(viewerDate, offset, userOffsetInSeconds);
-
-  const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
-
-  // Get the outputs from assignSimplifiedSlotInfo
-  const [urls, addresses, isModified, isStartupCorners, blockedByUserOutput] =
-    assignSimplifiedSlotInfo(
+    earliestBookableDay,
+    blockedByUser // Function parameter
+  ) {
+    // Generate the slots for the expanded range (-2 days to +9 days)
+    const slots = generateSlotsForWeek(
       mainAvailability,
-      modifiedSlots,
-      allPossibleSlots.map((slot) => ({
-        start_date: slot[0],
-        end_date: slot[1],
-      })), // Convert back to object format for compatibility
-      blockedByUser // Pass the original blockedByUser parameter
+      viewerDate,
+      alreadyBookedList,
+      offset,
+      userOffsetInSeconds,
+      earliestBookableDay
     );
 
-  // Assign outputs to the appropriate variables
-  let outputlist1 = urls; // Meeting links
-  let outputlist2 = addresses; // Addresses
-  let outputlist4 = isModified; // Modified slot info
-  let outputlist5 = slots; // The slots themselves (array of arrays)
-  let outputlist6 = weekRanges; // Week ranges
-  let outputlist7 = allPossibleSlots; // All possible slots
-  let outputlist8 = blockedByUserOutput; // Output from assignSimplifiedSlotInfo
-  let outputlist9 = isStartupCorners; // Startup corners information
+    // Generate the week ranges
+    const weekRanges = generateWeekRanges(
+      viewerDate,
+      offset,
+      userOffsetInSeconds
+    );
 
-  // Send result to Bubble
-  bubble_fn_hours({
-    outputlist1,
-    outputlist2,
-    outputlist4,
-    outputlist5,
-    outputlist6,
-    outputlist7,
-    outputlist8,
-    outputlist9,
-  });
+    const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
+
+    // Get the outputs from assignSimplifiedSlotInfo
+    const [urls, addresses, isModified, isStartupCorners, blockedByUserOutput] =
+      assignSimplifiedSlotInfo(
+        mainAvailability,
+        modifiedSlots,
+        allPossibleSlots.map((slot) => ({
+          start_date: slot[0],
+          end_date: slot[1],
+        })), // Convert back to object format for compatibility
+        blockedByUser // Pass the original blockedByUser parameter
+      );
+
+    // Assign outputs to the appropriate variables
+    let outputlist1 = urls; // Meeting links
+    let outputlist2 = addresses; // Addresses
+    let outputlist4 = isModified; // Modified slot info
+    let outputlist5 = slots; // The slots themselves (array of arrays)
+    let outputlist6 = weekRanges; // Week ranges
+    let outputlist7 = allPossibleSlots; // All possible slots
+    let outputlist8 = blockedByUserOutput; // Output from assignSimplifiedSlotInfo
+    let outputlist9 = isStartupCorners; // Startup corners information
+
+    // Send result to Bubble
+    bubble_fn_hours({
+      outputlist1,
+      outputlist2,
+      outputlist4,
+      outputlist5,
+      outputlist6,
+      outputlist7,
+      outputlist8,
+      outputlist9,
+    });
+
+    return {
+      outputlist1,
+      outputlist2,
+      outputlist4,
+      outputlist9,
+      outputlist5,
+      outputlist6,
+      outputlist8,
+      outputlist7,
+    };
+  }
 
   return {
-    outputlist1,
-    outputlist2,
-    outputlist4,
-    outputlist9,
-    outputlist5,
-    outputlist6,
-    outputlist8,
-    outputlist7,
+    generateScheduleWrapper,
+    generateStartTimes,
+    generateEndTimes,
+    adjustDatesToOffset,
+    generate42CalendarDates,
+    findOverlappingTimeRanges,
+    runProcess,
+    generate42CalendarDatesUserTimeZone,
   };
-}
-
-return {
-  generateScheduleWrapper,
-  generateStartTimes,
-  generateEndTimes,
-  adjustDatesToOffset,
-  generate42CalendarDates,
-  findOverlappingTimeRanges,
-  runProcess,
-  generate42CalendarDatesUserTimeZone,
-};
 }
 window["schedule"] = schedule;
 
