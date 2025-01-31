@@ -284,9 +284,49 @@ function checkCommonAvailableSlots(
 
 
 
+function checkCommonAvailableSlotsWrapper(
+  mainAvailabilitiesShort,
+  availabilitiesShort,
+  earliestBookableDateShort,
+  mainAvailabilitiesLong,
+  availabilitiesLong,
+  bookedSlots,
+  earliestBookableDateLong
+) {
+  console.log("checkCommonAvailableSlotsWrapper called");
+
+  // Run the function for short duration slots
+  console.log("Running checkCommonAvailableSlots for short slots...");
+  const overlappingSlotsShort = checkCommonAvailableSlots(
+    mainAvailabilitiesShort,
+    availabilitiesShort,
+    bookedSlots,
+    earliestBookableDateShort,
+    30
+  );
+
+  // Run the function for long duration slots
+  console.log("Running checkCommonAvailableSlots for long slots...");
+  const overlappingSlotsLong = checkCommonAvailableSlots(
+    mainAvailabilitiesLong,
+    availabilitiesLong,
+    bookedSlots,
+    earliestBookableDateLong,
+    60
+  );
+
+  console.log("Short overlapping slots:", overlappingSlotsShort);
+  console.log("Long overlapping slots:", overlappingSlotsLong);
+
+  // Notify Bubble that processing is complete
+  console.log("All checks complete, calling bubble_fn_finishedLoading()");
+  bubble_fn_finishedLoading();
+}
+
+
 
   return {
-    checkCommonAvailableSlots,
+    checkCommonAvailableSlotsWrapper,
   };
 };
 
