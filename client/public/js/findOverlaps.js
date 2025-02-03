@@ -225,13 +225,32 @@ function checkCommonAvailableSlots(
   availabilities,
   bookedSlots,
   earliestBookableDate,
-  duration
+  duration,
+  totalUsers
 ) {
   console.log("checkCommonAvailableSlots called with:");
   console.log("mainAvailabilities:", mainAvailabilities);
   console.log("availabilities:", availabilities);
   console.log("bookedSlots:", bookedSlots);
   console.log("earliestBookableDate:", earliestBookableDate);
+
+  // Count unique userIds in availabilities
+  const uniqueUserIds = new Set(availabilities.map((a) => a.userId)).size;
+
+  // If not all users have availabilities, treat it as no overlapping slots
+  if (totalUsers > uniqueUserIds) {
+    console.log(
+      "Not all users have availabilities. Treating as no overlapping slots."
+    );
+
+    if (duration === 30) {
+      bubble_fn_overlapsShort("no");
+    } else {
+      bubble_fn_overlapsLong("no");
+    }
+
+    return [];
+  }
 
   const {
     intersectingMainAvailabilityBubbleIds,
@@ -277,10 +296,9 @@ function checkCommonAvailableSlots(
     }
   }
 
-
-
   return overlappingSlots;
 }
+
 
 
 
@@ -291,7 +309,8 @@ function checkCommonAvailableSlotsWrapper(
   mainAvailabilitiesLong,
   availabilitiesLong,
   bookedSlots,
-  earliestBookableDateLong
+  earliestBookableDateLong,
+  totalUsers
 ) {
   console.log("checkCommonAvailableSlotsWrapper called");
 
@@ -302,7 +321,8 @@ function checkCommonAvailableSlotsWrapper(
     availabilitiesShort,
     bookedSlots,
     earliestBookableDateShort,
-    30
+    30,
+    totalUsers
   );
 
   // Run the function for long duration slots
