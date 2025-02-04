@@ -400,7 +400,7 @@ export const schedule = async function () {
 
   function generateStartTimes(startTime, duration) {
     // We'll ignore the provided duration and use 15 minutes instead.
-    const fixedDuration = 15;
+    const fixedDuration = duration;
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
 
@@ -432,7 +432,7 @@ export const schedule = async function () {
 
   function generateEndTimes(startTime, duration) {
     // We'll ignore the provided duration and use a fixed duration of 15 minutes.
-    const fixedDuration = 15;
+    const fixedDuration = duration;
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
 
@@ -848,6 +848,23 @@ export const schedule = async function () {
     const endTotalMinutes = endHour * 60 + endMinute;
     const timeDifference = endTotalMinutes - startTotalMinutes;
 
+    // ---- New round/not-round checks ----
+    if (duration === 60) {
+      // If start is on the half-hour, mark startNotRound="yes"
+      if (startMinute === 30) {
+        bubble_fn_startNotRound("yes");
+      }
+      // If end is on the half-hour, mark endNotRound="yes"
+      if (endMinute === 30) {
+        bubble_fn_endNotRound("yes");
+      }
+    } else if (duration === 30 || duration === 0) {
+      // For 30 or no duration, mark both as "no"
+      bubble_fn_startNotRound("no");
+      bubble_fn_endNotRound("no");
+    }
+    // ------------------------------------
+
     // Rule 1: If start time is after or equal to end time, return "no".
     if (startTotalMinutes >= endTotalMinutes) {
       bubble_fn_isAfter("no");
@@ -860,11 +877,12 @@ export const schedule = async function () {
       return;
     }
 
-    // Rule 3: If duration >= 30, check if start + duration is within the end time.
+    // Rule 3: If duration ≥ 30, check if start + duration is within the end time.
     bubble_fn_isAfter(
       startTotalMinutes + duration <= endTotalMinutes ? "yes" : "no"
     );
   }
+
 
 
 
