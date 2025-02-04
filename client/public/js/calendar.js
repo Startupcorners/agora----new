@@ -13,6 +13,7 @@ export const init = async function (userId) {
     if (!authCode) return;
 
     try {
+      // 1. Exchange the auth code for tokens
       const tokenResponse = await fetch(
         "https://agora-new.vercel.app/exchange-token",
         {
@@ -21,14 +22,11 @@ export const init = async function (userId) {
           body: JSON.stringify({ code: authCode }),
         }
       );
-
       const tokenResult = await tokenResponse.json();
-
       if (!tokenResult.success) {
         console.error("Error exchanging token:", tokenResult.error);
         return;
       }
-
       const {
         access_token: accessToken,
         refresh_token: refreshToken,
@@ -40,25 +38,14 @@ export const init = async function (userId) {
       console.log("Refresh Token:", refreshToken);
       console.log("Expires At (Timestamp):", expirationTime);
 
-      // Fetch user email using the retrieved access token
+      // 2. Fetch user email using the retrieved access token
       const userEmail = await fetchUserEmail(accessToken);
       if (!userEmail) {
         console.error("Critical Error: Email could not be retrieved.");
         return;
       }
 
-      // Setup push notifications and send data to Bubble if successful
-      const watcherInfo = await setupPushNotifications(accessToken, userId);
-      if (watcherInfo) sendWatcherInfoToBubble(watcherInfo);
-
-      // Fetch Google Calendar events and send them to Bubble
-      const events = await listCalendarEvents(
-        accessToken,
-        new Date().toISOString()
-      );
-      if (events && events.length > 0) sendCalendarEventsToBubble(events);
-
-      // Ensure sendTokenDataToBubble completes before proceeding
+      // 3. Notify Bubble with Token Data
       console.log("Sending token data to Bubble...");
       await sendTokenDataToBubble(
         accessToken,
@@ -68,15 +55,31 @@ export const init = async function (userId) {
       );
       console.log("Token data successfully sent to Bubble.");
 
+      // 4. Retrieve and Forward Calendar Events
+      const events = await listCalendarEvents(
+        accessToken,
+        new Date().toISOString()
+      );
+      if (events && events.length > 0) {
+        sendCalendarEventsToBubble(events);
+      }
+
+      // 5. Create a Custom Calendar
       const calendarId = await createStartupCornersCalendar(accessToken);
       await sendCalendarIdToBubble(calendarId);
 
-      // Process appointments for the given user
+      // 6. Process Appointments for the given user
       console.log(`Processing appointments for user: ${userId}`);
       await processAppointments(userId, accessToken, refreshToken, calendarId);
       console.log("Appointment processing completed.");
 
-      // Notify Bubble process completion
+      // 7. Set Up Push Notifications
+      const watcherInfo = await setupPushNotifications(accessToken, userId);
+      if (watcherInfo) {
+        sendWatcherInfoToBubble(watcherInfo);
+      }
+
+      // 8. Notify Bubble process completion
       if (typeof bubble_fn_finished === "function") {
         console.log("Calling bubble_fn_finished...");
         bubble_fn_finished();
@@ -87,6 +90,7 @@ export const init = async function (userId) {
       console.error("Error handling redirect:", error);
     }
   }
+
 
 
   // Fetch user email using access token
@@ -356,7 +360,7 @@ export const init = async function (userId) {
 
     // Add all required scopes: calendar, email, and profile
     const scope = [
-      "https://www.googleapis.com/auth/calendar.events",
+      "https://www.googleapis.com/auth/calendar",
       "email",
     ].join(" ");
 

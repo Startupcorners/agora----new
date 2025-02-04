@@ -1,7 +1,9 @@
 
-export const scheduleAppointments = async function () {
 
- 
+
+
+
+export const scheduleAppointments = async function () {
   function generateSlotsForWeek(
     mainAvailabilityList,
     allAvailabilityLists,
@@ -10,7 +12,6 @@ export const scheduleAppointments = async function () {
     modifiedSlots,
     offset,
     userOffsetInSeconds,
-    blockedByUserList,
     earliestBookableDay
   ) {
     const slotDuration = mainAvailabilityList[0].slot_duration_minutes;
@@ -57,7 +58,6 @@ export const scheduleAppointments = async function () {
       const slotInfoResults = assignSlotInfo(
         outputlist7,
         mainAvailabilityList,
-        blockedByUserList,
         modifiedSlots
       );
       outputlist1 = slotInfoResults.outputlist1;
@@ -427,12 +427,7 @@ export const scheduleAppointments = async function () {
     return outputlist7;
   }
 
-  function assignSlotInfo(
-    outputlist7,
-    availabilityList,
-    blockedByUserList,
-    modifiedSlots
-  ) {
+  function assignSlotInfo(outputlist7, availabilityList, modifiedSlots) {
     if (!availabilityList || !Array.isArray(availabilityList)) {
       return {
         outputlist1: [],
@@ -470,25 +465,8 @@ export const scheduleAppointments = async function () {
             meetingLink: availability.meetingLink,
             Address: availability.Address,
             isModified: null,
-            blockedByUser: false,
             isStartupCorners: availability.isStartupCorners,
           };
-
-          // Check if the slot is blocked by the user
-          blockedByUserList.forEach((blockedSlot) => {
-            const blockedStart = moment.utc(blockedSlot.start_date);
-            const blockedEnd = moment.utc(blockedSlot.end_date);
-
-            if (
-              slotStart.isBetween(blockedStart, blockedEnd, null, "[)") ||
-              slotEnd.isBetween(blockedStart, blockedEnd, null, "(]") ||
-              (slotStart.isSame(blockedStart) && slotEnd.isSame(blockedEnd)) ||
-              (blockedStart.isBetween(slotStart, slotEnd, null, "[)") &&
-                blockedEnd.isBetween(slotStart, slotEnd, null, "(]"))
-            ) {
-              slotInfo.blockedByUser = true;
-            }
-          });
 
           // Check against modified slots
           modifiedSlots.forEach((modifiedSlot) => {
@@ -514,7 +492,6 @@ export const scheduleAppointments = async function () {
           outputlist1.push(slotInfo.meetingLink);
           outputlist2.push(slotInfo.Address);
           outputlist4.push(slotInfo.isModified);
-          outputlist8.push(slotInfo.blockedByUser);
           outputlist9.push(slotInfo.isStartupCorners);
         }
       });

@@ -332,7 +332,8 @@ function checkCommonAvailableSlotsWrapper(
     availabilitiesLong,
     bookedSlots,
     earliestBookableDateLong,
-    60
+    60,
+    totalUsers
   );
 
   console.log("Short overlapping slots:", overlappingSlotsShort);
