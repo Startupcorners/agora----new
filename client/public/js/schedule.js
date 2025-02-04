@@ -85,7 +85,6 @@ export const schedule = async function () {
     }
   }
 
-
   function filterOutBooked(slotPairs, bookedSlots, previouslyCreated) {
     // Convert arrays to Sets for faster lookup
     const bookedSet = new Set(bookedSlots);
@@ -177,8 +176,6 @@ export const schedule = async function () {
 
     return selected;
   }
-
-
 
   // Function to generate available slots within overlapping hours
   function generateAvailableSlots(
@@ -431,7 +428,6 @@ export const schedule = async function () {
     bubble_fn_startTime(times);
   }
 
-
   function generateEndTimes(startTime, duration) {
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
@@ -460,7 +456,6 @@ export const schedule = async function () {
     console.log("endtimes", times);
     bubble_fn_endTime(times);
   }
-
 
   function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
     console.log("Received Availabilities:", availabilities);
@@ -689,7 +684,6 @@ export const schedule = async function () {
     return availableSlots;
   }
 
-
   function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
     const moment = window.moment; // Ensure moment.js is loaded
 
@@ -831,6 +825,27 @@ export const schedule = async function () {
       .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
   }
 
+  function checkTime(start, end, duration) {
+    // Parse start time (e.g., "08:00")
+    const [startHour, startMinute] = start.split(":").map(Number);
+    // Parse end time (e.g., "10:00")
+    const [endHour, endMinute] = end.split(":").map(Number);
+
+    // Convert start and end times to minutes since midnight
+    const startTotalMinutes = startHour * 60 + startMinute;
+    const endTotalMinutes = endHour * 60 + endMinute;
+
+    // Check if start time + duration (in minutes) is less than or equal to the end time
+    if (startTotalMinutes + duration <= endTotalMinutes) {
+      bubble_fn_isAfter("yes");
+    } else {
+      bubble_fn_isAfter("no");
+    }
+  }
+
+  // Example usage:
+  checkTime("08:00", "08:30", 30); // This will call bubble_fn_isAfter("yes")
+
   // Wrapper function
   function generateScheduleWrapper(
     mainAvailability,
@@ -916,6 +931,7 @@ export const schedule = async function () {
     findOverlappingTimeRanges,
     runProcess,
     generate42CalendarDatesUserTimeZone,
+    checkTime,
   };
 }
 window["schedule"] = schedule;
