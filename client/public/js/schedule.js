@@ -430,7 +430,6 @@ export const schedule = async function () {
     bubble_fn_startTime(times);
   }
 
-
   function generateEndTimes(startTime, duration) {
     // We'll ignore the provided duration and use a fixed duration of 15 minutes.
     const fixedDuration = 15;
@@ -462,7 +461,6 @@ export const schedule = async function () {
     console.log("endtimes", times);
     bubble_fn_endTime(times);
   }
-
 
   function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
     console.log("Received Availabilities:", availabilities);
@@ -833,8 +831,8 @@ export const schedule = async function () {
   }
 
   function checkTime(start, end, duration) {
-    // Check if any parameter is empty or undefined/null
-    if (!start || !end || duration === undefined || duration === null) {
+    // Check if start or end is empty or undefined/null
+    if (!start || !end) {
       return;
     }
 
@@ -847,8 +845,9 @@ export const schedule = async function () {
     const startTotalMinutes = startHour * 60 + startMinute;
     const endTotalMinutes = endHour * 60 + endMinute;
 
-    // Check if start time + duration (in minutes) is less than or equal to the end time
-    if (startTotalMinutes + duration <= endTotalMinutes) {
+    // Check if the end time is strictly after the start time.
+    // The provided duration is ignored.
+    if (startTotalMinutes < endTotalMinutes) {
       bubble_fn_isAfter("yes");
     } else {
       bubble_fn_isAfter("no");
