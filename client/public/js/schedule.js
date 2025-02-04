@@ -857,36 +857,35 @@ export const schedule = async function () {
 
     // Rule 1: If duration < 30 and start >= end, return "no".
     if (duration < 30 && startTotalMinutes >= endTotalMinutes) {
-      console.log("ran no")
+      console.log("ran no - duration < 30 and start >= end");
       bubble_fn_isAfter("no");
       return;
     }
 
     if (duration < 30 && startTotalMinutes < endTotalMinutes) {
-      console.log("ran yes");
+      console.log("ran yes - duration < 30 and start < end");
       bubble_fn_isAfter("yes");
       return;
     }
 
     // Rule 2: If duration >= 30 and start > end, return "no".
     if (duration >= 30 && startTotalMinutes > endTotalMinutes) {
-      console.log("ran no");
+      console.log("ran no - duration >= 30 and start > end");
       bubble_fn_isAfter("no");
       return;
     }
 
-    // Rule 3: If duration >= 30 and start <= end, return "yes".
-    if (duration >= 30 && startTotalMinutes <= endTotalMinutes) {
-      console.log("ran yes");
+    // Rule 3: If duration >= 30, check that start + duration is within the end time
+    if (duration >= 30 && startTotalMinutes + duration <= endTotalMinutes) {
+      console.log("ran yes - duration >= 30 and fits within end time");
       bubble_fn_isAfter("yes");
       return;
     }
 
     // Default case (should never happen)
-    console.log("ran no");
+    console.log("ran no - default case");
     bubble_fn_isAfter("no");
   }
-
 
 
   // Wrapper function
