@@ -831,30 +831,46 @@ export const schedule = async function () {
   }
 
   function checkTime(start, end, duration) {
-    // Check if start or end is empty or undefined/null
+    // Return early if start or end is not provided.
     if (!start || !end) {
       return;
     }
 
-    // Parse start time (e.g., "08:00")
+    // If duration is null, undefined, or an empty string, treat it as 0.
+    if (duration === undefined || duration === null || duration === "") {
+      duration = 0;
+    } else {
+      duration = Number(duration); // Convert to a number if it's provided.
+    }
+
+    // Parse start and end times (e.g., "08:00" => [8, 0]).
     const [startHour, startMinute] = start.split(":").map(Number);
-    // Parse end time (e.g., "10:00")
     const [endHour, endMinute] = end.split(":").map(Number);
 
-    // Convert start and end times to minutes since midnight
+    // Convert times to minutes since midnight.
     const startTotalMinutes = startHour * 60 + startMinute;
     const endTotalMinutes = endHour * 60 + endMinute;
 
-    // Check if the end time is strictly after the start time.
-    // The provided duration is ignored.
-    if (startTotalMinutes < endTotalMinutes) {
-      console.log("ran yes")
+    // Rule 1: If start time is greater than or equal to end time, return "no".
+    if (startTotalMinutes >= endTotalMinutes) {
+      bubble_fn_isAfter("no");
+      return;
+    }
+
+    // Rule 2: If the provided duration is less than 30 minutes, return "no".
+    if (duration < 30) {
+      bubble_fn_isAfter("no");
+      return;
+    }
+
+    // Rule 3: Check if the start time plus the duration is less than or equal to the end time.
+    if (startTotalMinutes + duration <= endTotalMinutes) {
       bubble_fn_isAfter("yes");
     } else {
-      console.log("ran no");
       bubble_fn_isAfter("no");
     }
   }
+
 
   // Wrapper function
   function generateScheduleWrapper(
