@@ -359,10 +359,9 @@ export const init = async function (userId) {
     const redirectUri = "https://www.startupcorners.com/oauth-callback"; // Your Redirect URI
 
     // Add all required scopes: calendar, email, and profile
-    const scope = [
-      "https://www.googleapis.com/auth/calendar",
-      "email",
-    ].join(" ");
+    const scope = ["https://www.googleapis.com/auth/calendar", "email"].join(
+      " "
+    );
 
     const authEndpoint = "https://accounts.google.com/o/oauth2/v2/auth";
 
@@ -374,6 +373,9 @@ export const init = async function (userId) {
     )}&scope=${encodeURIComponent(
       scope
     )}&access_type=offline&prompt=consent&include_granted_scopes=true&state=${state}`;
+
+    // Remove any onbeforeunload handlers to avoid the leave-site popup
+    window.onbeforeunload = null;
 
     // Redirect the user to Google's OAuth page
     window.location.href = authUrl;
@@ -387,6 +389,7 @@ export const init = async function (userId) {
     console.log("Redirect detected, calling handleRedirect...");
     await handleRedirect(userId);
   }
+
 
 
   // Function to list calendar events
