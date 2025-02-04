@@ -399,6 +399,8 @@ export const schedule = async function () {
   }
 
   function generateStartTimes(startTime, duration) {
+    // We'll ignore the provided duration and use 15 minutes instead.
+    const fixedDuration = 15;
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
 
@@ -406,12 +408,12 @@ export const schedule = async function () {
     let currentTimeInMinutes = startHour * 60 + startMinute;
     console.log("Initial start time in minutes:", currentTimeInMinutes);
 
-    // Calculate the last possible start time so that the event ends by midnight.
-    // For example, if duration is 60 minutes, the event must start by 23:00.
-    const endTimeInMinutes = 23 * 60 + (60 - duration);
+    // Calculate the last possible start time so that a 15-minute event ends by midnight.
+    // For a 15-minute duration, the event must start by 23:45.
+    const endTimeInMinutes = 23 * 60 + (60 - fixedDuration);
     console.log("End time in minutes:", endTimeInMinutes);
 
-    // Always increment by 15 minutes regardless of duration
+    // Always increment by 15 minutes
     while (currentTimeInMinutes <= endTimeInMinutes) {
       const hours = Math.floor(currentTimeInMinutes / 60);
       const minutes = currentTimeInMinutes % 60;
@@ -420,7 +422,7 @@ export const schedule = async function () {
         .padStart(2, "0")}`;
       times.push(time);
       console.log("Generated start time:", time);
-      currentTimeInMinutes += 15;
+      currentTimeInMinutes += fixedDuration;
       console.log("Next start time in minutes:", currentTimeInMinutes);
     }
 
@@ -428,19 +430,23 @@ export const schedule = async function () {
     bubble_fn_startTime(times);
   }
 
+
   function generateEndTimes(startTime, duration) {
+    // We'll ignore the provided duration and use a fixed duration of 15 minutes.
+    const fixedDuration = 15;
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
 
-    // Convert start time to minutes and add the event duration to get the initial end time
-    let currentTimeInMinutes = startHour * 60 + startMinute + duration;
+    // Convert the start time to minutes from midnight and add the fixed duration
+    // to get the initial end time.
+    let currentTimeInMinutes = startHour * 60 + startMinute + fixedDuration;
     console.log("Initial end time in minutes:", currentTimeInMinutes);
 
     // Set the final boundary to 24:00 (1440 minutes)
     const endTimeInMinutes = 24 * 60;
     console.log("Final end time in minutes:", endTimeInMinutes);
 
-    // Always increment by 15 minutes regardless of duration
+    // Always increment by 15 minutes (the fixed duration)
     while (currentTimeInMinutes <= endTimeInMinutes) {
       const hours = Math.floor(currentTimeInMinutes / 60);
       const minutes = currentTimeInMinutes % 60;
@@ -449,13 +455,14 @@ export const schedule = async function () {
         .padStart(2, "0")}`;
       times.push(time);
       console.log("Generated end time:", time);
-      currentTimeInMinutes += 15;
+      currentTimeInMinutes += fixedDuration;
       console.log("Next end time in minutes:", currentTimeInMinutes);
     }
 
     console.log("endtimes", times);
     bubble_fn_endTime(times);
   }
+
 
   function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
     console.log("Received Availabilities:", availabilities);
