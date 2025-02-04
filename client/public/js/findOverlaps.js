@@ -9,12 +9,13 @@ export const checkOverlaps = async function () {
     timeOffsetSeconds,
     startDate,
     endDate,
-    earliestBookableDate
+    earliestBookableHour
   ) {
     const localTz = moment().utcOffset(timeOffsetSeconds / 60);
-    const now = localTz.startOf("day").add(earliestBookableDate, "days");
+    // Use earliestBookableHour to add hours instead of days
+    const now = localTz.startOf("day").add(earliestBookableHour, "hours");
 
-    // Determine the effective start date (whichever is later: startDate or now + earliestBookableDate)
+    // Determine the effective start date (whichever is later: startDate or now)
     const startDay = moment
       .tz(startDate, "YYYY-MM-DD", localTz.tz())
       .startOf("day")
@@ -67,12 +68,13 @@ export const checkOverlaps = async function () {
     return slots;
   }
 
+
   // Function to process availabilities and find overlapping slots, filtering out booked slots
   function findOverlappingSlots(
     mainAvailabilities, // array of "main" bubble IDs (?)
     availabilities, // array of objects, each describing 1 user's availability blocks
     bookedSlots, // array of objects with {start_date, end_date}
-    earliestBookableDate = 0
+    earliestBookableHour
   ) {
     // Maps an ISO-string slot key -> object: { start, end, bubbleIds }
     const slotMap = new Map();
@@ -101,7 +103,7 @@ export const checkOverlaps = async function () {
         availability.start_date,
         availability.end_date,
         bubbleId,
-        earliestBookableDate
+        earliestBookableHour
       );
 
       console.log("generateUserSlots", generateUserSlots);
@@ -224,7 +226,7 @@ function checkCommonAvailableSlots(
   mainAvailabilities,
   availabilities,
   bookedSlots,
-  earliestBookableDate,
+  earliestBookableHour,
   duration,
   totalUsers
 ) {
@@ -232,7 +234,7 @@ function checkCommonAvailableSlots(
   console.log("mainAvailabilities:", mainAvailabilities);
   console.log("availabilities:", availabilities);
   console.log("bookedSlots:", bookedSlots);
-  console.log("earliestBookableDate:", earliestBookableDate);
+  console.log("earliestBookableDate:", earliestBookableHour);
 
   // Count unique userIds in availabilities
   const uniqueUserIds = new Set(availabilities.map((a) => a.userId)).size;
@@ -260,7 +262,7 @@ function checkCommonAvailableSlots(
     mainAvailabilities,
     availabilities,
     bookedSlots,
-    earliestBookableDate
+    earliestBookableHour
   );
 
   console.log("findOverlappingSlots returned:");
@@ -305,11 +307,11 @@ function checkCommonAvailableSlots(
 function checkCommonAvailableSlotsWrapper(
   mainAvailabilitiesShort,
   availabilitiesShort,
-  earliestBookableDateShort,
+  earliestBookableHourShort,
   mainAvailabilitiesLong,
   availabilitiesLong,
   bookedSlots,
-  earliestBookableDateLong,
+  earliestBookableHourLong,
   totalUsers
 ) {
   console.log("checkCommonAvailableSlotsWrapper called");
@@ -320,7 +322,7 @@ function checkCommonAvailableSlotsWrapper(
     mainAvailabilitiesShort,
     availabilitiesShort,
     bookedSlots,
-    earliestBookableDateShort,
+    earliestBookableHourShort,
     30,
     totalUsers
   );
@@ -331,7 +333,7 @@ function checkCommonAvailableSlotsWrapper(
     mainAvailabilitiesLong,
     availabilitiesLong,
     bookedSlots,
-    earliestBookableDateLong,
+    earliestBookableHourLong,
     60,
     totalUsers
   );

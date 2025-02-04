@@ -6,7 +6,7 @@ export const scheduleAppointments = async function () {
    alreadyBookedList,
    offset,
    userOffsetInSeconds,
-   earliestBookableDay
+   earliestBookableHour
  ) {
    // Adjust the viewerDate based on the offset (number of weeks)
    const adjustedViewerDate = moment(viewerDate)
@@ -19,8 +19,10 @@ export const scheduleAppointments = async function () {
    const rangeStart = adjustedViewerDate.clone().subtract(2, "days");
    const rangeEnd = adjustedViewerDate.clone().add(9, "days").endOf("day");
 
-   // Calculate the earliest bookable time (now + earliestBookableDay)
-   const earliestBookableTime = moment().utc().add(earliestBookableDay, "days");
+   // Calculate the earliest bookable time (now + earliestBookableHour)
+   const earliestBookableTime = moment()
+     .utc()
+     .add(earliestBookableHour, "hours");
 
    // Helper function to calculate slots for a given availability
    function generateSlots(availability, start, end) {
@@ -111,7 +113,7 @@ export const scheduleAppointments = async function () {
      );
    });
 
-   // Filter out slots before the earliest bookable time
+   // Filter out slots before the earliest bookable time and already booked slots
    commonSlots = commonSlots.filter((slot) => {
      const slotStart = moment.utc(slot[0]);
      const slotEnd = moment.utc(slot[1]);
@@ -129,11 +131,12 @@ export const scheduleAppointments = async function () {
        );
      });
 
-     return !isOverlapping;
+     return !isOverlapping && slotStart.isSameOrAfter(earliestBookableTime);
    });
 
    return commonSlots;
  }
+
 
 
 
@@ -282,7 +285,7 @@ function generateAllPossibleSlots(slots, weekRanges) {
     modifiedSlots,
     offset,
     userOffsetInSeconds,
-    earliestBookableDay
+    earliestBookableHour
   ) {
     // Generate the slots for the expanded range (-2 days to +9 days)
     const slots = generateSlotsForWeek(
@@ -292,7 +295,7 @@ function generateAllPossibleSlots(slots, weekRanges) {
       alreadyBookedList,
       offset,
       userOffsetInSeconds,
-      earliestBookableDay
+      earliestBookableHour
     );
 
     // Generate the week ranges

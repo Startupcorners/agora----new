@@ -594,7 +594,7 @@ export const schedule = async function () {
     alreadyBookedList,
     offset,
     userOffsetInSeconds,
-    earliestBookableDay
+    earliestBookableHour
   ) {
     // Adjust the viewerDate based on the offset (number of weeks)
     const adjustedViewerDate = moment(viewerDate)
@@ -607,10 +607,10 @@ export const schedule = async function () {
     const rangeStart = adjustedViewerDate.clone().subtract(2, "days");
     const rangeEnd = adjustedViewerDate.clone().add(9, "days").endOf("day");
 
-    // Calculate the earliest bookable time (now + earliestBookableDay)
+    // Calculate the earliest bookable time (now + earliestBookableHour)
     const earliestBookableTime = moment()
       .utc()
-      .add(earliestBookableDay, "days");
+      .add(earliestBookableHour, "hours");
 
     // Helper function to generate slots for mainAvailability
     function generateSlots(availability, start, end) {
@@ -688,6 +688,7 @@ export const schedule = async function () {
 
     return availableSlots;
   }
+
 
   function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
     const moment = window.moment; // Ensure moment.js is loaded
@@ -838,7 +839,7 @@ export const schedule = async function () {
     modifiedSlots,
     offset,
     userOffsetInSeconds,
-    earliestBookableDay,
+    earliestBookableHour,
     blockedByUser // Function parameter
   ) {
     // Generate the slots for the expanded range (-2 days to +9 days)
@@ -848,7 +849,7 @@ export const schedule = async function () {
       alreadyBookedList,
       offset,
       userOffsetInSeconds,
-      earliestBookableDay
+      earliestBookableHour
     );
 
     // Generate the week ranges
