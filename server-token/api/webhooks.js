@@ -37,7 +37,7 @@ export async function getValidAccessTokenAndNotifyBubble(resourceId) {
  *    - Expects a VALID access token from getValidAccessTokenAndNotifyBubble
  *    - Also needs resourceId to know which calendar resource this is about.
  */
-async function fetchUpdatedEvents(accessToken, resourceId) {
+async function fetchUpdatedEvents(accessToken, resourceId, channelId) {
   try {
     // Step 1: Set updatedMin to the last 10 minutes
     const updatedMin = new Date(Date.now() - 10 * 60 * 1000).toISOString();
@@ -108,6 +108,7 @@ async function fetchUpdatedEvents(accessToken, resourceId) {
             end,
             action: status, // "deleted" or "addedOrUpdated"
             resourceId,
+            channelId,
           }),
         }
       );
@@ -164,7 +165,7 @@ router.post("/", async (req, res) => {
 
     // 2) If resourceState is 'exists' or 'sync', fetch updated events
     if (resourceState === "exists" || resourceState === "sync") {
-      await fetchUpdatedEvents(validAccessToken, resourceId);
+      await fetchUpdatedEvents(validAccessToken, resourceId, channelId);
     }
 
     // 3) Send back a 200 to acknowledge Google’s push notification
