@@ -848,8 +848,10 @@ export const schedule = async function () {
     // Check if the end time is strictly after the start time.
     // The provided duration is ignored.
     if (startTotalMinutes < endTotalMinutes) {
+      console.log("ran yes")
       bubble_fn_isAfter("yes");
     } else {
+      console.log("ran no");
       bubble_fn_isAfter("no");
     }
   }
