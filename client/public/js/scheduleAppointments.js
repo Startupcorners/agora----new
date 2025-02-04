@@ -1,327 +1,278 @@
 export const scheduleAppointments = async function () {
-  // Helper function to merge an array of intervals.
-  // Each interval is an object with { start: moment, end: moment }.
-  function mergeIntervals(intervals) {
-    if (!intervals.length) return [];
-    // Sort intervals by start time
-    intervals.sort((a, b) => a.start - b.start);
-    const merged = [];
-    let current = intervals[0];
+ function generateSlotsForWeek(
+   mainAvailability,
+   allAvailabilityLists,
+   viewerDate,
+   alreadyBookedList,
+   offset,
+   userOffsetInSeconds,
+   earliestBookableHour
+ ) {
+   // Adjust the viewerDate based on the offset (number of weeks)
+   const adjustedViewerDate = moment(viewerDate)
+     .add(offset, "weeks")
+     .utc()
+     .startOf("day")
+     .subtract(userOffsetInSeconds, "seconds");
 
-    for (let i = 1; i < intervals.length; i++) {
-      const next = intervals[i];
-      // If the current interval overlaps or touches the next one, merge them.
-      if (current.end.isSameOrAfter(next.start)) {
-        current.end = moment.max(current.end, next.end);
-      } else {
-        merged.push(current);
-        current = next;
-      }
-    }
-    merged.push(current);
-    return merged;
+   // Adjust the range to start 2 days before viewerDate and end 9 days after
+   const rangeStart = adjustedViewerDate.clone().subtract(2, "days");
+   const rangeEnd = adjustedViewerDate.clone().add(9, "days").endOf("day");
+
+   // Calculate the earliest bookable time (now + earliestBookableHour)
+   const earliestBookableTime = moment()
+     .utc()
+     .add(earliestBookableHour, "hours");
+
+   // Helper function to calculate slots for a given availability
+   function generateSlots(availability, start, end) {
+     const slots = [];
+     const timeOffsetSeconds = availability.timeOffsetSeconds;
+     const dailyStartDuration = moment.duration(availability.daily_start_time);
+     const dailyEndDuration = moment.duration(availability.daily_end_time);
+
+     let current = start.clone();
+     while (current.isBefore(end)) {
+       const dayOfWeek = current.day();
+       if (!availability.excludedDays.includes(dayOfWeek)) {
+         // Calculate dayStartUTC and dayEndUTC by converting local times to UTC
+         const dayStartUTC = current
+           .clone()
+           .startOf("day")
+           .subtract(timeOffsetSeconds, "seconds")
+           .add(dailyStartDuration);
+
+         const dayEndUTC = current
+           .clone()
+           .startOf("day")
+           .subtract(timeOffsetSeconds, "seconds")
+           .add(dailyEndDuration);
+
+         let slot = dayStartUTC.clone();
+         while (slot.isBefore(dayEndUTC) && slot.isBefore(end)) {
+           if (slot.isSameOrAfter(start)) {
+             slots.push([
+               slot.clone().toISOString(),
+               slot
+                 .clone()
+                 .add(availability.slot_duration_minutes, "minutes")
+                 .toISOString(),
+             ]);
+           }
+           slot.add(availability.slot_duration_minutes, "minutes");
+         }
+       }
+       current.add(1, "day");
+     }
+
+     return slots;
+   }
+
+   // Generate main availability slots
+   const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
+
+   // If allAvailabilityLists is empty, filter mainSlots by earliestBookableTime and alreadyBookedList
+   if (!allAvailabilityLists || allAvailabilityLists.length === 0) {
+     // Filter slots by earliestBookableTime
+     const filteredSlots = mainSlots.filter((slot) => {
+       const slotStart = moment.utc(slot[0]);
+       return slotStart.isSameOrAfter(earliestBookableTime);
+     });
+
+     // Exclude already booked slots
+     const availableSlots = filteredSlots.filter((slot) => {
+       const slotStart = moment.utc(slot[0]);
+       const slotEnd = moment.utc(slot[1]);
+
+       const isOverlapping = alreadyBookedList.some((booked) => {
+         const bookedStart = moment.utc(booked.start_date);
+         const bookedEnd = moment.utc(booked.end_date);
+
+         return (
+           (slotStart.isSameOrAfter(bookedStart) &&
+             slotStart.isBefore(bookedEnd)) ||
+           (slotEnd.isAfter(bookedStart) &&
+             slotEnd.isSameOrBefore(bookedEnd)) ||
+           (slotStart.isSameOrBefore(bookedStart) &&
+             slotEnd.isSameOrAfter(bookedEnd))
+         );
+       });
+
+       return !isOverlapping;
+     });
+
+     return availableSlots;
+   }
+
+   // Generate other availability slots and find common slots
+   let commonSlots = [...mainSlots];
+   allAvailabilityLists.forEach((availability) => {
+     const slots = generateSlots(availability, rangeStart, rangeEnd);
+     commonSlots = commonSlots.filter((mainSlot) =>
+       slots.some((slot) => slot[0] === mainSlot[0] && slot[1] === mainSlot[1])
+     );
+   });
+
+   // Filter out slots before the earliest bookable time and already booked slots
+   commonSlots = commonSlots.filter((slot) => {
+     const slotStart = moment.utc(slot[0]);
+     const slotEnd = moment.utc(slot[1]);
+
+     const isOverlapping = alreadyBookedList.some((booked) => {
+       const bookedStart = moment.utc(booked.start_date);
+       const bookedEnd = moment.utc(booked.end_date);
+
+       return (
+         (slotStart.isSameOrAfter(bookedStart) &&
+           slotStart.isBefore(bookedEnd)) ||
+         (slotEnd.isAfter(bookedStart) && slotEnd.isSameOrBefore(bookedEnd)) ||
+         (slotStart.isSameOrBefore(bookedStart) &&
+           slotEnd.isSameOrAfter(bookedEnd))
+       );
+     });
+
+     return !isOverlapping && slotStart.isSameOrAfter(earliestBookableTime);
+   });
+
+   return commonSlots;
+ }
+
+
+
+function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
+  const moment = window.moment; // Ensure moment.js is loaded
+
+  // Parse viewerDate as UTC to prevent local time interpretation
+  const viewerDateUTC = moment.utc(viewerDate, "YYYY-MM-DD");
+
+  // Adjust viewerDate based on the offset (number of weeks)
+  const adjustedViewerDate = viewerDateUTC
+    .add(offset, "weeks")
+    .startOf("day")
+    .subtract(userOffsetInSeconds, "seconds"); // Convert local midnight to UTC
+
+  const weekRanges = [];
+  for (let i = 0; i < 7; i++) {
+    const dayStartUTC = adjustedViewerDate.clone().add(i, "days");
+    const dayEndUTC = dayStartUTC.clone().add(1, "day").subtract(1, "second");
+
+    weekRanges.push([dayStartUTC.toISOString(), dayEndUTC.toISOString()]);
   }
 
-  function generateSlotsForWeek(
-    mainAvailability,
-    allAvailabilityLists,
-    viewerDate,
-    alreadyBookedList,
-    offset,
-    userOffsetInSeconds,
-    earliestBookableHour
-  ) {
-    // Adjust the viewerDate based on the offset (number of weeks)
-    const adjustedViewerDate = moment(viewerDate)
-      .add(offset, "weeks")
-      .utc()
-      .startOf("day")
-      .subtract(userOffsetInSeconds, "seconds");
+  return weekRanges;
+}
 
-    // Adjust the range to start 2 days before viewerDate and end 9 days after
-    const rangeStart = adjustedViewerDate.clone().subtract(2, "days");
-    const rangeEnd = adjustedViewerDate.clone().add(9, "days").endOf("day");
 
-    // Calculate the earliest bookable time (now + earliestBookableHour)
-    const earliestBookableTime = moment()
-      .utc()
-      .add(earliestBookableHour, "hours");
 
-    // Helper function to calculate slots for a given availability
-    function generateSlots(availability, start, end) {
-      const slots = [];
-      const timeOffsetSeconds = availability.timeOffsetSeconds;
-      const dailyStartDuration = moment.duration(availability.daily_start_time);
-      const dailyEndDuration = moment.duration(availability.daily_end_time);
 
-      let current = start.clone();
-      while (current.isBefore(end)) {
-        const dayOfWeek = current.day();
-        if (!availability.excludedDays.includes(dayOfWeek)) {
-          // Calculate dayStartUTC and dayEndUTC by converting local times to UTC
-          const dayStartUTC = current
-            .clone()
-            .startOf("day")
-            .subtract(timeOffsetSeconds, "seconds")
-            .add(dailyStartDuration);
 
-          const dayEndUTC = current
-            .clone()
-            .startOf("day")
-            .subtract(timeOffsetSeconds, "seconds")
-            .add(dailyEndDuration);
 
-          let slot = dayStartUTC.clone();
-          while (slot.isBefore(dayEndUTC) && slot.isBefore(end)) {
-            if (slot.isSameOrAfter(start)) {
-              slots.push([
-                slot.clone().toISOString(),
-                slot
-                  .clone()
-                  .add(availability.slot_duration_minutes, "minutes")
-                  .toISOString(),
-              ]);
-            }
-            slot.add(availability.slot_duration_minutes, "minutes");
-          }
-        }
-        current.add(1, "day");
-      }
-
-      return slots;
-    }
-
-    // Generate main availability slots
-    const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
-
-    // If there are no other availabilities, filter mainSlots by earliestBookableTime and alreadyBookedList
-    if (!allAvailabilityLists || allAvailabilityLists.length === 0) {
-      // Filter slots by earliestBookableTime
-      const filteredSlots = mainSlots.filter((slot) => {
-        const slotStart = moment.utc(slot[0]);
-        return slotStart.isSameOrAfter(earliestBookableTime);
-      });
-
-      // Exclude already booked slots
-      const availableSlots = filteredSlots.filter((slot) => {
-        const slotStart = moment.utc(slot[0]);
-        const slotEnd = moment.utc(slot[1]);
-
-        const isOverlapping = alreadyBookedList.some((booked) => {
-          const bookedStart = moment.utc(booked.start_date);
-          const bookedEnd = moment.utc(booked.end_date);
-
-          return (
-            (slotStart.isSameOrAfter(bookedStart) &&
-              slotStart.isBefore(bookedEnd)) ||
-            (slotEnd.isAfter(bookedStart) &&
-              slotEnd.isSameOrBefore(bookedEnd)) ||
-            (slotStart.isSameOrBefore(bookedStart) &&
-              slotEnd.isSameOrAfter(bookedEnd))
-          );
-        });
-
-        return !isOverlapping;
-      });
-
-      return availableSlots;
-    }
-
-    // For other availabilities, group intervals by userId and merge them.
-    const intervalsByUser = new Map();
-    allAvailabilityLists.forEach((availability) => {
-      const userId = availability.userId;
-      const slots = generateSlots(availability, rangeStart, rangeEnd);
-      // Convert each slot (an array [start, end]) into an interval object
-      const intervals = slots.map((slot) => ({
-        start: moment.utc(slot[0]),
-        end: moment.utc(slot[1]),
-      }));
-      if (!intervalsByUser.has(userId)) {
-        intervalsByUser.set(userId, []);
-      }
-      intervalsByUser.get(userId).push(...intervals);
-    });
-
-    // Merge intervals for each user
-    const mergedIntervalsByUser = new Map();
-    intervalsByUser.forEach((intervals, userId) => {
-      mergedIntervalsByUser.set(userId, mergeIntervals(intervals));
-    });
-
-    // Now, filter the mainSlots by checking that for each user in the merged intervals,
-    // there is at least one merged interval that fully covers the main slot.
-    let commonSlots = mainSlots.filter((mainSlot) => {
-      const mainStart = moment.utc(mainSlot[0]);
-      const mainEnd = moment.utc(mainSlot[1]);
-
-      let coversAll = true;
-      mergedIntervalsByUser.forEach((mergedIntervals, userId) => {
-        // For this user, check if one of their merged intervals completely covers the main slot.
-        const covers = mergedIntervals.some(
-          (interval) =>
-            interval.start.isSameOrBefore(mainStart) &&
-            interval.end.isSameOrAfter(mainEnd)
-        );
-        if (!covers) {
-          coversAll = false;
-        }
-      });
-      return coversAll;
-    });
-
-    // Finally, filter out slots before the earliest bookable time and slots overlapping any booked slots
-    commonSlots = commonSlots.filter((slot) => {
-      const slotStart = moment.utc(slot[0]);
-      const slotEnd = moment.utc(slot[1]);
-
-      const isOverlapping = alreadyBookedList.some((booked) => {
-        const bookedStart = moment.utc(booked.start_date);
-        const bookedEnd = moment.utc(booked.end_date);
-
-        return (
-          (slotStart.isSameOrAfter(bookedStart) &&
-            slotStart.isBefore(bookedEnd)) ||
-          (slotEnd.isAfter(bookedStart) && slotEnd.isSameOrBefore(bookedEnd)) ||
-          (slotStart.isSameOrBefore(bookedStart) &&
-            slotEnd.isSameOrAfter(bookedEnd))
-        );
-      });
-
-      return !isOverlapping && slotStart.isSameOrAfter(earliestBookableTime);
-    });
-
-    return commonSlots;
+  function assignSimplifiedSlotInfo(mainAvailability, modifiedSlots, generatedSlots) {
+  if (!mainAvailability || !Array.isArray(generatedSlots)) {
+    return [[], [], [], []]; // Empty arrays for urls, addresses, isModified, and isStartupCorners
   }
 
-  function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
-    const moment = window.moment; // Ensure moment.js is loaded
+  const urls = []; // Meeting links
+  const addresses = []; // Addresses
+  const isModified = []; // Modified slot info (null for non-modified, bubbleId for modified)
+  const isStartupCorners = []; // Startup corners information
 
-    // Parse viewerDate as UTC to prevent local time interpretation
-    const viewerDateUTC = moment.utc(viewerDate, "YYYY-MM-DD");
+  generatedSlots.forEach((slot) => {
+    const slotStart = moment.utc(slot.start_date);
+    const slotEnd = moment.utc(slot.end_date);
 
-    // Adjust viewerDate based on the offset (number of weeks)
-    const adjustedViewerDate = viewerDateUTC
-      .add(offset, "weeks")
-      .startOf("day")
-      .subtract(userOffsetInSeconds, "seconds"); // Convert local midnight to UTC
-
-    const weekRanges = [];
-    for (let i = 0; i < 7; i++) {
-      const dayStartUTC = adjustedViewerDate.clone().add(i, "days");
-      const dayEndUTC = dayStartUTC.clone().add(1, "day").subtract(1, "second");
-
-      weekRanges.push([dayStartUTC.toISOString(), dayEndUTC.toISOString()]);
-    }
-
-    return weekRanges;
-  }
-
-  function assignSimplifiedSlotInfo(
-    mainAvailability,
-    modifiedSlots,
-    generatedSlots
-  ) {
-    if (!mainAvailability || !Array.isArray(generatedSlots)) {
-      return [[], [], [], []]; // Empty arrays for urls, addresses, isModified, and isStartupCorners
-    }
-
-    const urls = []; // Meeting links
-    const addresses = []; // Addresses
-    const isModified = []; // Modified slot info (null for non-modified, bubbleId for modified)
-    const isStartupCorners = []; // Startup corners information
-
-    generatedSlots.forEach((slot) => {
-      const slotStart = moment.utc(slot.start_date);
-      const slotEnd = moment.utc(slot.end_date);
-
-      let slotInfo = {
-        meetingLink: mainAvailability.meetingLink,
-        Address: mainAvailability.Address,
-        isModified: null, // Default: not modified
-        isStartupCorners: mainAvailability.isStartupCorners,
-      };
-
-      // Check if the slot is modified
-      const modifiedSlot = modifiedSlots.find((modSlot) => {
-        const modStart = moment.utc(modSlot.start_date);
-        const modEnd = moment.utc(modSlot.end_date);
-
-        return (
-          slotStart.isBetween(modStart, modEnd, null, "[)") ||
-          slotEnd.isBetween(modStart, modEnd, null, "(]") ||
-          (slotStart.isSame(modStart) && slotEnd.isSame(modEnd)) ||
-          (modStart.isBetween(slotStart, slotEnd, null, "[)") &&
-            modEnd.isBetween(slotStart, slotEnd, null, "(]"))
-        );
-      });
-
-      if (modifiedSlot) {
-        // Use modified slot info
-        slotInfo = {
-          meetingLink: modifiedSlot.meetingLink,
-          Address: modifiedSlot.Address,
-          isModified: modifiedSlot.bubbleId || true, // Mark as modified
-          isStartupCorners: modifiedSlot.isStartupcorners,
-        };
-      }
-
-      // Push slot info to output lists
-      urls.push(slotInfo.meetingLink);
-      addresses.push(slotInfo.Address);
-      isModified.push(slotInfo.isModified);
-      isStartupCorners.push(slotInfo.isStartupCorners);
-    });
-
-    return [urls, addresses, isModified, isStartupCorners];
-  }
-
-  function generateAllPossibleSlots(slots, weekRanges) {
-    const allPossibleSlots = new Set();
-
-    const addSlotForWeekRange = (baseSlot, dayOffsets, duration, weekRange) => {
-      const baseDate = new Date(baseSlot);
-
-      dayOffsets.forEach((offset) => {
-        const newStartDate = new Date(baseDate);
-        newStartDate.setDate(baseDate.getDate() + offset);
-        const newEndDate = new Date(newStartDate.getTime() + duration);
-
-        // Check if the slot is within the week range
-        const weekStart = new Date(weekRange[0]);
-        const weekEnd = new Date(weekRange[1]);
-
-        if (
-          newStartDate.getTime() >= weekStart.getTime() &&
-          newEndDate.getTime() <= weekEnd.getTime()
-        ) {
-          const slotPair = JSON.stringify([
-            newStartDate.toISOString(),
-            newEndDate.toISOString(),
-          ]);
-          allPossibleSlots.add(slotPair);
-        }
-      });
+    let slotInfo = {
+      meetingLink: mainAvailability.meetingLink,
+      Address: mainAvailability.Address,
+      isModified: null, // Default: not modified
+      isStartupCorners: mainAvailability.isStartupCorners,
     };
 
-    slots.forEach((slotRange) => {
-      const [slotStart, slotEnd] = slotRange;
-      const slotDuration =
-        new Date(slotEnd).getTime() - new Date(slotStart).getTime();
+    // Check if the slot is modified
+    const modifiedSlot = modifiedSlots.find((modSlot) => {
+      const modStart = moment.utc(modSlot.start_date);
+      const modEnd = moment.utc(modSlot.end_date);
 
-      weekRanges.forEach((weekRange) => {
-        // Generate dayOffsets [-3, -2, -1, 0, 1, 2, 3]
-        const dayOffsets = Array.from({ length: 15 }, (_, i) => i - 7);
-
-        // Propagate slots for this week range
-        addSlotForWeekRange(slotStart, dayOffsets, slotDuration, weekRange);
-      });
+      return (
+        slotStart.isBetween(modStart, modEnd, null, "[)") ||
+        slotEnd.isBetween(modStart, modEnd, null, "(]") ||
+        (slotStart.isSame(modStart) && slotEnd.isSame(modEnd)) ||
+        (modStart.isBetween(slotStart, slotEnd, null, "[)") &&
+          modEnd.isBetween(slotStart, slotEnd, null, "(]"))
+      );
     });
 
-    return Array.from(allPossibleSlots)
-      .map((slotPair) => JSON.parse(slotPair))
-      .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
-  }
+    if (modifiedSlot) {
+      // Use modified slot info
+      slotInfo = {
+        meetingLink: modifiedSlot.meetingLink,
+        Address: modifiedSlot.Address,
+        isModified: modifiedSlot.bubbleId || true, // Mark as modified
+        isStartupCorners: modifiedSlot.isStartupcorners,
+      };
+    }
+
+    // Push slot info to output lists
+    urls.push(slotInfo.meetingLink);
+    addresses.push(slotInfo.Address);
+    isModified.push(slotInfo.isModified);
+    isStartupCorners.push(slotInfo.isStartupCorners);
+  });
+
+  return [urls, addresses, isModified, isStartupCorners];
+}
+
+
+function generateAllPossibleSlots(slots, weekRanges) {
+  const allPossibleSlots = new Set();
+
+  const addSlotForWeekRange = (baseSlot, dayOffsets, duration, weekRange) => {
+    const baseDate = new Date(baseSlot);
+
+    dayOffsets.forEach((offset) => {
+      const newStartDate = new Date(baseDate);
+      newStartDate.setDate(baseDate.getDate() + offset);
+      const newEndDate = new Date(newStartDate.getTime() + duration);
+
+      // Check if the slot is within the week range
+      const weekStart = new Date(weekRange[0]);
+      const weekEnd = new Date(weekRange[1]);
+
+      if (
+        newStartDate.getTime() >= weekStart.getTime() &&
+        newEndDate.getTime() <= weekEnd.getTime()
+      ) {
+        const slotPair = JSON.stringify([
+          newStartDate.toISOString(),
+          newEndDate.toISOString(),
+        ]);
+        allPossibleSlots.add(slotPair);
+      }
+    });
+  };
+
+  slots.forEach((slotRange) => {
+    const [slotStart, slotEnd] = slotRange;
+    const slotDuration =
+      new Date(slotEnd).getTime() - new Date(slotStart).getTime();
+
+    weekRanges.forEach((weekRange) => {
+      // Generate dayOffsets [-3, -2, -1, 0, 1, 2, 3]
+      const dayOffsets = Array.from({ length: 15 }, (_, i) => i - 7);
+
+      // Propagate slots for this week range
+      addSlotForWeekRange(slotStart, dayOffsets, slotDuration, weekRange);
+    });
+  });
+
+  return Array.from(allPossibleSlots)
+    .map((slotPair) => JSON.parse(slotPair))
+    .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
+}
+
+
+
+
 
   // Wrapper function
   function generateScheduleWrapper(
@@ -398,6 +349,7 @@ export const scheduleAppointments = async function () {
   return {
     generateScheduleWrapper,
   };
+
 };
 
 window["scheduleAppointments"] = scheduleAppointments;
