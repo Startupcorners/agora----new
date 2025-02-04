@@ -831,10 +831,10 @@ export const schedule = async function () {
   }
 
   function checkTime(start, end, duration) {
-
     console.log("start", start);
     console.log("end", end);
     console.log("duration", duration);
+
     // Return early if start or end is not provided.
     if (!start || !end) {
       return;
@@ -855,25 +855,28 @@ export const schedule = async function () {
     const startTotalMinutes = startHour * 60 + startMinute;
     const endTotalMinutes = endHour * 60 + endMinute;
 
-    // Rule 1: If start time is greater than or equal to end time, return "no".
-    if (startTotalMinutes >= endTotalMinutes) {
+    // Rule 1: If duration < 30 and start >= end, return "no".
+    if (duration < 30 && startTotalMinutes >= endTotalMinutes) {
       bubble_fn_isAfter("no");
       return;
     }
 
-    // Rule 2: If the provided duration is less than 30 minutes, return "no".
-    if (duration < 30) {
+    // Rule 2: If duration >= 30 and start > end, return "no".
+    if (duration >= 30 && startTotalMinutes > endTotalMinutes) {
       bubble_fn_isAfter("no");
       return;
     }
 
-    // Rule 3: Check if the start time plus the duration is less than or equal to the end time.
-    if (startTotalMinutes + duration <= endTotalMinutes) {
+    // Rule 3: If duration >= 30 and start <= end, return "yes".
+    if (duration >= 30 && startTotalMinutes <= endTotalMinutes) {
       bubble_fn_isAfter("yes");
-    } else {
-      bubble_fn_isAfter("no");
+      return;
     }
+
+    // Default case (should never happen)
+    bubble_fn_isAfter("no");
   }
+
 
 
   // Wrapper function
