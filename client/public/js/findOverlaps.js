@@ -3,10 +3,19 @@ export const checkOverlaps = async function () {
   // Helper to merge an array of intervals that are contiguous.
   // Each interval is an object with { start: moment, end: moment, bubbleIds?: Set, bubbleId }
   function mergeIntervals(intervals) {
-    if (!intervals.length) return [];
+    console.log("Merging intervals:", intervals);
+
+    if (!intervals.length) {
+      console.log("No intervals to merge. Returning empty array.");
+      return [];
+    }
+
     // Sort intervals by start time
     intervals.sort((a, b) => a.start - b.start);
+    console.log("Sorted intervals:", intervals);
+
     const merged = [];
+
     // Initialize the first merged interval using the first interval.
     let current = {
       ...intervals[0],
@@ -17,30 +26,54 @@ export const checkOverlaps = async function () {
       ]),
     };
 
+    console.log("Starting merge with initial interval:", current);
+
     for (let i = 1; i < intervals.length; i++) {
       const interval = intervals[i];
+      console.log(`Processing interval ${i}:`, interval);
+
       // If the current interval touches or overlaps the next one, merge them.
       if (current.end.isSame(interval.start)) {
+        console.log("Intervals overlap. Merging.");
+
         // Extend the end if necessary.
         current.end = moment.max(current.end, interval.end);
+        console.log("Updated merged interval end to:", current.end.format());
+
         // Accumulate bubbleIds.
-        if (interval.bubbleId) current.bubbleIds.add(interval.bubbleId);
+        if (interval.bubbleId) {
+          current.bubbleIds.add(interval.bubbleId);
+          console.log("Added bubbleId:", interval.bubbleId);
+        }
+
         if (interval.bubbleIds) {
           interval.bubbleIds.forEach((b) => current.bubbleIds.add(b));
+          console.log("Added bubbleIds:", [...interval.bubbleIds]);
         }
       } else {
+        console.log(
+          "Intervals do not overlap. Pushing current interval:",
+          current
+        );
         merged.push(current);
+
         current = {
           ...interval,
           bubbleIds: new Set([
             interval.bubbleIds ? [...interval.bubbleIds] : interval.bubbleId,
           ]),
         };
+
+        console.log("Starting new merge interval:", current);
       }
     }
+
     merged.push(current);
+    console.log("Final merged intervals:", merged);
+
     return merged;
   }
+
 
   // This function generates user slots for a week based on a user's daily start/end times,
   // slot duration, excluded days, time offset, and overall date range.
@@ -54,30 +87,53 @@ export const checkOverlaps = async function () {
     endDate,
     earliestBookableHour
   ) {
+    console.log("Generating user slots with parameters:", {
+      dailyStartTime,
+      dailyEndTime,
+      slotDuration,
+      excludedDays,
+      timeOffsetSeconds,
+      startDate,
+      endDate,
+      earliestBookableHour,
+    });
+
     const localTz = moment().utcOffset(timeOffsetSeconds / 60);
+    console.log("Local timezone offset:", timeOffsetSeconds / 60);
+
     // Calculate "now" at the start of the day plus the earliest bookable hour.
     const now = localTz.startOf("day").add(earliestBookableHour, "hours");
+    console.log("Calculated 'now':", now.format());
 
     // Determine the effective start day: the later of the provided startDate or now.
-    const startDay = moment
+    const parsedStartDate = moment
       .tz(startDate, "YYYY-MM-DD", localTz.tz())
-      .startOf("day")
-      .isBefore(now)
-      ? now
-      : moment.tz(startDate, "YYYY-MM-DD", localTz.tz()).startOf("day");
+      .startOf("day");
+    console.log("Parsed start date:", parsedStartDate.format());
+
+    const startDay = parsedStartDate.isBefore(now) ? now : parsedStartDate;
+    console.log("Final start day:", startDay.format());
 
     const endDay = moment.tz(endDate, "YYYY-MM-DD", localTz.tz()).endOf("day");
+    console.log("End day:", endDay.format());
 
     let slots = [];
 
     // Generate slots for up to 7 days (or until endDay is reached).
     for (let day = 0; day < 7; day++) {
       const currentDay = startDay.clone().add(day, "days");
+      console.log(`Processing day ${day}: ${currentDay.format("YYYY-MM-DD")}`);
 
-      if (currentDay.isAfter(endDay)) break;
+      if (currentDay.isAfter(endDay)) {
+        console.log("Current day exceeds endDay. Stopping.");
+        break;
+      }
 
       // Skip excluded days.
-      if (excludedDays.includes(currentDay.isoWeekday() % 7)) continue;
+      if (excludedDays.includes(currentDay.isoWeekday() % 7)) {
+        console.log("Skipping excluded day:", currentDay.format("YYYY-MM-DD"));
+        continue;
+      }
 
       const startTime = moment.tz(dailyStartTime, "HH:mm", localTz.tz());
       const endTime = moment.tz(dailyEndTime, "HH:mm", localTz.tz());
@@ -96,18 +152,27 @@ export const checkOverlaps = async function () {
         millisecond: 0,
       });
 
+      console.log(
+        `Time range for ${currentDay.format(
+          "YYYY-MM-DD"
+        )}: ${startDt.format()} - ${endDt.format()}`
+      );
+
       while (
         startDt.clone().add(slotDuration, "minutes").isSameOrBefore(endDt)
       ) {
         if (startDt.isBetween(startDay, endDay, null, "[]")) {
           slots.push(startDt.toISOString());
+          console.log("Added slot:", startDt.toISOString());
         }
         startDt.add(slotDuration, "minutes");
       }
     }
 
+    console.log("Generated slots:", slots);
     return slots;
   }
+
 
   // Main function to process availabilities and find overlapping slots,
   // filtering out booked slots.
