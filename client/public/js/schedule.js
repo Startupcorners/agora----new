@@ -826,6 +826,11 @@ export const schedule = async function () {
   }
 
   function checkTime(start, end, duration) {
+    // Check if any parameter is empty or undefined/null
+    if (!start || !end || duration === undefined || duration === null) {
+      return;
+    }
+
     // Parse start time (e.g., "08:00")
     const [startHour, startMinute] = start.split(":").map(Number);
     // Parse end time (e.g., "10:00")
@@ -842,9 +847,6 @@ export const schedule = async function () {
       bubble_fn_isAfter("no");
     }
   }
-
-  // Example usage:
-  checkTime("08:00", "08:30", 30); // This will call bubble_fn_isAfter("yes")
 
   // Wrapper function
   function generateScheduleWrapper(
