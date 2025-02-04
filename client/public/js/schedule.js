@@ -831,6 +831,10 @@ export const schedule = async function () {
   }
 
   function checkTime(start, end, duration) {
+
+    console.log("start", start);
+    console.log("end", end);
+    console.log("duration", duration);
     // Return early if start or end is not provided.
     if (!start || !end) {
       return;
