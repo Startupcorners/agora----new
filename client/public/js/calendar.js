@@ -55,7 +55,15 @@ export const init = async function (userId) {
       );
       console.log("Token data successfully sent to Bubble.");
 
-      // 4. Retrieve and Forward Calendar Events
+      // 4. Set Up Push Notifications (Webhook) to obtain resourceId
+      const watcherInfo = await setupPushNotifications(accessToken, userId);
+      if (watcherInfo) {
+        sendWatcherInfoToBubble(watcherInfo);
+      } else {
+        console.warn("No watcher info received.");
+      }
+
+      // 5. Retrieve and Forward Calendar Events
       const events = await listCalendarEvents(
         accessToken,
         new Date().toISOString()
@@ -64,20 +72,14 @@ export const init = async function (userId) {
         sendCalendarEventsToBubble(events);
       }
 
-      // 5. Create a Custom Calendar
+      // 6. Create a Custom Calendar
       const calendarId = await createStartupCornersCalendar(accessToken);
       await sendCalendarIdToBubble(calendarId);
 
-      // 6. Process Appointments for the given user
+      // 7. Process Appointments for the given user
       console.log(`Processing appointments for user: ${userId}`);
       await processAppointments(userId, accessToken, refreshToken, calendarId);
       console.log("Appointment processing completed.");
-
-      // 7. Set Up Push Notifications
-      const watcherInfo = await setupPushNotifications(accessToken, userId);
-      if (watcherInfo) {
-        sendWatcherInfoToBubble(watcherInfo);
-      }
 
       // 8. Notify Bubble process completion
       if (typeof bubble_fn_finished === "function") {
@@ -90,6 +92,7 @@ export const init = async function (userId) {
       console.error("Error handling redirect:", error);
     }
   }
+
 
 
 
