@@ -1,6 +1,5 @@
 export const init = async function (userId) {
   if (!userId) {
-    console.error("userId is required to initialize.");
     return;
   }
 
@@ -24,7 +23,6 @@ export const init = async function (userId) {
       );
       const tokenResult = await tokenResponse.json();
       if (!tokenResult.success) {
-        console.error("Error exchanging token:", tokenResult.error);
         return;
       }
       const {
@@ -34,33 +32,24 @@ export const init = async function (userId) {
       } = tokenResult.token;
       const expirationTime = Date.now() + expiresIn * 1000;
 
-      console.log("Access Token:", accessToken);
-      console.log("Refresh Token:", refreshToken);
-      console.log("Expires At (Timestamp):", expirationTime);
-
       // 2. Fetch user email using the retrieved access token
       const userEmail = await fetchUserEmail(accessToken);
       if (!userEmail) {
-        console.error("Critical Error: Email could not be retrieved.");
         return;
       }
 
       // 3. Notify Bubble with Token Data
-      console.log("Sending token data to Bubble...");
       await sendTokenDataToBubble(
         accessToken,
         refreshToken,
         expirationTime,
         userEmail
       );
-      console.log("Token data successfully sent to Bubble.");
 
       // 4. Set Up Push Notifications (Webhook) to obtain resourceId
       const watcherInfo = await setupPushNotifications(accessToken, userId);
       if (watcherInfo) {
         sendWatcherInfoToBubble(watcherInfo);
-      } else {
-        console.warn("No watcher info received.");
       }
 
       // 5. Retrieve and Forward Calendar Events
@@ -77,24 +66,16 @@ export const init = async function (userId) {
       await sendCalendarIdToBubble(calendarId);
 
       // 7. Process Appointments for the given user
-      console.log(`Processing appointments for user: ${userId}`);
       await processAppointments(userId, accessToken, refreshToken, calendarId);
-      console.log("Appointment processing completed.");
 
       // 8. Notify Bubble process completion
       if (typeof bubble_fn_finished === "function") {
-        console.log("Calling bubble_fn_finished...");
         bubble_fn_finished();
-      } else {
-        console.warn("bubble_fn_finished is not defined.");
       }
     } catch (error) {
-      console.error("Error handling redirect:", error);
+      // Error handling silently
     }
   }
-
-
-
 
   // Fetch user email using access token
   async function fetchUserEmail(accessToken) {
@@ -109,17 +90,10 @@ export const init = async function (userId) {
 
       if (response.ok) {
         const userInfo = await response.json();
-        console.log("User Email:", userInfo.email);
         return userInfo.email || null;
-      } else {
-        console.error(
-          "Failed to fetch user info:",
-          response.status,
-          response.statusText
-        );
       }
     } catch (error) {
-      console.error("Error retrieving user email:", error);
+      // Error handling silently
     }
     return null;
   }
@@ -135,7 +109,12 @@ export const init = async function (userId) {
     }
   }
 
-  async function processAppointments(userId, accessToken, refreshToken, calendarId) {
+  async function processAppointments(
+    userId,
+    accessToken,
+    refreshToken,
+    calendarId
+  ) {
     try {
       if (!userId) {
         throw new Error(
@@ -158,7 +137,6 @@ export const init = async function (userId) {
         }
       );
 
-
       if (!response.ok) {
         throw new Error(
           `Failed to retrieve appointments: ${response.statusText}`
@@ -166,8 +144,6 @@ export const init = async function (userId) {
       }
 
       const data = await response.json();
-
-      console.log("API response:", data);
 
       // Check if the response is an array directly, or inside a 'response' field
       const appointments = Array.isArray(data) ? data : data.response;
@@ -186,9 +162,6 @@ export const init = async function (userId) {
         } = appointment;
 
         if (!action || !appointmentId) {
-          console.warn(
-            `Skipping appointment ${appointmentId} due to missing data.`
-          );
           continue;
         }
 
@@ -204,23 +177,21 @@ export const init = async function (userId) {
           eventId || null // Pass eventId if available for updates/deletes
         );
 
-        if (resultEventId) {
-          console.log(
-            `Successfully processed appointment ${appointmentId} with Google Event ID: ${resultEventId}`
-          );
-        } else {
-          console.warn(`Failed to process appointment ${appointmentId}`);
+        if (!resultEventId) {
+          // Handle failure silently
         }
       }
-
-      console.log("All appointments processed.");
     } catch (error) {
-      console.error("Error processing appointments:", error);
+      // Error handling silently
     }
   }
 
-  async function processDeleteEvents(userId, accessToken, refreshToken, calendarId) {
-    
+  async function processDeleteEvents(
+    userId,
+    accessToken,
+    refreshToken,
+    calendarId
+  ) {
     try {
       const response = await fetch(
         "https://agora-new.vercel.app/delete-events",
@@ -229,11 +200,15 @@ export const init = async function (userId) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ userId, accessToken, refreshToken, calendarId }),
+          body: JSON.stringify({
+            userId,
+            accessToken,
+            refreshToken,
+            calendarId,
+          }),
         }
       );
 
-      // Check the response content type before parsing JSON
       const contentType = response.headers.get("content-type");
       let result;
 
@@ -241,22 +216,16 @@ export const init = async function (userId) {
         result = await response.json();
       } else {
         result = await response.text();
-        console.error("Received non-JSON response from backend:", result);
         return;
       }
 
       if (!response.ok) {
-        console.error("Error deleting events:", result.error || result);
         return;
       }
 
-      console.log("Attendee removed successfully:", result.message);
       return result;
     } catch (error) {
-      console.error(
-        "Error calling backend to remove attendee:",
-        error.message || error
-      );
+      // Error handling silently
     }
   }
 
@@ -283,16 +252,12 @@ export const init = async function (userId) {
       }
 
       const data = await response.json();
-      console.log("StartupCorners calendar created successfully:", data);
 
       return data.id; // Return the new calendar ID
     } catch (error) {
-      console.error("Error creating StartupCorners calendar:", error.message);
       throw error;
     }
   }
-
-
 
   // Send calendar events to Bubble
   function sendCalendarEventsToBubble(events) {
@@ -318,10 +283,7 @@ export const init = async function (userId) {
     }
   }
 
-
-  function sendCalendarIdToBubble(
-    calendarId
-  ) {
+  function sendCalendarIdToBubble(calendarId) {
     if (typeof bubble_fn_calendar === "function") {
       bubble_fn_calendar({
         output1: calendarId,
@@ -350,7 +312,6 @@ export const init = async function (userId) {
     if (url.startsWith("https://www.startupcorners.com")) {
       return url;
     } else {
-      console.error("Invalid redirect URL detected:", url);
       return null;
     }
   }
@@ -389,18 +350,12 @@ export const init = async function (userId) {
     window.location.pathname === "/oauth-callback" &&
     window.location.search.includes("code=")
   ) {
-    console.log("Redirect detected, calling handleRedirect...");
     await handleRedirect(userId);
   }
-
-
 
   // Function to list calendar events
   async function listCalendarEvents(accessToken, timeMin) {
     if (!accessToken) {
-      console.error(
-        "No access token provided. Please connect Google Calendar first."
-      );
       return;
     }
 
@@ -430,14 +385,11 @@ export const init = async function (userId) {
       const events = await response.json();
 
       if (events.error) {
-        console.error("Error fetching calendar events:", events.error);
         return null;
       }
 
-      console.log("Calendar Events:", events);
       return events.items; // Return the list of events
     } catch (error) {
-      console.error("Error fetching calendar events:", error);
       return null;
     }
   }
@@ -445,14 +397,10 @@ export const init = async function (userId) {
   // Function to set up push notifications
   async function setupPushNotifications(accessToken) {
     if (!accessToken) {
-      console.error(
-        "No access token provided. Please connect Google Calendar first."
-      );
       return null;
     }
 
     if (!userId) {
-      console.error("No userId provided. Cannot set up push notifications.");
       return null;
     }
 
@@ -468,14 +416,9 @@ export const init = async function (userId) {
       const result = await response.json();
 
       if (!response.ok) {
-        console.error(
-          "Error setting up push notifications:",
-          result.error || result
-        );
         return null;
       }
 
-      console.log("Push Notification Watch Set Up:", result);
       const { googleResponse } = result;
 
       if (googleResponse) {
@@ -485,11 +428,9 @@ export const init = async function (userId) {
           expiration: googleResponse.expiration,
         };
       } else {
-        console.warn("No googleResponse in backend response:", result);
         return null;
       }
     } catch (error) {
-      console.error("Error setting up push notifications:", error);
       return null;
     }
   }
@@ -504,17 +445,11 @@ export const init = async function (userId) {
     appointmentId,
     eventId
   ) {
-    console.log("handleGoogleEvents has been triggered");
-
     if (!userId) {
-      console.error("No userId provided. Cannot set up push notifications.");
       return null;
     }
 
     if (!action || !["add", "update", "delete"].includes(action)) {
-      console.error(
-        "Invalid or missing action. Must be 'add', 'update', or 'delete'."
-      );
       return null;
     }
 
@@ -538,7 +473,6 @@ export const init = async function (userId) {
         }
       );
 
-      // Check the response content type before parsing JSON
       const contentType = response.headers.get("content-type");
       let result;
 
@@ -546,41 +480,30 @@ export const init = async function (userId) {
         result = await response.json();
       } else {
         result = await response.text();
-        console.error("Received non-JSON response from backend:", result);
         return null;
       }
 
       if (!response.ok) {
-        console.error("Error handling event:", result.error || result);
-        console.error(`HTTP Status: ${response.status}`);
         return null;
       }
 
-      console.log("Event handled successfully:", result);
-
       if (result.eventId) {
-        console.log(`Event ${action}ed successfully with ID:`, result.eventId);
-
-        // Optionally call a Bubble function to store the event ID
         if (typeof bubble_fn_eventId === "function") {
           bubble_fn_eventId({
             output1: result.eventId,
             output2: appointmentId,
           });
         }
-
         return result.eventId;
       } else {
-        console.warn("No eventId returned from backend:", result);
         return null;
       }
     } catch (error) {
-      console.error("Error handling event:", error.message || error);
       return null;
     }
   }
 
-  // Return the functions to expose themm
+  // Return the functions to expose them
   return {
     initiateGoogleOAuth,
     handleGoogleEvents,
