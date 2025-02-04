@@ -1,5 +1,49 @@
 export const checkOverlaps = async function () {
   // Function to generate slots for each user while considering excluded days, time offset, availability period, and earliest bookable date
+  // Helper to merge an array of intervals that are contiguous.
+  // Each interval is an object with { start: moment, end: moment, bubbleIds?: Set, bubbleId }
+  function mergeIntervals(intervals) {
+    if (!intervals.length) return [];
+    // Sort intervals by start time
+    intervals.sort((a, b) => a.start - b.start);
+    const merged = [];
+    // Initialize the first merged interval using the first interval.
+    let current = {
+      ...intervals[0],
+      bubbleIds: new Set([
+        intervals[0].bubbleIds
+          ? [...intervals[0].bubbleIds]
+          : intervals[0].bubbleId,
+      ]),
+    };
+
+    for (let i = 1; i < intervals.length; i++) {
+      const interval = intervals[i];
+      // If the current interval touches or overlaps the next one, merge them.
+      if (current.end.isSame(interval.start)) {
+        // Extend the end if necessary.
+        current.end = moment.max(current.end, interval.end);
+        // Accumulate bubbleIds.
+        if (interval.bubbleId) current.bubbleIds.add(interval.bubbleId);
+        if (interval.bubbleIds) {
+          interval.bubbleIds.forEach((b) => current.bubbleIds.add(b));
+        }
+      } else {
+        merged.push(current);
+        current = {
+          ...interval,
+          bubbleIds: new Set([
+            interval.bubbleIds ? [...interval.bubbleIds] : interval.bubbleId,
+          ]),
+        };
+      }
+    }
+    merged.push(current);
+    return merged;
+  }
+
+  // This function generates user slots for a week based on a user's daily start/end times,
+  // slot duration, excluded days, time offset, and overall date range.
   function generateUserSlots(
     dailyStartTime,
     dailyEndTime,
@@ -11,10 +55,10 @@ export const checkOverlaps = async function () {
     earliestBookableHour
   ) {
     const localTz = moment().utcOffset(timeOffsetSeconds / 60);
-    // Use earliestBookableHour to add hours instead of days
+    // Calculate "now" at the start of the day plus the earliest bookable hour.
     const now = localTz.startOf("day").add(earliestBookableHour, "hours");
 
-    // Determine the effective start date (whichever is later: startDate or now)
+    // Determine the effective start day: the later of the provided startDate or now.
     const startDay = moment
       .tz(startDate, "YYYY-MM-DD", localTz.tz())
       .startOf("day")
@@ -26,16 +70,14 @@ export const checkOverlaps = async function () {
 
     let slots = [];
 
+    // Generate slots for up to 7 days (or until endDay is reached).
     for (let day = 0; day < 7; day++) {
       const currentDay = startDay.clone().add(day, "days");
 
-      // Stop if we've passed the end date
       if (currentDay.isAfter(endDay)) break;
 
-      // Skip excluded days (accounting for Sunday = 0 in JS, adjust to match user's convention)
-      if (excludedDays.includes(currentDay.isoWeekday() % 7)) {
-        continue;
-      }
+      // Skip excluded days.
+      if (excludedDays.includes(currentDay.isoWeekday() % 7)) continue;
 
       const startTime = moment.tz(dailyStartTime, "HH:mm", localTz.tz());
       const endTime = moment.tz(dailyEndTime, "HH:mm", localTz.tz());
@@ -67,43 +109,8 @@ export const checkOverlaps = async function () {
     return slots;
   }
 
-  // Function to process availabilities and find overlapping slots, filtering out booked slots
-  // Helper to merge an array of intervals that are contiguous.
-  // Each interval is an object with { start: moment, end: moment, bubbleIds: Set }.
-  function mergeIntervals(intervals) {
-    if (!intervals.length) return [];
-    // sort intervals by start time
-    intervals.sort((a, b) => a.start - b.start);
-    const merged = [];
-    let current = {
-      ...intervals[0],
-      bubbleIds: new Set([
-        ...(intervals[0].bubbleIds || [intervals[0].bubbleId]),
-      ]),
-    };
-
-    for (let i = 1; i < intervals.length; i++) {
-      const interval = intervals[i];
-      // if the current interval touches the next one, merge them
-      if (current.end.isSame(interval.start)) {
-        current.end = interval.end;
-        // accumulate bubbleIds from this merged group
-        if (interval.bubbleId) current.bubbleIds.add(interval.bubbleId);
-        if (interval.bubbleIds) {
-          interval.bubbleIds.forEach((b) => current.bubbleIds.add(b));
-        }
-      } else {
-        merged.push(current);
-        current = {
-          ...interval,
-          bubbleIds: new Set([...(interval.bubbleIds || [interval.bubbleId])]),
-        };
-      }
-    }
-    merged.push(current);
-    return merged;
-  }
-
+  // Main function to process availabilities and find overlapping slots,
+  // filtering out booked slots.
   function findOverlappingSlots(
     mainAvailabilities, // array of main bubble IDs
     availabilities, // array of objects, each describing one user's availability block
@@ -112,17 +119,15 @@ export const checkOverlaps = async function () {
   ) {
     // Map: userId => array of raw slot intervals (each with start, end, bubbleId)
     const slotsByUser = new Map();
-    // Also remember which bubble belongs to which user:
+    // Also map bubbleId to userId for later reference.
     const bubbleIdToUser = new Map();
 
-    // STEP 1: Generate individual slots per availability and group by user
+    // STEP 1: Generate individual slots per availability and group by user.
     availabilities.forEach((availability) => {
       const { bubbleId, userId, slot_duration_minutes } = availability;
       bubbleIdToUser.set(bubbleId, userId);
 
-      // Generate slots for this availability.
-      // (Assume generateUserSlots returns an array of objects:
-      //    either { start: ISOString, end: ISOString } or simply a start time string.)
+      // IMPORTANT: Make sure to pass earliestBookableHour correctly.
       const slots = generateUserSlots(
         availability.daily_start_time,
         availability.daily_end_time,
@@ -131,17 +136,13 @@ export const checkOverlaps = async function () {
         availability.timeOffsetSeconds,
         availability.start_date,
         availability.end_date,
-        bubbleId,
-        earliestBookableHour
+        earliestBookableHour // <-- Pass earliestBookableHour here, not bubbleId.
       );
 
       // Convert each generated slot into an interval (using moment objects)
       slots.forEach((slotObj) => {
-        const slotStart = moment(slotObj.start ?? slotObj);
-        const slotEnd = slotObj.end
-          ? moment(slotObj.end)
-          : slotStart.clone().add(slot_duration_minutes, "minutes");
-
+        const slotStart = moment(slotObj); // slotObj is a string from generateUserSlots
+        const slotEnd = slotStart.clone().add(slot_duration_minutes, "minutes");
         const interval = { start: slotStart, end: slotEnd, bubbleId };
 
         if (!slotsByUser.has(userId)) {
@@ -154,8 +155,6 @@ export const checkOverlaps = async function () {
     // STEP 2: For each user, merge contiguous slots into larger intervals.
     const mergedByUser = new Map();
     slotsByUser.forEach((intervals, userId) => {
-      // If you want to retain bubble information, each interval is given a bubbleId.
-      // After merging, we accumulate bubbleIds that participated.
       mergedByUser.set(userId, mergeIntervals(intervals));
     });
 
@@ -169,16 +168,13 @@ export const checkOverlaps = async function () {
     const intersectingMainAvailabilityBubbleIds = new Set();
     const intersectingNonMainAvailabilityBubbleIds = new Set();
 
-    // Loop over each main bubble (which is a candidate from one user)
     mainAvailabilities.forEach((mainBubbleId) => {
       const mainUser = bubbleIdToUser.get(mainBubbleId);
       if (!mainUser || !mergedByUser.has(mainUser)) return;
 
-      // For this main user, examine each merged interval.
       mergedByUser.get(mainUser).forEach((mainInterval) => {
-        // We now check if every required user has at least one interval that covers mainInterval.
         let allCover = true;
-        const contributingBubbles = new Map(); // userId -> set of bubbleIds covering mainInterval
+        const contributingBubbles = new Map(); // userId -> array of bubbleIds
 
         requiredUsers.forEach((userId) => {
           const userMerged = mergedByUser.get(userId);
@@ -193,7 +189,6 @@ export const checkOverlaps = async function () {
               iv.end.isSameOrAfter(mainInterval.end)
           );
           if (coveringInterval) {
-            // record the bubbleIds that contributed from this user
             contributingBubbles.set(
               userId,
               coveringInterval.bubbleIds
@@ -206,14 +201,10 @@ export const checkOverlaps = async function () {
         });
 
         if (allCover) {
-          // We have a valid overlapping interval—the overlapping slot is the candidate mainInterval.
           validSlots.push({
             start: mainInterval.start.toISOString(),
             end: mainInterval.end.toISOString(),
           });
-
-          // Record which bubble IDs contributed. For the main user, mark those that are main;
-          // for others, mark as non-main.
           contributingBubbles.forEach((bubbleIds, userId) => {
             bubbleIds.forEach((bId) => {
               if (mainAvailabilities.includes(bId)) {
@@ -228,7 +219,6 @@ export const checkOverlaps = async function () {
     });
 
     // STEP 5: Remove any valid overlapping slots that conflict with a booked slot.
-    // (Using the classic overlap test: A overlaps B if A.start < B.end && A.end > B.start.)
     bookedSlots.forEach((bookedSlot) => {
       const bookedStart = moment(bookedSlot.start_date);
       const bookedEnd = moment(bookedSlot.end_date);
@@ -241,7 +231,6 @@ export const checkOverlaps = async function () {
       }
     });
 
-    // Return the overlapping slots and the contributing bubble IDs.
     return {
       intersectingMainAvailabilityBubbleIds: Array.from(
         intersectingMainAvailabilityBubbleIds
