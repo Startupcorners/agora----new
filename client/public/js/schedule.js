@@ -879,6 +879,16 @@ export const schedule = async function () {
     earliestBookableHour,
     blockedByUser // Function parameter
   ) {
+    console.log("=== generateScheduleWrapper START ===");
+    console.log("Main Availability:", mainAvailability);
+    console.log("Viewer Date:", viewerDate);
+    console.log("Already Booked List:", alreadyBookedList);
+    console.log("Modified Slots:", modifiedSlots);
+    console.log("Offset:", offset);
+    console.log("User Offset In Seconds:", userOffsetInSeconds);
+    console.log("Earliest Bookable Hour:", earliestBookableHour);
+    console.log("Blocked By User:", blockedByUser);
+
     // Generate the slots for the expanded range (-2 days to +9 days)
     const slots = generateSlotsForWeek(
       mainAvailability,
@@ -888,6 +898,7 @@ export const schedule = async function () {
       userOffsetInSeconds,
       earliestBookableHour
     );
+    console.log("Generated Slots:", slots);
 
     // Generate the week ranges
     const weekRanges = generateWeekRanges(
@@ -895,8 +906,10 @@ export const schedule = async function () {
       offset,
       userOffsetInSeconds
     );
+    console.log("Generated Week Ranges:", weekRanges);
 
     const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
+    console.log("Generated All Possible Slots:", allPossibleSlots);
 
     // Get the outputs from assignSimplifiedSlotInfo
     const [urls, addresses, isModified, isStartupCorners, blockedByUserOutput] =
@@ -910,6 +923,13 @@ export const schedule = async function () {
         blockedByUser // Pass the original blockedByUser parameter
       );
 
+    console.log("Assign Simplified Slot Info Output:");
+    console.log("URLs:", urls);
+    console.log("Addresses:", addresses);
+    console.log("Is Modified:", isModified);
+    console.log("Is Startup Corners:", isStartupCorners);
+    console.log("Blocked By User Output:", blockedByUserOutput);
+
     // Assign outputs to the appropriate variables
     let outputlist1 = urls; // Meeting links
     let outputlist2 = addresses; // Addresses
@@ -919,6 +939,16 @@ export const schedule = async function () {
     let outputlist7 = allPossibleSlots; // All possible slots
     let outputlist8 = blockedByUserOutput; // Output from assignSimplifiedSlotInfo
     let outputlist9 = isStartupCorners; // Startup corners information
+
+    console.log("Final Output Lists:");
+    console.log("Output List 1 (Meeting Links):", outputlist1);
+    console.log("Output List 2 (Addresses):", outputlist2);
+    console.log("Output List 4 (Is Modified):", outputlist4);
+    console.log("Output List 5 (Slots):", outputlist5);
+    console.log("Output List 6 (Week Ranges):", outputlist6);
+    console.log("Output List 7 (All Possible Slots):", outputlist7);
+    console.log("Output List 8 (Blocked By User Output):", outputlist8);
+    console.log("Output List 9 (Is Startup Corners):", outputlist9);
 
     // Send result to Bubble
     bubble_fn_hours({
@@ -932,6 +962,8 @@ export const schedule = async function () {
       outputlist9,
     });
 
+    console.log("=== generateScheduleWrapper END ===");
+
     return {
       outputlist1,
       outputlist2,
@@ -943,6 +975,7 @@ export const schedule = async function () {
       outputlist7,
     };
   }
+
 
   return {
     generateScheduleWrapper,
