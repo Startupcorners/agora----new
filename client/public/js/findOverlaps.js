@@ -1,5 +1,4 @@
 export const checkOverlaps = async function () {
-
   // Function to generate slots for each user while considering excluded days, time offset, availability period, and earliest bookable date
   function generateUserSlots(
     dailyStartTime,
@@ -68,36 +67,66 @@ export const checkOverlaps = async function () {
     return slots;
   }
 
-
   // Function to process availabilities and find overlapping slots, filtering out booked slots
+  // Helper to merge an array of intervals that are contiguous.
+  // Each interval is an object with { start: moment, end: moment, bubbleIds: Set }.
+  function mergeIntervals(intervals) {
+    if (!intervals.length) return [];
+    // sort intervals by start time
+    intervals.sort((a, b) => a.start - b.start);
+    const merged = [];
+    let current = {
+      ...intervals[0],
+      bubbleIds: new Set([
+        ...(intervals[0].bubbleIds || [intervals[0].bubbleId]),
+      ]),
+    };
+
+    for (let i = 1; i < intervals.length; i++) {
+      const interval = intervals[i];
+      // if the current interval touches the next one, merge them
+      if (current.end.isSame(interval.start)) {
+        current.end = interval.end;
+        // accumulate bubbleIds from this merged group
+        if (interval.bubbleId) current.bubbleIds.add(interval.bubbleId);
+        if (interval.bubbleIds) {
+          interval.bubbleIds.forEach((b) => current.bubbleIds.add(b));
+        }
+      } else {
+        merged.push(current);
+        current = {
+          ...interval,
+          bubbleIds: new Set([...(interval.bubbleIds || [interval.bubbleId])]),
+        };
+      }
+    }
+    merged.push(current);
+    return merged;
+  }
+
   function findOverlappingSlots(
-    mainAvailabilities, // array of "main" bubble IDs (?)
-    availabilities, // array of objects, each describing 1 user's availability blocks
-    bookedSlots, // array of objects with {start_date, end_date}
+    mainAvailabilities, // array of main bubble IDs
+    availabilities, // array of objects, each describing one user's availability block
+    bookedSlots, // array of objects with { start_date, end_date }
     earliestBookableHour
   ) {
-    // Maps an ISO-string slot key -> object: { start, end, bubbleIds }
-    const slotMap = new Map();
-
-    // Maps bubbleId -> userId
+    // Map: userId => array of raw slot intervals (each with start, end, bubbleId)
+    const slotsByUser = new Map();
+    // Also remember which bubble belongs to which user:
     const bubbleIdToUser = new Map();
 
-    // ---
-    // STEP 1: Generate all individual slots per availability, store them in `slotMap`.
-    //         Each availability presumably has a single slot duration, start_time, end_time, etc.
-    // ---
+    // STEP 1: Generate individual slots per availability and group by user
     availabilities.forEach((availability) => {
-      const bubbleId = availability.bubbleId;
-      const userId = availability.userId;
-      const slotDuration = availability.slot_duration_minutes;
+      const { bubbleId, userId, slot_duration_minutes } = availability;
+      bubbleIdToUser.set(bubbleId, userId);
 
-      // You’ll need generateUserSlots to return something like:
-      //   [ { start: "2025-01-01T10:00:00Z", end: "2025-01-01T10:15:00Z" }, ... ]
-      // OR you can calculate `end` locally if generateUserSlots only returns start times.
+      // Generate slots for this availability.
+      // (Assume generateUserSlots returns an array of objects:
+      //    either { start: ISOString, end: ISOString } or simply a start time string.)
       const slots = generateUserSlots(
         availability.daily_start_time,
         availability.daily_end_time,
-        slotDuration,
+        slot_duration_minutes,
         availability.excludedDays,
         availability.timeOffsetSeconds,
         availability.start_date,
@@ -106,247 +135,245 @@ export const checkOverlaps = async function () {
         earliestBookableHour
       );
 
-      console.log("generateUserSlots", generateUserSlots);
-
-      bubbleIdToUser.set(bubbleId, userId);
-
+      // Convert each generated slot into an interval (using moment objects)
       slots.forEach((slotObj) => {
-        // If `slotObj` is just a start time string, convert to moment and create an end.
-        // For example:
-        const slotStart = moment(slotObj.start ?? slotObj); // fallback if you only get a string
+        const slotStart = moment(slotObj.start ?? slotObj);
         const slotEnd = slotObj.end
           ? moment(slotObj.end)
-          : slotStart.clone().add(slotDuration, "minutes"); // fallback if needed
+          : slotStart.clone().add(slot_duration_minutes, "minutes");
 
-        // Use ISO-string of the start as the unique key
-        const slotKey = slotStart.toISOString();
+        const interval = { start: slotStart, end: slotEnd, bubbleId };
 
-        if (!slotMap.has(slotKey)) {
-          slotMap.set(slotKey, {
-            start: slotStart,
-            end: slotEnd,
-            bubbleIds: new Set(),
-          });
+        if (!slotsByUser.has(userId)) {
+          slotsByUser.set(userId, []);
         }
-        slotMap.get(slotKey).bubbleIds.add(bubbleId);
+        slotsByUser.get(userId).push(interval);
       });
     });
 
-    // ---
-    // STEP 2: Filter down to only those slots that involve more than 1 bubbleId.
-    //     (Note: This alone doesn't guarantee "all users." We'll handle that in Step 4.)
-    // ---
-    const multiBubbleSlots = new Map();
-    slotMap.forEach((slotData, slotKey) => {
-      if (slotData.bubbleIds.size > 1) {
-        multiBubbleSlots.set(slotKey, slotData);
-      }
+    // STEP 2: For each user, merge contiguous slots into larger intervals.
+    const mergedByUser = new Map();
+    slotsByUser.forEach((intervals, userId) => {
+      // If you want to retain bubble information, each interval is given a bubbleId.
+      // After merging, we accumulate bubbleIds that participated.
+      mergedByUser.set(userId, mergeIntervals(intervals));
     });
 
-    // ---
-    // STEP 3: Remove slots that overlap any booked slot (using interval overlap check).
-    //
-    // The classic overlap condition between two intervals:
-    //   A overlaps B if A.start < B.end && A.end > B.start
-    // ---
+    // STEP 3: Identify required users from availabilities.
+    const requiredUsers = new Set(availabilities.map((a) => a.userId));
+
+    // STEP 4: For each main availability, treat its merged intervals as candidate overlapping intervals.
+    // Then, check that every required user has at least one merged interval that fully covers the candidate.
+    const validSlots = [];
+    // To track which bubbleIds contributed:
+    const intersectingMainAvailabilityBubbleIds = new Set();
+    const intersectingNonMainAvailabilityBubbleIds = new Set();
+
+    // Loop over each main bubble (which is a candidate from one user)
+    mainAvailabilities.forEach((mainBubbleId) => {
+      const mainUser = bubbleIdToUser.get(mainBubbleId);
+      if (!mainUser || !mergedByUser.has(mainUser)) return;
+
+      // For this main user, examine each merged interval.
+      mergedByUser.get(mainUser).forEach((mainInterval) => {
+        // We now check if every required user has at least one interval that covers mainInterval.
+        let allCover = true;
+        const contributingBubbles = new Map(); // userId -> set of bubbleIds covering mainInterval
+
+        requiredUsers.forEach((userId) => {
+          const userMerged = mergedByUser.get(userId);
+          if (!userMerged) {
+            allCover = false;
+            return;
+          }
+          // Find an interval from this user that fully covers the candidate main interval.
+          const coveringInterval = userMerged.find(
+            (iv) =>
+              iv.start.isSameOrBefore(mainInterval.start) &&
+              iv.end.isSameOrAfter(mainInterval.end)
+          );
+          if (coveringInterval) {
+            // record the bubbleIds that contributed from this user
+            contributingBubbles.set(
+              userId,
+              coveringInterval.bubbleIds
+                ? Array.from(coveringInterval.bubbleIds)
+                : [coveringInterval.bubbleId]
+            );
+          } else {
+            allCover = false;
+          }
+        });
+
+        if (allCover) {
+          // We have a valid overlapping interval—the overlapping slot is the candidate mainInterval.
+          validSlots.push({
+            start: mainInterval.start.toISOString(),
+            end: mainInterval.end.toISOString(),
+          });
+
+          // Record which bubble IDs contributed. For the main user, mark those that are main;
+          // for others, mark as non-main.
+          contributingBubbles.forEach((bubbleIds, userId) => {
+            bubbleIds.forEach((bId) => {
+              if (mainAvailabilities.includes(bId)) {
+                intersectingMainAvailabilityBubbleIds.add(bId);
+              } else {
+                intersectingNonMainAvailabilityBubbleIds.add(bId);
+              }
+            });
+          });
+        }
+      });
+    });
+
+    // STEP 5: Remove any valid overlapping slots that conflict with a booked slot.
+    // (Using the classic overlap test: A overlaps B if A.start < B.end && A.end > B.start.)
     bookedSlots.forEach((bookedSlot) => {
       const bookedStart = moment(bookedSlot.start_date);
       const bookedEnd = moment(bookedSlot.end_date);
-
-      multiBubbleSlots.forEach((slotData, slotKey) => {
-        const { start: slotStart, end: slotEnd } = slotData;
-        // Remove if they overlap in *any* way
+      for (let i = validSlots.length - 1; i >= 0; i--) {
+        const slotStart = moment(validSlots[i].start);
+        const slotEnd = moment(validSlots[i].end);
         if (slotStart.isBefore(bookedEnd) && slotEnd.isAfter(bookedStart)) {
-          multiBubbleSlots.delete(slotKey);
+          validSlots.splice(i, 1);
         }
-      });
-    });
-
-    // ---
-    // STEP 4: Among the remaining slots, keep only those that contain *all* required users.
-    //
-    // We'll do that by building a set of the userIds in each slot, then comparing to
-    // the set of *all* userIds we expected from `availabilities`.
-    // ---
-    const requiredUsers = new Set(availabilities.map((a) => a.userId));
-    const intersectingMainAvailabilityBubbleIds = new Set();
-    const intersectingNonMainAvailabilityBubbleIds = new Set();
-    const validSlots = [];
-
-    multiBubbleSlots.forEach(({ start, end, bubbleIds }) => {
-      // Build set of userIds found in this slot
-      const usersInSlot = new Set();
-      bubbleIds.forEach((bId) => {
-        usersInSlot.add(bubbleIdToUser.get(bId));
-      });
-
-      // Check if it covers all distinct users
-      if (usersInSlot.size === requiredUsers.size) {
-        validSlots.push({
-          start: start.toISOString(),
-          end: end.toISOString(),
-        });
-
-        // Then see which bubbleIds were main vs. non-main
-        bubbleIds.forEach((bId) => {
-          if (mainAvailabilities.includes(bId)) {
-            intersectingMainAvailabilityBubbleIds.add(bId);
-          } else {
-            intersectingNonMainAvailabilityBubbleIds.add(bId);
-          }
-        });
       }
     });
 
-    // If no valid slots exist, return empty arrays
-    if (validSlots.length === 0) {
-      return {
-        intersectingMainAvailabilityBubbleIds: [],
-        intersectingNonMainAvailabilityBubbleIds: [],
-        overlappingSlots: [],
-      };
-    }
-
-    // Otherwise, we return the sets as arrays
+    // Return the overlapping slots and the contributing bubble IDs.
     return {
-      intersectingMainAvailabilityBubbleIds: [
-        ...intersectingMainAvailabilityBubbleIds,
-      ],
-      intersectingNonMainAvailabilityBubbleIds: [
-        ...intersectingNonMainAvailabilityBubbleIds,
-      ],
+      intersectingMainAvailabilityBubbleIds: Array.from(
+        intersectingMainAvailabilityBubbleIds
+      ),
+      intersectingNonMainAvailabilityBubbleIds: Array.from(
+        intersectingNonMainAvailabilityBubbleIds
+      ),
       overlappingSlots: validSlots,
     };
   }
 
-
-
   // Example usage with availability data and booked slots
-function checkCommonAvailableSlots(
-  mainAvailabilities,
-  availabilities,
-  bookedSlots,
-  earliestBookableHour,
-  duration,
-  totalUsers
-) {
-  console.log("checkCommonAvailableSlots called with:");
-  console.log("mainAvailabilities:", mainAvailabilities);
-  console.log("availabilities:", availabilities);
-  console.log("bookedSlots:", bookedSlots);
-  console.log("earliestBookableDate:", earliestBookableHour);
-
-  // Count unique userIds in availabilities
-  const uniqueUserIds = new Set(availabilities.map((a) => a.userId)).size;
-
-  // If not all users have availabilities, treat it as no overlapping slots
-  if (totalUsers > uniqueUserIds) {
-    console.log(
-      "Not all users have availabilities. Treating as no overlapping slots."
-    );
-
-    if (duration === 30) {
-      bubble_fn_overlapsShort("no");
-    } else {
-      bubble_fn_overlapsLong("no");
-    }
-
-    return [];
-  }
-
-  const {
-    intersectingMainAvailabilityBubbleIds,
-    intersectingNonMainAvailabilityBubbleIds,
-    overlappingSlots,
-  } = findOverlappingSlots(
+  function checkCommonAvailableSlots(
     mainAvailabilities,
     availabilities,
     bookedSlots,
-    earliestBookableHour
-  );
+    earliestBookableHour,
+    duration,
+    totalUsers
+  ) {
+    console.log("checkCommonAvailableSlots called with:");
+    console.log("mainAvailabilities:", mainAvailabilities);
+    console.log("availabilities:", availabilities);
+    console.log("bookedSlots:", bookedSlots);
+    console.log("earliestBookableDate:", earliestBookableHour);
 
-  console.log("findOverlappingSlots returned:");
-  console.log(
-    "intersectingMainAvailabilityBubbleIds:",
-    intersectingMainAvailabilityBubbleIds
-  );
-  console.log(
-    "intersectingNonMainAvailabilityBubbleIds:",
-    intersectingNonMainAvailabilityBubbleIds
-  );
-  console.log("overlappingSlots:", overlappingSlots);
+    // Count unique userIds in availabilities
+    const uniqueUserIds = new Set(availabilities.map((a) => a.userId)).size;
 
-  if (overlappingSlots.length > 0) {
-    if (duration === 30) {
-      bubble_fn_overlapsShort("yes");
-      bubble_fn_availabilityIdsShort({
-        outputlist1: intersectingMainAvailabilityBubbleIds,
-        outputlist2: intersectingNonMainAvailabilityBubbleIds,
-      });
-    } else {
-      bubble_fn_overlapsLong("yes");
-      bubble_fn_availabilityIdsLong({
-        outputlist1: intersectingMainAvailabilityBubbleIds,
-        outputlist2: intersectingNonMainAvailabilityBubbleIds,
-      });
+    // If not all users have availabilities, treat it as no overlapping slots
+    if (totalUsers > uniqueUserIds) {
+      console.log(
+        "Not all users have availabilities. Treating as no overlapping slots."
+      );
+
+      if (duration === 30) {
+        bubble_fn_overlapsShort("no");
+      } else {
+        bubble_fn_overlapsLong("no");
+      }
+
+      return [];
     }
-  } else {
-    if (duration === 30) {
-      bubble_fn_overlapsShort("no");
+
+    const {
+      intersectingMainAvailabilityBubbleIds,
+      intersectingNonMainAvailabilityBubbleIds,
+      overlappingSlots,
+    } = findOverlappingSlots(
+      mainAvailabilities,
+      availabilities,
+      bookedSlots,
+      earliestBookableHour
+    );
+
+    console.log("findOverlappingSlots returned:");
+    console.log(
+      "intersectingMainAvailabilityBubbleIds:",
+      intersectingMainAvailabilityBubbleIds
+    );
+    console.log(
+      "intersectingNonMainAvailabilityBubbleIds:",
+      intersectingNonMainAvailabilityBubbleIds
+    );
+    console.log("overlappingSlots:", overlappingSlots);
+
+    if (overlappingSlots.length > 0) {
+      if (duration === 30) {
+        bubble_fn_overlapsShort("yes");
+        bubble_fn_availabilityIdsShort({
+          outputlist1: intersectingMainAvailabilityBubbleIds,
+          outputlist2: intersectingNonMainAvailabilityBubbleIds,
+        });
+      } else {
+        bubble_fn_overlapsLong("yes");
+        bubble_fn_availabilityIdsLong({
+          outputlist1: intersectingMainAvailabilityBubbleIds,
+          outputlist2: intersectingNonMainAvailabilityBubbleIds,
+        });
+      }
     } else {
-      bubble_fn_overlapsLong("no");
+      if (duration === 30) {
+        bubble_fn_overlapsShort("no");
+      } else {
+        bubble_fn_overlapsLong("no");
+      }
     }
+
+    return overlappingSlots;
   }
 
-  return overlappingSlots;
-}
-
-
-
-
-function checkCommonAvailableSlotsWrapper(
-  mainAvailabilitiesShort,
-  availabilitiesShort,
-  earliestBookableHourShort,
-  mainAvailabilitiesLong,
-  availabilitiesLong,
-  bookedSlots,
-  earliestBookableHourLong,
-  totalUsers
-) {
-  console.log("checkCommonAvailableSlotsWrapper called");
-
-  // Run the function for short duration slots
-  console.log("Running checkCommonAvailableSlots for short slots...");
-  const overlappingSlotsShort = checkCommonAvailableSlots(
+  function checkCommonAvailableSlotsWrapper(
     mainAvailabilitiesShort,
     availabilitiesShort,
-    bookedSlots,
     earliestBookableHourShort,
-    30,
-    totalUsers
-  );
-
-  // Run the function for long duration slots
-  console.log("Running checkCommonAvailableSlots for long slots...");
-  const overlappingSlotsLong = checkCommonAvailableSlots(
     mainAvailabilitiesLong,
     availabilitiesLong,
     bookedSlots,
     earliestBookableHourLong,
-    60,
     totalUsers
-  );
+  ) {
+    console.log("checkCommonAvailableSlotsWrapper called");
 
-  console.log("Short overlapping slots:", overlappingSlotsShort);
-  console.log("Long overlapping slots:", overlappingSlotsLong);
+    // Run the function for short duration slots
+    console.log("Running checkCommonAvailableSlots for short slots...");
+    const overlappingSlotsShort = checkCommonAvailableSlots(
+      mainAvailabilitiesShort,
+      availabilitiesShort,
+      bookedSlots,
+      earliestBookableHourShort,
+      30,
+      totalUsers
+    );
 
-  // Notify Bubble that processing is complete
-  console.log("All checks complete, calling bubble_fn_finishedLoading()");
-  bubble_fn_finishedLoading();
-}
+    // Run the function for long duration slots
+    console.log("Running checkCommonAvailableSlots for long slots...");
+    const overlappingSlotsLong = checkCommonAvailableSlots(
+      mainAvailabilitiesLong,
+      availabilitiesLong,
+      bookedSlots,
+      earliestBookableHourLong,
+      60,
+      totalUsers
+    );
 
+    console.log("Short overlapping slots:", overlappingSlotsShort);
+    console.log("Long overlapping slots:", overlappingSlotsLong);
 
+    // Notify Bubble that processing is complete
+    console.log("All checks complete, calling bubble_fn_finishedLoading()");
+    bubble_fn_finishedLoading();
+  }
 
   return {
     checkCommonAvailableSlotsWrapper,
