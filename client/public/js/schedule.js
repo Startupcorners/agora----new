@@ -831,21 +831,13 @@ export const schedule = async function () {
   }
 
   function checkTime(start, end, duration) {
-    console.log("start", start);
-    console.log("end", end);
-    console.log("duration", duration);
-
     // Return early if start or end is not provided.
     if (!start || !end) {
       return;
     }
 
     // If duration is null, undefined, or an empty string, treat it as 0.
-    if (duration === undefined || duration === null || duration === "") {
-      duration = 0;
-    } else {
-      duration = Number(duration); // Convert to a number if it's provided.
-    }
+    duration = duration ? Number(duration) : 0;
 
     // Parse start and end times (e.g., "08:00" => [8, 0]).
     const [startHour, startMinute] = start.split(":").map(Number);
@@ -854,38 +846,26 @@ export const schedule = async function () {
     // Convert times to minutes since midnight.
     const startTotalMinutes = startHour * 60 + startMinute;
     const endTotalMinutes = endHour * 60 + endMinute;
+    const timeDifference = endTotalMinutes - startTotalMinutes;
 
-    // Rule 1: If duration < 30 and start >= end, return "no".
-    if (duration < 30 && startTotalMinutes >= endTotalMinutes) {
-      console.log("ran no - duration < 30 and start >= end");
+    // Rule 1: If start time is after or equal to end time, return "no".
+    if (startTotalMinutes >= endTotalMinutes) {
       bubble_fn_isAfter("no");
       return;
     }
 
-    if (duration < 30 && startTotalMinutes < endTotalMinutes) {
-      console.log("ran yes - duration < 30 and start < end");
-      bubble_fn_isAfter("yes");
+    // Rule 2: If duration < 30, check if the time difference is at least 30 minutes.
+    if (duration < 30) {
+      bubble_fn_isAfter(timeDifference >= 30 ? "yes" : "no");
       return;
     }
 
-    // Rule 2: If duration >= 30 and start > end, return "no".
-    if (duration >= 30 && startTotalMinutes > endTotalMinutes) {
-      console.log("ran no - duration >= 30 and start > end");
-      bubble_fn_isAfter("no");
-      return;
-    }
-
-    // Rule 3: If duration >= 30, check that start + duration is within the end time
-    if (duration >= 30 && startTotalMinutes + duration <= endTotalMinutes) {
-      console.log("ran yes - duration >= 30 and fits within end time");
-      bubble_fn_isAfter("yes");
-      return;
-    }
-
-    // Default case (should never happen)
-    console.log("ran no - default case");
-    bubble_fn_isAfter("no");
+    // Rule 3: If duration >= 30, check if start + duration is within the end time.
+    bubble_fn_isAfter(
+      startTotalMinutes + duration <= endTotalMinutes ? "yes" : "no"
+    );
   }
+
 
 
   // Wrapper function
