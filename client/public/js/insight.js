@@ -52,171 +52,174 @@ export const insights = async function () {
     "#01579B",
   ];
 
-  function processAll(appointments, messages, mainUserId, startDate, endDate) {
-    bubble_fn_loadinggg(true);
-    console.log("Starting to process appointments and messages...");
-
-    // Run processAppointments
-    processAppointments(appointments, mainUserId, startDate, endDate);
-
-    // Run processMessages
-    processMessages(messages, mainUserId, startDate, endDate);
-
-    // Log after both have completed
-    if (typeof bubble_fn_loading === "function") {
-      bubble_fn_loadinggg(false);
-    } else {
-      console.error("Bubble function bubble_fn_appointments is not defined.");
-    }
+  function retry(fn, retries = 3, delay = 500) {
+    return new Promise((resolve, reject) => {
+      let attempts = 0;
+      function attempt() {
+        try {
+          let result = fn();
+          if (result !== undefined) {
+            resolve(result);
+          } else {
+            throw new Error("Function returned undefined.");
+          }
+        } catch (error) {
+          attempts++;
+          if (attempts < retries) {
+            console.warn(`Retrying... Attempt ${attempts}`);
+            setTimeout(attempt, delay);
+          } else {
+            console.error("Function failed after retries:", error);
+            reject(error);
+          }
+        }
+      }
+      attempt();
+    });
   }
 
+  function processAll(appointments, messages, mainUserId, startDate, endDate) {
+    console.log("Starting to process appointments and messages...");
+
+    retry(() => {
+      if (typeof bubble_fn_loadinggg !== "function") {
+        throw new Error("bubble_fn_loadinggg is not defined yet.");
+      }
+      bubble_fn_loadinggg(true);
+    }).catch(() => console.error("Failed to initialize loading function."));
+
+    if (!Array.isArray(appointments) || !Array.isArray(messages)) {
+      console.error("Invalid data: Appointments or Messages are not arrays.");
+      return;
+    }
+
+    processAppointments(appointments, mainUserId, startDate, endDate);
+    processMessages(messages, mainUserId, startDate, endDate);
+
+    retry(() => {
+      if (typeof bubble_fn_loadinggg !== "function") {
+        throw new Error("bubble_fn_loadinggg is not defined.");
+      }
+      bubble_fn_loadinggg(false);
+    }).catch(() => console.error("Failed to stop loading function."));
+  }
 
   function processAppointments(appointments, mainUserId, startDate, endDate) {
-    console.log("processAppointments called with:");
-    console.log("appointments:", appointments);
-    console.log("mainUserId:", mainUserId);
-    console.log("startDate:", startDate);
-    console.log("endDate:", endDate);
+    console.log("Processing Appointments...");
 
-    // Convert startDate and endDate to Date objects for comparison
     const start = new Date(startDate);
     const end = new Date(endDate);
-
-    // Outputs
     const uniqueIds = {};
-    const chartColorsList = [];
-    const combinedNames = {};
+    let chartColorsList = [];
+    let combinedNames = {};
 
-    // Iterate through appointments
     appointments.forEach((appointment) => {
-      const appointmentDate = new Date(appointment.date);
+      if (
+        !appointment ||
+        !appointment.date ||
+        !appointment.meetingParticipantsids
+      )
+        return;
 
-      // Check if the appointment falls within the period
+      const appointmentDate = new Date(appointment.date);
       if (appointmentDate >= start && appointmentDate <= end) {
         appointment.meetingParticipantsids.forEach((participantId, index) => {
           if (participantId !== mainUserId) {
-            // If the participantId is already in uniqueIds, increment its count
-            if (uniqueIds[participantId]) {
-              uniqueIds[participantId]++;
-            } else {
-              // Add participantId with initial count of 1
-              uniqueIds[participantId] = 1;
-
-              // Add name or startup name to combinedNames
+            uniqueIds[participantId] = (uniqueIds[participantId] || 0) + 1;
+            if (!combinedNames[participantId]) {
               combinedNames[participantId] =
-                appointment.startupName[index] &&
-                appointment.startupName[index].trim()
-                  ? appointment.startupName[index].trim()
-                  : appointment.name[index].trim();
+                appointment.startupName?.[index]?.trim() ||
+                appointment.name?.[index]?.trim() ||
+                "Unknown";
             }
           }
         });
       }
     });
 
-    // Convert uniqueIds and combinedNames into ordered arrays
     const uniqueIdsList = Object.keys(uniqueIds);
     const meetingCountsList = Object.values(uniqueIds);
     const combinedNamesList = uniqueIdsList.map((id) => combinedNames[id]);
 
-    // Generate colors for each unique ID
-    uniqueIdsList.forEach((_, index) => {
-      chartColorsList.push(colorList[index % colorList.length]);
+    // Ensure chartColorsList is initialized
+    chartColorsList = uniqueIdsList.map(
+      (_, index) => colorList[index % colorList.length]
+    );
+
+    console.log("Appointments processed:", {
+      uniqueIdsList,
+      meetingCountsList,
+      combinedNamesList,
     });
 
-    // Log results for debugging
-    console.log("Unique IDs:", uniqueIdsList);
-    console.log("Meeting Counts:", meetingCountsList);
-    console.log("Combined Names List:", combinedNamesList);
-
-    // Call Bubble function with the results
-    if (typeof bubble_fn_appointments === "function") {
+    retry(() => {
+      if (typeof bubble_fn_appointments !== "function") {
+        throw new Error("bubble_fn_appointments is not defined.");
+      }
       bubble_fn_appointments({
-        outputlist1: uniqueIdsList, // Array of unique IDs
-        outputlist2: meetingCountsList, // Array of counts (matching uniqueIdsList)
-        outputlist3: chartColorsList, // Array of colors (matching uniqueIdsList)
-        outputlist4: combinedNamesList, // Combined list of names and startupNames
+        outputlist1: uniqueIdsList,
+        outputlist2: meetingCountsList,
+        outputlist3: chartColorsList,
+        outputlist4: combinedNamesList,
       });
-    } else {
-      console.error("Bubble function bubble_fn_appointments is not defined.");
-    }
+    }).catch(() => console.error("Failed to execute bubble_fn_appointments."));
   }
 
-
-
   function processMessages(messages, mainUserId, startDate, endDate) {
-    console.log("processMessages called with:");
-    console.log("messages:", messages);
-    console.log("mainUserId:", mainUserId);
-    console.log("startDate:", startDate);
-    console.log("endDate:", endDate);
+    console.log("Processing Messages...");
 
-    // Convert startDate and endDate to Date objects for comparison
     const start = new Date(startDate);
     const end = new Date(endDate);
-
-    // Grouped Outputs
     const uniqueIds = {};
-    const combinedNames = {};
-    const chartColorsList = [];
+    let combinedNames = {};
+    let chartColorsList = [];
 
-    // Iterate through messages
     messages.forEach((message) => {
-      const messageDate = new Date(message.date);
+      if (!message || !message.date || !message.participantIds) return;
 
-      // Check if the message falls within the period
+      const messageDate = new Date(message.date);
       if (messageDate >= start && messageDate <= end) {
         message.participantIds.forEach((participantId, index) => {
           if (participantId !== mainUserId) {
-            // If the participantId is already in uniqueIds, increment its count
-            if (uniqueIds[participantId]) {
-              uniqueIds[participantId]++;
-            } else {
-              // Add participantId with initial count of 1
-              uniqueIds[participantId] = 1;
-
-              // Add name or startup name to combinedNames
+            uniqueIds[participantId] = (uniqueIds[participantId] || 0) + 1;
+            if (!combinedNames[participantId]) {
               combinedNames[participantId] =
-                message.startupNames[index] &&
-                message.startupNames[index].trim()
-                  ? message.startupNames[index].trim()
-                  : message.names[index].trim();
+                message.startupNames?.[index]?.trim() ||
+                message.names?.[index]?.trim() ||
+                "Unknown";
             }
           }
         });
       }
     });
 
-    // Convert grouped data to ordered arrays
     const uniqueIdsList = Object.keys(uniqueIds);
     const messageCountsList = Object.values(uniqueIds);
     const combinedNamesList = uniqueIdsList.map((id) => combinedNames[id]);
 
-    // Generate colors for each unique ID
-    uniqueIdsList.forEach((_, index) => {
-      chartColorsList.push(colorList[index % colorList.length]);
+    // Ensure chartColorsList is initialized
+    chartColorsList = uniqueIdsList.map(
+      (_, index) => colorList[index % colorList.length]
+    );
+
+    console.log("Messages processed:", {
+      uniqueIdsList,
+      messageCountsList,
+      combinedNamesList,
     });
 
-    // Log results for debugging
-    console.log("Unique IDs:", uniqueIdsList);
-    console.log("Message Counts:", messageCountsList);
-    console.log("Combined Names List:", combinedNamesList);
-
-    // Call Bubble function with the results
-    if (typeof bubble_fn_messages === "function") {
+    retry(() => {
+      if (typeof bubble_fn_messages !== "function") {
+        throw new Error("bubble_fn_messages is not defined.");
+      }
       bubble_fn_messages({
-        outputlist1: uniqueIdsList, // Array of unique IDs
-        outputlist2: messageCountsList, // Array of counts (matching uniqueIdsList)
-        outputlist3: chartColorsList, // Array of colors (matching uniqueIdsList)
-        outputlist4: combinedNamesList, // Combined list of names and startupNames
+        outputlist1: uniqueIdsList,
+        outputlist2: messageCountsList,
+        outputlist3: chartColorsList,
+        outputlist4: combinedNamesList,
       });
-    } else {
-      console.error("Bubble function bubble_fn_messages is not defined.");
-    }
+    }).catch(() => console.error("Failed to execute bubble_fn_messages."));
   }
-
-
-
 
   return {
     processAll,
