@@ -291,6 +291,7 @@ function generateAllPossibleSlots(slots, weekRanges) {
     earliestBookableHour,
     blockedByUserList
   ) {
+    console.log("blocked 1", blockedByUserList);
     // Generate the slots for the expanded range (-2 days to +9 days)
     const slots = generateSlotsForWeek(
       mainAvailability,
