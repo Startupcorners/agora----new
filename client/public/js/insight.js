@@ -52,60 +52,54 @@ export const insights = async function () {
     "#01579B",
   ];
 
-  function retry(fn, retries = 3, delay = 500) {
-    return new Promise((resolve, reject) => {
-      let attempts = 0;
-      function attempt() {
-        try {
-          let result = fn();
-          if (result !== undefined) {
-            resolve(result);
-          } else {
-            throw new Error("Function returned undefined.");
-          }
-        } catch (error) {
-          attempts++;
-          if (attempts < retries) {
-            console.warn(`Retrying... Attempt ${attempts}`);
-            setTimeout(attempt, delay);
-          } else {
-            console.error("Function failed after retries:", error);
-            reject(error);
-          }
-        }
+  async function waitForBubbleFunction(fnName, maxAttempts = 5, delay = 500) {
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      if (typeof window[fnName] === "function") {
+        console.log(`✅ Bubble function '${fnName}' is now available.`);
+        return true;
       }
-      attempt();
-    });
-  }
-
-  function processAll(appointments, messages, mainUserId, startDate, endDate) {
-    console.log("Starting to process appointments and messages...");
-
-    retry(() => {
-      if (typeof bubble_fn_loadinggg !== "function") {
-        throw new Error("bubble_fn_loadinggg is not defined yet.");
-      }
-      bubble_fn_loadinggg(true);
-    }).catch(() => console.error("Failed to initialize loading function."));
-
-    if (!Array.isArray(appointments) || !Array.isArray(messages)) {
-      console.error("Invalid data: Appointments or Messages are not arrays.");
-      return;
+      console.warn(`⏳ Waiting for '${fnName}' (attempt ${attempts + 1})...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      attempts++;
     }
-
-    processAppointments(appointments, mainUserId, startDate, endDate);
-    processMessages(messages, mainUserId, startDate, endDate);
-
-    retry(() => {
-      if (typeof bubble_fn_loadinggg !== "function") {
-        throw new Error("bubble_fn_loadinggg is not defined.");
-      }
-      bubble_fn_loadinggg(false);
-    }).catch(() => console.error("Failed to stop loading function."));
+    console.error(
+      `❌ Failed to detect '${fnName}' after ${maxAttempts} attempts.`
+    );
+    return false;
   }
 
-  function processAppointments(appointments, mainUserId, startDate, endDate) {
-    console.log("Processing Appointments...");
+  async function processAll(
+    appointments = [],
+    messages = [],
+    mainUserId,
+    startDate,
+    endDate
+  ) {
+    console.log("📊 Starting to process appointments and messages...");
+
+    if (!(await waitForBubbleFunction("bubble_fn_loadinggg"))) return;
+    bubble_fn_loadinggg(true);
+
+    await processAppointments(appointments, mainUserId, startDate, endDate);
+    await processMessages(messages, mainUserId, startDate, endDate);
+
+    if (typeof bubble_fn_loadinggg === "function") {
+      bubble_fn_loadinggg(false);
+    }
+  }
+
+  async function processAppointments(
+    appointments = [],
+    mainUserId,
+    startDate,
+    endDate
+  ) {
+    console.log("📅 Processing Appointments...");
+
+    if (!appointments.length) {
+      console.warn("⚠️ No appointments found.");
+    }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -114,12 +108,7 @@ export const insights = async function () {
     let combinedNames = {};
 
     appointments.forEach((appointment) => {
-      if (
-        !appointment ||
-        !appointment.date ||
-        !appointment.meetingParticipantsids
-      )
-        return;
+      if (!appointment?.date || !appointment?.meetingParticipantsids) return;
 
       const appointmentDate = new Date(appointment.date);
       if (appointmentDate >= start && appointmentDate <= end) {
@@ -141,32 +130,36 @@ export const insights = async function () {
     const meetingCountsList = Object.values(uniqueIds);
     const combinedNamesList = uniqueIdsList.map((id) => combinedNames[id]);
 
-    // Ensure chartColorsList is initialized
     chartColorsList = uniqueIdsList.map(
       (_, index) => colorList[index % colorList.length]
     );
 
-    console.log("Appointments processed:", {
+    console.log("✅ Appointments processed:", {
       uniqueIdsList,
       meetingCountsList,
       combinedNamesList,
     });
 
-    retry(() => {
-      if (typeof bubble_fn_appointments !== "function") {
-        throw new Error("bubble_fn_appointments is not defined.");
-      }
-      bubble_fn_appointments({
-        outputlist1: uniqueIdsList,
-        outputlist2: meetingCountsList,
-        outputlist3: chartColorsList,
-        outputlist4: combinedNamesList,
-      });
-    }).catch(() => console.error("Failed to execute bubble_fn_appointments."));
+    if (!(await waitForBubbleFunction("bubble_fn_appointments"))) return;
+    bubble_fn_appointments({
+      outputlist1: uniqueIdsList,
+      outputlist2: meetingCountsList,
+      outputlist3: chartColorsList,
+      outputlist4: combinedNamesList,
+    });
   }
 
-  function processMessages(messages, mainUserId, startDate, endDate) {
-    console.log("Processing Messages...");
+  async function processMessages(
+    messages = [],
+    mainUserId,
+    startDate,
+    endDate
+  ) {
+    console.log("📬 Processing Messages...");
+
+    if (!messages.length) {
+      console.warn("⚠️ No messages found.");
+    }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
@@ -175,7 +168,7 @@ export const insights = async function () {
     let chartColorsList = [];
 
     messages.forEach((message) => {
-      if (!message || !message.date || !message.participantIds) return;
+      if (!message?.date || !message?.participantIds) return;
 
       const messageDate = new Date(message.date);
       if (messageDate >= start && messageDate <= end) {
@@ -197,28 +190,23 @@ export const insights = async function () {
     const messageCountsList = Object.values(uniqueIds);
     const combinedNamesList = uniqueIdsList.map((id) => combinedNames[id]);
 
-    // Ensure chartColorsList is initialized
     chartColorsList = uniqueIdsList.map(
       (_, index) => colorList[index % colorList.length]
     );
 
-    console.log("Messages processed:", {
+    console.log("✅ Messages processed:", {
       uniqueIdsList,
       messageCountsList,
       combinedNamesList,
     });
 
-    retry(() => {
-      if (typeof bubble_fn_messages !== "function") {
-        throw new Error("bubble_fn_messages is not defined.");
-      }
-      bubble_fn_messages({
-        outputlist1: uniqueIdsList,
-        outputlist2: messageCountsList,
-        outputlist3: chartColorsList,
-        outputlist4: combinedNamesList,
-      });
-    }).catch(() => console.error("Failed to execute bubble_fn_messages."));
+    if (!(await waitForBubbleFunction("bubble_fn_messages"))) return;
+    bubble_fn_messages({
+      outputlist1: uniqueIdsList,
+      outputlist2: messageCountsList,
+      outputlist3: chartColorsList,
+      outputlist4: combinedNamesList,
+    });
   }
 
   return {
