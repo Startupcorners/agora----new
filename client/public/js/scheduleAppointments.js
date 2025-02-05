@@ -6,7 +6,8 @@ export const scheduleAppointments = async function () {
    alreadyBookedList,
    offset,
    userOffsetInSeconds,
-   earliestBookableHour
+   earliestBookableHour,
+   blockedByUserList
  ) {
    // Adjust the viewerDate based on the offset (number of weeks)
    const adjustedViewerDate = moment(viewerDate)
@@ -71,37 +72,51 @@ export const scheduleAppointments = async function () {
    // Generate main availability slots
    const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
 
-   // If allAvailabilityLists is empty, filter mainSlots by earliestBookableTime and alreadyBookedList
-   if (!allAvailabilityLists || allAvailabilityLists.length === 0) {
-     // Filter slots by earliestBookableTime
-     const filteredSlots = mainSlots.filter((slot) => {
-       const slotStart = moment.utc(slot[0]);
-       return slotStart.isSameOrAfter(earliestBookableTime);
-     });
-
-     // Exclude already booked slots
-     const availableSlots = filteredSlots.filter((slot) => {
+   // Function to filter out slots that overlap with blocked or booked lists
+   function filterOutOverlappingSlots(slots, blockedList) {
+     return slots.filter((slot) => {
        const slotStart = moment.utc(slot[0]);
        const slotEnd = moment.utc(slot[1]);
 
-       const isOverlapping = alreadyBookedList.some((booked) => {
-         const bookedStart = moment.utc(booked.start_date);
-         const bookedEnd = moment.utc(booked.end_date);
+       const isOverlapping = blockedList.some((blocked) => {
+         const blockedStart = moment.utc(blocked.start_date);
+         const blockedEnd = moment.utc(blocked.end_date);
 
          return (
-           (slotStart.isSameOrAfter(bookedStart) &&
-             slotStart.isBefore(bookedEnd)) ||
-           (slotEnd.isAfter(bookedStart) &&
-             slotEnd.isSameOrBefore(bookedEnd)) ||
-           (slotStart.isSameOrBefore(bookedStart) &&
-             slotEnd.isSameOrAfter(bookedEnd))
+           (slotStart.isSameOrAfter(blockedStart) &&
+             slotStart.isBefore(blockedEnd)) ||
+           (slotEnd.isAfter(blockedStart) &&
+             slotEnd.isSameOrBefore(blockedEnd)) ||
+           (slotStart.isSameOrBefore(blockedStart) &&
+             slotEnd.isSameOrAfter(blockedEnd))
          );
        });
 
        return !isOverlapping;
      });
+   }
 
-     return availableSlots;
+   // If allAvailabilityLists is empty, filter mainSlots by earliestBookableTime and alreadyBookedList
+   if (!allAvailabilityLists || allAvailabilityLists.length === 0) {
+     // Filter slots by earliestBookableTime
+     let filteredSlots = mainSlots.filter((slot) => {
+       const slotStart = moment.utc(slot[0]);
+       return slotStart.isSameOrAfter(earliestBookableTime);
+     });
+
+     // Exclude already booked slots
+     filteredSlots = filterOutOverlappingSlots(
+       filteredSlots,
+       alreadyBookedList
+     );
+
+     // Exclude blocked slots
+     filteredSlots = filterOutOverlappingSlots(
+       filteredSlots,
+       blockedByUserList
+     );
+
+     return filteredSlots;
    }
 
    // Generate other availability slots and find common slots
@@ -113,29 +128,18 @@ export const scheduleAppointments = async function () {
      );
    });
 
-   // Filter out slots before the earliest bookable time and already booked slots
+   // Filter out slots before the earliest bookable time, already booked slots, and blocked slots
    commonSlots = commonSlots.filter((slot) => {
      const slotStart = moment.utc(slot[0]);
-     const slotEnd = moment.utc(slot[1]);
-
-     const isOverlapping = alreadyBookedList.some((booked) => {
-       const bookedStart = moment.utc(booked.start_date);
-       const bookedEnd = moment.utc(booked.end_date);
-
-       return (
-         (slotStart.isSameOrAfter(bookedStart) &&
-           slotStart.isBefore(bookedEnd)) ||
-         (slotEnd.isAfter(bookedStart) && slotEnd.isSameOrBefore(bookedEnd)) ||
-         (slotStart.isSameOrBefore(bookedStart) &&
-           slotEnd.isSameOrAfter(bookedEnd))
-       );
-     });
-
-     return !isOverlapping && slotStart.isSameOrAfter(earliestBookableTime);
+     return slotStart.isSameOrAfter(earliestBookableTime);
    });
+
+   commonSlots = filterOutOverlappingSlots(commonSlots, alreadyBookedList);
+   commonSlots = filterOutOverlappingSlots(commonSlots, blockedByUserList);
 
    return commonSlots;
  }
+
 
 
 
@@ -283,7 +287,8 @@ function generateAllPossibleSlots(slots, weekRanges) {
     modifiedSlots,
     offset,
     userOffsetInSeconds,
-    earliestBookableHour
+    earliestBookableHour,
+    blockedByUserList
   ) {
     // Generate the slots for the expanded range (-2 days to +9 days)
     const slots = generateSlotsForWeek(
@@ -293,7 +298,8 @@ function generateAllPossibleSlots(slots, weekRanges) {
       alreadyBookedList,
       offset,
       userOffsetInSeconds,
-      earliestBookableHour
+      earliestBookableHour,
+      blockedByUserList
     );
 
     // Generate the week ranges
