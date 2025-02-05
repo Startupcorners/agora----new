@@ -78,6 +78,14 @@ export const insights = async function () {
   ) {
     console.log("📊 Starting to process appointments and messages...");
 
+    // Log all inputs for debugging
+    console.log("🔍 Input Data:");
+    console.log("➡️ Appointments:", JSON.stringify(appointments, null, 2));
+    console.log("➡️ Messages:", JSON.stringify(messages, null, 2));
+    console.log("➡️ Main User ID:", mainUserId);
+    console.log("➡️ Start Date:", startDate);
+    console.log("➡️ End Date:", endDate);
+
     if (!(await waitForBubbleFunction("bubble_fn_loadinggg"))) return;
     bubble_fn_loadinggg(true);
 
@@ -88,6 +96,7 @@ export const insights = async function () {
       bubble_fn_loadinggg(false);
     }
   }
+
 
   async function processAppointments(
     appointments = [],
