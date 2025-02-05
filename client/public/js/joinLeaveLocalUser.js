@@ -192,15 +192,21 @@ export const leave = async (reason, config) => {
 
   console.warn("leave function called with reason:", reason);
   triggeredReason = reason; // Set the triggered reason to prevent re-entry
+
+  // Define the valid reasons
+  const validReasons = [
+    "left",
+    "removed",
+    "deniedAccess",
+    "connectionIssue",
+    "inactive",
+  ];
+  const finalReason = validReasons.includes(reason) ? reason : "other"; // Ensure reason is valid
+
   await stopScreenShare(config);
   await stopCamera(config);
   await endMic(config);
 
-  if (typeof bubble_fn_leave === "function") {
-    bubble_fn_leave(finalReason);
-  } else {
-    console.warn("bubble_fn_leave is not defined or not a function");
-  }
   try {
     const bubbleResponse = await axios.post(
       "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
@@ -215,18 +221,13 @@ export const leave = async (reason, config) => {
   }
 
   try {
-
     // Leave RTC
     await leaveRTC(config);
     console.log("Left RTC channel successfully");
 
     // Leave RTM if joined
-    //await leaveRTM(config);
-    //console.log("Left RTM channel successfully");
-
-    // Determine the appropriate reason
-    const validReasons = ["left", "removed", "deniedAccess", "connectionIssue", "inactive"];
-    const finalReason = validReasons.includes(reason) ? reason : "other";
+    // await leaveRTM(config);
+    // console.log("Left RTM channel successfully");
 
     // Call the Bubble function with the final reason
     if (typeof bubble_fn_leave === "function") {
@@ -238,6 +239,7 @@ export const leave = async (reason, config) => {
     console.error("Error during leave:", error);
   }
 };
+
 
 // Function to leave RTC
 export const leaveRTC = async (config) => {
