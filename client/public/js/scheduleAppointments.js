@@ -9,6 +9,7 @@ export const scheduleAppointments = async function () {
    earliestBookableHour,
    blockedByUserList
  ) {
+  console.log("blocked", blockedByUserList)
    // Adjust the viewerDate based on the offset (number of weeks)
    const adjustedViewerDate = moment(viewerDate)
      .add(offset, "weeks")
