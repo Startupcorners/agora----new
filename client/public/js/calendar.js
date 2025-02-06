@@ -190,9 +190,12 @@ export const init = async function (userId) {
     userId,
     accessToken,
     refreshToken,
-    calendarId
+    calendarId,
+    channelId,
+    resourceId
   ) {
     try {
+      // Step 1: Delete Google Calendar Events
       const response = await fetch(
         "https://agora-new.vercel.app/delete-events",
         {
@@ -223,11 +226,77 @@ export const init = async function (userId) {
         return;
       }
 
+      // Step 2: Stop Push Notifications (Stop Watcher)
+      await stopPushNotifications(
+        userId,
+        channelId,
+        resourceId,
+        accessToken,
+        refreshToken
+      );
+
+      // Step 3: Revoke OAuth Token
+      await revokeGoogleOAuthToken(accessToken);
+
       return result;
     } catch (error) {
-      // Error handling silently
+      console.error("Error processing delete events:", error);
     }
   }
+
+
+
+
+  async function revokeGoogleOAuthToken(accessToken) {
+    try {
+      const revokeUrl = `https://accounts.google.com/o/oauth2/revoke?token=${accessToken}`;
+      const response = await fetch(revokeUrl, { method: "POST" });
+
+      if (response.ok) {
+        console.log("✅ Google OAuth token revoked successfully.");
+      } else {
+        console.warn("⚠️ Failed to revoke Google OAuth token.");
+      }
+    } catch (error) {
+      console.error("Error revoking Google OAuth token:", error);
+    }
+  }
+
+  async function stopPushNotifications(
+    userId,
+    channelId,
+    resourceId,
+    accessToken,
+    refreshToken
+  ) {
+    try {
+      const response = await fetch("https://agora-new.vercel.app/stopWatch", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          channelId,
+          resourceId,
+          accessToken,
+          refreshToken,
+        }),
+      });
+
+      if (response.ok) {
+        console.log("✅ Push notifications (watcher) stopped successfully.");
+      } else {
+        console.warn("⚠️ Failed to stop push notifications.");
+      }
+    } catch (error) {
+      console.error("Error stopping push notifications:", error);
+    }
+  }
+
+
+
+
 
   async function createStartupCornersCalendar(accessToken) {
     const GOOGLE_CALENDAR_API = `https://www.googleapis.com/calendar/v3/calendars`;
