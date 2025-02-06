@@ -22,23 +22,41 @@ export const init = async function (userId) {
         }
       );
       const tokenResult = await tokenResponse.json();
+
+      // If exchange failed, exit
       if (!tokenResult.success) {
         return;
       }
+
+      // Destructure needed fields, including the returned scopes
       const {
         access_token: accessToken,
         refresh_token: refreshToken,
         expires_in: expiresIn,
+        scope: grantedScopes,
       } = tokenResult.token;
       const expirationTime = Date.now() + expiresIn * 1000;
 
-      // 2. Fetch user email using the retrieved access token
+      // 2. Verify that the calendar scope was actually granted
+      // (e.g., "https://www.googleapis.com/auth/calendar")
+      if (
+        !grantedScopes ||
+        !grantedScopes.includes("https://www.googleapis.com/auth/calendar")
+      ) {
+        // If not granted, call Bubble function and stop
+        if (typeof bubble_fn_notGranted === "function") {
+          bubble_fn_notGranted();
+        }
+        return;
+      }
+
+      // 3. Fetch user email using the retrieved access token
       const userEmail = await fetchUserEmail(accessToken);
       if (!userEmail) {
         return;
       }
 
-      // 3. Notify Bubble with Token Data
+      // 4. Notify Bubble with Token Data
       await sendTokenDataToBubble(
         accessToken,
         refreshToken,
@@ -46,13 +64,13 @@ export const init = async function (userId) {
         userEmail
       );
 
-      // 4. Set Up Push Notifications (Webhook) to obtain resourceId
+      // 5. Set Up Push Notifications (Webhook) to obtain resourceId
       const watcherInfo = await setupPushNotifications(accessToken, userId);
       if (watcherInfo) {
         sendWatcherInfoToBubble(watcherInfo);
       }
 
-      // 5. Retrieve and Forward Calendar Events
+      // 6. Retrieve and Forward Calendar Events
       const events = await listCalendarEvents(
         accessToken,
         new Date().toISOString()
@@ -61,21 +79,22 @@ export const init = async function (userId) {
         sendCalendarEventsToBubble(events);
       }
 
-      // 6. Create a Custom Calendar
+      // 7. Create a Custom Calendar
       const calendarId = await createStartupCornersCalendar(accessToken);
       await sendCalendarIdToBubble(calendarId);
 
-      // 7. Process Appointments for the given user
+      // 8. Process Appointments for the given user
       await processAppointments(userId, accessToken, refreshToken, calendarId);
 
-      // 8. Notify Bubble process completion
+      // 9. Notify Bubble process completion
       if (typeof bubble_fn_finished === "function") {
         bubble_fn_finished();
       }
     } catch (error) {
-      // Error handling silently
+      // Silently handle error (or log if needed)
     }
   }
+
 
   // Fetch user email using access token
   async function fetchUserEmail(accessToken) {
