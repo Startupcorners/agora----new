@@ -617,6 +617,7 @@ export const init = async function (userId) {
     handleGoogleEvents,
     processAppointments,
     processDeleteEvents,
+    handleRedirect,
   };
 };
 
