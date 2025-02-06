@@ -130,9 +130,6 @@ export const init = async function (userId) {
     }
   }
 
-
-
-
   // Fetch user email using access token
   async function fetchUserEmail(accessToken) {
     try {
@@ -300,9 +297,6 @@ export const init = async function (userId) {
     }
   }
 
-
-
-
   async function revokeGoogleOAuthToken(accessToken) {
     try {
       const revokeUrl = `https://accounts.google.com/o/oauth2/revoke?token=${accessToken}`;
@@ -349,10 +343,6 @@ export const init = async function (userId) {
       console.error("Error stopping push notifications:", error);
     }
   }
-
-
-
-
 
   async function createStartupCornersCalendar(accessToken) {
     const GOOGLE_CALENDAR_API = `https://www.googleapis.com/calendar/v3/calendars`;
@@ -475,6 +465,13 @@ export const init = async function (userId) {
     window.location.pathname === "/oauth-callback" &&
     window.location.search.includes("code=")
   ) {
+    console.log(
+      "Detected OAuth callback. Delaying before handling redirect..."
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // 500ms delay
+
+    console.log("Proceeding with handleRedirect...");
     await handleRedirect(userId);
   }
 
