@@ -9,10 +9,23 @@ export const init = async function (userId) {
     const authCode = params.get("code");
     const state = decodeURIComponent(params.get("state") || "");
 
+    // Grab the 'scope' param directly from the callback URL
+    const urlScope = params.get("scope") || "";
+
     if (!authCode) return;
 
+    // 1. Quick check: Did the user actually grant the Calendar scope?
+    //    (e.g., https://www.googleapis.com/auth/calendar)
+    if (!urlScope.includes("https://www.googleapis.com/auth/calendar")) {
+      // The user did NOT grant the Calendar permission:
+      if (typeof bubble_fn_notGranted === "function") {
+        bubble_fn_notGranted();
+      }
+      return; // Stop execution
+    }
+
     try {
-      // 1. Exchange the auth code for tokens
+      // 2. Exchange the auth code for tokens
       const tokenResponse = await fetch(
         "https://agora-new.vercel.app/exchange-token",
         {
@@ -28,35 +41,26 @@ export const init = async function (userId) {
         return;
       }
 
-      // Destructure needed fields, including the returned scopes
+      // 3. Destructure needed fields
       const {
         access_token: accessToken,
         refresh_token: refreshToken,
         expires_in: expiresIn,
-        scope: grantedScopes,
       } = tokenResult.token;
+
+      // 4. (Optional) In a more robust approach, you'd confirm the scope
+      //    via tokeninfo or your backend's response, but for now we're
+      //    relying on the URL param check above.
+
       const expirationTime = Date.now() + expiresIn * 1000;
 
-      // 2. Verify that the calendar scope was actually granted
-      // (e.g., "https://www.googleapis.com/auth/calendar")
-      if (
-        !grantedScopes ||
-        !grantedScopes.includes("https://www.googleapis.com/auth/calendar")
-      ) {
-        // If not granted, call Bubble function and stop
-        if (typeof bubble_fn_notGranted === "function") {
-          bubble_fn_notGranted();
-        }
-        return;
-      }
-
-      // 3. Fetch user email using the retrieved access token
+      // 5. Fetch user email
       const userEmail = await fetchUserEmail(accessToken);
       if (!userEmail) {
         return;
       }
 
-      // 4. Notify Bubble with Token Data
+      // 6. Notify Bubble with Token Data
       await sendTokenDataToBubble(
         accessToken,
         refreshToken,
@@ -64,13 +68,13 @@ export const init = async function (userId) {
         userEmail
       );
 
-      // 5. Set Up Push Notifications (Webhook) to obtain resourceId
+      // 7. Set Up Push Notifications (Webhook) to obtain resourceId
       const watcherInfo = await setupPushNotifications(accessToken, userId);
       if (watcherInfo) {
         sendWatcherInfoToBubble(watcherInfo);
       }
 
-      // 6. Retrieve and Forward Calendar Events
+      // 8. Retrieve and Forward Calendar Events
       const events = await listCalendarEvents(
         accessToken,
         new Date().toISOString()
@@ -79,21 +83,23 @@ export const init = async function (userId) {
         sendCalendarEventsToBubble(events);
       }
 
-      // 7. Create a Custom Calendar
+      // 9. Create a Custom Calendar
       const calendarId = await createStartupCornersCalendar(accessToken);
       await sendCalendarIdToBubble(calendarId);
 
-      // 8. Process Appointments for the given user
+      // 10. Process Appointments for the given user
       await processAppointments(userId, accessToken, refreshToken, calendarId);
 
-      // 9. Notify Bubble process completion
+      // 11. Notify Bubble process completion
       if (typeof bubble_fn_finished === "function") {
         bubble_fn_finished();
       }
     } catch (error) {
-      // Silently handle error (or log if needed)
+      // Handle error silently or log it
+      console.error(error);
     }
   }
+
 
 
   // Fetch user email using access token
