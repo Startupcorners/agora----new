@@ -460,20 +460,6 @@ export const init = async function (userId) {
     window.location.href = authUrl;
   }
 
-  // Automatically handle redirect if the URL contains the authorization code
-  if (
-    window.location.pathname === "/oauth-callback" &&
-    window.location.search.includes("code=")
-  ) {
-    console.log(
-      "Detected OAuth callback. Delaying before handling redirect..."
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // 500ms delay
-
-    console.log("Proceeding with handleRedirect...");
-    await handleRedirect(userId);
-  }
 
   // Function to list calendar events
   async function listCalendarEvents(accessToken, timeMin) {
