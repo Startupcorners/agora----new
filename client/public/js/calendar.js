@@ -5,26 +5,37 @@ export const init = async function (userId) {
 
   // Function to handle redirect from Google
   async function handleRedirect(userId) {
+    console.log("handleRedirect started with userId:", userId);
+
     const params = new URLSearchParams(window.location.search);
     const authCode = params.get("code");
     const state = decodeURIComponent(params.get("state") || "");
+    console.log("Extracted authCode:", authCode);
+    console.log("Extracted state:", state);
 
     // Grab the 'scope' param directly from the callback URL
     const urlScope = params.get("scope") || "";
+    console.log("Extracted urlScope:", urlScope);
 
-    if (!authCode) return;
+    if (!authCode) {
+      console.warn("No authCode found, exiting function.");
+      return;
+    }
 
     // 1. Quick check: Did the user actually grant the Calendar scope?
-    //    (e.g., https://www.googleapis.com/auth/calendar)
     if (!urlScope.includes("https://www.googleapis.com/auth/calendar")) {
-      // The user did NOT grant the Calendar permission:
+      console.warn("User did not grant Calendar permission.");
+
       if (typeof bubble_fn_notGranted === "function") {
+        console.log("Calling bubble_fn_notGranted.");
         bubble_fn_notGranted();
       }
       return; // Stop execution
     }
 
     try {
+      console.log("Attempting to exchange authCode for tokens...");
+
       // 2. Exchange the auth code for tokens
       const tokenResponse = await fetch(
         "https://agora-new.vercel.app/exchange-token",
@@ -35,9 +46,11 @@ export const init = async function (userId) {
         }
       );
       const tokenResult = await tokenResponse.json();
+      console.log("Token exchange response:", tokenResult);
 
       // If exchange failed, exit
       if (!tokenResult.success) {
+        console.error("Token exchange failed, exiting.");
         return;
       }
 
@@ -47,20 +60,24 @@ export const init = async function (userId) {
         refresh_token: refreshToken,
         expires_in: expiresIn,
       } = tokenResult.token;
-
-      // 4. (Optional) In a more robust approach, you'd confirm the scope
-      //    via tokeninfo or your backend's response, but for now we're
-      //    relying on the URL param check above.
+      console.log("Access Token:", accessToken);
+      console.log("Refresh Token:", refreshToken);
+      console.log("Token Expiration in seconds:", expiresIn);
 
       const expirationTime = Date.now() + expiresIn * 1000;
+      console.log("Computed token expirationTime:", expirationTime);
 
       // 5. Fetch user email
+      console.log("Fetching user email...");
       const userEmail = await fetchUserEmail(accessToken);
       if (!userEmail) {
+        console.error("Failed to fetch user email, exiting.");
         return;
       }
+      console.log("Fetched user email:", userEmail);
 
       // 6. Notify Bubble with Token Data
+      console.log("Sending token data to Bubble...");
       await sendTokenDataToBubble(
         accessToken,
         refreshToken,
@@ -69,36 +86,50 @@ export const init = async function (userId) {
       );
 
       // 7. Set Up Push Notifications (Webhook) to obtain resourceId
+      console.log("Setting up push notifications...");
       const watcherInfo = await setupPushNotifications(accessToken, userId);
       if (watcherInfo) {
+        console.log("Push notifications set up successfully:", watcherInfo);
         sendWatcherInfoToBubble(watcherInfo);
+      } else {
+        console.warn("Failed to set up push notifications.");
       }
 
       // 8. Retrieve and Forward Calendar Events
+      console.log("Fetching calendar events...");
       const events = await listCalendarEvents(
         accessToken,
         new Date().toISOString()
       );
       if (events && events.length > 0) {
+        console.log("Fetched calendar events:", events.length);
         sendCalendarEventsToBubble(events);
+      } else {
+        console.warn("No calendar events found.");
       }
 
       // 9. Create a Custom Calendar
+      console.log("Creating a custom calendar...");
       const calendarId = await createStartupCornersCalendar(accessToken);
+      console.log("Created calendar with ID:", calendarId);
       await sendCalendarIdToBubble(calendarId);
 
       // 10. Process Appointments for the given user
+      console.log("Processing appointments for user:", userId);
       await processAppointments(userId, accessToken, refreshToken, calendarId);
 
       // 11. Notify Bubble process completion
+      console.log("Process completed. Notifying Bubble...");
       if (typeof bubble_fn_finished === "function") {
         bubble_fn_finished();
       }
+
+      console.log("handleRedirect execution finished successfully.");
     } catch (error) {
-      // Handle error silently or log it
-      console.error(error);
+      console.error("An error occurred in handleRedirect:", error);
     }
   }
+
 
 
 
