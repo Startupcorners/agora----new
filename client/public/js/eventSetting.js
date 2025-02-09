@@ -93,12 +93,43 @@ export const eventSetting = async function () {
     bubble_fn_isTimeAfter(startTotalMinutes < endTotalMinutes ? "yes" : "no");
   }
 
+
+
+  function processFinalStartEndTime(
+    date,
+    startTime,
+    endTime,
+    timeZoneOffsetSeconds
+  ) {
+    function convertToUTC(date, time, offsetSeconds) {
+      const [year, month, day] = date.split("-").map(Number);
+      const [hour, minute] = time.split(":").map(Number);
+
+      // Create a date object in the local time zone
+      const localDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+
+      // Adjust to UTC by subtracting the offset
+      const utcDate = new Date(localDate.getTime() - offsetSeconds * 1000);
+
+      return utcDate.toISOString();
+    }
+
+    const finalStartISO = convertToUTC(date, startTime, timeZoneOffsetSeconds);
+    const finalEndISO = convertToUTC(date, endTime, timeZoneOffsetSeconds);
+
+    // Run the required Bubble functions
+    bubble_fn_finalStartTime(finalStartISO);
+    bubble_fn_finalEndTime(finalEndISO);
+  }
+
+
   return {
     generateStartTimes,
     generateEndTimes,
     adjustDatesToOffset,
     generate42CalendarDatesUserTimeZone,
     checkTime,
+    processFinalStartEndTime,
   };
 };
 
