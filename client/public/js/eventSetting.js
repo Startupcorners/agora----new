@@ -1,4 +1,4 @@
-export const eventSetting = function () {
+export const eventSetting = async function () {
   function generate42CalendarDatesUserTimeZone(anchorDate, offsetSeconds) {
     const [year, month, day] = anchorDate.split("-").map(Number);
     const anchorUTC = new Date(Date.UTC(year, month - 1, day));
@@ -25,7 +25,6 @@ export const eventSetting = function () {
     bubble_fn_listOfStartDatesEvent(dates);
   }
 
-
   function adjustDatesToOffset(
     oldOffsetSeconds,
     newOffsetSeconds,
@@ -40,7 +39,6 @@ export const eventSetting = function () {
 
     bubble_fn_newStartEvent(shiftDate(startDateISO));
   }
-
 
   function generateStartTimes(startTime) {
     const fixedDuration = 15;
@@ -94,7 +92,6 @@ export const eventSetting = function () {
 
     bubble_fn_isTimeAfter(startTotalMinutes < endTotalMinutes ? "yes" : "no");
   }
-
 
   return {
     generateStartTimes,
