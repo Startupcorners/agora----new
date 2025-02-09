@@ -96,6 +96,7 @@ export const eventSetting = async function () {
 
 
   function processFinalStartEndTime(
+    bubbleId,
     date,
     startTime,
     endTime,
@@ -118,8 +119,7 @@ export const eventSetting = async function () {
     const finalEndISO = convertToUTC(date, endTime, timeZoneOffsetSeconds);
 
     // Run the required Bubble functions
-    bubble_fn_finalStartTime(finalStartISO);
-    bubble_fn_finalEndTime(finalEndISO);
+    bubble_fn_finalTime({output1:finalStartISO,output2:finalEndISO,output3:bubbleId});
   }
 
 
