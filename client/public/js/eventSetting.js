@@ -1,27 +1,61 @@
 function generate42CalendarDatesUserTimeZone(anchorDate, offsetSeconds) {
-  const [year, month, day] = anchorDate.split("-").map(Number);
-  const anchorUTC = new Date(Date.UTC(year, month - 1, day));
-  const anchorLocal = new Date(anchorUTC.getTime() + offsetSeconds * 1000);
-  const firstDayLocal = new Date(
-    Date.UTC(anchorLocal.getUTCFullYear(), anchorLocal.getUTCMonth(), 1)
-  );
-  const dayOfWeek = firstDayLocal.getUTCDay();
-  const nearestSundayLocal = new Date(
-    firstDayLocal.getTime() - dayOfWeek * 24 * 60 * 60 * 1000
-  );
+  console.log("🔹 Function Called: generate42CalendarDatesUserTimeZone");
+  console.log("📥 Input - anchorDate:", anchorDate);
+  console.log("📥 Input - offsetSeconds:", offsetSeconds);
 
-  const oneDayMs = 24 * 60 * 60 * 1000;
-  const dates = [];
+  try {
+    // Parse the input date
+    const [year, month, day] = anchorDate.split("-").map(Number);
+    console.log("📆 Parsed Date - Year:", year, "Month:", month, "Day:", day);
 
-  for (let i = 0; i < 42; i++) {
-    const currentDate = new Date(nearestSundayLocal.getTime() + i * oneDayMs);
-    const adjustedDate = new Date(currentDate.getTime() - offsetSeconds * 1000);
-    dates.push(adjustedDate.toISOString());
+    // Convert to UTC
+    const anchorUTC = new Date(Date.UTC(year, month - 1, day));
+    console.log("🌍 UTC Anchor Date:", anchorUTC.toISOString());
+
+    // Adjust for the user's time zone offset
+    const anchorLocal = new Date(anchorUTC.getTime() + offsetSeconds * 1000);
+    console.log("⏳ Local Time Adjusted:", anchorLocal.toISOString());
+
+    // Get the first day of the month in UTC
+    const firstDayLocal = new Date(
+      Date.UTC(anchorLocal.getUTCFullYear(), anchorLocal.getUTCMonth(), 1)
+    );
+    console.log("📆 First Day of Month (UTC):", firstDayLocal.toISOString());
+
+    // Find the nearest Sunday before or on the first of the month
+    const dayOfWeek = firstDayLocal.getUTCDay();
+    console.log("📌 Day of Week (0=Sunday, ... 6=Saturday):", dayOfWeek);
+
+    const nearestSundayLocal = new Date(
+      firstDayLocal.getTime() - dayOfWeek * 24 * 60 * 60 * 1000
+    );
+    console.log(
+      "📌 Nearest Sunday Before First Day:",
+      nearestSundayLocal.toISOString()
+    );
+
+    // Generate 42 consecutive dates
+    const oneDayMs = 24 * 60 * 60 * 1000;
+    const dates = [];
+
+    for (let i = 0; i < 42; i++) {
+      const currentDate = new Date(nearestSundayLocal.getTime() + i * oneDayMs);
+      const adjustedDate = new Date(
+        currentDate.getTime() - offsetSeconds * 1000
+      );
+      dates.push(adjustedDate.toISOString());
+
+      console.log(`📅 Generated Date ${i + 1}:`, adjustedDate.toISOString());
+    }
+
+    console.log("✅ Final List of Dates:", dates);
+
+    // Send dates to Bubble function
+    bubble_fn_listOfStartDatesEvent(dates);
+    console.log("📤 Sent to Bubble Function: bubble_fn_listOfStartDatesEvent");
+  } catch (error) {
+    console.error("❌ Error in generate42CalendarDatesUserTimeZone:", error);
   }
-
-  console.log(dates)
-
-  bubble_fn_listOfStartDatesEvent(dates);
 }
 
 // ✅ Attach functions to window for global access
