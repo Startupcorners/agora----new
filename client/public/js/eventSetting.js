@@ -58,8 +58,10 @@ export const eventSetting = async function () {
       currentTimeInMinutes += fixedDuration;
     }
 
-    // Construct the function name dynamically
-    const functionName = `bubble_fn_${bubbleId}`;
+    // Determine the function name based on bubbleId
+    const functionName = bubbleId
+      ? `bubble_fn_startTimeListEvent${bubbleId}`
+      : `bubble_fn_startTimeListEvent`;
 
     // Check if the function exists in the global scope and call it
     if (typeof window[functionName] === "function") {
@@ -70,6 +72,7 @@ export const eventSetting = async function () {
       );
     }
   }
+
 
 
   function generateEndTimes(startTime) {
