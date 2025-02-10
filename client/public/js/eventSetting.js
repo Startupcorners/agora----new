@@ -40,7 +40,7 @@ export const eventSetting = async function () {
     bubble_fn_newStartEvent(shiftDate(startDateISO));
   }
 
-  function generateStartTimes(startTime) {
+  function generateStartTimes(startTime, bubbleId) {
     const fixedDuration = 15;
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
@@ -58,8 +58,19 @@ export const eventSetting = async function () {
       currentTimeInMinutes += fixedDuration;
     }
 
-    bubble_fn_startTimeListEvent(times);
+    // Construct the function name dynamically
+    const functionName = `bubble_fn_${bubbleId}`;
+
+    // Check if the function exists in the global scope and call it
+    if (typeof window[functionName] === "function") {
+      window[functionName](times);
+    } else {
+      console.error(
+        `Function ${functionName} is not defined or not a function.`
+      );
+    }
   }
+
 
   function generateEndTimes(startTime) {
     const fixedDuration = 15;
