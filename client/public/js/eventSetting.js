@@ -19,6 +19,8 @@ function generate42CalendarDatesUserTimeZone(anchorDate, offsetSeconds) {
     dates.push(adjustedDate.toISOString());
   }
 
+  console.log(dates)
+
   bubble_fn_listOfStartDatesEvent(dates);
 }
 
