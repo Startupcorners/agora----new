@@ -137,27 +137,66 @@ function processFinalStartEndTime(
   endTime,
   timeZoneOffsetSeconds
 ) {
+  console.log("🔹 Function Called: processFinalStartEndTime");
+  console.log("📥 Input - bubbleId:", bubbleId);
+  console.log("📥 Input - date:", date);
+  console.log("📥 Input - startTime:", startTime);
+  console.log("📥 Input - endTime:", endTime);
+  console.log("📥 Input - timeZoneOffsetSeconds:", timeZoneOffsetSeconds);
+
   function convertToUTC(date, time, offsetSeconds) {
-    const [year, month, day] = date.split("-").map(Number);
-    const [hour, minute] = time.split(":").map(Number);
+    console.log("🔄 Converting to UTC...");
+    console.log("📥 convertToUTC - date:", date);
+    console.log("📥 convertToUTC - time:", time);
+    console.log("📥 convertToUTC - offsetSeconds:", offsetSeconds);
 
-    // Create a date object in the local time zone
-    const localDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+    try {
+      const [year, month, day] = date.split("-").map(Number);
+      const [hour, minute] = time.split(":").map(Number);
 
-    // Adjust to UTC by subtracting the offset
-    const utcDate = new Date(localDate.getTime() - offsetSeconds * 1000);
+      console.log("📆 Parsed Date - Year:", year, "Month:", month, "Day:", day);
+      console.log("⏰ Parsed Time - Hour:", hour, "Minute:", minute);
 
-    return utcDate.toISOString();
+      // Create a date object in the local time zone
+      const localDate = new Date(Date.UTC(year, month - 1, day, hour, minute));
+      console.log("🌍 Local Date Before Offset:", localDate.toISOString());
+
+      // Adjust to UTC by subtracting the offset
+      const utcDate = new Date(localDate.getTime() - offsetSeconds * 1000);
+      console.log("✅ Converted UTC Date:", utcDate.toISOString());
+
+      return utcDate.toISOString();
+    } catch (error) {
+      console.error("❌ Error in convertToUTC:", error);
+      return null;
+    }
   }
 
   const finalStartISO = convertToUTC(date, startTime, timeZoneOffsetSeconds);
   const finalEndISO = convertToUTC(date, endTime, timeZoneOffsetSeconds);
 
+  console.log("✅ Final Converted Start Time (UTC):", finalStartISO);
+  console.log("✅ Final Converted End Time (UTC):", finalEndISO);
+
+  if (!finalStartISO || !finalEndISO) {
+    console.error(
+      "❌ One or both converted times are invalid. Aborting function."
+    );
+    return;
+  }
+
   // Run the required Bubble functions
-  bubble_fn_finalTime({
-    output1: finalStartISO,
-    output2: finalEndISO,
-    output3: bubbleId,
-  });
+  try {
+    console.log("📤 Sending Data to Bubble Function...");
+    bubble_fn_finalTime({
+      output1: finalStartISO,
+      output2: finalEndISO,
+      output3: bubbleId,
+    });
+    console.log("✅ Data Successfully Sent to bubble_fn_finalTime");
+  } catch (error) {
+    console.error("❌ Error Calling bubble_fn_finalTime:", error);
+  }
 }
+
 window.processFinalStartEndTime = processFinalStartEndTime;
