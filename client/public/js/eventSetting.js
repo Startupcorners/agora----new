@@ -26,26 +26,31 @@ function generate42CalendarDatesUserTimeZone(anchorDate, offsetSeconds) {
     const dayOfWeek = firstDayLocal.getUTCDay();
     console.log("📌 Day of Week (0=Sunday, ... 6=Saturday):", dayOfWeek);
 
-    const nearestSundayLocal = new Date(
+    const nearestSundayUTC = new Date(
       firstDayLocal.getTime() - dayOfWeek * 24 * 60 * 60 * 1000
     );
     console.log(
-      "📌 Nearest Sunday Before First Day:",
-      nearestSundayLocal.toISOString()
+      "📌 Nearest Sunday Before First Day (UTC):",
+      nearestSundayUTC.toISOString()
     );
 
-    // Generate 42 consecutive dates
+    // Generate 42 consecutive dates in UTC, then apply the offset
     const oneDayMs = 24 * 60 * 60 * 1000;
     const dates = [];
 
     for (let i = 0; i < 42; i++) {
-      const currentDate = new Date(nearestSundayLocal.getTime() + i * oneDayMs);
+      const currentDateUTC = new Date(
+        nearestSundayUTC.getTime() + i * oneDayMs
+      );
       const adjustedDate = new Date(
-        currentDate.getTime() - offsetSeconds * 1000
+        currentDateUTC.getTime() + offsetSeconds * 1000
       );
       dates.push(adjustedDate.toISOString());
 
-      console.log(`📅 Generated Date ${i + 1}:`, adjustedDate.toISOString());
+      console.log(
+        `📅 Generated Date ${i + 1} (Adjusted UTC):`,
+        adjustedDate.toISOString()
+      );
     }
 
     console.log("✅ Final List of Dates:", dates);
