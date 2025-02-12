@@ -52,6 +52,7 @@
   window.generateStartTimesEvent = generateStartTimesEvent;
 
   function generateEndTimesEvent(startTime) {
+    console.log("generateEndTimesEvent called");
     const fixedDuration = 15;
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
@@ -68,6 +69,8 @@
       );
       currentTimeInMinutes += fixedDuration;
     }
+
+    console.log("times",times)
 
     bubble_fn_endTimeListEvent(times);
   }
