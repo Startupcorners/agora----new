@@ -964,6 +964,8 @@ function generateScheduleWrapper(
     userOffsetInSeconds
   );
 
+  console.log("weekRanges:", weekRanges);
+
   const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
 
   console.log("allPossibleSlots:", allPossibleSlots);
