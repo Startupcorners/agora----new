@@ -67,60 +67,6 @@ function generate42CalendarDatesUserTimeZone(anchorDate, offsetSeconds) {
 window.generate42CalendarDatesUserTimeZone =
   generate42CalendarDatesUserTimeZone;
 
-function adjustDatesToOffset(oldOffsetSeconds, newOffsetSeconds, startDateISO) {
-  console.log("🔹 Function Called: adjustDatesToOffset");
-  console.log("📥 Input - oldOffsetSeconds:", oldOffsetSeconds);
-  console.log("📥 Input - newOffsetSeconds:", newOffsetSeconds);
-  console.log("📥 Input - startDateISO:", startDateISO);
-
-  function shiftDate(dateISO) {
-    if (!dateISO) {
-      console.warn("⚠️ Warning: shiftDate received a null or invalid dateISO.");
-      return null;
-    }
-
-    try {
-      console.log("🔄 Shifting Date...");
-      console.log("📥 shiftDate - dateISO:", dateISO);
-
-      const oldDateUTC = new Date(dateISO);
-      console.log("🌍 Parsed Old UTC Date:", oldDateUTC.toISOString());
-
-      const deltaMs = (oldOffsetSeconds - newOffsetSeconds) * 1000;
-      console.log("⏳ Time Zone Difference (deltaMs):", deltaMs, "ms");
-
-      const newDateUTC = new Date(oldDateUTC.getTime() + deltaMs);
-      console.log("✅ New Adjusted UTC Date:", newDateUTC.toISOString());
-
-      return newDateUTC.toISOString();
-    } catch (error) {
-      console.error("❌ Error in shiftDate:", error);
-      return null;
-    }
-  }
-
-  const adjustedStartDate = shiftDate(startDateISO);
-
-  if (!adjustedStartDate) {
-    console.error(
-      "❌ Error: Adjusted start date is invalid. Aborting function."
-    );
-    return;
-  }
-
-  try {
-    console.log("📤 Sending Data to Bubble Function...");
-    bubble_fn_newStartEvent(adjustedStartDate);
-    console.log(
-      "✅ Successfully Sent to bubble_fn_newStartEvent:",
-      adjustedStartDate
-    );
-  } catch (error) {
-    console.error("❌ Error Calling bubble_fn_newStartEvent:", error);
-  }
-}
-
-window.adjustDatesToOffset = adjustDatesToOffset;
 
 function generateStartTimes(startTime) {
   const fixedDuration = 15;
