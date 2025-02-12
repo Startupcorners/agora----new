@@ -817,126 +817,52 @@ window.generateStartTimes = generateStartTimes;
     return [urls, addresses, isModified, isStartupCorners, isBlockedByUser];
   }
 
-  function generateAllPossibleSlots(slots, weekRanges, offsetSeconds) {
-    if (!slots || slots.length === 0) return [];
+  function generateAllPossibleSlots(slots, weekRanges) {
+    const allPossibleSlots = new Set();
 
-    const offsetMs = offsetSeconds * 1000;
+    const addSlotForWeekRange = (baseSlot, dayOffsets, duration, weekRange) => {
+      const baseDate = new Date(baseSlot);
 
-    // Helper functions:
-    // Converts a UTC Date to the user’s local time (by applying the offset).
-    const toLocal = (date) => new Date(date.getTime() + offsetMs);
-    // Converts a user’s local Date back to UTC.
-    const toUTCFromLocal = (localDate) =>
-      new Date(localDate.getTime() - offsetMs);
+      dayOffsets.forEach((offset) => {
+        const newStartDate = new Date(baseDate);
+        newStartDate.setDate(baseDate.getDate() + offset);
+        const newEndDate = new Date(newStartDate.getTime() + duration);
 
-    // 1. Determine the working window (in local time) using the input slots.
-    // We'll compute the offset in ms from local midnight.
-    let earliestLocalMs = Infinity;
-    let latestLocalMs = -Infinity;
+        // Check if the slot is within the week range
+        const weekStart = new Date(weekRange[0]);
+        const weekEnd = new Date(weekRange[1]);
 
-    // We assume the slots have a fixed duration; compute it from the first slot.
-    const slotDuration =
-      new Date(slots[0][1]).getTime() - new Date(slots[0][0]).getTime();
-
-    slots.forEach(([slotStartStr, slotEndStr]) => {
-      const slotStartUTC = new Date(slotStartStr);
-      const slotEndUTC = new Date(slotEndStr);
-
-      // Convert these times to the user’s local time.
-      const slotStartLocal = toLocal(slotStartUTC);
-      const slotEndLocal = toLocal(slotEndUTC);
-
-      // Compute the time-of-day (milliseconds offset from local midnight)
-      const startOffset =
-        slotStartLocal.getHours() * 3600000 +
-        slotStartLocal.getMinutes() * 60000 +
-        slotStartLocal.getSeconds() * 1000 +
-        slotStartLocal.getMilliseconds();
-      const endOffset =
-        slotEndLocal.getHours() * 3600000 +
-        slotEndLocal.getMinutes() * 60000 +
-        slotEndLocal.getSeconds() * 1000 +
-        slotEndLocal.getMilliseconds();
-
-      if (startOffset < earliestLocalMs) earliestLocalMs = startOffset;
-      if (endOffset > latestLocalMs) latestLocalMs = endOffset;
-    });
-
-    const allPossibleSlots = [];
-
-    // 2. Process each week range.
-    weekRanges.forEach(([weekStartStr, weekEndStr]) => {
-      const weekStartUTC = new Date(weekStartStr);
-      const weekEndUTC = new Date(weekEndStr);
-
-      // Convert week range boundaries into local time.
-      const localWeekStart = toLocal(weekStartUTC);
-      const localWeekEnd = toLocal(weekEndUTC);
-
-      // We iterate day-by-day in local time.
-      // Start from the local day of the week start by normalizing to local midnight.
-      const currentLocalDay = new Date(localWeekStart);
-      currentLocalDay.setHours(0, 0, 0, 0);
-
-      while (currentLocalDay.getTime() <= localWeekEnd.getTime()) {
-        // 3. For the current local day, build the working window.
-        // Normally, the working window on a day runs from local midnight plus earliestLocalMs
-        // to local midnight plus latestLocalMs.
-        let localWorkingStart = new Date(
-          currentLocalDay.getTime() + earliestLocalMs
-        );
-        let localWorkingEnd = new Date(
-          currentLocalDay.getTime() + latestLocalMs
-        );
-
-        // If this day is the first day of the week range, adjust the start.
         if (
-          currentLocalDay.toDateString() === localWeekStart.toDateString() &&
-          localWeekStart.getTime() > localWorkingStart.getTime()
+          newStartDate.getTime() >= weekStart.getTime() &&
+          newEndDate.getTime() <= weekEnd.getTime()
         ) {
-          localWorkingStart = localWeekStart;
-        }
-        // Similarly, if this day is the last day, adjust the end.
-        if (
-          currentLocalDay.toDateString() === localWeekEnd.toDateString() &&
-          localWeekEnd.getTime() < localWorkingEnd.getTime()
-        ) {
-          localWorkingEnd = localWeekEnd;
-        }
-
-        // 4. Generate slots for the current day, moving in fixed increments.
-        let localSlotStart = new Date(localWorkingStart);
-        while (
-          localSlotStart.getTime() + slotDuration <=
-          localWorkingEnd.getTime()
-        ) {
-          const localSlotEnd = new Date(
-            localSlotStart.getTime() + slotDuration
-          );
-
-          // Convert the local slot times back to UTC.
-          const utcSlotStart = toUTCFromLocal(localSlotStart);
-          const utcSlotEnd = toUTCFromLocal(localSlotEnd);
-
-          allPossibleSlots.push([
-            utcSlotStart.toISOString(),
-            utcSlotEnd.toISOString(),
+          const slotPair = JSON.stringify([
+            newStartDate.toISOString(),
+            newEndDate.toISOString(),
           ]);
-
-          // Move forward by one slot's duration.
-          localSlotStart = new Date(localSlotStart.getTime() + slotDuration);
+          allPossibleSlots.add(slotPair);
         }
+      });
+    };
 
-        // Advance to the next local day.
-        currentLocalDay.setDate(currentLocalDay.getDate() + 1);
-      }
+    slots.forEach((slotRange) => {
+      const [slotStart, slotEnd] = slotRange;
+      const slotDuration =
+        new Date(slotEnd).getTime() - new Date(slotStart).getTime();
+
+      weekRanges.forEach((weekRange) => {
+        // Generate dayOffsets [-3, -2, -1, 0, 1, 2, 3]
+        const dayOffsets = Array.from({ length: 15 }, (_, i) => i - 7);
+
+        // Propagate slots for this week range
+        addSlotForWeekRange(slotStart, dayOffsets, slotDuration, weekRange);
+      });
     });
 
-    // Optionally sort all slots by start time (in UTC).
-    allPossibleSlots.sort((a, b) => new Date(a[0]) - new Date(b[0]));
-    return allPossibleSlots;
+    return Array.from(allPossibleSlots)
+      .map((slotPair) => JSON.parse(slotPair))
+      .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
   }
-
 
   function checkTime(start, end, duration) {
     // Return early if start or end is not provided.
@@ -998,94 +924,81 @@ window.generateStartTimes = generateStartTimes;
 
 
   // Wrapper function
-function generateScheduleWrapper(
-  mainAvailability,
-  viewerDate,
-  alreadyBookedList,
-  modifiedSlots,
-  offset,
-  userOffsetInSeconds,
-  earliestBookableHour,
-  blockedByUser
-) {
-  console.log("generateScheduleWrapper - Inputs:");
-  console.log("mainAvailability:", mainAvailability);
-  console.log("viewerDate:", viewerDate);
-  console.log("alreadyBookedList:", alreadyBookedList);
-  console.log("modifiedSlots:", modifiedSlots);
-  console.log("offset:", offset);
-  console.log("userOffsetInSeconds:", userOffsetInSeconds);
-  console.log("earliestBookableHour:", earliestBookableHour);
-  console.log("blockedByUser:", blockedByUser);
-
-  // Generate the slots for the expanded range (-2 days to +9 days)
-  const slots = generateSlotsForWeek(
+  function generateScheduleWrapper(
     mainAvailability,
     viewerDate,
     alreadyBookedList,
+    modifiedSlots,
     offset,
     userOffsetInSeconds,
     earliestBookableHour,
     blockedByUser
-  );
-
-  console.log("Slots:", slots);
-
-  // Generate the week ranges
-  const weekRanges = generateWeekRanges(
-    viewerDate,
-    offset,
-    userOffsetInSeconds
-  );
-
-  console.log("weekRanges:", weekRanges);
-
-  const allPossibleSlots = generateAllPossibleSlots(
-    slots,
-    weekRanges,
-    userOffsetInSeconds
-  );
-
-  console.log("allPossibleSlots:", allPossibleSlots);
-
-  // Get the outputs from assignSimplifiedSlotInfo
-  const [urls, addresses, isModified, isStartupCorners, blockedByUserOutput] =
-    assignSimplifiedSlotInfo(
+  ) {
+    // Generate the slots for the expanded range (-2 days to +9 days)
+    const slots = generateSlotsForWeek(
       mainAvailability,
-      modifiedSlots,
-      allPossibleSlots.map((slot) => ({
-        start_date: slot[0],
-        end_date: slot[1],
-      })), // Convert back to object format for compatibility
-      blockedByUser // Pass the original blockedByUser parameter
+      viewerDate,
+      alreadyBookedList,
+      offset,
+      userOffsetInSeconds,
+      earliestBookableHour,
+      blockedByUser
     );
 
-  // Assign outputs to the appropriate variables
-  let outputlist1 = urls; // Meeting links
-  let outputlist2 = addresses; // Addresses
-  let outputlist4 = isModified; // Modified slot info
-  let outputlist5 = slots; // The slots themselves (array of arrays)
-  let outputlist6 = weekRanges; // Week ranges
-  let outputlist7 = allPossibleSlots; // All possible slots
-  let outputlist8 = blockedByUserOutput; // Output from assignSimplifiedSlotInfo
-  let outputlist9 = isStartupCorners; // Startup corners information
+    // Generate the week ranges
+    const weekRanges = generateWeekRanges(
+      viewerDate,
+      offset,
+      userOffsetInSeconds
+    );
 
-  const output = {
-    outputlist1,
-    outputlist2,
-    outputlist4,
-    outputlist9,
-    outputlist5,
-    outputlist6,
-    outputlist8,
-    outputlist7,
-  };
+    const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
 
-  // Send result to Bubble
-  bubble_fn_hours(output);
+    // Get the outputs from assignSimplifiedSlotInfo
+    const [urls, addresses, isModified, isStartupCorners, blockedByUserOutput] =
+      assignSimplifiedSlotInfo(
+        mainAvailability,
+        modifiedSlots,
+        allPossibleSlots.map((slot) => ({
+          start_date: slot[0],
+          end_date: slot[1],
+        })), // Convert back to object format for compatibility
+        blockedByUser // Pass the original blockedByUser parameter
+      );
 
-  return output;
-}
+    // Assign outputs to the appropriate variables
+    let outputlist1 = urls; // Meeting links
+    let outputlist2 = addresses; // Addresses
+    let outputlist4 = isModified; // Modified slot info
+    let outputlist5 = slots; // The slots themselves (array of arrays)
+    let outputlist6 = weekRanges; // Week ranges
+    let outputlist7 = allPossibleSlots; // All possible slots
+    let outputlist8 = blockedByUserOutput; // Output from assignSimplifiedSlotInfo
+    let outputlist9 = isStartupCorners; // Startup corners information
 
-// Make function globally accessible
+    // Send result to Bubble
+    bubble_fn_hours({
+      outputlist1,
+      outputlist2,
+      outputlist4,
+      outputlist5,
+      outputlist6,
+      outputlist7,
+      outputlist8,
+      outputlist9,
+    });
+
+    return {
+      outputlist1,
+      outputlist2,
+      outputlist4,
+      outputlist9,
+      outputlist5,
+      outputlist6,
+      outputlist8,
+      outputlist7,
+    };
+  }
+
+  // Make function globally accessible
 window.generateScheduleWrapper = generateScheduleWrapper;
