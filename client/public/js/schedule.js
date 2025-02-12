@@ -1,89 +1,105 @@
-export const schedule = async function () {
-  const MIN_SLOTS_REQUIRED = 20; // or 40, etc.
+
 
   async function runProcess(
-    timezoneOffsets,
-    startDate,
-    endDate,
-    poll,
-    bookedSlots, // e.g. ["2025-01-28T08:00:00Z_2025-01-28T08:15:00Z", ...]
-    durationInMinutes,
-    previouslyCreated
-  ) {
-    let maxDaysToAdd = 7;
-    let updatedStartDate = new Date(startDate);
-    let updatedEndDate = new Date(endDate);
-    let WORKING_HOURS_START = 8;
-    let WORKING_HOURS_END = 20;
+  timezoneOffsets,
+  startDate,
+  endDate,
+  poll,
+  bookedSlots, // e.g. ["2025-01-28T08:00:00Z_2025-01-28T08:15:00Z", ...]
+  durationInMinutes,
+  previouslyCreated
+) {
+  console.log("🔹 Function Called: runProcess");
+  console.log("📥 Inputs - Start Date:", startDate, "End Date:", endDate);
+  console.log("📥 Inputs - Duration:", durationInMinutes, "Min Slots:", MIN_SLOTS_REQUIRED);
 
-    let selectedPairs = [];
+  let maxDaysToAdd = 7;
+  let MIN_SLOTS_REQUIRED = 20; // or 40, etc.
+  let updatedStartDate = new Date(startDate);
+  let updatedEndDate = new Date(endDate);
+  let WORKING_HOURS_START = 8;
+  let WORKING_HOURS_END = 20;
+  let expansionAttempts = 0; // NEW: Limit working hour expansion attempts
 
-    while (selectedPairs.length < MIN_SLOTS_REQUIRED && maxDaysToAdd >= 0) {
-      // 1. Find overlapping hours in the given working-hour window
-      const overlappingHours = findOverlappingSlots(
-        timezoneOffsets,
-        WORKING_HOURS_START,
-        WORKING_HOURS_END
-      );
+  let selectedPairs = [];
 
-      // 2. Generate *all* slot pairs from startDate..endDate
-      let allPairs = generateAvailableSlots(
-        updatedStartDate,
-        updatedEndDate,
-        overlappingHours,
-        durationInMinutes
-      );
+  while (selectedPairs.length < MIN_SLOTS_REQUIRED && maxDaysToAdd >= 0) {
+    console.log(`🔄 Searching between ${updatedStartDate.toISOString()} and ${updatedEndDate.toISOString()}`);
+    
+    // 1. Find overlapping hours in the given working-hour window
+    const overlappingHours = findOverlappingSlots(
+      timezoneOffsets,
+      WORKING_HOURS_START,
+      WORKING_HOURS_END
+    );
+    console.log("⏳ Overlapping Hours:", overlappingHours);
 
-      // 3. Filter out booked or previously created
-      allPairs = filterOutBooked(allPairs, bookedSlots, previouslyCreated);
+    // 2. Generate *all* slot pairs from startDate..endDate
+    let allPairs = generateAvailableSlots(
+      updatedStartDate,
+      updatedEndDate,
+      overlappingHours,
+      durationInMinutes
+    );
+    console.log("📅 Total Slots Generated:", allPairs.length);
 
-      // 4. Pick up to 2–3 pairs per day, or however many you like
-      //    Because pickPairsPerDay also has a maxTotalPairs argument,
-      //    we should ensure we allow at least MIN_SLOTS_REQUIRED in there.
-      selectedPairs = pickPairsPerDay(allPairs, MIN_SLOTS_REQUIRED, 3);
+    // 3. Filter out booked or previously created
+    allPairs = filterOutBooked(allPairs, bookedSlots, previouslyCreated);
+    console.log("❌ After Filtering Booked Slots:", allPairs.length);
 
-      console.log(
-        `[${new Date().toISOString()}] Attempt with endDate ${updatedEndDate.toISOString()} -> found ${
-          selectedPairs.length
-        } slots`
-      );
+    // 4. Pick up to 2–3 pairs per day
+    selectedPairs = pickPairsPerDay(allPairs, MIN_SLOTS_REQUIRED, 3);
+    console.log(`✅ Found ${selectedPairs.length} suitable slots`);
 
-      if (selectedPairs.length >= MIN_SLOTS_REQUIRED) {
-        // Enough slots
+    if (selectedPairs.length >= MIN_SLOTS_REQUIRED) {
+      break; // Enough slots found
+    }
+
+    // 5. Expand search range if needed
+    updatedEndDate.setUTCDate(updatedEndDate.getUTCDate() + 1);
+    maxDaysToAdd--;
+
+    if (maxDaysToAdd === 0 && selectedPairs.length < MIN_SLOTS_REQUIRED) {
+      if (expansionAttempts >= 3) {
+        console.error("❌ Maximum working hours expansion reached. Stopping search.");
         break;
       }
 
-      // We still haven't got enough -> extend the end date by 1 day
-      updatedEndDate.setUTCDate(updatedEndDate.getUTCDate() + 1);
-      maxDaysToAdd--;
-
-      // If we run out of extra days, expand working hours and reset the counter
-      if (maxDaysToAdd === 0 && selectedPairs.length < MIN_SLOTS_REQUIRED) {
-        console.log("Expanding working hours...");
-        WORKING_HOURS_START = Math.max(WORKING_HOURS_START - 1, 0);
-        WORKING_HOURS_END = Math.min(WORKING_HOURS_END + 1, 24);
-        maxDaysToAdd = 7; // reset
-      }
-    }
-
-    // If we got at least 1 pair, create the poll
-    if (selectedPairs.length > 0) {
-      // Flatten if your poll function needs [start, end, start, end, ...]
-      const finalSlots = selectedPairs.flatMap(({ start, end }) => [
-        start,
-        end,
-      ]);
-
-      const pollResult = await generatePoll(finalSlots, poll);
-      if (pollResult) {
-        console.log("Poll created successfully:", pollResult);
-      } else {
-        console.error("Failed to create poll.");
-      }
-    } else {
-      console.error("No available slots found.");
+      console.log("⚠️ Expanding working hours...");
+      if (WORKING_HOURS_START > 0) WORKING_HOURS_START -= 1;
+      if (WORKING_HOURS_END < 24) WORKING_HOURS_END += 1;
+      maxDaysToAdd = 7; // Reset counter
+      expansionAttempts++; // Track expansions
     }
   }
+
+  // If we got at least 1 pair, create the poll
+  if (selectedPairs.length > 0) {
+    const finalSlots = selectedPairs.flatMap(({ start, end }) => [start, end]);
+    console.log("📤 Sending slots to generatePoll:", finalSlots);
+
+    try {
+      const pollResult = await generatePoll(finalSlots, poll);
+      if (pollResult) {
+        console.log("✅ Poll created successfully:", pollResult);
+        return pollResult; // Return poll result for further use
+      } else {
+        console.error("❌ Failed to create poll.");
+        return null;
+      }
+    } catch (error) {
+      console.error("❌ Error generating poll:", error);
+      return null;
+    }
+  } else {
+    console.error("❌ No available slots found.");
+    return null;
+  }
+}
+
+// Make function globally accessible
+window.runProcess = runProcess;
+
 
   function filterOutBooked(slotPairs, bookedSlots, previouslyCreated) {
     // Convert arrays to Sets for faster lookup
@@ -313,6 +329,9 @@ export const schedule = async function () {
     }
   }
 
+  // Make function globally accessible
+window.generate42CalendarDates = generate42CalendarDates;
+
   function generate42CalendarDatesUserTimeZone(
     anchorDate,
     isStart,
@@ -359,6 +378,9 @@ export const schedule = async function () {
     }
   }
 
+  // Make function globally accessible
+ window.generate42CalendarDatesUserTimeZone = generate42CalendarDatesUserTimeZone;
+
   function adjustDatesToOffset(
     oldOffsetSeconds,
     newOffsetSeconds,
@@ -398,6 +420,9 @@ export const schedule = async function () {
     bubble_fn_newEnd(adjustedEndDate);
   }
 
+  // Make function globally accessible
+  window.adjustDatesToOffset = adjustDatesToOffset;
+
   function generateStartTimes(startTime, duration) {
     // We'll ignore the provided duration and use 15 minutes instead.
     const fixedDuration = duration;
@@ -430,6 +455,9 @@ export const schedule = async function () {
     bubble_fn_startTime(times);
   }
 
+  // Make function globally accessible
+window.generateStartTimes = generateStartTimes;
+
   function generateEndTimes(startTime, duration) {
     // We'll ignore the provided duration and use a fixed duration of 15 minutes.
     const fixedDuration = duration;
@@ -461,6 +489,9 @@ export const schedule = async function () {
     console.log("endtimes", times);
     bubble_fn_endTime(times);
   }
+
+  // Make function globally accessible
+  window.generateEndTimes = generateEndTimes;
 
   function findOverlappingTimeRanges(availabilities, userids, mainuserid) {
     console.log("Received Availabilities:", availabilities);
@@ -587,6 +618,9 @@ export const schedule = async function () {
 
     return finalOutputList1;
   }
+
+  // Make function globally accessible
+  window.findOverlappingTimeRanges = findOverlappingTimeRanges;
 
   function generateSlotsForWeek(
     mainAvailability,
@@ -883,6 +917,9 @@ export const schedule = async function () {
     );
   }
 
+  // Make function globally accessible
+  window.checkTime = checkTime;
+
 
 
 
@@ -963,19 +1000,5 @@ export const schedule = async function () {
     };
   }
 
-
-
-  return {
-    generateScheduleWrapper,
-    generateStartTimes,
-    generateEndTimes,
-    adjustDatesToOffset,
-    generate42CalendarDates,
-    findOverlappingTimeRanges,
-    runProcess,
-    generate42CalendarDatesUserTimeZone,
-    checkTime,
-  };
-}
-window["schedule"] = schedule;
-
+  // Make function globally accessible
+window.generateScheduleWrapper = generateScheduleWrapper;
