@@ -924,81 +924,86 @@ window.generateStartTimes = generateStartTimes;
 
 
   // Wrapper function
-  function generateScheduleWrapper(
+function generateScheduleWrapper(
+  mainAvailability,
+  viewerDate,
+  alreadyBookedList,
+  modifiedSlots,
+  offset,
+  userOffsetInSeconds,
+  earliestBookableHour,
+  blockedByUser
+) {
+  console.log("generateScheduleWrapper - Inputs:");
+  console.log("mainAvailability:", mainAvailability);
+  console.log("viewerDate:", viewerDate);
+  console.log("alreadyBookedList:", alreadyBookedList);
+  console.log("modifiedSlots:", modifiedSlots);
+  console.log("offset:", offset);
+  console.log("userOffsetInSeconds:", userOffsetInSeconds);
+  console.log("earliestBookableHour:", earliestBookableHour);
+  console.log("blockedByUser:", blockedByUser);
+
+  // Generate the slots for the expanded range (-2 days to +9 days)
+  const slots = generateSlotsForWeek(
     mainAvailability,
     viewerDate,
     alreadyBookedList,
-    modifiedSlots,
     offset,
     userOffsetInSeconds,
     earliestBookableHour,
     blockedByUser
-  ) {
-    // Generate the slots for the expanded range (-2 days to +9 days)
-    const slots = generateSlotsForWeek(
+  );
+
+  // Generate the week ranges
+  const weekRanges = generateWeekRanges(
+    viewerDate,
+    offset,
+    userOffsetInSeconds
+  );
+
+  const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
+
+  // Get the outputs from assignSimplifiedSlotInfo
+  const [urls, addresses, isModified, isStartupCorners, blockedByUserOutput] =
+    assignSimplifiedSlotInfo(
       mainAvailability,
-      viewerDate,
-      alreadyBookedList,
-      offset,
-      userOffsetInSeconds,
-      earliestBookableHour,
-      blockedByUser
+      modifiedSlots,
+      allPossibleSlots.map((slot) => ({
+        start_date: slot[0],
+        end_date: slot[1],
+      })), // Convert back to object format for compatibility
+      blockedByUser // Pass the original blockedByUser parameter
     );
 
-    // Generate the week ranges
-    const weekRanges = generateWeekRanges(
-      viewerDate,
-      offset,
-      userOffsetInSeconds
-    );
+  // Assign outputs to the appropriate variables
+  let outputlist1 = urls; // Meeting links
+  let outputlist2 = addresses; // Addresses
+  let outputlist4 = isModified; // Modified slot info
+  let outputlist5 = slots; // The slots themselves (array of arrays)
+  let outputlist6 = weekRanges; // Week ranges
+  let outputlist7 = allPossibleSlots; // All possible slots
+  let outputlist8 = blockedByUserOutput; // Output from assignSimplifiedSlotInfo
+  let outputlist9 = isStartupCorners; // Startup corners information
 
-    const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
+  const output = {
+    outputlist1,
+    outputlist2,
+    outputlist4,
+    outputlist9,
+    outputlist5,
+    outputlist6,
+    outputlist8,
+    outputlist7,
+  };
 
-    // Get the outputs from assignSimplifiedSlotInfo
-    const [urls, addresses, isModified, isStartupCorners, blockedByUserOutput] =
-      assignSimplifiedSlotInfo(
-        mainAvailability,
-        modifiedSlots,
-        allPossibleSlots.map((slot) => ({
-          start_date: slot[0],
-          end_date: slot[1],
-        })), // Convert back to object format for compatibility
-        blockedByUser // Pass the original blockedByUser parameter
-      );
+  console.log("generateScheduleWrapper - Outputs:", output);
 
-    // Assign outputs to the appropriate variables
-    let outputlist1 = urls; // Meeting links
-    let outputlist2 = addresses; // Addresses
-    let outputlist4 = isModified; // Modified slot info
-    let outputlist5 = slots; // The slots themselves (array of arrays)
-    let outputlist6 = weekRanges; // Week ranges
-    let outputlist7 = allPossibleSlots; // All possible slots
-    let outputlist8 = blockedByUserOutput; // Output from assignSimplifiedSlotInfo
-    let outputlist9 = isStartupCorners; // Startup corners information
+  // Send result to Bubble
+  bubble_fn_hours(output);
 
-    // Send result to Bubble
-    bubble_fn_hours({
-      outputlist1,
-      outputlist2,
-      outputlist4,
-      outputlist5,
-      outputlist6,
-      outputlist7,
-      outputlist8,
-      outputlist9,
-    });
+  return output;
+}
 
-    return {
-      outputlist1,
-      outputlist2,
-      outputlist4,
-      outputlist9,
-      outputlist5,
-      outputlist6,
-      outputlist8,
-      outputlist7,
-    };
-  }
-
-  // Make function globally accessible
+// Make function globally accessible
 window.generateScheduleWrapper = generateScheduleWrapper;
