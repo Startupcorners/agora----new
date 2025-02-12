@@ -1,4 +1,4 @@
-function generate42CalendarDatesUserTimeZone(anchorDate, offsetSeconds) {
+function generate42CalendarDatesUserTimeZoneEvent(anchorDate, offsetSeconds) {
   console.log("🔹 Function Called: generate42CalendarDatesUserTimeZone");
   console.log("📥 Input - anchorDate:", anchorDate);
   console.log("📥 Input - offsetSeconds:", offsetSeconds);
@@ -64,11 +64,10 @@ function generate42CalendarDatesUserTimeZone(anchorDate, offsetSeconds) {
 }
 
 // ✅ Attach functions to window for global access
-window.generate42CalendarDatesUserTimeZone =
-  generate42CalendarDatesUserTimeZone;
+window.generate42CalendarDatesUserTimeZoneEvent = generate42CalendarDatesUserTimeZoneEvent;
 
 
-function generateStartTimes(startTime) {
+function generateStartTimesEvent(startTime) {
   const fixedDuration = 15;
   const times = [];
   let [startHour, startMinute] = startTime.split(":").map(Number);
@@ -88,9 +87,9 @@ function generateStartTimes(startTime) {
 
   bubble_fn_startTimeListEvent(times);
 }
-window.generateStartTimes = generateStartTimes;
+window.generateStartTimesEvent = generateStartTimesEvent;
 
-function generateEndTimes(startTime) {
+function generateEndTimesEvent(startTime) {
   const fixedDuration = 15;
   const times = [];
   let [startHour, startMinute] = startTime.split(":").map(Number);
@@ -110,9 +109,9 @@ function generateEndTimes(startTime) {
 
   bubble_fn_endTimeListEvent(times);
 }
-window.generateEndTimes = generateEndTimes;
+window.generateEndTimesEvent = generateEndTimesEvent;
 
-function checkTime(start, end) {
+function checkTimeEvent(start, end) {
   if (!start || !end) return;
 
   const [startHour, startMinute] = start.split(":").map(Number);
@@ -122,7 +121,7 @@ function checkTime(start, end) {
 
   bubble_fn_isTimeAfter(startTotalMinutes < endTotalMinutes ? "yes" : "no");
 }
-window.checkTime = checkTime;
+window.checkTimeEvent = checkTimeEvent;
 
 function processFinalStartEndTime(
   bubbleId,
