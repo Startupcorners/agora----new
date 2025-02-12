@@ -1,4 +1,4 @@
-  function generate42CalendarDatesUserTimeZone(anchorDate, offsetSeconds) {
+  function generate42CalendarDatesUserTimeZoneEvent(anchorDate, offsetSeconds) {
     const [year, month, day] = anchorDate.split("-").map(Number);
     const anchorUTC = new Date(Date.UTC(year, month - 1, day));
     const anchorLocal = new Date(anchorUTC.getTime() + offsetSeconds * 1000);
@@ -24,22 +24,11 @@
     bubble_fn_listOfStartDatesEvent(dates);
   }
 
-  function adjustDatesToOffset(
-    oldOffsetSeconds,
-    newOffsetSeconds,
-    startDateISO
-  ) {
-    function shiftDate(dateISO) {
-      if (!dateISO) return null;
-      const oldDateUTC = new Date(dateISO);
-      const deltaMs = (oldOffsetSeconds - newOffsetSeconds) * 1000;
-      return new Date(oldDateUTC.getTime() + deltaMs).toISOString();
-    }
+  window.generate42CalendarDatesUserTimeZoneEvent =
+    generate42CalendarDatesUserTimeZoneEvent;
 
-    bubble_fn_newStartEvent(shiftDate(startDateISO));
-  }
 
-  function generateStartTimes(startTime) {
+  function generateStartTimesEvent(startTime) {
     const fixedDuration = 15;
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
@@ -60,9 +49,9 @@
     bubble_fn_startTimeListEvent(times);
   }
 
-  window.generateStartTimes = generateStartTimes;
+  window.generateStartTimesEvent = generateStartTimesEvent;
 
-  function generateEndTimes(startTime) {
+  function generateEndTimesEvent(startTime) {
     const fixedDuration = 15;
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
@@ -83,9 +72,9 @@
     bubble_fn_endTimeListEvent(times);
   }
 
-  window.generateEndTimes = generateEndTimes;
+  window.generateEndTimesEvent = generateEndTimesEvent;
 
-  function checkTime(start, end) {
+  function checkTimeEvent(start, end) {
     if (!start || !end) return;
 
     const [startHour, startMinute] = start.split(":").map(Number);
@@ -95,11 +84,11 @@
 
     bubble_fn_isTimeAfter(startTotalMinutes < endTotalMinutes ? "yes" : "no");
   }
-  window.checkTime = checkTime;
+  window.checkTimeEvent = checkTimeEvent;
 
 
 
-  function processFinalStartEndTime(
+  function processFinalStartEndTimeEvent(
     bubbleId,
     date,
     startTime,
@@ -126,5 +115,5 @@
     bubble_fn_finalTime({output1:finalStartISO,output2:finalEndISO,output3:bubbleId});
   }
 
-  window.processFinalStartEndTime = processFinalStartEndTime;
+  window.processFinalStartEndTimeEvent = processFinalStartEndTimeEvent;
 
