@@ -279,7 +279,7 @@ function generateAllPossibleSlots(slots, weekRanges) {
 
 
   // Wrapper function
-  function generateScheduleWrapperAppointment(
+  function generateScheduleWrapper(
     mainAvailability,
     allAvailabilityLists,
     viewerDate,
@@ -353,5 +353,5 @@ function generateAllPossibleSlots(slots, weekRanges) {
     };
   }
 
-  window.generateScheduleWrapperAppointment =
-    generateScheduleWrapperAppointment;
+  window.generateScheduleWrapper =
+    generateScheduleWrapper;
