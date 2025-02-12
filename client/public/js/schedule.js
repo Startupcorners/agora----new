@@ -691,10 +691,10 @@ window.generateStartTimes = generateStartTimes;
     }
 
     // Generate main availability slots
-    const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
+    const allSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
 
     // Filter out slots before the earliest bookable time
-    const filteredSlots = mainSlots.filter((slot) => {
+    const filteredSlots = allSlots.filter((slot) => {
       const slotStart = moment.utc(slot[0]);
       return slotStart.isSameOrAfter(earliestBookableTime);
     });
@@ -720,8 +720,12 @@ window.generateStartTimes = generateStartTimes;
       return !isOverlapping;
     });
 
-    return availableSlots;
+    return {
+      availableSlots, // Slots that are available after filtering booked ones
+      allSlots, // All slots before filtering booked ones
+    };
   }
+
 
   function generateWeekRanges(viewerDate, offset, userOffsetInSeconds) {
     const moment = window.moment; // Ensure moment.js is loaded
@@ -952,7 +956,11 @@ window.generateStartTimes = generateStartTimes;
       userOffsetInSeconds
     );
 
-    const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
+    // Use all generated slots before filtering by already booked ones
+    const allPossibleSlots = generateAllPossibleSlots(
+      slots.allSlots,
+      weekRanges
+    );
 
     // Get the outputs from assignSimplifiedSlotInfo
     const [urls, addresses, isModified, isStartupCorners, blockedByUserOutput] =
@@ -970,9 +978,9 @@ window.generateStartTimes = generateStartTimes;
     let outputlist1 = urls; // Meeting links
     let outputlist2 = addresses; // Addresses
     let outputlist4 = isModified; // Modified slot info
-    let outputlist5 = slots; // The slots themselves (array of arrays)
+    let outputlist5 = slots.availableSlots; // The slots themselves (only available ones)
     let outputlist6 = weekRanges; // Week ranges
-    let outputlist7 = allPossibleSlots; // All possible slots
+    let outputlist7 = allPossibleSlots; // All possible slots before filtering booked ones
     let outputlist8 = blockedByUserOutput; // Output from assignSimplifiedSlotInfo
     let outputlist9 = isStartupCorners; // Startup corners information
 
@@ -999,6 +1007,7 @@ window.generateStartTimes = generateStartTimes;
       outputlist7,
     };
   }
+
 
   // Make function globally accessible
 window.generateScheduleWrapperSchedule = generateScheduleWrapperSchedule;
