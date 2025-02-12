@@ -955,6 +955,8 @@ function generateScheduleWrapper(
     blockedByUser
   );
 
+  console.log("Slots:", slots);
+
   // Generate the week ranges
   const weekRanges = generateWeekRanges(
     viewerDate,
@@ -963,6 +965,8 @@ function generateScheduleWrapper(
   );
 
   const allPossibleSlots = generateAllPossibleSlots(slots, weekRanges);
+
+  console.log("allPossibleSlots:", allPossibleSlots);
 
   // Get the outputs from assignSimplifiedSlotInfo
   const [urls, addresses, isModified, isStartupCorners, blockedByUserOutput] =
@@ -996,8 +1000,6 @@ function generateScheduleWrapper(
     outputlist8,
     outputlist7,
   };
-
-  console.log("generateScheduleWrapper - Outputs:", output);
 
   // Send result to Bubble
   bubble_fn_hours(output);
