@@ -510,7 +510,7 @@
   }
 
   // Function to set up push notifications
-  async function setupPushNotifications(accessToken) {
+  async function setupPushNotifications(accessToken,userId) {
     if (!accessToken) {
       return null;
     }
