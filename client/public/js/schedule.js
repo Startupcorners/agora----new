@@ -924,7 +924,7 @@ window.generateStartTimes = generateStartTimes;
 
 
   // Wrapper function
-  function generateScheduleWrapper(
+  function generateScheduleWrapperSchedule(
     mainAvailability,
     viewerDate,
     alreadyBookedList,
@@ -1001,4 +1001,4 @@ window.generateStartTimes = generateStartTimes;
   }
 
   // Make function globally accessible
-window.generateScheduleWrapper = generateScheduleWrapper;
+window.generateScheduleWrapperSchedule = generateScheduleWrapperSchedule;
