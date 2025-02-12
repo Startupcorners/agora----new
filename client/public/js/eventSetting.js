@@ -29,6 +29,9 @@
 
 
   function generateStartTimesEvent(startTime) {
+    if (!startTime) {
+      startTime = "00:00";
+    }
     const fixedDuration = 15;
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
@@ -53,6 +56,9 @@
 
   function generateEndTimesEvent(startTime) {
     console.log("generateEndTimesEvent called");
+    if (!startTime) {
+      startTime = "00:00";
+    }
     const fixedDuration = 15;
     const times = [];
     let [startHour, startMinute] = startTime.split(":").map(Number);
