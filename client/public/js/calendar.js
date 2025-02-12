@@ -1,3 +1,8 @@
+export const init = async function (userId) {
+  if (!userId) {
+    return;
+  }
+
   // Function to handle redirect from Google
   async function handleRedirect(userId) {
     console.log("handleRedirect started with userId:", userId);
@@ -125,8 +130,6 @@
     }
   }
 
-  window.handleRedirect = handleRedirect;
-
   // Fetch user email using access token
   async function fetchUserEmail(accessToken) {
     try {
@@ -236,8 +239,6 @@
     }
   }
 
-  window.processAppointments = processAppointments;
-
   async function processDeleteEvents(
     userId,
     accessToken,
@@ -296,8 +297,6 @@
     }
   }
 
-  window.processDeleteEvents = processDeleteEvents;
-
   async function revokeGoogleOAuthToken(accessToken) {
     try {
       const revokeUrl = `https://accounts.google.com/o/oauth2/revoke?token=${accessToken}`;
@@ -312,8 +311,6 @@
       console.error("Error revoking Google OAuth token:", error);
     }
   }
-
-
 
   async function stopPushNotifications(
     userId,
@@ -463,10 +460,6 @@
     window.location.href = authUrl;
   }
 
-  window.initiateGoogleOAuth = initiateGoogleOAuth;
-
-  
-
 
   // Function to list calendar events
   async function listCalendarEvents(accessToken, timeMin) {
@@ -510,7 +503,7 @@
   }
 
   // Function to set up push notifications
-  async function setupPushNotifications(accessToken,userId) {
+  async function setupPushNotifications(accessToken) {
     if (!accessToken) {
       return null;
     }
@@ -618,4 +611,15 @@
     }
   }
 
-  window.handleGoogleEvents = handleGoogleEvents;
+  // Return the functions to expose them
+  return {
+    initiateGoogleOAuth,
+    handleGoogleEvents,
+    processAppointments,
+    processDeleteEvents,
+    handleRedirect,
+  };
+};
+
+// Expose the `init` function globally
+window["init"] = init;

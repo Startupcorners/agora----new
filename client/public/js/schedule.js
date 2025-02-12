@@ -924,7 +924,7 @@ window.generateStartTimes = generateStartTimes;
 
 
   // Wrapper function
-  function generateScheduleWrapperSchedule(
+  function generateScheduleWrapper(
     mainAvailability,
     viewerDate,
     alreadyBookedList,
@@ -944,6 +944,7 @@ window.generateStartTimes = generateStartTimes;
       earliestBookableHour,
       blockedByUser
     );
+
 
     // Generate the week ranges
     const weekRanges = generateWeekRanges(
@@ -1001,4 +1002,4 @@ window.generateStartTimes = generateStartTimes;
   }
 
   // Make function globally accessible
-window.generateScheduleWrapperSchedule = generateScheduleWrapperSchedule;
+window.generateScheduleWrapper = generateScheduleWrapper;

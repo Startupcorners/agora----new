@@ -1,3 +1,5 @@
+export const checkOverlaps = async function () {
+
   // Function to generate slots for each user while considering excluded days, time offset, availability period, and earliest bookable date
   function generateUserSlots(
     dailyStartTime,
@@ -344,4 +346,11 @@ function checkCommonAvailableSlotsWrapper(
   bubble_fn_finishedLoading();
 }
 
-window.checkCommonAvailableSlotsWrapper = checkCommonAvailableSlotsWrapper;
+
+
+  return {
+    checkCommonAvailableSlotsWrapper,
+  };
+};
+
+window["checkOverlaps"] = checkOverlaps;

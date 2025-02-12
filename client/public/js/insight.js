@@ -1,3 +1,6 @@
+export const insights = async function () {
+  
+
   async function waitForBubbleFunction(fnName, maxAttempts = 5, delay = 500) {
     let attempts = 0;
     while (attempts < maxAttempts) {
@@ -22,58 +25,6 @@
     startDate,
     endDate
   ) {
-    const colorList = [
-      "#B0E0E6",
-      "#87CEEB",
-      "#F0F8FF",
-      "#89CFF0",
-      "#E0FFFF",
-      "#CCCCFF",
-      "#ADD8E6",
-      "#AFEEEE",
-      "#99FFFF",
-      "#F0FFFF",
-      "#6495ED",
-      "#1E90FF",
-      "#4682B4",
-      "#56A3F5",
-      "#7DF9FF",
-      "#0073CF",
-      "#0095B6",
-      "#007BA7",
-      "#5F9EA0",
-      "#6CA6CD",
-      "#2E8B57",
-      "#00BFFF",
-      "#4682B4",
-      "#0088CC",
-      "#1CA9C9",
-      "#4682B4",
-      "#5B92E5",
-      "#38B0DE",
-      "#4B89DC",
-      "#009ACD",
-      "#318CE7",
-      "#40E0D0",
-      "#3C9EEB",
-      "#3399FF",
-      "#33A1C9",
-      "#6495ED",
-      "#6CB4EE",
-      "#4DAFCE",
-      "#417DC1",
-      "#4682B4",
-      "#7EC8E3",
-      "#0080FF",
-      "#5D9CEC",
-      "#3C91E6",
-      "#1DA1F2",
-      "#039BE5",
-      "#40C4FF",
-      "#0288D1",
-      "#0277BD",
-      "#01579B",
-    ];
     console.log("📊 Starting to process appointments and messages...");
 
     // Log all inputs for debugging
@@ -87,30 +38,74 @@
     if (!(await waitForBubbleFunction("bubble_fn_loadinggg"))) return;
     bubble_fn_loadinggg(true);
 
-    await processAppointments(
-      appointments,
-      mainUserId,
-      startDate,
-      endDate,
-      colorList
-    );
-    await processMessages(messages, mainUserId, startDate, endDate, colorList);
+    await processAppointments(appointments, mainUserId, startDate, endDate);
+    await processMessages(messages, mainUserId, startDate, endDate);
 
     if (typeof bubble_fn_loadinggg === "function") {
       bubble_fn_loadinggg(false);
     }
   }
 
-  window.processAll = processAll;
-
 
   async function processAppointments(
     appointments = [],
     mainUserId,
     startDate,
-    endDate,
-    colorList
-  ) {
+    endDate
+  ) 
+  
+  {const colorList = [
+    "#B0E0E6",
+    "#87CEEB",
+    "#F0F8FF",
+    "#89CFF0",
+    "#E0FFFF",
+    "#CCCCFF",
+    "#ADD8E6",
+    "#AFEEEE",
+    "#99FFFF",
+    "#F0FFFF",
+    "#6495ED",
+    "#1E90FF",
+    "#4682B4",
+    "#56A3F5",
+    "#7DF9FF",
+    "#0073CF",
+    "#0095B6",
+    "#007BA7",
+    "#5F9EA0",
+    "#6CA6CD",
+    "#2E8B57",
+    "#00BFFF",
+    "#4682B4",
+    "#0088CC",
+    "#1CA9C9",
+    "#4682B4",
+    "#5B92E5",
+    "#38B0DE",
+    "#4B89DC",
+    "#009ACD",
+    "#318CE7",
+    "#40E0D0",
+    "#3C9EEB",
+    "#3399FF",
+    "#33A1C9",
+    "#6495ED",
+    "#6CB4EE",
+    "#4DAFCE",
+    "#417DC1",
+    "#4682B4",
+    "#7EC8E3",
+    "#0080FF",
+    "#5D9CEC",
+    "#3C91E6",
+    "#1DA1F2",
+    "#039BE5",
+    "#40C4FF",
+    "#0288D1",
+    "#0277BD",
+    "#01579B",
+  ];
     console.log("📅 Processing Appointments...");
 
     if (!appointments.length) {
@@ -169,9 +164,61 @@
     messages = [],
     mainUserId,
     startDate,
-    endDate,
-    colorList
+    endDate
   ) {
+
+    const colorList = [
+      "#B0E0E6",
+      "#87CEEB",
+      "#F0F8FF",
+      "#89CFF0",
+      "#E0FFFF",
+      "#CCCCFF",
+      "#ADD8E6",
+      "#AFEEEE",
+      "#99FFFF",
+      "#F0FFFF",
+      "#6495ED",
+      "#1E90FF",
+      "#4682B4",
+      "#56A3F5",
+      "#7DF9FF",
+      "#0073CF",
+      "#0095B6",
+      "#007BA7",
+      "#5F9EA0",
+      "#6CA6CD",
+      "#2E8B57",
+      "#00BFFF",
+      "#4682B4",
+      "#0088CC",
+      "#1CA9C9",
+      "#4682B4",
+      "#5B92E5",
+      "#38B0DE",
+      "#4B89DC",
+      "#009ACD",
+      "#318CE7",
+      "#40E0D0",
+      "#3C9EEB",
+      "#3399FF",
+      "#33A1C9",
+      "#6495ED",
+      "#6CB4EE",
+      "#4DAFCE",
+      "#417DC1",
+      "#4682B4",
+      "#7EC8E3",
+      "#0080FF",
+      "#5D9CEC",
+      "#3C91E6",
+      "#1DA1F2",
+      "#039BE5",
+      "#40C4FF",
+      "#0288D1",
+      "#0277BD",
+      "#01579B",
+    ];
     console.log("📬 Processing Messages...");
 
     if (!messages.length) {
@@ -225,3 +272,11 @@
       outputlist4: combinedNamesList,
     });
   }
+
+  return {
+    processAll,
+  };
+};
+
+// Expose the function globally
+window["insights"] = insights;
