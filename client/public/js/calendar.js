@@ -1,8 +1,3 @@
-export const init = async function (userId) {
-  if (!userId) {
-    return;
-  }
-
   // Function to handle redirect from Google
   async function handleRedirect(userId) {
     console.log("handleRedirect started with userId:", userId);
@@ -130,6 +125,8 @@ export const init = async function (userId) {
     }
   }
 
+  window.handleRedirect = handleRedirect;
+
   // Fetch user email using access token
   async function fetchUserEmail(accessToken) {
     try {
@@ -239,6 +236,8 @@ export const init = async function (userId) {
     }
   }
 
+  window.processAppointments = processAppointments;
+
   async function processDeleteEvents(
     userId,
     accessToken,
@@ -296,6 +295,8 @@ export const init = async function (userId) {
       console.error("Error processing delete events:", error);
     }
   }
+
+  window.processDeleteEvents = processDeleteEvents;
 
   async function revokeGoogleOAuthToken(accessToken) {
     try {
@@ -460,6 +461,12 @@ export const init = async function (userId) {
     window.location.href = authUrl;
   }
 
+  window.initiateGoogleOAuth = initiateGoogleOAuth;
+
+  
+
+  
+
 
   // Function to list calendar events
   async function listCalendarEvents(accessToken, timeMin) {
@@ -611,15 +618,4 @@ export const init = async function (userId) {
     }
   }
 
-  // Return the functions to expose them
-  return {
-    initiateGoogleOAuth,
-    handleGoogleEvents,
-    processAppointments,
-    processDeleteEvents,
-    handleRedirect,
-  };
-};
-
-// Expose the `init` function globally
-window["init"] = init;
+  window.handleGoogleEvents = handleGoogleEvents;

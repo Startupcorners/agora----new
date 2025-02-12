@@ -1,4 +1,3 @@
-export const eventSetting = async function () {
   function generate42CalendarDatesUserTimeZone(anchorDate, offsetSeconds) {
     const [year, month, day] = anchorDate.split("-").map(Number);
     const anchorUTC = new Date(Date.UTC(year, month - 1, day));
@@ -61,6 +60,8 @@ export const eventSetting = async function () {
     bubble_fn_startTimeListEvent(times);
   }
 
+  window.generateStartTimes = generateStartTimes;
+
   function generateEndTimes(startTime) {
     const fixedDuration = 15;
     const times = [];
@@ -82,6 +83,8 @@ export const eventSetting = async function () {
     bubble_fn_endTimeListEvent(times);
   }
 
+  window.generateEndTimes = generateEndTimes;
+
   function checkTime(start, end) {
     if (!start || !end) return;
 
@@ -92,6 +95,7 @@ export const eventSetting = async function () {
 
     bubble_fn_isTimeAfter(startTotalMinutes < endTotalMinutes ? "yes" : "no");
   }
+  window.checkTime = checkTime;
 
 
 
@@ -122,15 +126,5 @@ export const eventSetting = async function () {
     bubble_fn_finalTime({output1:finalStartISO,output2:finalEndISO,output3:bubbleId});
   }
 
+  window.processFinalStartEndTime = processFinalStartEndTime;
 
-  return {
-    generateStartTimes,
-    generateEndTimes,
-    adjustDatesToOffset,
-    generate42CalendarDatesUserTimeZone,
-    checkTime,
-    processFinalStartEndTime,
-  };
-};
-
-window["eventSetting"] = eventSetting;

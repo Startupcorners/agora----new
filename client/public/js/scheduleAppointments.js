@@ -1,4 +1,3 @@
-export const scheduleAppointments = async function () {
  function generateSlotsForWeek(
    mainAvailability,
    allAvailabilityLists,
@@ -280,7 +279,7 @@ function generateAllPossibleSlots(slots, weekRanges) {
 
 
   // Wrapper function
-  function generateScheduleWrapper(
+  function generateScheduleWrapperAppointment(
     mainAvailability,
     allAvailabilityLists,
     viewerDate,
@@ -353,12 +352,6 @@ function generateAllPossibleSlots(slots, weekRanges) {
       outputlist6,
     };
   }
-  
 
-  return {
-    generateScheduleWrapper,
-  };
-
-};
-
-window["scheduleAppointments"] = scheduleAppointments;
+  window.generateScheduleWrapperAppointment =
+    generateScheduleWrapperAppointment;
