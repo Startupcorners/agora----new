@@ -817,52 +817,126 @@ window.generateStartTimes = generateStartTimes;
     return [urls, addresses, isModified, isStartupCorners, isBlockedByUser];
   }
 
-  function generateAllPossibleSlots(slots, weekRanges) {
-    const allPossibleSlots = new Set();
+  function generateAllPossibleSlots(slots, weekRanges, offsetSeconds) {
+    if (!slots || slots.length === 0) return [];
 
-    const addSlotForWeekRange = (baseSlot, dayOffsets, duration, weekRange) => {
-      const baseDate = new Date(baseSlot);
+    const offsetMs = offsetSeconds * 1000;
 
-      dayOffsets.forEach((offset) => {
-        const newStartDate = new Date(baseDate);
-        newStartDate.setDate(baseDate.getDate() + offset);
-        const newEndDate = new Date(newStartDate.getTime() + duration);
+    // Helper functions:
+    // Converts a UTC Date to the user’s local time (by applying the offset).
+    const toLocal = (date) => new Date(date.getTime() + offsetMs);
+    // Converts a user’s local Date back to UTC.
+    const toUTCFromLocal = (localDate) =>
+      new Date(localDate.getTime() - offsetMs);
 
-        // Check if the slot is within the week range
-        const weekStart = new Date(weekRange[0]);
-        const weekEnd = new Date(weekRange[1]);
+    // 1. Determine the working window (in local time) using the input slots.
+    // We'll compute the offset in ms from local midnight.
+    let earliestLocalMs = Infinity;
+    let latestLocalMs = -Infinity;
 
-        if (
-          newStartDate.getTime() >= weekStart.getTime() &&
-          newEndDate.getTime() <= weekEnd.getTime()
-        ) {
-          const slotPair = JSON.stringify([
-            newStartDate.toISOString(),
-            newEndDate.toISOString(),
-          ]);
-          allPossibleSlots.add(slotPair);
-        }
-      });
-    };
+    // We assume the slots have a fixed duration; compute it from the first slot.
+    const slotDuration =
+      new Date(slots[0][1]).getTime() - new Date(slots[0][0]).getTime();
 
-    slots.forEach((slotRange) => {
-      const [slotStart, slotEnd] = slotRange;
-      const slotDuration =
-        new Date(slotEnd).getTime() - new Date(slotStart).getTime();
+    slots.forEach(([slotStartStr, slotEndStr]) => {
+      const slotStartUTC = new Date(slotStartStr);
+      const slotEndUTC = new Date(slotEndStr);
 
-      weekRanges.forEach((weekRange) => {
-        // Generate dayOffsets [-3, -2, -1, 0, 1, 2, 3]
-        const dayOffsets = Array.from({ length: 15 }, (_, i) => i - 7);
+      // Convert these times to the user’s local time.
+      const slotStartLocal = toLocal(slotStartUTC);
+      const slotEndLocal = toLocal(slotEndUTC);
 
-        // Propagate slots for this week range
-        addSlotForWeekRange(slotStart, dayOffsets, slotDuration, weekRange);
-      });
+      // Compute the time-of-day (milliseconds offset from local midnight)
+      const startOffset =
+        slotStartLocal.getHours() * 3600000 +
+        slotStartLocal.getMinutes() * 60000 +
+        slotStartLocal.getSeconds() * 1000 +
+        slotStartLocal.getMilliseconds();
+      const endOffset =
+        slotEndLocal.getHours() * 3600000 +
+        slotEndLocal.getMinutes() * 60000 +
+        slotEndLocal.getSeconds() * 1000 +
+        slotEndLocal.getMilliseconds();
+
+      if (startOffset < earliestLocalMs) earliestLocalMs = startOffset;
+      if (endOffset > latestLocalMs) latestLocalMs = endOffset;
     });
 
-    return Array.from(allPossibleSlots)
-      .map((slotPair) => JSON.parse(slotPair))
-      .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
+    const allPossibleSlots = [];
+
+    // 2. Process each week range.
+    weekRanges.forEach(([weekStartStr, weekEndStr]) => {
+      const weekStartUTC = new Date(weekStartStr);
+      const weekEndUTC = new Date(weekEndStr);
+
+      // Convert week range boundaries into local time.
+      const localWeekStart = toLocal(weekStartUTC);
+      const localWeekEnd = toLocal(weekEndUTC);
+
+      // We iterate day-by-day in local time.
+      // Start from the local day of the week start by normalizing to local midnight.
+      const currentLocalDay = new Date(localWeekStart);
+      currentLocalDay.setHours(0, 0, 0, 0);
+
+      while (currentLocalDay.getTime() <= localWeekEnd.getTime()) {
+        // 3. For the current local day, build the working window.
+        // Normally, the working window on a day runs from local midnight plus earliestLocalMs
+        // to local midnight plus latestLocalMs.
+        let localWorkingStart = new Date(
+          currentLocalDay.getTime() + earliestLocalMs
+        );
+        let localWorkingEnd = new Date(
+          currentLocalDay.getTime() + latestLocalMs
+        );
+
+        // If this day is the first day of the week range, adjust the start.
+        if (
+          currentLocalDay.toDateString() === localWeekStart.toDateString() &&
+          localWeekStart.getTime() > localWorkingStart.getTime()
+        ) {
+          localWorkingStart = localWeekStart;
+        }
+        // Similarly, if this day is the last day, adjust the end.
+        if (
+          currentLocalDay.toDateString() === localWeekEnd.toDateString() &&
+          localWeekEnd.getTime() < localWorkingEnd.getTime()
+        ) {
+          localWorkingEnd = localWeekEnd;
+        }
+
+        // 4. Generate slots for the current day, moving in fixed increments.
+        let localSlotStart = new Date(localWorkingStart);
+        while (
+          localSlotStart.getTime() + slotDuration <=
+          localWorkingEnd.getTime()
+        ) {
+          const localSlotEnd = new Date(
+            localSlotStart.getTime() + slotDuration
+          );
+
+          // Convert the local slot times back to UTC.
+          const utcSlotStart = toUTCFromLocal(localSlotStart);
+          const utcSlotEnd = toUTCFromLocal(localSlotEnd);
+
+          allPossibleSlots.push([
+            utcSlotStart.toISOString(),
+            utcSlotEnd.toISOString(),
+          ]);
+
+          // Move forward by one slot's duration.
+          localSlotStart = new Date(localSlotStart.getTime() + slotDuration);
+        }
+
+        // Advance to the next local day.
+        currentLocalDay.setDate(currentLocalDay.getDate() + 1);
+      }
+    });
+
+    // Optionally sort all slots by start time (in UTC).
+    allPossibleSlots.sort((a, b) => new Date(a[0]) - new Date(b[0]));
+    return allPossibleSlots;
   }
+
 
   function checkTime(start, end, duration) {
     // Return early if start or end is not provided.
