@@ -1,5 +1,5 @@
 
-  function generate42CalendarDatesUTC(anchorDate) {
+  function generate42CalendarDatesUserTimeZoneToDo(anchorDate) {
     // Parse the input anchor date (e.g., "2025-01-31") into year, month, and day.
     const [year, month, day] = anchorDate.split("-").map(Number);
 
