@@ -21,7 +21,7 @@ let lastMicPermissionState = null; // External variable to track the microphone 
 let inactivityTimer;
 let isTimerActive = false; // Tracks whether the inactivity timer is active
 let stillPresentTimer;
-const inactivityTimeout = 300000; // 5 minutes in milliseconds
+const inactivityTimeout = 7200000; // 2 hours in milliseconds
 const stillPresentTimeout = 60000; // 1 minute in milliseconds
 let isTabActive = true; // Tracks if the tab is active
 let noHostTimer;
