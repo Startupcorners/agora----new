@@ -125,20 +125,24 @@ const joinRTM = async (config, rtmToken, retryCount = 0) => {
 
     // Set user attributes, including the role
     const attributes = {
-      name: String(config.user.name ?? "Unknown"),
-      avatar: String(config.user.avatar ?? "default-avatar-url"),
-      company: String(config.user.company ?? "Unknown"),
-      designation: String(config.user.designation ?? "Unknown"),
-      role: String(config.user.role ?? "audience"),
-      rtmUid: String(rtmUid),
-      speakerId: String(config.user.speakerId ?? "None"),
-      participantId: String(config.user.participantId ?? ""),
-      bubbleid: String(config.user.bubbleid ?? ""),
-      isRaisingHand: String(config.user.isRaisingHand ?? false),
+      name: config.user.name || "Unknown",
+      avatar: config.user.avatar || "default-avatar-url",
+      company: config.user.company || "Unknown",
+      designation: config.user.designation || "Unknown",
+      role: config.user.role || "audience",
+      rtmUid: rtmUid,
+      speakerId: config.user.speakerId || "None",
+      participantId: config.user.participantId,
+      bubbleid: config.user.bubbleid,
+      isRaisingHand: config.user.isRaisingHand,
       sharingScreenUid: "0",
-      roleInTheCall: String(config.user.roleInTheCall ?? "audience"),
+      roleInTheCall: config.user.roleInTheCall || "audience",
     };
 
+    // Log each attribute to confirm what's being sent
+    Object.entries(attributes).forEach(([key, value]) => {
+      console.log(`Attribute "${key}": ${value}`);
+    });
 
     await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
