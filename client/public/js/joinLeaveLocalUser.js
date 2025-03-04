@@ -123,30 +123,25 @@ const joinRTM = async (config, rtmToken, retryCount = 0) => {
     // Login to RTM
     await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
 
-    // A helper to sanitize each attribute
-    const sanitize = (val) =>
-      String(val ?? "")
-        .trim()
-        .replace(/\s+/g, " ");
-
+    // Set user attributes, including the role
     const attributes = {
-      name: sanitize(config.user.name ?? "Unknown"),
-      avatar: sanitize(config.user.avatar ?? "default-avatar-url"),
-      company: sanitize(config.user.company ?? "Unknown"),
-      designation: sanitize(config.user.designation ?? "Unknown"),
-      role: sanitize(config.user.role ?? "audience"),
-      rtmUid: sanitize(rtmUid),
-      speakerId: sanitize(config.user.speakerId ?? "None"),
-      participantId: sanitize(config.user.participantId ?? ""),
-      bubbleid: sanitize(config.user.bubbleid ?? ""),
-      isRaisingHand: sanitize(config.user.isRaisingHand ?? "no"),
+      name: config.user.name || "Unknown",
+      avatar: config.user.avatar || "default-avatar-url",
+      company: config.user.company || "Unknown",
+      designation: config.user.designation || "Unknown",
+      role: config.user.role || "audience",
+      rtmUid: rtmUid,
+      speakerId: config.user.speakerId || "None",
+      participantId: config.user.participantId,
+      bubbleid: config.user.bubbleid,
+      isRaisingHand: config.user.isRaisingHand,
       sharingScreenUid: "0",
-      roleInTheCall: sanitize(config.user.roleInTheCall ?? "audience"),
+      roleInTheCall: config.user.roleInTheCall || "audience",
     };
 
-    // Log each final attribute key and value
+    // Log each attribute to confirm what's being sent
     Object.entries(attributes).forEach(([key, value]) => {
-      console.log(`Attribute "${key}":`, value);
+      console.log(`Attribute "${key}": ${value}`);
     });
 
     await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
