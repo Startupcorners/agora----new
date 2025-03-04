@@ -123,27 +123,31 @@ const joinRTM = async (config, rtmToken, retryCount = 0) => {
     // Login to RTM
     await config.clientRTM.login({ uid: rtmUid, token: rtmToken });
 
-    // Set user attributes, including the role
-   const attributes = {
-     name: String(config.user.name ?? "Unknown"),
-     avatar: String(config.user.avatar ?? "default-avatar-url"),
-     company: String(config.user.company ?? "Unknown"),
-     designation: String(config.user.designation ?? "Unknown"),
-     role: String(config.user.role ?? "audience"),
-     rtmUid: String(rtmUid),
-     speakerId: String(config.user.speakerId ?? "None"),
-     participantId: String(config.user.participantId ?? ""),
-     bubbleid: String(config.user.bubbleid ?? ""),
-     isRaisingHand: String(config.user.isRaisingHand ?? false),
-     sharingScreenUid: "0",
-     roleInTheCall: String(config.user.roleInTheCall ?? "audience"),
-   };
+    // A helper to sanitize each attribute
+    const sanitize = (val) =>
+      String(val ?? "")
+        .trim()
+        .replace(/\s+/g, " ");
 
-   // Log each attribute to confirm what's being sent
-   Object.entries(attributes).forEach(([key, value]) => {
-     console.log(`Attribute "${key}": ${value}`);
-   });
+    const attributes = {
+      name: sanitize(config.user.name ?? "Unknown"),
+      avatar: sanitize(config.user.avatar ?? "default-avatar-url"),
+      company: sanitize(config.user.company ?? "Unknown"),
+      designation: sanitize(config.user.designation ?? "Unknown"),
+      role: sanitize(config.user.role ?? "audience"),
+      rtmUid: sanitize(rtmUid),
+      speakerId: sanitize(config.user.speakerId ?? "None"),
+      participantId: sanitize(config.user.participantId ?? ""),
+      bubbleid: sanitize(config.user.bubbleid ?? ""),
+      isRaisingHand: sanitize(config.user.isRaisingHand ?? "no"),
+      sharingScreenUid: "0",
+      roleInTheCall: sanitize(config.user.roleInTheCall ?? "audience"),
+    };
 
+    // Log each final attribute key and value
+    Object.entries(attributes).forEach(([key, value]) => {
+      console.log(`Attribute "${key}":`, value);
+    });
 
     await config.clientRTM.setLocalUserAttributes(attributes); // Store attributes in RTM
 
