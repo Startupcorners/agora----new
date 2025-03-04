@@ -110,7 +110,6 @@
         availability.timeOffsetSeconds,
         availability.start_date,
         availability.end_date,
-        bubbleId,
         earliestBookableHour
       );
 
