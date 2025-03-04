@@ -9,6 +9,15 @@
     endDate,
     earliestBookableHour
   ) {
+    console.log("dailyStartTime:", dailyStartTime);
+    console.log("dailyEndTime:", dailyEndTime);
+    console.log("slotDuration:", slotDuration);
+    console.log("excludedDays:", excludedDays);
+    console.log("timeOffsetSeconds:", timeOffsetSeconds);
+    console.log("startDate:", startDate);
+    console.log("endDate:", endDate);
+    console.log("earliestBookableHour:", earliestBookableHour);
+
     const localTz = moment().utcOffset(timeOffsetSeconds / 60);
     // Use earliestBookableHour to add hours instead of days
     const now = localTz.startOf("day").add(earliestBookableHour, "hours");
@@ -31,7 +40,7 @@
       // Stop if we've passed the end date
       if (currentDay.isAfter(endDay)) break;
 
-      // Skip excluded days (accounting for Sunday = 0 in JS, adjust to match user's convention)
+      // Skip excluded days
       if (excludedDays.includes(currentDay.isoWeekday() % 7)) {
         continue;
       }
@@ -65,6 +74,7 @@
 
     return slots;
   }
+
 
 
   // Function to process availabilities and find overlapping slots, filtering out booked slots
