@@ -18,19 +18,26 @@
     console.log("endDate:", endDate);
     console.log("earliestBookableHour:", earliestBookableHour);
 
-    const localTz = moment().utcOffset(timeOffsetSeconds / 60);
-    // Use earliestBookableHour to add hours instead of days
-    const now = localTz.startOf("day").add(earliestBookableHour, "hours");
+    // Convert offset seconds to minutes
+    const localOffset = timeOffsetSeconds / 60;
 
-    // Determine the effective start date (whichever is later: startDate or now)
-    const startDay = moment
-      .tz(startDate, "YYYY-MM-DD", localTz.tz())
+    // Start-of-day (in the user's offset), plus earliestBookableHour
+    const now = moment()
+      .utcOffset(localOffset)
       .startOf("day")
-      .isBefore(now)
-      ? now
-      : moment.tz(startDate, "YYYY-MM-DD", localTz.tz()).startOf("day");
+      .add(earliestBookableHour, "hours");
 
-    const endDay = moment.tz(endDate, "YYYY-MM-DD", localTz.tz()).endOf("day");
+    // Whichever is later: startDate or now
+    let startDay = moment(startDate, "YYYY-MM-DD")
+      .utcOffset(localOffset)
+      .startOf("day");
+    if (startDay.isBefore(now)) {
+      startDay = now;
+    }
+
+    const endDay = moment(endDate, "YYYY-MM-DD")
+      .utcOffset(localOffset)
+      .endOf("day");
 
     let slots = [];
 
@@ -40,13 +47,14 @@
       // Stop if we've passed the end date
       if (currentDay.isAfter(endDay)) break;
 
-      // Skip excluded days
+      // Skip excluded days (Sunday=0 in JS)
       if (excludedDays.includes(currentDay.isoWeekday() % 7)) {
         continue;
       }
 
-      const startTime = moment.tz(dailyStartTime, "HH:mm", localTz.tz());
-      const endTime = moment.tz(dailyEndTime, "HH:mm", localTz.tz());
+      // Create start/end time for this day using the same offset
+      const startTime = moment(dailyStartTime, "HH:mm").utcOffset(localOffset);
+      const endTime = moment(dailyEndTime, "HH:mm").utcOffset(localOffset);
 
       let startDt = currentDay.clone().set({
         hour: startTime.hour(),
@@ -74,6 +82,7 @@
 
     return slots;
   }
+
 
 
 
