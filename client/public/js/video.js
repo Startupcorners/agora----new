@@ -268,10 +268,17 @@ export const startScreenShare = async (config) => {
   try {
     // Step 1: Create a new screen share session
     console.log("Creating screen share video track...");
-    screenShareTrackExternal = await AgoraRTC.createScreenVideoTrack().catch(
-      (error) => {
-        console.error("Screen sharing was canceled by the user.", error);
-        // Send error details to RTM
+    screenShareTrackExternal = await AgoraRTC.createScreenVideoTrack({
+      encoderConfig: {
+        width: { ideal: 1920, min: 1280, max: 1920 }, // Set resolution
+        height: { ideal: 1080, min: 720, max: 1080 },
+        frameRate: 30, // Set frame rate
+      },
+      optimizationMode: "detail", // Prioritizes screen readability
+    }).catch((error) => {
+      console.error("Screen sharing was canceled by the user.", error);
+
+      // Send error details to RTM
       const errorMessage = {
         type: "ERROR_NOTIFICATION",
         message: error.message || "Screen sharing error occurred.",
@@ -290,8 +297,8 @@ export const startScreenShare = async (config) => {
       }
 
       return null; // Gracefully handle the error
-    }
-  );
+    });
+
    
 
     if (!screenShareTrackExternal) {
