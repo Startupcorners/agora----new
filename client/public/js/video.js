@@ -270,8 +270,8 @@ export const startScreenShare = async (config) => {
     console.log("Creating screen share video track...");
     screenShareTrackExternal = await AgoraRTC.createScreenVideoTrack({
       encoderConfig: {
-        width: { ideal: 1920, min: 1280, max: 1920 }, // Set resolution
-        height: { ideal: 1080, min: 720, max: 1080 },
+        width: { ideal: 1920 }, // Set resolution
+        height: { ideal: 1080 },
         frameRate: 30, // Set frame rate
       },
       optimizationMode: "detail", // Prioritizes screen readability
