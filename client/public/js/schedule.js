@@ -11,7 +11,7 @@
 ) {
   console.log("🔹 Function Called: runProcess");
   console.log("📥 Inputs - Start Date:", startDate, "End Date:", endDate);
-  
+
   let maxDaysToAdd = 7;
   let MIN_SLOTS_REQUIRED = 20; // or 40, etc.
   let updatedStartDate = new Date(startDate);
@@ -26,7 +26,7 @@
     console.log(`🔄 Searching between ${updatedStartDate.toISOString()} and ${updatedEndDate.toISOString()}`);
     
     // 1. Find overlapping hours in the given working-hour window
-    const overlappingHours = findOverlappingSlots(
+    const overlappingHours = findOverlappingSlotsPoll(
       timezoneOffsets,
       WORKING_HOURS_START,
       WORKING_HOURS_END
@@ -277,7 +277,7 @@ window.runProcess = runProcess;
   }
 
   // Function to find overlapping working hours across multiple time zones
-  function findOverlappingSlots(timezoneOffsets, startHour, endHour) {
+  function findOverlappingSlotsPoll(timezoneOffsets, startHour, endHour) {
     let overlappingSlots = [];
 
     for (let hour = 0; hour < 24; hour++) {
