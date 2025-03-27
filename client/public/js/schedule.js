@@ -11,8 +11,7 @@
 ) {
   console.log("🔹 Function Called: runProcess");
   console.log("📥 Inputs - Start Date:", startDate, "End Date:", endDate);
-  console.log("📥 Inputs - Duration:", durationInMinutes, "Min Slots:", MIN_SLOTS_REQUIRED);
-
+  
   let maxDaysToAdd = 7;
   let MIN_SLOTS_REQUIRED = 20; // or 40, etc.
   let updatedStartDate = new Date(startDate);
