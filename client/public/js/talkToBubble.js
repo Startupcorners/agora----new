@@ -109,24 +109,12 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     JSON.stringify(participantList, null, 2)
   );
 
-  const participantTextList = participantList.map((p) => {
-    return `UID: ${p.uid}, Name: ${p.name}, Role: ${p.role}, Company: ${p.company}, Designation: ${p.designation}, IsRaisingHand: ${p.isRaisingHand}, RoleInTheCall: ${p.roleInTheCall}`;
-  });
-
-  // Send the updated participantTextList to Bubble in a single call
-  if (typeof bubble_fn_eventUser === "function") {
-    console.log(
-      "Sending participant list (as text) to Bubble:",
-      participantTextList
-    );
-    const participantTextList = participantList.map((p) => JSON.stringify(p));
-    console.log(
-      "Sending participant list (as JSON strings) to Bubble:",
-      participantTextList
-    );
-    bubble_fn_eventUser(participantTextList);
-
-  }
+  const participantTextList = participantList.map((p) => JSON.stringify(p));
+  console.log(
+    "Sending participant list (as JSON strings) to Bubble:",
+    participantTextList
+  );
+  bubble_fn_eventUser(participantTextList);
 
   console.log("Participant list updated.");
 };
