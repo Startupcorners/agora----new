@@ -52,24 +52,22 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
 
-  // Log the participant list before update
   console.log(
     "Participant list before update:",
     JSON.stringify(participantList, null, 2)
   );
 
-  // Ensure consistent UID type
-  const userUidNumber = Number(userUid); // Convert userUid to a number for consistent comparisons
+  const userUidNumber = Number(userUid);
+
+  let updatedUser = null;
 
   if (actionType === "join") {
-    // Find the participant in the list
     const participantIndex = participantList.findIndex(
       (p) => p.uid === userUidNumber
     );
 
     if (participantIndex === -1) {
-      // Add new participant if they don't exist in the list
-      const newParticipant = {
+      updatedUser = {
         uid: userUidNumber,
         rtmUid: userAttr.rtmUid || "",
         name: userAttr.name || "Unknown",
@@ -83,19 +81,18 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
         isRaisingHand: userAttr.isRaisingHand || "no",
         roleInTheCall: userAttr.roleInTheCall || "audience",
       };
-      participantList.push(newParticipant);
+      participantList.push(updatedUser);
       console.log(`Participant ${userUid} has joined.`);
     } else {
-      // Update existing participant details if they exist
-      participantList[participantIndex] = {
+      updatedUser = {
         ...participantList[participantIndex],
         ...userAttr,
-        uid: userUidNumber, // ensure stored as a number
+        uid: userUidNumber,
       };
+      participantList[participantIndex] = updatedUser;
       console.log(`Participant ${userUid} details updated.`);
     }
   } else if (actionType === "leave") {
-    // Remove the participant if they are leaving
     participantList = participantList.filter((p) => p.uid !== userUidNumber);
     console.log(`Participant ${userUid} has left.`);
   } else {
@@ -103,20 +100,21 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     return;
   }
 
-  // Log the participant list after update
   console.log(
     "Participant list after update:",
     JSON.stringify(participantList, null, 2)
   );
 
   if (typeof bubble_fn_eventUser === "function") {
-    console.log("Sending entire participantList to Bubble:", participantList);
-    bubble_fn_eventUser(participantList);
+    const debugPayload =
+      updatedUser != null ? [updatedUser, { ...updatedUser }] : participantList;
+    console.log("Sending debugPayload to Bubble:", debugPayload);
+    bubble_fn_eventUser(debugPayload);
   }
-
 
   console.log("Participant list updated.");
 };
+
 
 
 
