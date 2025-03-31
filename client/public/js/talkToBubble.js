@@ -111,7 +111,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
 
   // Send the updated participantList to Bubble in a single call
   if (typeof bubble_fn_eventUser === "function") {
-    console.log("Sending entire participantList to Bubble:", participantList);
+    console.log("Sending entire participantList to Bubble:", participantList[0]);
     bubble_fn_eventUser(participantList[0]);
   }
 
