@@ -52,14 +52,14 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
 
+  // Log the participant list before update
   console.log(
     "Participant list before update:",
     JSON.stringify(participantList, null, 2)
   );
 
+  // Ensure consistent UID type
   const userUidNumber = Number(userUid);
-
-  let updatedUser = null;
 
   if (actionType === "join") {
     const participantIndex = participantList.findIndex(
@@ -67,7 +67,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     );
 
     if (participantIndex === -1) {
-      updatedUser = {
+      const newParticipant = {
         uid: userUidNumber,
         rtmUid: userAttr.rtmUid || "",
         name: userAttr.name || "Unknown",
@@ -81,15 +81,14 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
         isRaisingHand: userAttr.isRaisingHand || "no",
         roleInTheCall: userAttr.roleInTheCall || "audience",
       };
-      participantList.push(updatedUser);
+      participantList.push(newParticipant);
       console.log(`Participant ${userUid} has joined.`);
     } else {
-      updatedUser = {
+      participantList[participantIndex] = {
         ...participantList[participantIndex],
         ...userAttr,
         uid: userUidNumber,
       };
-      participantList[participantIndex] = updatedUser;
       console.log(`Participant ${userUid} details updated.`);
     }
   } else if (actionType === "leave") {
@@ -100,16 +99,17 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     return;
   }
 
+  // Log the participant list after update
   console.log(
     "Participant list after update:",
     JSON.stringify(participantList, null, 2)
   );
 
+  // Wrap in object and send to Bubble
   if (typeof bubble_fn_eventUser === "function") {
-    const debugPayload =
-      updatedUser != null ? [updatedUser, { ...updatedUser }] : participantList;
-    console.log("Sending debugPayload to Bubble:", debugPayload);
-    bubble_fn_eventUser(debugPayload);
+    const payload = { outputlist1: participantList };
+    console.log("Sending to Bubble:", payload);
+    bubble_fn_eventUser(payload);
   }
 
   console.log("Participant list updated.");
