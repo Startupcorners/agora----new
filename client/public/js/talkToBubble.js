@@ -63,14 +63,14 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
 
   if (actionType === "join") {
     // Find the participant in the list
-    let participantIndex = participantList.findIndex(
+    const participantIndex = participantList.findIndex(
       (p) => p.uid === userUidNumber
     );
 
     if (participantIndex === -1) {
       // Add new participant if they don't exist in the list
       const newParticipant = {
-        uid: userUidNumber, // Store uid as a number
+        uid: userUidNumber,
         rtmUid: userAttr.rtmUid || "",
         name: userAttr.name || "Unknown",
         company: userAttr.company || "",
@@ -90,6 +90,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
       participantList[participantIndex] = {
         ...participantList[participantIndex],
         ...userAttr,
+        uid: userUidNumber, // ensure stored as a number
       };
       console.log(`Participant ${userUid} details updated.`);
     }
@@ -108,78 +109,15 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     JSON.stringify(participantList, null, 2)
   );
 
-  // Separate participants by role
-  const speakers = participantList.filter((p) => p.roleInTheCall === "speaker");
-  const audiences = participantList.filter(
-    (p) => p.roleInTheCall === "audience"
-  );
-  const hosts = participantList.filter((p) => p.roleInTheCall === "host");
-  const waiting = participantList.filter((p) => p.roleInTheCall === "waiting");
-  const audienceOnStage = participantList.filter(
-    (p) => p.roleInTheCall === "audienceOnStage"
-  );
-  const meetingParticipants = participantList.filter(
-    (p) => p.roleInTheCall === "meetingParticipant"
-  );
-  const masters = participantList.filter((p) => p.roleInTheCall === "master");
-
-  // Helper to format data for Bubble, including rtmUid
-  const formatForBubble = (participants) => ({
-    outputlist1: participants.map((p) => p.name),
-    outputlist2: participants.map((p) => p.company),
-    outputlist3: participants.map((p) => p.designation),
-    outputlist4: participants.map((p) => p.avatar),
-    outputlist5: participants.map((p) => p.bubbleid),
-    outputlist6: participants.map((p) => p.isRaisingHand),
-    outputlist7: participants.map((p) => p.rtmUid),
-    outputlist8: participants.map((p) => p.speakerId),
-    outputlist9: participants.map((p) => p.participantId),
-  });
-
-  // Send data to Bubble functions
-  if (typeof bubble_fn_speaker === "function") {
-    console.log("Sending speaker data to Bubble:", formatForBubble(speakers));
-    bubble_fn_speaker(formatForBubble(speakers));
-  }
-
-  if (typeof bubble_fn_audience === "function") {
-    console.log("Sending audience data to Bubble:", formatForBubble(audiences));
-    bubble_fn_audience(formatForBubble(audiences));
-  }
-
-  if (typeof bubble_fn_host === "function") {
-    console.log("Sending host data to Bubble:", formatForBubble(hosts));
-    bubble_fn_host(formatForBubble(hosts));
-  }
-
-  if (typeof bubble_fn_waiting === "function") {
-    console.log("Sending waiting data to Bubble:", formatForBubble(waiting));
-    bubble_fn_waiting(formatForBubble(waiting));
-  }
-
-  if (typeof bubble_fn_audienceOnStage === "function") {
-    console.log(
-      "Sending audienceOnStage data to Bubble:",
-      formatForBubble(audienceOnStage)
-    );
-    bubble_fn_audienceOnStage(formatForBubble(audienceOnStage));
-  }
-
-  if (typeof bubble_fn_meetingParticipant === "function") {
-    console.log(
-      "Sending meetingParticipant data to Bubble:",
-      formatForBubble(meetingParticipants)
-    );
-    bubble_fn_meetingParticipant(formatForBubble(meetingParticipants));
-  }
-
-  if (typeof bubble_fn_master === "function") {
-    console.log("Sending master data to Bubble:", formatForBubble(masters));
-    bubble_fn_master(formatForBubble(masters));
+  // Send the updated participantList to Bubble in a single call
+  if (typeof bubble_fn_eventUser === "function") {
+    console.log("Sending entire participantList to Bubble:", participantList);
+    bubble_fn_eventUser(participantList);
   }
 
   console.log("Participant list updated.");
 };
+
 
 
 export const sendDeviceDataToBubble = (deviceType, devices) => {
