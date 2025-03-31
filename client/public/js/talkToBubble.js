@@ -110,16 +110,13 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
   );
 
   if (typeof bubble_fn_eventUser === "function") {
-    console.log(
-      "Sending participantList as individual arguments:",
-      participantList
-    );
-    bubble_fn_eventUser(...participantList); // <-- Spread the array
+    console.log("Sending entire participantList to Bubble:", participantList);
+    bubble_fn_eventUser(participantList);
   }
+
 
   console.log("Participant list updated.");
 };
-
 
 
 
