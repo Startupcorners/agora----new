@@ -109,7 +109,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
   if (typeof bubble_fn_eventUser === "function") {
     const payload = { outputlist1: participantList };
     console.log("Sending to Bubble:", payload);
-    bubble_fn_eventUser([{"test":"hello"}]);
+    bubble_fn_eventUser([{test:"hello"}]);
   }
 
   console.log("Participant list updated.");
