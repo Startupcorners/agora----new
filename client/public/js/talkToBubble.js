@@ -119,7 +119,13 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
       "Sending participant list (as text) to Bubble:",
       participantTextList
     );
+    const participantTextList = participantList.map((p) => JSON.stringify(p));
+    console.log(
+      "Sending participant list (as JSON strings) to Bubble:",
+      participantTextList
+    );
     bubble_fn_eventUser(participantTextList);
+
   }
 
   console.log("Participant list updated.");
