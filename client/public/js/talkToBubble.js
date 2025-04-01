@@ -52,13 +52,32 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     `Managing participant list for user ${userUid} with action ${actionType}`
   );
 
-  // Log the participant list before update
+  console.log("Incoming userAttr:", JSON.stringify(userAttr, null, 2));
   console.log(
     "Participant list before update:",
     JSON.stringify(participantList, null, 2)
   );
 
-  const userUidNumber = Number(userUid); // Ensure consistent UID type
+  const userUidNumber = Number(userUid);
+
+  const resolvedRole = userAttr.role || "audience";
+  const resolvedRoleInCall = userAttr.roleInTheCall || "audience";
+
+  // Validate roleInTheCall
+  const allowedRoles = [
+    "audienceOnStage",
+    "audience",
+    "speaker",
+    "meetingParticipant",
+    "master",
+    "host",
+  ];
+
+  if (!allowedRoles.includes(resolvedRoleInCall)) {
+    console.warn(`⚠️ Unexpected roleInTheCall: "${resolvedRoleInCall}"`);
+  } else {
+    console.log(`✅ roleInTheCall "${resolvedRoleInCall}" is valid.`);
+  }
 
   if (actionType === "join") {
     const participantIndex = participantList.findIndex(
@@ -74,17 +93,18 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
         _api_c2_designation: userAttr.designation || "",
         _api_c2_avatar:
           userAttr.avatar || "https://ui-avatars.com/api/?name=Unknown",
-        _api_c2_role: userAttr.role || "audience",
+        _api_c2_role: resolvedRole,
         _api_c2_speakerId: userAttr.speakerId,
         _api_c2_participantId: userAttr.participantId,
         _api_c2_bubbleid: userAttr.bubbleid || "",
         _api_c2_isRaisingHand: userAttr.isRaisingHand || "no",
-        _api_c2_roleInTheCall: userAttr.roleInTheCall || "audience",
+        _api_c2_roleInTheCall: resolvedRoleInCall,
       };
       participantList.push(newParticipant);
-      console.log(`Participant ${userUid} has joined.`);
+      console.log(
+        `Participant ${userUid} has joined with roleInTheCall: ${resolvedRoleInCall}`
+      );
     } else {
-      // Update existing participant with prefixed keys
       const updatedParticipant = {
         ...participantList[participantIndex],
         _api_c2_uid: userUidNumber,
@@ -94,15 +114,17 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
         _api_c2_designation: userAttr.designation || "",
         _api_c2_avatar:
           userAttr.avatar || "https://ui-avatars.com/api/?name=Unknown",
-        _api_c2_role: userAttr.role || "audience",
+        _api_c2_role: resolvedRole,
         _api_c2_speakerId: userAttr.speakerId,
         _api_c2_participantId: userAttr.participantId,
         _api_c2_bubbleid: userAttr.bubbleid || "",
         _api_c2_isRaisingHand: userAttr.isRaisingHand || "no",
-        _api_c2_roleInTheCall: userAttr.roleInTheCall || "audience",
+        _api_c2_roleInTheCall: resolvedRoleInCall,
       };
       participantList[participantIndex] = updatedParticipant;
-      console.log(`Participant ${userUid} details updated.`);
+      console.log(
+        `Participant ${userUid} details updated with roleInTheCall: ${resolvedRoleInCall}`
+      );
     }
   } else if (actionType === "leave") {
     participantList = participantList.filter(
@@ -126,6 +148,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
 
   console.log("Participant list updated.");
 };
+
 
 
 
