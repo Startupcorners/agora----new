@@ -58,58 +58,70 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     JSON.stringify(participantList, null, 2)
   );
 
-  // Ensure consistent UID type
-  const userUidNumber = Number(userUid);
+  const userUidNumber = Number(userUid); // Ensure consistent UID type
 
   if (actionType === "join") {
     const participantIndex = participantList.findIndex(
-      (p) => p.uid === userUidNumber
+      (p) => p._api_c2_uid === userUidNumber
     );
 
     if (participantIndex === -1) {
       const newParticipant = {
-        uid: userUidNumber,
-        rtmUid: userAttr.rtmUid || "",
-        name: userAttr.name || "Unknown",
-        company: userAttr.company || "",
-        designation: userAttr.designation || "",
-        avatar: userAttr.avatar || "https://ui-avatars.com/api/?name=Unknown",
-        role: userAttr.role || "audience",
-        speakerId: userAttr.speakerId,
-        participantId: userAttr.participantId,
-        bubbleid: userAttr.bubbleid || "",
-        isRaisingHand: userAttr.isRaisingHand || "no",
-        roleInTheCall: userAttr.roleInTheCall || "audience",
+        _api_c2_uid: userUidNumber,
+        _api_c2_rtmUid: userAttr.rtmUid || "",
+        _api_c2_name: userAttr.name || "Unknown",
+        _api_c2_company: userAttr.company || "",
+        _api_c2_designation: userAttr.designation || "",
+        _api_c2_avatar:
+          userAttr.avatar || "https://ui-avatars.com/api/?name=Unknown",
+        _api_c2_role: userAttr.role || "audience",
+        _api_c2_speakerId: userAttr.speakerId,
+        _api_c2_participantId: userAttr.participantId,
+        _api_c2_bubbleid: userAttr.bubbleid || "",
+        _api_c2_isRaisingHand: userAttr.isRaisingHand || "no",
+        _api_c2_roleInTheCall: userAttr.roleInTheCall || "audience",
       };
       participantList.push(newParticipant);
       console.log(`Participant ${userUid} has joined.`);
     } else {
-      participantList[participantIndex] = {
+      // Update existing participant with prefixed keys
+      const updatedParticipant = {
         ...participantList[participantIndex],
-        ...userAttr,
-        uid: userUidNumber,
+        _api_c2_uid: userUidNumber,
+        _api_c2_rtmUid: userAttr.rtmUid || "",
+        _api_c2_name: userAttr.name || "Unknown",
+        _api_c2_company: userAttr.company || "",
+        _api_c2_designation: userAttr.designation || "",
+        _api_c2_avatar:
+          userAttr.avatar || "https://ui-avatars.com/api/?name=Unknown",
+        _api_c2_role: userAttr.role || "audience",
+        _api_c2_speakerId: userAttr.speakerId,
+        _api_c2_participantId: userAttr.participantId,
+        _api_c2_bubbleid: userAttr.bubbleid || "",
+        _api_c2_isRaisingHand: userAttr.isRaisingHand || "no",
+        _api_c2_roleInTheCall: userAttr.roleInTheCall || "audience",
       };
+      participantList[participantIndex] = updatedParticipant;
       console.log(`Participant ${userUid} details updated.`);
     }
   } else if (actionType === "leave") {
-    participantList = participantList.filter((p) => p.uid !== userUidNumber);
+    participantList = participantList.filter(
+      (p) => p._api_c2_uid !== userUidNumber
+    );
     console.log(`Participant ${userUid} has left.`);
   } else {
     console.warn(`Unknown action type: ${actionType}`);
     return;
   }
 
-  // Log the participant list after update
   console.log(
     "Participant list after update:",
     JSON.stringify(participantList, null, 2)
   );
 
-  // Wrap in object and send to Bubble
   if (typeof bubble_fn_eventUser === "function") {
-    const payload = { outputlist1: participantList };
-    console.log("Sending to Bubble:", payload);
-    bubble_fn_eventUser([{"test":"hello"}]);
+    console.log("Sending entire participantList to Bubble:", participantList);
+    bubble_fn_eventUser(participantList);
   }
 
   console.log("Participant list updated.");
