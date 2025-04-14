@@ -8,7 +8,7 @@
    earliestBookableHour,
    blockedByUserList
  ) {
-  console.log("blocked", blockedByUserList)
+   console.log("blocked", blockedByUserList);
    // Adjust the viewerDate based on the offset (number of weeks)
    const adjustedViewerDate = moment(viewerDate)
      .add(offset, "weeks")
@@ -72,6 +72,38 @@
    // Generate main availability slots
    const mainSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
 
+   // Filter slots by availability date range
+   function filterByAvailabilityDateRange(slots, availability) {
+     // Convert availability start/end dates to UTC with timezone adjustment
+     const availabilityStart = availability.start_date
+       ? moment
+           .utc(availability.start_date)
+           .startOf("day")
+           .subtract(availability.timeOffsetSeconds, "seconds")
+       : moment.utc().subtract(100, "years"); // If no start date, use a date far in the past
+
+     const availabilityEnd = availability.end_date
+       ? moment
+           .utc(availability.end_date)
+           .endOf("day")
+           .subtract(availability.timeOffsetSeconds, "seconds")
+       : moment.utc().add(100, "years"); // If no end date, use a date far in the future
+
+     return slots.filter((slot) => {
+       const slotStart = moment.utc(slot[0]);
+       return (
+         slotStart.isSameOrAfter(availabilityStart) &&
+         slotStart.isBefore(availabilityEnd)
+       );
+     });
+   }
+
+   // Apply availability date range filter to main slots
+   const mainSlotsFiltered = filterByAvailabilityDateRange(
+     mainSlots,
+     mainAvailability
+   );
+
    // Function to filter out slots that overlap with blocked or booked lists
    function filterOutOverlappingSlots(slots, blockedList) {
      return slots.filter((slot) => {
@@ -99,7 +131,7 @@
    // If allAvailabilityLists is empty, filter mainSlots by earliestBookableTime and alreadyBookedList
    if (!allAvailabilityLists || allAvailabilityLists.length === 0) {
      // Filter slots by earliestBookableTime
-     let filteredSlots = mainSlots.filter((slot) => {
+     let filteredSlots = mainSlotsFiltered.filter((slot) => {
        const slotStart = moment.utc(slot[0]);
        return slotStart.isSameOrAfter(earliestBookableTime);
      });
@@ -120,11 +152,17 @@
    }
 
    // Generate other availability slots and find common slots
-   let commonSlots = [...mainSlots];
+   let commonSlots = [...mainSlotsFiltered];
    allAvailabilityLists.forEach((availability) => {
      const slots = generateSlots(availability, rangeStart, rangeEnd);
+
+     // Filter these slots by their own availability date range
+     const filteredSlots = filterByAvailabilityDateRange(slots, availability);
+
      commonSlots = commonSlots.filter((mainSlot) =>
-       slots.some((slot) => slot[0] === mainSlot[0] && slot[1] === mainSlot[1])
+       filteredSlots.some(
+         (slot) => slot[0] === mainSlot[0] && slot[1] === mainSlot[1]
+       )
      );
    });
 

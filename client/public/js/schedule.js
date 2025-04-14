@@ -692,8 +692,28 @@ window.generateStartTimes = generateStartTimes;
     // Generate main availability slots
     const allSlots = generateSlots(mainAvailability, rangeStart, rangeEnd);
 
+    // Convert availability start/end dates to UTC with timezone adjustment
+    const availabilityStart = moment
+      .utc(mainAvailability.start_date)
+      .startOf("day")
+      .subtract(userOffsetInSeconds, "seconds");
+
+    const availabilityEnd = moment
+      .utc(mainAvailability.end_date)
+      .endOf("day")
+      .subtract(userOffsetInSeconds, "seconds");
+
+    // Filter slots to only include those within the availability period
+    const periodicSlots = allSlots.filter((slot) => {
+      const slotStart = moment.utc(slot[0]);
+      return (
+        slotStart.isSameOrAfter(availabilityStart) &&
+        slotStart.isBefore(availabilityEnd)
+      );
+    });
+
     // Filter out slots before the earliest bookable time
-    const filteredSlots = allSlots.filter((slot) => {
+    const filteredSlots = periodicSlots.filter((slot) => {
       const slotStart = moment.utc(slot[0]);
       return slotStart.isSameOrAfter(earliestBookableTime);
     });
