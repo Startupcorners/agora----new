@@ -269,12 +269,52 @@ client.on("token-privilege-will-expire", renewBothTokens);
 };
 
 // ------------------ RTM token lifecycle ------------------
+// -----------------------------------------------------------------------------
+//  Token‑lifecycle listeners for BOTH transports (RTC + RTM)
+//  Works with Agora RTC Web SDK ≥4.x  and RTM Web SDK 1.5.x
+// -----------------------------------------------------------------------------
 export function setupRTMTokenListeners(config) {
-  const { clientRTM} = config;
-  if (!clientRTM) return;
+  const { client, clientRTM } = config;
+  if (!client || !clientRTM) return;   // safety guard
 
-  clientRTM.on("TokenPrivilegeWillExpire",    renewBothTokens);
+  // --- shared helper ---------------------------------------------------------
+  async function renewBoth() {
+    try {
+      // Hit your backend once; it returns fresh tokens for both layers.
+      const { rtcToken, rtmToken } = await fetchTokens(config);
+
+      // Renew in parallel; ignore whichever one isn’t needed.
+      await Promise.allSettled([
+        client.renewToken?.(rtcToken),        // RTC side
+        clientRTM.renewToken?.(rtmToken)      // RTM side (SDK 1.5.x supports this)
+      ]);
+
+      console.info("✅ Renewed RTC + RTM tokens");
+    } catch (err) {
+      console.error("❌ Token renewal failed:", err);
+    }
+  }
+
+  // --- RTC pre‑warning (fires ≈30 s before expiry) ---------------------------
+  client.on("token-privilege-will-expire", renewBoth);
+
+  // --- RTM hard‑expiry (only event available in RTM 1.5.x) -------------------
+  clientRTM.on("TokenExpired", async () => {
+    console.warn("RTM token expired – renewing and re‑logging in…");
+    await renewBoth();                         // refresh both tokens first
+    try {
+      const { rtmToken } = await fetchTokens(config);  // in case RTM needs a 2nd token
+      await clientRTM.login({
+        uid: config.uid.toString(),
+        token: rtmToken,
+      });
+      console.info("✅ Re‑logged into RTM after expiry");
+    } catch (e) {
+      console.error("❌ RTM re‑login failed:", e);
+    }
+  });
 }
+
 
 
 export const setupRTMMessageListener = (config) => {
@@ -459,13 +499,6 @@ switch (type) {
 };
 
 
-async function renewBothTokens() {
-  const { rtcToken, rtmToken } = await fetchTokens(config);
-  await Promise.allSettled([
-    client.renewToken(rtcToken),
-    config.clientRTM.renewToken(rtmToken),
-  ]);
-}
 
 export async function checkMicrophonePermissions(config) {
   if (navigator.permissions) {

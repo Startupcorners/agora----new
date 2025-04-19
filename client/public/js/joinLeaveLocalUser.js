@@ -3,6 +3,7 @@ import { joinVideoStage } from "./joinleavestage.js";
 import { manageParticipants } from "./talkToBubble.js";
 import { stopCamera, stopScreenShare } from "./video.js";
 import { endMic } from "./audio.js";
+import { setupRTMTokenListeners} from "./setupEventListeners.js";
 
 export const join = async (config) => {
   console.warn("join function called");
@@ -16,6 +17,7 @@ export const join = async (config) => {
     // Ensure RTM is joined
     await joinRTM(config, tokens.rtmToken);
     console.warn("ran ensureRTMJoined");
+    setupRTMTokenListeners(config);
 
     await joinRTC(config, tokens.rtcToken);
     console.warn("ran joinRTC");
