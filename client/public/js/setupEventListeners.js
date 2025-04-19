@@ -486,14 +486,19 @@ switch (type) {
     console.log(`RTM Member joined: ${memberId}`);
   });
 
-  // Handle member leave
   channelRTM.on("MemberLeft", async (memberId) => {
     console.log(`RTM Member left: ${memberId}`);
-  });
 
-  console.log(
-    "RTM message listener with member join/leave handlers initialized."
-  );
+    // ──➜ when the audio‑recording ghost client (UID 3) leaves
+    if (memberId === "3") {
+      console.log("Audio recorder (RTM uid 3) left – flagging recording OFF");
+      if (typeof bubble_fn_isAudioRecording === "function") {
+        bubble_fn_isAudioRecording("no");
+      } else {
+        console.warn("bubble_fn_isAudioRecording is not defined.");
+      }
+    }
+  });
 };
 
 
