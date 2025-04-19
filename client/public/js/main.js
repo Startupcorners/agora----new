@@ -29,6 +29,7 @@ import {
 } from "./templates.js";
 import {
   setupEventListeners,
+  setupRTMTokenListeners,
   setupRTMMessageListener,
   setupLeaveListener,
   checkMicrophonePermissions,
@@ -142,6 +143,7 @@ export const newMainApp = async function (initConfig) {
   config.channelRTM = config.clientRTM.createChannel(config.channelName);
   setupRTMMessageListener(config);
   setupEventListeners(config);
+  setupRTMTokenListeners(config);
   setupLeaveListener(config);
   checkMicrophonePermissions(config);
   updateSelectedDevices(config);

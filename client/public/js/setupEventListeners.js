@@ -4,6 +4,7 @@ import {
   handleUserUnpublished,
   manageUserPromise,
 } from "./publishUnpublishHub.js";
+import { fetchTokens } from "./fetchTokens.js";
 import { handleUserJoined, handleUserLeft } from "./joinLeaveRemoveUser.js";
 import { addUserWrapper, removeUserWrapper } from "./wrappers.js";
 import { fetchAndSendDeviceList, manageParticipants } from "./talkToBubble.js";
@@ -172,6 +173,9 @@ client.on("user-joined", async (user) => {
 });
 
 
+client.on("token-privilege-will-expire", renewBothTokens);
+
+
   // Handle when a user leaves the session
   client.on("user-left", async (user) => {
     console.log("Heard user-left:", user);
@@ -263,6 +267,15 @@ client.on("user-joined", async (user) => {
     }
   });
 };
+
+// ------------------ RTM token lifecycle ------------------
+export function setupRTMTokenListeners(config) {
+  const { clientRTM} = config;
+  if (!clientRTM) return;
+
+  clientRTM.on("TokenPrivilegeWillExpire",    renewBothTokens);
+}
+
 
 export const setupRTMMessageListener = (config) => {
   const channelRTM = config.channelRTM;
@@ -444,6 +457,15 @@ switch (type) {
     "RTM message listener with member join/leave handlers initialized."
   );
 };
+
+
+async function renewBothTokens() {
+  const { rtcToken, rtmToken } = await fetchTokens(config);
+  await Promise.allSettled([
+    client.renewToken(rtcToken),
+    config.clientRTM.renewToken(rtmToken),
+  ]);
+}
 
 export async function checkMicrophonePermissions(config) {
   if (navigator.permissions) {
