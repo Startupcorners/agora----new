@@ -173,8 +173,6 @@ client.on("user-joined", async (user) => {
 });
 
 
-client.on("token-privilege-will-expire", renewBothTokens);
-
 
   // Handle when a user leaves the session
   client.on("user-left", async (user) => {
