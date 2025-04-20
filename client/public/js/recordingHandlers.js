@@ -225,6 +225,7 @@ export const stopCloudRecording = debounce(
 
 
 // Updated startAudioRecording function
+// Modified startAudioRecording function
 export const startAudioRecording = debounce(async (config) => {
   // Assign new audioRecordId
   audioRecordingManager.recordId = Math.floor(100000 + Math.random() * 900000).toString();
@@ -280,10 +281,12 @@ export const startAudioRecording = debounce(async (config) => {
       console.log("SID not received in the response");
     }
 
-    // Initialize and join RTM
+    // Set active before initializing
+    audioRecordingManager.isActive = true;
+    
+    // Initialize and join RTM - pass fetchTokens function
     await audioRecordingManager.initRTM(config, fetchTokens);
     await audioRecordingManager.joinChannel(config);
-    audioRecordingManager.isActive = true;
 
     bubble_fn_isAudioRecording("yes");
 
