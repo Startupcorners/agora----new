@@ -68,6 +68,7 @@ export const manageParticipants = async (userUid, userAttr, actionType) => {
     "audienceOnStage",
     "audience",
     "speaker",
+    "waiting",
     "meetingParticipant",
     "master",
     "host",

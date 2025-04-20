@@ -172,7 +172,6 @@ export const newMainApp = async function (initConfig) {
     stopCloudRecording,
     triggerLeaveStage,
     startAudioRecording,
-    stillPresent,
     toggleHand,
     lowerHand,
     noHosts,
