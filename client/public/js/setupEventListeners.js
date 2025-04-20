@@ -559,3 +559,12 @@ export const editClasses = async () => {
     mainContainer.classList.add("main-container-left");
   }
 };
+
+
+export const setupLeaveListener = (config) => {
+  // Listen for page unload events (close, reload, or navigating away)
+  window.addEventListener("beforeunload", (event) => {
+    const leaveReason = "left"; // You can customize the reason based on your needs
+    leave(leaveReason, config);
+  });
+};
