@@ -4,6 +4,7 @@ import { manageParticipants } from "./talkToBubble.js";
 import { stopCamera, stopScreenShare } from "./video.js";
 import { endMic } from "./audio.js";
 import { setupRTMTokenListeners} from "./setupEventListeners.js";
+import audioRecordingManager from "./audioRecordingManager";
 
 export const join = async (config) => {
   console.warn("join function called");
@@ -187,7 +188,8 @@ const joinRTC = async (config, rtcToken) => {
 
 let triggeredReason = null;
 
-// Add the general leave function
+
+
 export const leave = async (reason, config) => {
   // Check if leave function has already been triggered
   if (triggeredReason) {
@@ -232,26 +234,8 @@ export const leave = async (reason, config) => {
     await leaveRTC(config);
     console.log("Left RTC channel successfully");
 
-    // Leave user's RTM but DO NOT touch the audio recording RTM
-    if (
-      config.channelRTM &&
-      config.channelRTM !== audioRecordingManager.channelRTM
-    ) {
-      await config.channelRTM.leave();
-      console.log("Left the user's RTM channel successfully");
-      config.channelRTM = null;
-    }
-
-    if (
-      config.clientRTM &&
-      config.clientRTM !== audioRecordingManager.rtmClient
-    ) {
-      await config.clientRTM.logout();
-      console.log("Logged out from user's RTM client successfully");
-      config.clientRTM = null;
-    }
-
-    config.isRTMJoined = false;
+    // Leave only the user's RTM, not the audio recording RTM
+    await leaveUserRTM(config);
 
     // Call the Bubble function with the final reason
     if (typeof bubble_fn_leave === "function") {
@@ -264,7 +248,6 @@ export const leave = async (reason, config) => {
   }
 };
 
-
 // Function to leave RTC
 export const leaveRTC = async (config) => {
   console.warn("leaveRTC called");
@@ -273,24 +256,36 @@ export const leaveRTC = async (config) => {
   console.log("Successfully left RTC channel");
 };
 
-// Add the leaveRTM function
-export const leaveRTM = async (config) => {
-  console.warn("leaveRTM called");
-
+// Updated function to leave only the user's RTM
+export const leaveUserRTM = async (config) => {
+  console.warn("leaveUserRTM called");
 
   try {
+    // Check if this is the audio recording RTM channel - if so, don't leave it
+    const isAudioRecordingRTM = 
+      config.channelRTM === audioRecordingManager.channelRTM ||
+      config.clientRTM === audioRecordingManager.rtmClient;
+      
+    if (isAudioRecordingRTM) {
+      console.log("Skipping leave for audio recording RTM channel/client");
+      return;
+    }
+    
+    // Only leave if it's the user's RTM channel/client
     if (config.channelRTM) {
       await config.channelRTM.leave();
-      console.log("Left the RTM channel successfully");
+      console.log("Left the user's RTM channel successfully");
       config.channelRTM = null;
     }
+    
     if (config.clientRTM) {
       await config.clientRTM.logout();
-      console.log("Logged out from RTM client successfully");
+      console.log("Logged out from user's RTM client successfully");
       config.clientRTM = null;
     }
+    
     config.isRTMJoined = false;
   } catch (error) {
-    console.error("Error in leaveRTM:", error);
+    console.error("Error in leaveUserRTM:", error);
   }
 };
