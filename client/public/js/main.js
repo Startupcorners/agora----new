@@ -32,7 +32,6 @@ import {
   setupRTMMessageListener,
   setupLeaveListener,
   checkMicrophonePermissions,
-  stillPresent,
   noHosts,
   hostJoined,
   toggleOverride,
