@@ -197,52 +197,42 @@ let triggeredReason = null;
 
 
 export const leave = async (reason, config) => {
-  // Check if leave function has already been triggered
   if (triggeredReason) {
     console.warn(
       `Leave function already triggered with reason: ${triggeredReason}. Ignoring subsequent call.`
     );
-    return; // Exit if already triggered
+    return;
   }
 
   console.warn("leave function called with reason:", reason);
-  triggeredReason = reason; // Set the triggered reason to prevent re-entry
+  triggeredReason = reason;
 
   try {
-    // Check if this is the last user in the channel before leaving
     const channelStats = await config.client.getSessionStats();
     const userCount = channelStats.UserCount;
 
     console.log("Current users in channel:", userCount);
 
-    // If I'm the only user (userCount is 1) AND recording is active
-    // This means after I leave there will be 0 users
     if (userCount === 1) {
       console.log("I'm the last user in the channel");
 
-      // Check if there's an active recording
       if (audioRecordingManager && audioRecordingManager.isActive) {
         console.log(
           "Active recording detected - stopping recording before leaving"
         );
 
-        // Stop the recording explicitly to trigger your flow
         await stopAudioRecording(config);
-        stopCloudRecording;
-
-        // Wait a moment for the stop recording to complete
+        stopCloudRecording; // ❗️You might have a bug here — this line doesn't do anything (missing `()`)
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
         console.log("Recording stopped before channel became empty");
       }
     }
 
-    // Continue with normal leave process
     await stopScreenShare(config);
     await stopCamera(config);
     await endMic(config);
 
-    // Make API call to update participant status
     try {
       const bubbleResponse = await axios.post(
         "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
@@ -256,20 +246,17 @@ export const leave = async (reason, config) => {
       console.error("Error notifying participantEnterLeave API:", apiError);
     }
 
-    // Leave RTC
     await leaveRTC(config);
     console.log("Left RTC channel successfully");
 
-    // Call the Bubble function with the final reason
     if (typeof bubble_fn_leave === "function") {
-      bubble_fn_leave(finalReason);
+      bubble_fn_leave(reason); // ← fixed
     } else {
       console.warn("bubble_fn_leave is not defined or not a function");
     }
   } catch (error) {
     console.error("Error during leave with recording check:", error);
 
-    // Continue with leave even if the recording check fails
     try {
       await stopScreenShare(config);
       await stopCamera(config);
@@ -277,13 +264,14 @@ export const leave = async (reason, config) => {
       await leaveRTC(config);
 
       if (typeof bubble_fn_leave === "function") {
-        bubble_fn_leave(finalReason);
+        bubble_fn_leave(reason); // ← fixed
       }
     } catch (finalError) {
       console.error("Fatal error during leave:", finalError);
     }
   }
 };
+
 
 // Function to leave RTC
 export const leaveRTC = async (config) => {
