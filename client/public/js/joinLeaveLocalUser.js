@@ -215,52 +215,25 @@ export const leave = async (reason, config) => {
 
     console.log("Current users in channel:", userCount);
 
-    // If I'm the only user (userCount is 1)
+    // If I'm the only user (userCount is 1) AND recording is active
     // This means after I leave there will be 0 users
     if (userCount === 1) {
       console.log("I'm the last user in the channel");
 
-      // Check and stop audio recording if active
+      // Check if there's an active recording
       if (audioRecordingManager && audioRecordingManager.isActive) {
         console.log(
-          "Active audio recording detected - stopping before leaving"
+          "Active recording detected - stopping recording before leaving"
         );
+
+        // Stop the recording explicitly to trigger your flow
         await stopAudioRecording(config);
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-        console.log("Audio recording stopped before channel became empty");
-      }
+        stopCloudRecording;
 
-      // Check for active cloud recording by calling the API
-      try {
-        const response = await axios.post(
-          "https://startupcorners.com/api/1.1/wf/retrieveRecording",
-          {
-            event: config.channelName,
-            user: config.user.bubbleid, // You'll likely need to send the channel name
-          }
-        );
+        // Wait a moment for the stop recording to complete
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
-        console.log("Recording info response:", response.data);
-
-        // Check if we got valid recording data
-        if (response.data && response.data.resourceId && response.data.sId) {
-          console.log("Active cloud recording found - stopping before leaving");
-
-          await stopCloudRecording(
-            config,
-            response.data.resourceId,
-            response.data.sId,
-            response.data.recordingId,
-            response.data.timeStamp
-          );
-
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          console.log("Cloud recording stopped before channel became empty");
-        } else {
-          console.log("No active cloud recording found");
-        }
-      } catch (recordingError) {
-        console.error("Error checking recording status:", recordingError);
+        console.log("Recording stopped before channel became empty");
       }
     }
 
@@ -309,5 +282,47 @@ export const leave = async (reason, config) => {
     } catch (finalError) {
       console.error("Fatal error during leave:", finalError);
     }
+  }
+};
+
+// Function to leave RTC
+export const leaveRTC = async (config) => {
+  console.warn("leaveRTC called");
+  await config.client.leave();
+  config.isRTCJoined = false;
+  console.log("Successfully left RTC channel");
+};
+
+// Updated function to leave only the user's RTM
+export const leaveUserRTM = async (config) => {
+  console.warn("leaveUserRTM called");
+
+  try {
+    // Check if this is the audio recording RTM channel - if so, don't leave it
+    const isAudioRecordingRTM = 
+      config.channelRTM === audioRecordingManager.channelRTM ||
+      config.clientRTM === audioRecordingManager.rtmClient;
+      
+    if (isAudioRecordingRTM) {
+      console.log("Skipping leave for audio recording RTM channel/client");
+      return;
+    }
+    
+    // Only leave if it's the user's RTM channel/client
+    if (config.channelRTM) {
+      await config.channelRTM.leave();
+      console.log("Left the user's RTM channel successfully");
+      config.channelRTM = null;
+    }
+    
+    if (config.clientRTM) {
+      await config.clientRTM.logout();
+      console.log("Logged out from user's RTM client successfully");
+      config.clientRTM = null;
+    }
+    
+    config.isRTMJoined = false;
+  } catch (error) {
+    console.error("Error in leaveUserRTM:", error);
   }
 };
