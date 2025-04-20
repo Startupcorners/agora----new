@@ -1,5 +1,5 @@
 import { fetchTokens } from "./fetchTokens.js";
-import audioRecordingManager from "./audioRecordingManager";
+import audioRecordingManager from "./audioRecordingManager.js";
 
 let audioRecordId,
   audioResourceId,

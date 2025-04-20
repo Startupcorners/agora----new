@@ -4,7 +4,7 @@ import { manageParticipants } from "./talkToBubble.js";
 import { stopCamera, stopScreenShare } from "./video.js";
 import { endMic } from "./audio.js";
 import { setupRTMTokenListeners} from "./setupEventListeners.js";
-import audioRecordingManager from "./audioRecordingManager";
+import audioRecordingManager from "./audioRecordingManager.js";
 
 export const join = async (config) => {
   console.warn("join function called");
