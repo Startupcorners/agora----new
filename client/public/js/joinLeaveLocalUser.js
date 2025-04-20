@@ -208,8 +208,8 @@ export const leave = async (reason, config) => {
   triggeredReason = reason;
 
   try {
-    const channelStats = await config.client.getSessionStats();
-    const userCount = channelStats.UserCount;
+    const remoteUserCount = config.client.remoteUsers.length;
+    const userCount = remoteUserCount + 1;
 
     console.log("Current users in channel:", userCount);
 
@@ -222,7 +222,7 @@ export const leave = async (reason, config) => {
         );
 
         await stopAudioRecording(config);
-        stopCloudRecording; // ❗️You might have a bug here — this line doesn't do anything (missing `()`)
+        await stopCloudRecording(config); // fixed the call
         await new Promise((resolve) => setTimeout(resolve, 2000));
 
         console.log("Recording stopped before channel became empty");
