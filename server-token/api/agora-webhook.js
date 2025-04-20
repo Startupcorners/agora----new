@@ -55,30 +55,43 @@ async function processAgoraEvent(event) {
 }
 
 // Handle recording timeout
-async function handleRecordingTimeout(
-  channelName,
-  recordingId,
-  resourceId,
-  uid
-) {
-  console.log(
-    `Processing timed-out recording: ${channelName}, ID: ${recordingId}`
-  );
-
+// Handle recording timeout
+async function handleRecordingTimeout(channelName, recordingId, resourceId, uid) {
+  console.log(`Processing timed-out recording: ${channelName}, ID: ${recordingId}`);
+  const timestamp = Date.now().toString();
+  
   try {
-    // Call your Bubble workflow to process the recording
-    const response = await axios.post(
-      "https://startupcorners.com/api/1.1/wf/processTimedOutRecording",
-      {
-        channelName,
+    // 1. Try to stop cloud recording
+    console.log("Attempting to stop cloud recording via API...");
+    try {
+      const stopCloudResponse = await axios.post(`${process.env.MY_SERVER_URL || "https://agora-new.vercel.app"}/stopCloudRecording`, {
+        resourceId: resourceId,
         sid: recordingId,
-        resourceId,
-        uid,
-        reason: "timeout",
-      }
-    );
-
-    console.log("Recording processing initiated:", response.data);
+        channelName: channelName,
+        uid: uid,
+        timestamp: timestamp
+      });
+      
+      console.log("Cloud recording stopped via API:", stopCloudResponse.data);
+    } catch (cloudError) {
+      console.error("Error stopping cloud recording:", cloudError.message);
+    }
+    
+    // 2. Try to stop audio recording using the same information
+    console.log("Attempting to stop audio recording via API...");
+    try {
+      const stopAudioResponse = await axios.post(`${process.env.MY_SERVER_URL || "https://agora-new.vercel.app"}/stopAudioRecording`, {
+        resourceId: resourceId,
+        sid: recordingId,
+        channelName: channelName,
+        uid: uid,
+        timestamp: timestamp
+      });
+      
+      console.log("Audio recording stopped via API:", stopAudioResponse.data);
+    } catch (audioError) {
+      console.error("Error stopping audio recording:", audioError.message);
+    }
   } catch (error) {
     console.error("Error processing timed-out recording:", error);
   }
