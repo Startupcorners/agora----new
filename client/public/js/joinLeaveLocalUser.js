@@ -5,6 +5,12 @@ import { stopCamera, stopScreenShare } from "./video.js";
 import { endMic } from "./audio.js";
 import { setupRTMTokenListeners} from "./setupEventListeners.js";
 import audioRecordingManager from "./audioRecordingManager.js";
+import {
+  startAudioRecording,
+  stopAudioRecording,
+  startCloudRecording,
+  stopCloudRecording,
+} from "./recordingHandlers.js";
 
 export const join = async (config) => {
   console.warn("join function called");
@@ -202,40 +208,84 @@ export const leave = async (reason, config) => {
   console.warn("leave function called with reason:", reason);
   triggeredReason = reason; // Set the triggered reason to prevent re-entry
 
-  // Define the valid reasons
-  const validReasons = [
-    "left",
-    "removed",
-    "deniedAccess",
-    "connectionIssue",
-    "inactive",
-  ];
-  const finalReason = validReasons.includes(reason) ? reason : "other"; // Ensure reason is valid
-
-  await stopScreenShare(config);
-  await stopCamera(config);
-  await endMic(config);
-
   try {
-    const bubbleResponse = await axios.post(
-      "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
-      {
-        participantId: config.user.participantId,
-        action: "leave",
+    // Check if this is the last user in the channel before leaving
+    const channelStats = await config.client.getSessionStats();
+    const userCount = channelStats.UserCount;
+
+    console.log("Current users in channel:", userCount);
+
+    // If I'm the only user (userCount is 1)
+    // This means after I leave there will be 0 users
+    if (userCount === 1) {
+      console.log("I'm the last user in the channel");
+
+      // Check and stop audio recording if active
+      if (audioRecordingManager && audioRecordingManager.isActive) {
+        console.log(
+          "Active audio recording detected - stopping before leaving"
+        );
+        await stopAudioRecording(config);
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        console.log("Audio recording stopped before channel became empty");
       }
-    );
-    console.log("Participant enter/leave API response:", bubbleResponse.data);
-  } catch (apiError) {
-    console.error("Error notifying participantEnterLeave API:", apiError);
-  }
 
-  try {
+      // Check for active cloud recording by calling the API
+      try {
+        const response = await axios.post(
+          "https://startupcorners.com/api/1.1/wf/retrieveRecording",
+          {
+            event: config.channelName,
+            user: config.user.bubbleid, // You'll likely need to send the channel name
+          }
+        );
+
+        console.log("Recording info response:", response.data);
+
+        // Check if we got valid recording data
+        if (response.data && response.data.resourceId && response.data.sId) {
+          console.log("Active cloud recording found - stopping before leaving");
+
+          await stopCloudRecording(
+            config,
+            response.data.resourceId,
+            response.data.sId,
+            response.data.recordingId,
+            response.data.timeStamp
+          );
+
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          console.log("Cloud recording stopped before channel became empty");
+        } else {
+          console.log("No active cloud recording found");
+        }
+      } catch (recordingError) {
+        console.error("Error checking recording status:", recordingError);
+      }
+    }
+
+    // Continue with normal leave process
+    await stopScreenShare(config);
+    await stopCamera(config);
+    await endMic(config);
+
+    // Make API call to update participant status
+    try {
+      const bubbleResponse = await axios.post(
+        "https://startupcorners.com/api/1.1/wf/participantEnterLeave",
+        {
+          participantId: config.user.participantId,
+          action: "leave",
+        }
+      );
+      console.log("Participant enter/leave API response:", bubbleResponse.data);
+    } catch (apiError) {
+      console.error("Error notifying participantEnterLeave API:", apiError);
+    }
+
     // Leave RTC
     await leaveRTC(config);
     console.log("Left RTC channel successfully");
-
-    // Leave only the user's RTM, not the audio recording RTM
-    await leaveUserRTM(config);
 
     // Call the Bubble function with the final reason
     if (typeof bubble_fn_leave === "function") {
@@ -244,48 +294,20 @@ export const leave = async (reason, config) => {
       console.warn("bubble_fn_leave is not defined or not a function");
     }
   } catch (error) {
-    console.error("Error during leave:", error);
-  }
-};
+    console.error("Error during leave with recording check:", error);
 
-// Function to leave RTC
-export const leaveRTC = async (config) => {
-  console.warn("leaveRTC called");
-  await config.client.leave();
-  config.isRTCJoined = false;
-  console.log("Successfully left RTC channel");
-};
+    // Continue with leave even if the recording check fails
+    try {
+      await stopScreenShare(config);
+      await stopCamera(config);
+      await endMic(config);
+      await leaveRTC(config);
 
-// Updated function to leave only the user's RTM
-export const leaveUserRTM = async (config) => {
-  console.warn("leaveUserRTM called");
-
-  try {
-    // Check if this is the audio recording RTM channel - if so, don't leave it
-    const isAudioRecordingRTM = 
-      config.channelRTM === audioRecordingManager.channelRTM ||
-      config.clientRTM === audioRecordingManager.rtmClient;
-      
-    if (isAudioRecordingRTM) {
-      console.log("Skipping leave for audio recording RTM channel/client");
-      return;
+      if (typeof bubble_fn_leave === "function") {
+        bubble_fn_leave(finalReason);
+      }
+    } catch (finalError) {
+      console.error("Fatal error during leave:", finalError);
     }
-    
-    // Only leave if it's the user's RTM channel/client
-    if (config.channelRTM) {
-      await config.channelRTM.leave();
-      console.log("Left the user's RTM channel successfully");
-      config.channelRTM = null;
-    }
-    
-    if (config.clientRTM) {
-      await config.clientRTM.logout();
-      console.log("Logged out from user's RTM client successfully");
-      config.clientRTM = null;
-    }
-    
-    config.isRTMJoined = false;
-  } catch (error) {
-    console.error("Error in leaveUserRTM:", error);
   }
 };

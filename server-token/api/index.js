@@ -75,6 +75,7 @@ const stopWatch = require("./stopWatch");
 const handleGoogleEvents = require("./handleGoogleEvents");
 const deleteEvents = require("./delete-events");
 const generatePoll = require("./generatePoll");
+const agoraWebhook = require("./agora-webhook");
 
 
 
@@ -94,6 +95,7 @@ app.use("/stopWatch", stopWatch);
 app.use("/handleGoogleEvents", handleGoogleEvents);
 app.use("/delete-events", deleteEvents);
 app.use("/generatePoll", generatePoll);
+app.use("/agora-webhook", agoraWebhook);
 
 // Error handler
 app.use((err, req, res, next) => {
