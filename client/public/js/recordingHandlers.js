@@ -225,24 +225,132 @@ export const stopCloudRecording = debounce(
 // Debounced Start Audio Recording
 
 
+// Create a global object to manage the audio recording state
+const audioRecordingManager = {
+  rtmClient: null,
+  channelRTM: null,
+  resourceId: null,
+  sid: null,
+  recordId: null,
+  timestamp: null,
+  isActive: false,
+  
+  // Initialize the RTM client
+  async initRTM(config) {
+    if (this.rtmClient) return;
+    
+    this.rtmClient = AgoraRTM.createInstance(config.appId, {
+      enableLogUpload: false,
+      logFilter: config.debugEnabled
+        ? AgoraRTM.LOG_FILTER_INFO
+        : AgoraRTM.LOG_FILTER_OFF,
+    });
+    
+    // Add event listeners for connection state
+    this.rtmClient.on('ConnectionStateChanged', (newState, reason) => {
+      console.log(`Audio Recording RTM state changed: ${newState}, reason: ${reason}`);
+      if (newState === 'DISCONNECTED' && this.isActive) {
+        this.reconnect(config);
+      }
+    });
+    
+    // Login with the dedicated recording UID
+    const audioRtmUid = "3";
+    const tokens = await fetchTokens(config, audioRtmUid);
+    if (!tokens) throw new Error("Failed to fetch token for audio recording RTM");
+    
+    await this.rtmClient.login({
+      uid: audioRtmUid,
+      token: tokens.rtmToken,
+    });
+    
+    console.log("Audio recording RTM client initialized with UID:", audioRtmUid);
+  },
+  
+  // Join the channel
+  async joinChannel(config) {
+    if (!this.rtmClient) await this.initRTM(config);
+    
+    if (!this.channelRTM) {
+      this.channelRTM = this.rtmClient.createChannel(config.channelName);
+      
+      // Add event listeners for channel events
+      this.channelRTM.on('MemberLeft', (memberId) => {
+        console.log(`Member left audio recording channel: ${memberId}`);
+      });
+    }
+    
+    await this.channelRTM.join();
+    console.log("Audio recording RTM client joined channel:", config.channelName);
+  },
+  
+  // Reconnect if disconnected
+  async reconnect(config) {
+    try {
+      console.log("Attempting to reconnect audio recording RTM client...");
+      
+      const audioRtmUid = "3";
+      const tokens = await fetchTokens(config, audioRtmUid);
+      if (!tokens) throw new Error("Failed to fetch token for reconnection");
+      
+      await this.rtmClient.login({
+        uid: audioRtmUid,
+        token: tokens.rtmToken,
+      });
+      
+      if (this.channelRTM) {
+        await this.channelRTM.join();
+        console.log("Audio recording RTM client rejoined channel:", config.channelName);
+      }
+    } catch (error) {
+      console.error("Failed to reconnect audio recording RTM:", error);
+      setTimeout(() => this.reconnect(config), 5000);
+    }
+  },
+  
+  // Explicitly clean up
+  async cleanup() {
+    this.isActive = false;
+    
+    if (this.channelRTM) {
+      try {
+        await this.channelRTM.leave();
+        this.channelRTM = null;
+      } catch (error) {
+        console.error("Error leaving audio recording RTM channel:", error);
+      }
+    }
+    
+    if (this.rtmClient) {
+      try {
+        await this.rtmClient.logout();
+        this.rtmClient = null;
+      } catch (error) {
+        console.error("Error logging out audio recording RTM client:", error);
+      }
+    }
+  }
+};
+
+// Modify your startAudioRecording function
 export const startAudioRecording = debounce(async (config) => {
   // Assign new audioRecordId to external variable
-  audioRecordId = Math.floor(100000 + Math.random() * 900000).toString();
+  audioRecordingManager.recordId = Math.floor(100000 + Math.random() * 900000).toString();
 
   try {
-    // Acquire resource and assign to external variable
-    audioResourceId = await acquireResource(config, "composite", audioRecordId);
-    console.log("Resource acquired:", audioResourceId);
+    // Acquire resource
+    audioRecordingManager.resourceId = await acquireResource(config, "composite", audioRecordingManager.recordId);
+    console.log("Resource acquired:", audioRecordingManager.resourceId);
 
-    // Assign timestamp to external variable
-    audioTimestamp = Date.now().toString();
+    // Assign timestamp
+    audioRecordingManager.timestamp = Date.now().toString();
 
     // Wait for 2 seconds after acquiring the resource
     await new Promise((resolve) => setTimeout(resolve, 2000));
     console.log("Waited 2 seconds after acquiring resource");
 
     const recordingTokenResponse = await fetch(
-      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${audioRecordId}`,
+      `${config.serverUrl}/generate_recording_token?channelName=${config.channelName}&uid=${audioRecordingManager.recordId}`,
       { method: "GET" }
     );
 
@@ -257,11 +365,11 @@ export const startAudioRecording = debounce(async (config) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        resourceId: audioResourceId, // Use the external variable
+        resourceId: audioRecordingManager.resourceId,
         channelName: config.channelName,
-        uid: audioRecordId, // Use the external variable
+        uid: audioRecordingManager.recordId,
         token: recordingToken,
-        timestamp: audioTimestamp, // Use the external variable
+        timestamp: audioRecordingManager.timestamp,
       }),
     });
 
@@ -275,148 +383,105 @@ export const startAudioRecording = debounce(async (config) => {
 
     if (startData.sid) {
       console.log("SID received successfully:", startData.sid);
-      audioSid = startData.sid; // Assign SID to external variable
+      audioRecordingManager.sid = startData.sid;
     } else {
       console.log("SID not received in the response");
     }
 
-    // Create and initialize the audio recording RTM client
-    audioRecordingRTMClient = AgoraRTM.createInstance(config.appId, {
-      enableLogUpload: false,
-      logFilter: config.debugEnabled
-        ? AgoraRTM.LOG_FILTER_INFO
-        : AgoraRTM.LOG_FILTER_OFF,
-    });
-
-    const audioRtmUid = "3";
-    const tokens = await fetchTokens(config, audioRtmUid);
-    if (!tokens) throw new Error("Failed to fetch token");
-
-    const audioRtmToken = tokens.rtmToken;
-
-    await audioRecordingRTMClient.login({
-      uid: audioRtmUid,
-      token: audioRtmToken,
-    });
-    console.log("Audio recording RTM client logged in with UID:", audioRtmUid);
-
-    audioRecordingChannelRTM = audioRecordingRTMClient.createChannel(
-      config.channelName
-    );
-    await audioRecordingChannelRTM.join();
-    console.log("Audio recording RTM client joined channel:", config.channelName);
+    // Initialize and join RTM
+    await audioRecordingManager.initRTM(config);
+    await audioRecordingManager.joinChannel(config);
+    audioRecordingManager.isActive = true;
 
     bubble_fn_isAudioRecording("yes");
 
-      console.log("Running bubble_fn_audioRecord");
-      bubble_fn_audioRecord({
-        output1: audioResourceId, // Use the external variable
-        output2: audioSid,        // Use the external variable
-        output3: audioRecordId,   // Use the external variable
-        output4: audioTimestamp,  // Use the external variable
-      });
+    console.log("Running bubble_fn_audioRecord");
+    bubble_fn_audioRecord({
+      output1: audioRecordingManager.resourceId,
+      output2: audioRecordingManager.sid,
+      output3: audioRecordingManager.recordId,
+      output4: audioRecordingManager.timestamp,
+    });
 
     return startData;
   } catch (error) {
     console.log("Error starting audio recording:", error.message);
     throw error;
   }
-}, 3000); // 3-second debounce
+}, 3000);
 
 
-export const stopAudioRecording = debounce(
-  async (config, audioResourceId, audioSid, audioRecordId, audioTimestamp) => {
-    const requestId = Math.random().toString(36).substring(2); // Unique ID for this attempt
-    console.log(`stopAudioRecording attempt started. Request ID: ${requestId}`);
+export const stopAudioRecording = debounce(async (config) => {
+  const requestId = Math.random().toString(36).substring(2); // Unique ID for this attempt
+  console.log(`stopAudioRecording attempt started. Request ID: ${requestId}`);
 
-    try {
-      console.log("Request payload:", {
-        resourceId: audioResourceId, // Use external variable
-        channelName: config.channelName, // From config
-        sid: audioSid, // Use external variable
-        uid: audioRecordId, // Use external variable
-        timestamp: audioTimestamp, // Use external variable
-      });
+  try {
+    // Check if we have active recording data
+    if (!audioRecordingManager.resourceId || !audioRecordingManager.sid) {
+      console.warn("No active audio recording to stop");
+      return;
+    }
 
-      const response = await fetch(`${config.serverUrl}/stopAudioRecording`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          resourceId: audioResourceId,
-          channelName: config.channelName,
-          sid: audioSid,
-          uid: audioRecordId,
-          timestamp: audioTimestamp,
-        }),
-      });
+    console.log("Request payload:", {
+      resourceId: audioRecordingManager.resourceId,
+      channelName: config.channelName,
+      sid: audioRecordingManager.sid,
+      uid: audioRecordingManager.recordId,
+      timestamp: audioRecordingManager.timestamp,
+    });
 
-      const stopData = await response.json();
+    const response = await fetch(`${config.serverUrl}/stopAudioRecording`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        resourceId: audioRecordingManager.resourceId,
+        channelName: config.channelName,
+        sid: audioRecordingManager.sid,
+        uid: audioRecordingManager.recordId,
+        timestamp: audioRecordingManager.timestamp,
+      }),
+    });
 
-      if (response.ok) {
-        console.log(
-          `Audio recording stopped successfully. Request ID: ${requestId}`,
-          JSON.stringify(stopData)
-        );
-        if (typeof bubble_fn_isAudioRecording === "function") {
-          bubble_fn_isAudioRecording("no");
-        }
-      } else {
-        console.error(
-          `Error stopping audio recording (Request ID: ${requestId}):`,
-          stopData
-        );
+    const stopData = await response.json();
+
+    if (response.ok) {
+      console.log(
+        `Audio recording stopped successfully. Request ID: ${requestId}`,
+        JSON.stringify(stopData)
+      );
+      if (typeof bubble_fn_isAudioRecording === "function") {
+        bubble_fn_isAudioRecording("no");
       }
-    } catch (error) {
+    } else {
       console.error(
-        `Unexpected error in stopAudioRecording (Request ID: ${requestId}):`,
-        error.message
-      );
-    } finally {
-      console.log(
-        `Finalizing stopAudioRecording for Request ID: ${requestId}. Cleaning up RTM clients.`
-      );
-
-      // Cleanup audio recording RTM channel
-      if (audioRecordingChannelRTM) {
-        try {
-          await audioRecordingChannelRTM.leave();
-          console.log("Audio recording RTM client left the channel");
-          audioRecordingChannelRTM = null; // Clear the RTM channel
-        } catch (error) {
-          console.error(
-            "Failed to leave RTM channel for audio recording client:",
-            error
-          );
-        }
-      } else {
-        console.log("No RTM channel to leave.");
-      }
-
-      // Cleanup audio recording RTM client
-      if (audioRecordingRTMClient) {
-        try {
-          await audioRecordingRTMClient.logout();
-          console.log("Audio recording RTM client logged out");
-          audioRecordingRTMClient = null; // Clear the RTM client
-        } catch (error) {
-          console.error("Failed to logout audio recording RTM client:", error);
-        }
-      } else {
-        console.log("No RTM client to logout.");
-      }
-
-      // Reset external variables
-      audioSid = null;
-      audioRecordId = null;
-      audioResourceId = null;
-      audioTimestamp = null;
-
-      console.log(
-        `stopAudioRecording cleanup completed for Request ID: ${requestId}`
+        `Error stopping audio recording (Request ID: ${requestId}):`,
+        stopData
       );
     }
-  },
-  3000
-); // 3-second debounce
+  } catch (error) {
+    console.error(
+      `Unexpected error in stopAudioRecording (Request ID: ${requestId}):`,
+      error.message
+    );
+  } finally {
+    console.log(
+      `Finalizing stopAudioRecording for Request ID: ${requestId}. Cleaning up RTM clients.`
+    );
+
+    // Properly clean up using the manager
+    await audioRecordingManager.cleanup();
+
+    // Reset manager's state
+    audioRecordingManager.isActive = false;
+    audioRecordingManager.sid = null;
+    audioRecordingManager.recordId = null;
+    audioRecordingManager.resourceId = null;
+    audioRecordingManager.timestamp = null;
+
+    console.log(
+      `stopAudioRecording cleanup completed for Request ID: ${requestId}`
+    );
+  }
+}, 3000); // 3-second debounce

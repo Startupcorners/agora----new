@@ -232,9 +232,26 @@ export const leave = async (reason, config) => {
     await leaveRTC(config);
     console.log("Left RTC channel successfully");
 
-    // Leave RTM if joined
-    // await leaveRTM(config);
-    // console.log("Left RTM channel successfully");
+    // Leave user's RTM but DO NOT touch the audio recording RTM
+    if (
+      config.channelRTM &&
+      config.channelRTM !== audioRecordingManager.channelRTM
+    ) {
+      await config.channelRTM.leave();
+      console.log("Left the user's RTM channel successfully");
+      config.channelRTM = null;
+    }
+
+    if (
+      config.clientRTM &&
+      config.clientRTM !== audioRecordingManager.rtmClient
+    ) {
+      await config.clientRTM.logout();
+      console.log("Logged out from user's RTM client successfully");
+      config.clientRTM = null;
+    }
+
+    config.isRTMJoined = false;
 
     // Call the Bubble function with the final reason
     if (typeof bubble_fn_leave === "function") {
