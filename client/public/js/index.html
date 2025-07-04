@@ -11,10 +11,33 @@
         src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/canvasFullSize/index.umd.js"></script>
     <script
         src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/layoutSidebarButtons/index.umd.js"></script>
+
+    <style>
+        .floating-btn {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            padding: 12px 24px;
+            border-radius: 30px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1000;
+            display: none;
+            /* Hidden by default */
+        }
+    </style>
 </head>
 
 <body>
     <div id="studio-editor" style="height: 100dvh"></div>
+
+    <button id="floating-publish-btn" class="floating-btn">Publish</button>
+
     <script>
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get('project_id') || 'project-' + Date.now();
@@ -24,21 +47,10 @@
             root: '#studio-editor',
             licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
             theme: 'light',
-            project: {
-                type: 'email', // Setting type to 'email' might still load MJML components
-                id: projectId
-            },
-            identity: {
-                id: userId
-            },
-            assets: {
-                storageType: 'cloud'
-            },
-            storage: {
-                type: 'cloud',
-                autosaveChanges: 100,
-                autosaveIntervalMs: 10000
-            },
+            project: { type: 'email', id: projectId },
+            identity: { id: userId },
+            assets: { storageType: 'cloud' },
+            storage: { type: 'cloud' },
             plugins: [
                 StudioSdkPlugins_canvasFullSize.init({}),
                 StudioSdkPlugins_layoutSidebarButtons.init({})
@@ -46,17 +58,20 @@
         })
             .then(editor => {
                 console.log('Editor is ready.');
-                // Attach the editor instance to the window to ensure it can be found
                 window.editorInstance = editor;
+
+                const publishButton = document.getElementById('floating-publish-btn');
+                if (publishButton) {
+                    publishButton.style.display = 'block';
+                    publishButton.addEventListener('click', sendDataToBubble);
+                }
             });
 
-        // This function gets the data and sends it to your Bubble function
         function sendDataToBubble() {
             if (!window.editorInstance) {
-                alert('Editor is not ready yet. Please wait for the "Editor is ready" message in the console.');
+                alert('Editor is not ready yet.');
                 return;
             }
-
             const html = window.editorInstance.getHtml();
             const css = window.editorInstance.getCss();
             const fullHtmlWithCss = `<style>${css}</style>${html}`;
@@ -68,12 +83,7 @@
             }
         }
 
-        // This listens for the trigger from your Bubble page
-        window.addEventListener("message", (event) => {
-            if (event.data === "run_getDataFromGrapes") {
-                sendDataToBubble();
-            }
-        }, false);
+        // The window.addEventListener for Bubble has been removed.
     </script>
 </body>
 
