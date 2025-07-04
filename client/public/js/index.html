@@ -1,91 +1,96 @@
-<!DOCTYPE html>
-<html lang="en">
+<script>
+    // Store editor at the iframe's window scope
+    let editorInstance = null;
 
-<head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Newsletter Builder</title>
-    <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
-    <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/canvasFullSize/index.umd.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/layoutSidebarButtons/index.umd.js"></script>
+    // Ensure we're working with the correct window context
+    const currentWindow = window; // The iframe's window
+    const parentWindow = window.parent; // The parent frame's window
 
-    <style>
-        .floating-btn {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            padding: 12px 24px;
-            border-radius: 30px;
-            border: none;
-            background-color: #007bff;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            z-index: 1000;
-            display: none;
-            /* Hidden by default */
-        }
-    </style>
-</head>
+    const params = new URLSearchParams(currentWindow.location.search);
+    const projectId = params.get('project_id') || 'project-' + Date.now();
+    const userId = params.get('user_id') || 'user-' + Date.now();
 
-<body>
-    <div id="studio-editor" style="height: 100dvh"></div>
+    GrapesJsStudioSDK.createStudioEditor({
+        root: '#studio-editor',
+        licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
+        theme: 'light',
+        project: { type: 'email', id: projectId },
+        identity: { id: userId },
+        assets: { storageType: 'cloud' },
+        storage: { type: 'cloud' },
+        plugins: [
+            StudioSdkPlugins_canvasFullSize.init({}),
+            StudioSdkPlugins_layoutSidebarButtons.init({})
+        ]
+    })
+        .then(editor => {
+            console.log('Editor is ready in iframe.');
 
-    <button id="floating-publish-btn" class="floating-btn">Publish</button>
+            // Store in multiple places to ensure accessibility
+            editorInstance = editor;
+            currentWindow.editorInstance = editor;
 
-    <script>
-        const params = new URLSearchParams(window.location.search);
-        const projectId = params.get('project_id') || 'project-' + Date.now();
-        const userId = params.get('user_id') || 'user-' + Date.now();
-
-        GrapesJsStudioSDK.createStudioEditor({
-            root: '#studio-editor',
-            licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
-            theme: 'light',
-            project: { type: 'email', id: projectId },
-            identity: { id: userId },
-            assets: { storageType: 'cloud' },
-            storage: { type: 'cloud' },
-            plugins: [
-                StudioSdkPlugins_canvasFullSize.init({}),
-                StudioSdkPlugins_layoutSidebarButtons.init({})
-            ]
-        })
-            .then(editor => {
-                console.log('Editor is ready.');
-                // Attach the editor instance directly to the window object to make it globally accessible.
-                window.editorInstance = editor;
-
-                const publishButton = document.getElementById('floating-publish-btn');
-                if (publishButton) {
-                    publishButton.style.display = 'block';
-                    publishButton.addEventListener('click', sendDataToBubble);
+            // If you need to access from parent window
+            if (parentWindow !== currentWindow) {
+                try {
+                    parentWindow.iframeEditorInstance = editor;
+                } catch (e) {
+                    console.warn('Cannot access parent window:', e);
                 }
-            });
-
-        function sendDataToBubble() {
-            // Check for the editor instance on the window object.
-            if (!window.editorInstance) {
-                alert('Editor is not ready yet.');
-                return;
             }
 
-            const html = window.editorInstance.getHtml();
-            const css = window.editorInstance.getCss();
+            const publishButton = document.getElementById('floating-publish-btn');
+            if (publishButton) {
+                publishButton.style.display = 'block';
+                // Bind the function to ensure correct context
+                publishButton.onclick = sendDataToBubble.bind(currentWindow);
+            } else {
+                console.warn('Publish button not found in iframe');
+            }
+        })
+        .catch(error => {
+            console.error('Failed to initialize editor in iframe:', error);
+        });
+
+    function sendDataToBubble() {
+        console.log('sendDataToBubble called, checking editor...');
+
+        // Try multiple ways to get the editor
+        const editor = editorInstance ||
+            currentWindow.editorInstance ||
+            window.editorInstance ||
+            this.editorInstance;
+
+        if (!editor) {
+            alert('Editor is not ready yet.');
+            console.error('Editor instance not found in iframe:', {
+                local: editorInstance,
+                currentWindow: currentWindow.editorInstance,
+                window: window.editorInstance,
+                this: this.editorInstance
+            });
+            return;
+        }
+
+        try {
+            const html = editor.getHtml();
+            const css = editor.getCss();
             const fullHtmlWithCss = `<style>${css}</style>${html}`;
 
+            // Check if bubble function exists in iframe or parent
             if (typeof bubble_fn_programDetail === 'function') {
                 bubble_fn_programDetail(fullHtmlWithCss);
+            } else if (parentWindow && typeof parentWindow.bubble_fn_programDetail === 'function') {
+                parentWindow.bubble_fn_programDetail(fullHtmlWithCss);
             } else {
-                console.error('bubble_fn_programDetail() function not found.');
+                console.error('bubble_fn_programDetail() function not found in iframe or parent.');
             }
+        } catch (error) {
+            console.error('Error getting editor content in iframe:', error);
+            alert('Error retrieving editor content.');
         }
-    </script>
-</body>
+    }
 
-</html>
+    // Make the function globally available in the iframe
+    currentWindow.sendDataToBubble = sendDataToBubble;
+</script>
