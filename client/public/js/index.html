@@ -19,6 +19,9 @@
 <body>
     <div id="studio-editor" style="height: 100dvh"></div>
     <script>
+        // 2. Create a variable to hold the editor instance
+        let editorInstance;
+
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get('project_id') || 'project-' + Date.now();
         const userId = params.get('user_id') || 'user-' + Date.now();
@@ -26,18 +29,47 @@
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
-            project: { id: projectId },
+            theme: 'light',
+            project: { type: 'email', id: projectId },
             identity: { id: userId },
-            storage: { type: 'cloud' },
             assets: { storageType: 'cloud' },
+            storage: {
+                type: 'cloud',
+                autosaveChanges: 100,
+                autosaveIntervalMs: 10000
+            },
             plugins: [
-                // 2. Add the 'grapesjs-mjml' ID to the plugins array
-                'grapesjs-mjml',
+                'grapesjs-mjml', // Activate the MJML plugin
                 StudioSdkPlugins_canvasFullSize.init({}),
                 StudioSdkPlugins_layoutSidebarButtons.init({})
-            ],
-            // Your custom onEditorReady code...
-        });
+            ]
+        })
+            .then(editor => {
+                // Store the editor instance when it's ready
+                console.log('Editor is ready.');
+                editorInstance = editor;
+            });
+
+        // 3. This is the function you will call from your Bubble button
+        function sendDataToBubble() {
+            if (!editorInstance) {
+                alert('Editor is not ready yet.');
+                return;
+            }
+
+            const html = editorInstance.getHtml();
+            const css = editorInstance.getCss();
+            const fullHtmlWithCss = `<style>${css}</style>${html}`;
+
+            // Check if your Bubble function exists, then call it
+            if (typeof bubble_fn_programDetail === 'function') {
+                bubble_fn_programDetail(fullHtmlWithCss);
+                console.log('Data sent to Bubble.');
+            } else {
+                console.error('bubble_fn_programDetail() function not found.');
+                alert('Error: Could not send data to Bubble.');
+            }
+        }
     </script>
 </body>
 
