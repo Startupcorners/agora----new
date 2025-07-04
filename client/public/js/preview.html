@@ -1,16 +1,40 @@
-<script>
-    // Log the SDK object to the console to inspect its contents
-    console.log('Inspecting GrapesJsStudioSDK object:', window.GrapesJsStudioSDK);
-    debugger; // This will pause the browser if DevTools is open
+<!DOCTYPE html>
+<html lang="en">
 
-    const params = new URLSearchParams(window.location.search);
-    const projectId = params.get('project_id');
-    const userId = params.get('user_id');
+<head>
+    <meta charset="UTF-8" />
+    <title>Program Page Preview</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Inter, sans-serif;
+        }
+    </style>
+</head>
 
-    if (!projectId || !userId) {
-        document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
-    } else {
-        // The rest of your code will go here once we find the correct function
-        console.log('Attempting to load project...');
-    }
-</script>
+<body>
+    <div id="program-content">Loading...</div>
+
+    <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
+
+    <script>
+        // Log the SDK object to the console to inspect its contents
+        console.log('Inspecting GrapesJsStudioSDK object:', window.GrapesJsStudioSDK);
+        debugger; // This will pause the browser if DevTools is open
+
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get('project_id');
+        const userId = params.get('user_id');
+
+        if (!projectId || !userId) {
+            document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
+        } else {
+            // The rest of your code will go here once we find the correct function
+            console.log('Attempting to load project...');
+        }
+    </script>
+</body>
+
+</html>
