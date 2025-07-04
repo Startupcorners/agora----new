@@ -27,19 +27,17 @@
         if (!projectId || !userId) {
             document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
         } else {
-            // 1. Create an API client to interact with GrapesJS Studio services
-            const apiClient = window.GrapesJsStudioSDK.createApiClient({
-                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b', // Use your license key
+            // 1. Create a new Cloud client instance
+            const cloud = new window.GrapesJsStudio.Cloud({
+                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b', // Your license key
                 identity: { id: userId },
             });
 
-            // 2. Use the client to get the specific project's data
-            apiClient.Projects.get(projectId)
+            // 2. Use the client's project loader to get the data
+            cloud.getProjectLoader().load(projectId)
                 .then(res => {
-                    // The project data contains the html and css
-                    const projectData = res.project?.data || {};
-                    const html = projectData.html || '<h2>No content found</h2>';
-                    const css = projectData.css || '';
+                    const html = res.html || '<h2>No content found</h2>';
+                    const css = res.css || '';
 
                     const style = document.createElement('style');
                     style.innerHTML = css;
@@ -54,7 +52,6 @@
                 });
         }
     </script>
-
 </body>
 
 </html>
