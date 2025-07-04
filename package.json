@@ -1,5 +1,6 @@
 {
   "dependencies": {
-    "@grapesjs/studio-sdk": "^1.0.52"
+    "@grapesjs/studio-sdk": "^1.0.52",
+    "@measured/puck": "^0.19.1"
   }
 }

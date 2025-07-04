@@ -271,7 +271,6 @@ export const startScreenShare = async (config) => {
     screenShareTrackExternal = await AgoraRTC.createScreenVideoTrack({
   encoderConfig: "1080p_2", // Or "4K" for higher resolutions
   optimizationMode: "detail",
-      optimizationMode: "detail", // Prioritizes screen readability
     }).catch((error) => {
       console.error("Screen sharing was canceled by the user.", error);
 
