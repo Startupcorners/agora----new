@@ -32,55 +32,55 @@
     <div id="hidden-editor" style="display: none;"></div>
 
     <script>
-        const runPreview = () => {
-            const params = new URLSearchParams(window.location.search);
-            const projectId = params.get('project_id');
-            const userId = params.get('user_id');
+        // 1. Mark the function as async
+        const runPreview = async () => {
+            // 2. Use a try...catch block for error handling
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const projectId = params.get('project_id');
+                const userId = params.get('user_id');
 
-            if (!projectId || !userId) {
-                document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
-                return;
-            }
+                if (!projectId || !userId) {
+                    document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
+                    return;
+                }
 
-            // 1. Create the full editor in the hidden div
-            window.GrapesJsStudioSDK.createStudioEditor({
-                root: '#hidden-editor', // Target the hidden div
-                gjsScript: window.grapesjs,
-                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
-                identity: { id: userId },
-                project: { id: projectId },
-                storage: { type: 'cloud' },
-                assets: { storageType: 'cloud' },
-                plugins: [
-                    StudioSdkPlugins_canvasFullSize.init({}),
-                    StudioSdkPlugins_layoutSidebarButtons.init({})
-                ]
-            })
-                .then(editor => {
-                    // 2. Get the project data from the editor instance
-                    return editor.getProjectData()
-                        .then(data => {
-                            // 4. IMPORTANT: Destroy the editor to free up memory
-                            editor.destroy();
-                            return data;
-                        });
-                })
-                .then(data => {
-                    // 3. Display the data in your visible container
-                    const html = data.html || '<h2>No content found</h2>';
-                    const css = data.css || '';
-
-                    const style = document.createElement('style');
-                    style.innerHTML = css;
-                    document.head.appendChild(style);
-
-                    const container = document.getElementById('program-content');
-                    container.innerHTML = html;
-                })
-                .catch(err => {
-                    console.error('[Preview] Error loading project with full editor:', err);
-                    document.body.innerHTML = '<h2>Failed to load the program page</h2>';
+                // 3. 'await' the editor creation to ensure it finishes
+                const editor = await window.GrapesJsStudioSDK.createStudioEditor({
+                    root: '#hidden-editor',
+                    gjsScript: window.grapesjs,
+                    licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
+                    identity: { id: userId },
+                    project: { id: projectId },
+                    storage: { type: 'cloud' },
+                    assets: { storageType: 'cloud' },
+                    plugins: [
+                        StudioSdkPlugins_canvasFullSize.init({}),
+                        StudioSdkPlugins_layoutSidebarButtons.init({})
+                    ]
                 });
+
+                // 4. 'await' the project data
+                const data = await editor.getProjectData();
+
+                // 5. Destroy the editor to free up resources
+                editor.destroy();
+
+                // 6. Display the final content
+                const html = data.html || '<h2>No content found</h2>';
+                const css = data.css || '';
+
+                const style = document.createElement('style');
+                style.innerHTML = css;
+                document.head.appendChild(style);
+
+                const container = document.getElementById('program-content');
+                container.innerHTML = html;
+
+            } catch (err) {
+                console.error('[Preview] Error loading project with full editor:', err);
+                document.body.innerHTML = '<h2>Failed to load the program page</h2>';
+            }
         };
 
         window.addEventListener('load', runPreview);
