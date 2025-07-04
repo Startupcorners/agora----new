@@ -356,7 +356,27 @@
             }
         }
 
-        /* Responsive */
+        /* Form Disabled Modal */
+        .form-disabled-modal {
+            background: rgba(0, 0, 0, 0.9) !important;
+        }
+
+        .form-disabled-modal .gjs-mdl-dialog {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            border-radius: 15px !important;
+        }
+
+        .form-disabled-modal .gjs-mdl-header {
+            background: transparent !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .form-disabled-modal .gjs-mdl-title {
+            color: #ff6b6b !important;
+            font-weight: 600 !important;
+        }
+
         @media (max-width: 768px) {
             .welcome-content {
                 padding: 30px;
@@ -492,6 +512,91 @@
                                     }]
                                 }
                             ]
+                        },
+                        plugins: [
+                            // Add plugin to remove form components
+                            function (editor) {
+                                // Remove form-related blocks on editor load
+                                editor.on('load', () => {
+                                    const blockManager = editor.BlockManager;
+                                    const blocks = blockManager.getAll();
+
+                                    // List of form-related block IDs to remove
+                                    const formBlockIds = [
+                                        'form', 'input', 'textarea', 'select',
+                                        'button', 'label', 'checkbox', 'radio',
+                                        'form-basic', 'form-group', 'form-submit',
+                                        'input-group', 'input-text', 'input-email',
+                                        'input-password', 'input-number', 'input-submit',
+                                        'select-basic', 'checkbox-basic', 'radio-basic'
+                                    ];
+
+                                    // Remove each form block
+                                    formBlockIds.forEach(blockId => {
+                                        if (blockManager.get(blockId)) {
+                                            blockManager.remove(blockId);
+                                        }
+                                    });
+
+                                    // Remove form category if it exists
+                                    const categories = blockManager.getCategories();
+                                    categories.forEach(category => {
+                                        if (category.get('id') === 'forms' ||
+                                            category.get('label') === 'Forms' ||
+                                            category.get('id') === 'form' ||
+                                            category.get('label') === 'Form') {
+                                            blockManager.removeCategory(category.get('id'));
+                                        }
+                                    });
+
+                                    // Disable form-related components
+                                    const domComponents = editor.DomComponents;
+                                    const componentTypes = domComponents.getTypes();
+
+                                    // List of form component types to disable
+                                    const formComponentTypes = [
+                                        'form', 'input', 'textarea', 'select',
+                                        'button', 'label', 'checkbox', 'radio',
+                                        'option', 'form-group', 'fieldset'
+                                    ];
+
+                                    formComponentTypes.forEach(type => {
+                                        if (componentTypes.includes(type)) {
+                                            domComponents.removeType(type);
+                                        }
+                                    });
+                                });
+
+                                // Prevent form elements from being dropped
+                                editor.on('component:add', (component) => {
+                                    const tagName = component.get('tagName');
+                                    const type = component.get('type');
+
+                                    const formTags = ['form', 'input', 'textarea', 'select',
+                                        'button', 'label', 'fieldset', 'option'];
+                                    const formTypes = ['form', 'input', 'textarea', 'select',
+                                        'button', 'submit', 'checkbox', 'radio'];
+
+                                    if (formTags.includes(tagName) || formTypes.includes(type)) {
+                                        component.remove();
+                                        // Optional: Show a notification
+                                        editor.Modal.open({
+                                            title: 'Form Elements Disabled',
+                                            content: '<div style="padding: 20px; text-align: center;">' +
+                                                '<p style="font-size: 16px; margin-bottom: 10px;">Form components are not available in this editor.</p>' +
+                                                '<p style="color: #666;">Please use other components to build your website.</p>' +
+                                                '</div>',
+                                            attributes: { class: 'form-disabled-modal' }
+                                        });
+                                        setTimeout(() => editor.Modal.close(), 3000);
+                                    }
+                                });
+                            }
+                        ],
+                        blocksBasicOpts: {
+                            blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
+                            flexGrid: 1,
+                            category: 'Basic'
                         }
                     }
                 });
