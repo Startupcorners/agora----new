@@ -4,6 +4,10 @@
 <head>
     <meta charset="UTF-8" />
     <title>Program Page Preview</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css" />
+    <script src="https://unpkg.com/grapesjs"></script>
+
     <style>
         html,
         body {
@@ -20,7 +24,6 @@
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
     <script>
-        // This function contains all of our logic.
         const runPreview = () => {
             const params = new URLSearchParams(window.location.search);
             const projectId = params.get('project_id');
@@ -31,9 +34,11 @@
                 return;
             }
 
-            // Create a headless editor instance.
             window.GrapesJsStudioSDK.createStudioHeadlessEditor({
-                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b', // Your license key
+                // 2. Pass the GrapesJS constructor to the config
+                gjsScript: window.grapesjs,
+
+                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
                 identity: { id: userId },
                 project: { id: projectId },
                 storage: { type: 'cloud' },
@@ -56,7 +61,6 @@
                 });
         };
 
-        // Don't run the function until the entire page and all scripts are loaded.
         window.addEventListener('load', runPreview);
     </script>
 </body>
