@@ -35,13 +35,13 @@
             }
 
             window.GrapesJsStudioSDK.createStudioHeadlessEditor({
-                // 2. Pass the GrapesJS constructor to the config
                 gjsScript: window.grapesjs,
-
                 licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
                 identity: { id: userId },
                 project: { id: projectId },
                 storage: { type: 'cloud' },
+                // Add the required assets configuration
+                assets: { storageType: 'cloud' },
             })
                 .then(headlessEditor => headlessEditor.getProjectData())
                 .then(data => {
