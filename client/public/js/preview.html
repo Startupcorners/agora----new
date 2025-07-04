@@ -10,11 +10,6 @@
 
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/storageCloud/index.umd.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/assetsCloud/index.umd.js"></script>
-
     <style>
         html,
         body {
@@ -47,10 +42,10 @@
                 storage: { type: 'cloud' },
                 assets: { storageType: 'cloud' },
 
-                // Pass the string IDs of the plugins to activate them
+                // Initialize the built-in plugins from the main SDK object
                 plugins: [
-                    'storageCloud',
-                    'assetsCloud',
+                    GrapesJsStudioSDK.StorageCloud.init({}),
+                    GrapesJsStudioSDK.AssetsCloud.init({}),
                 ]
             })
                 .then(headlessEditor => headlessEditor.getProjectData())
