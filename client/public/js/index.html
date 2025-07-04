@@ -56,10 +56,6 @@
 
         // This function gets the data and sends it to your Bubble function.
         function sendDataToBubble() {
-            if (!editorInstance) {
-                alert('Editor is not ready yet.');
-                return;
-            }
 
             // NOTE: If your project uses MJML, editor.getHtml() will return standard HTML.
             // If you need the raw MJML, you would use `editor.getProjectData()`.
