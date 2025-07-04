@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Website Builder - Basic Blocks</title>
+    <title>Newsletter Builder - Basic Blocks</title>
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
     <style>
@@ -38,7 +38,7 @@
         const projectId = params.get('project_id') || 'project-' + Date.now();
         const userId = params.get('user_id') || 'user-' + Date.now();
 
-        console.log('[Website Builder] Initializing...', {
+        console.log('[Newsletter Builder] Initializing...', {
             projectId,
             userId
         });
@@ -50,7 +50,7 @@
                     root: '#studio-editor',
                     licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
                     project: {
-                        type: 'web',
+                        type: 'newsletter',
                         id: projectId
                     },
                     identity: {
@@ -64,31 +64,51 @@
                     assets: {
                         storageType: 'cloud'
                     },
-                    // --- CORRECTED EDITOR CONFIGURATION ---
+                    // --- NEWSLETTER CONFIGURATION ---
                     editorConfig: {
                         // 1. We'll manage blocks directly with the Block Manager.
                         blockManager: {
-                            // 'blocks' will contain the list of all blocks you want to display.
+                            // Newsletter-specific blocks
                             blocks: [{
-                                id: 'column1',
-                                label: '1 Column',
+                                id: 'sect100',
+                                label: '1 Section',
                                 category: 'Basic',
-                                content: `<div class="gjs-row"><div class="gjs-cell"></div></div>`
+                                content: `<table style="width: 100%;">
+                                    <tr>
+                                        <td style="width: 100%;"></td>
+                                    </tr>
+                                </table>`
                             }, {
-                                id: 'column2',
-                                label: '2 Columns',
+                                id: 'sect50',
+                                label: '2 Sections',
                                 category: 'Basic',
-                                content: `<div class="gjs-row"><div class="gjs-cell"></div><div class="gjs-cell"></div></div>`
+                                content: `<table style="width: 100%;">
+                                    <tr>
+                                        <td style="width: 50%;"></td>
+                                        <td style="width: 50%;"></td>
+                                    </tr>
+                                </table>`
                             }, {
-                                id: 'column3',
-                                label: '3 Columns',
+                                id: 'sect33',
+                                label: '3 Sections',
                                 category: 'Basic',
-                                content: `<div class="gjs-row"><div class="gjs-cell"></div><div class="gjs-cell"></div><div class="gjs-cell"></div></div>`
+                                content: `<table style="width: 100%;">
+                                    <tr>
+                                        <td style="width: 33.333%;"></td>
+                                        <td style="width: 33.333%;"></td>
+                                        <td style="width: 33.333%;"></td>
+                                    </tr>
+                                </table>`
                             }, {
-                                id: 'column3-7',
-                                label: '2 Columns 3/7',
+                                id: 'sect37',
+                                label: '2 Sections 3/7',
                                 category: 'Basic',
-                                content: `<div class="gjs-row"><div class="gjs-cell" style="flex: 3;"></div><div class="gjs-cell" style="flex: 7;"></div></div>`
+                                content: `<table style="width: 100%;">
+                                    <tr>
+                                        <td style="width: 30%;"></td>
+                                        <td style="width: 70%;"></td>
+                                    </tr>
+                                </table>`
                             }, {
                                 id: 'text',
                                 label: 'Text',
@@ -107,39 +127,65 @@
                                     type: 'image'
                                 }
                             }, {
-                                id: 'video',
-                                label: 'Video',
+                                id: 'button',
+                                label: 'Button',
                                 category: 'Basic',
-                                content: {
-                                    type: 'video'
-                                }
+                                content: `<table style="margin: 0 auto;">
+                                    <tr>
+                                        <td style="background-color: #3498db; padding: 10px 20px; border-radius: 4px;">
+                                            <a href="#" style="color: #ffffff; text-decoration: none; font-weight: bold;">Click Here</a>
+                                        </td>
+                                    </tr>
+                                </table>`
                             }, {
-                                id: 'map',
-                                label: 'Map',
+                                id: 'divider',
+                                label: 'Divider',
                                 category: 'Basic',
-                                content: {
-                                    type: 'map'
-                                }
-                            },]
+                                content: '<hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;">'
+                            }]
                         },
-                        // 2. Load the preset but disable its default blocks.
+                        // 2. Load the newsletter preset but disable its default blocks.
                         plugins: [
-                            'gjs-preset-webpage'
+                            'gjs-preset-newsletter'
                         ],
                         pluginsOpts: {
-                            'gjs-preset-webpage': {
+                            'gjs-preset-newsletter': {
                                 // By setting `blocks` to an empty array, you prevent the preset
-                                // from loading its default blocks (including forms and extra).
+                                // from loading its default blocks.
                                 blocks: [],
+                                // Newsletter-specific options
+                                modalTitleImport: 'Import template',
+                                modalLabelImport: '',
+                                modalLabelExport: 'Copy the code and use it wherever you want',
+                                modalBtnImport: 'Import',
+                                importPlaceholder: '<table class="main-body"><tr><td class="main-body-cell"><div style="text-align: center; padding: 50px;">Drop your newsletter content here</div></td></tr></table>',
+                                cellStyle: {
+                                    'font-family': 'Helvetica, Arial, sans-serif',
+                                    'font-size': '13px',
+                                    'line-height': '22px',
+                                    'color': '#333333'
+                                }
                             }
-                        }
+                        },
+                        // Newsletter-specific device settings
+                        deviceManager: {
+                            devices: [{
+                                name: 'Desktop',
+                                width: '600px'
+                            }, {
+                                name: 'Mobile',
+                                width: '320px'
+                            }]
+                        },
+                        // Set default device to desktop for newsletters
+                        device: 'Desktop'
                     }
                 });
 
-                console.log('[Website Builder] Editor initialized successfully');
+                console.log('[Newsletter Builder] Editor initialized successfully');
 
             } catch (error) {
-                console.error('[Website Builder] Initialization error:', error);
+                console.error('[Newsletter Builder] Initialization error:', error);
             }
         }
 
