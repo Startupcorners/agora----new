@@ -6,19 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Website Builder - Create Beautiful Websites</title>
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/listPagesComponent/index.umd.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/iconifyComponent/index.umd.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/accordionComponent/index.umd.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/flexComponent/index.umd.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/canvasFullSize/index.umd.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/layoutSidebarButtons/index.umd.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/youtubeAssetProvider/index.umd.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
     <style>
         * {
@@ -492,136 +479,100 @@
                     },
                     assets: {
                         storageType: 'cloud'
-                    },
-                    config: {
-                        showToolbar: true,
-                        showPanels: true,
-                        panels: {
-                            defaults: [
-                                {
-                                    id: 'panel-switcher',
-                                    el: '.panel__switcher',
-                                    buttons: [{
-                                        id: 'show-blocks',
-                                        active: true,
-                                        label: '🧱',
-                                        command: 'show-blocks',
-                                        attributes: { title: 'Blocks' }
-                                    }, {
-                                        id: 'show-layers',
-                                        label: '📚',
-                                        command: 'show-layers',
-                                        attributes: { title: 'Layers' }
-                                    }, {
-                                        id: 'show-styles',
-                                        label: '🎨',
-                                        command: 'show-styles',
-                                        attributes: { title: 'Styles' }
-                                    }, {
-                                        id: 'show-traits',
-                                        label: '⚙️',
-                                        command: 'show-traits',
-                                        attributes: { title: 'Settings' }
-                                    }]
-                                }
-                            ]
-                        },
-                        // Disable form plugin entirely
-                        pluginsOpts: {
-                            'gjs-blocks-basic': {
-                                blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
-                                flexGrid: true,
-                                category: 'Basic'
-                            },
-                            'grapesjs-blocks-basic': {
-                                blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map']
-                            },
-                            'gjs-plugin-forms': false,
-                            'grapesjs-plugin-forms': false,
-                            'gjs-blocks-flexbox': {
-                                flexboxBlock: true
-                            }
-                        },
-                        // Exclude form-related plugins
-                        plugins: [
-                            'gjs-blocks-basic',
-                            'grapesjs-plugin-export',
-                            'gjs-blocks-flexbox'
-                            // Explicitly NOT including form plugins
-                        ],
-                        // Block manager configuration
-                        blockManager: {
-                            blocks: [
-                                {
-                                    id: 'section',
-                                    label: 'Section',
-                                    category: 'Basic',
-                                    content: '<section class="section"><div class="container">Content here</div></section>',
-                                    attributes: { class: 'gjs-block-section' }
-                                },
-                                {
-                                    id: 'text',
-                                    label: 'Text',
-                                    category: 'Basic',
-                                    content: '<div class="text-block">Insert your text here</div>',
-                                    attributes: { class: 'gjs-block-text' }
-                                },
-                                {
-                                    id: 'image',
-                                    label: 'Image',
-                                    category: 'Basic',
-                                    content: '<img src="https://via.placeholder.com/350x250" alt="Placeholder"/>',
-                                    attributes: { class: 'gjs-block-image' }
-                                },
-                                {
-                                    id: 'video',
-                                    label: 'Video',
-                                    category: 'Basic',
-                                    content: '<video></video>',
-                                    attributes: { class: 'gjs-block-video' }
-                                },
-                                {
-                                    id: 'link',
-                                    label: 'Link',
-                                    category: 'Basic',
-                                    content: '<a href="#">Link</a>',
-                                    attributes: { class: 'gjs-block-link' }
-                                },
-                                {
-                                    id: 'columns',
-                                    label: 'Columns',
-                                    category: 'Layout',
-                                    content: '<div class="row" data-gjs-droppable=".column"><div class="column">Column 1</div><div class="column">Column 2</div></div>',
-                                    attributes: { class: 'gjs-block-columns' }
-                                }
-                            ]
-                        },
-                        // Additional safety: CSS to hide any form elements that might appear
-                        canvas: {
-                            styles: [
-                                `
-                                /* Hide form-related categories */
-                                [title*="Form"], [title*="form"],
-                                [data-category="Forms"], [data-category="forms"],
-                                .gjs-block-category:has(.gjs-caret-icon ~ .gjs-title:contains("Form")) {
-                                    display: none !important;
-                                }
-                                
-                                /* Hide form blocks */
-                                .gjs-block[title*="Input"], .gjs-block[title*="input"],
-                                .gjs-block[title*="Textarea"], .gjs-block[title*="textarea"],
-                                .gjs-block[title*="Select"], .gjs-block[title*="select"],
-                                .gjs-block[title*="Button"], .gjs-block[title*="button"],
-                                .gjs-block[title*="Label"], .gjs-block[title*="label"],
-                                .gjs-block[title*="Checkbox"], .gjs-block[title*="checkbox"],
-                                .gjs-block[title*="Radio"], .gjs-block[title*="radio"] {
-                                    display: none !important;
-                                }
-                                `
-                            ]
-                        }
                     }
                 });
+
+                // After editor is created, inject CSS to hide forms and extra sections
+                setTimeout(() => {
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                        /* Hide Forms category and all its contents */
+                        .gjs-block-category:has(.gjs-title:contains("Forms")) {
+                            display: none !important;
+                        }
+                        
+                        /* Hide Extra category and all its contents */
+                        .gjs-block-category:has(.gjs-title:contains("Extra")) {
+                            display: none !important;
+                        }
+                        
+                        /* Alternative selectors for Forms */
+                        .gjs-category-title:contains("Forms"),
+                        .gjs-block-category[data-title="Forms"],
+                        .gjs-block-category:has([title="Forms"]) {
+                            display: none !important;
+                        }
+                        
+                        /* Alternative selectors for Extra */
+                        .gjs-category-title:contains("Extra"),
+                        .gjs-block-category[data-title="Extra"],
+                        .gjs-block-category:has([title="Extra"]) {
+                            display: none !important;
+                        }
+                        
+                        /* Hide by checking the title text */
+                        .gjs-block-categories .gjs-block-category {
+                            display: block;
+                        }
+                        
+                        .gjs-block-categories .gjs-block-category .gjs-title {
+                            display: inline-block;
+                        }
+                        
+                        /* Target the entire category by its title content */
+                        .gjs-block-category:has(.gjs-title) {
+                            display: var(--category-display, block);
+                        }
+                    `;
+                    document.head.appendChild(style);
+
+                    // Use JavaScript to find and hide categories
+                    const hideCategories = () => {
+                        const categories = document.querySelectorAll('.gjs-block-category');
+                        categories.forEach(category => {
+                            const titleElement = category.querySelector('.gjs-title');
+                            if (titleElement) {
+                                const title = titleElement.textContent.trim();
+                                if (title === 'Forms' || title === 'Extra' || title.toLowerCase() === 'forms' || title.toLowerCase() === 'extra') {
+                                    category.style.display = 'none';
+                                    category.style.visibility = 'hidden';
+                                    category.style.height = '0';
+                                    category.style.overflow = 'hidden';
+                                    category.style.opacity = '0';
+                                    category.style.pointerEvents = 'none';
+                                    category.style.position = 'absolute';
+                                    category.style.left = '-9999px';
+                                }
+                            }
+                        });
+                    };
+
+                    // Run multiple times to catch dynamic loading
+                    hideCategories();
+                    setTimeout(hideCategories, 500);
+                    setTimeout(hideCategories, 1000);
+                    setTimeout(hideCategories, 2000);
+
+                    // Also monitor for changes
+                    const observer = new MutationObserver(() => {
+                        hideCategories();
+                    });
+
+                    // Start observing when block panel is available
+                    const startObserving = () => {
+                        const blockPanel = document.querySelector('.gjs-blocks-cs');
+                        if (blockPanel) {
+                            observer.observe(blockPanel, {
+                                childList: true,
+                                subtree: true
+                            });
+                        } else {
+                            setTimeout(startObserving, 500);
+                        }
+                    };
+                    startObserving();
+
+                }, 100);
 
                 console.log('[Website Builder] Editor initialized successfully');
 
