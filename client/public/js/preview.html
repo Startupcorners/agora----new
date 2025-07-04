@@ -27,15 +27,14 @@
         if (!projectId || !userId) {
             document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
         } else {
-            // Correctly create the Cloud client from the GrapesJsStudioSDK object
-            const cloud = new window.GrapesJsStudioSDK.Cloud({
+            // Use the loadProject method from the Cloud utility object
+            window.GrapesJsStudioSDK.Cloud.loadProject({
                 licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b', // Your license key
                 identity: { id: userId },
-            });
-
-            // Use the client's project loader to get the data
-            cloud.getProjectLoader().load(projectId)
+                project: { id: projectId }
+            })
                 .then(res => {
+                    // The response directly contains the project data
                     const html = res.html || '<h2>No content found</h2>';
                     const css = res.css || '';
 
