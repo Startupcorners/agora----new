@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website Builder - Basic Blocks</title>
+    <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #0a0a0a;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        #studio-editor {
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="studio-editor"></div>
+
+    <script>
+        // Generate or get project and user IDs
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get('project_id') || 'project-' + Date.now();
+        const userId = params.get('user_id') || 'user-' + Date.now();
+
+        console.log('[Website Builder] Initializing...', {
+            projectId,
+            userId
+        });
+
+        // Initialize editor
+        async function initializeEditor() {
+            try {
+                const editorInstance = await GrapesJsStudioSDK.createStudioEditor({
+                    root: '#studio-editor',
+                    licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
+                    project: {
+                        type: 'web',
+                        id: projectId
+                    },
+                    identity: {
+                        id: userId
+                    },
+                    storage: {
+                        type: 'cloud',
+                        autosaveChanges: 100,
+                        autosaveIntervalMs: 10000
+                    },
+                    assets: {
+                        storageType: 'cloud'
+                    },
+                    // --- CORRECTED EDITOR CONFIGURATION ---
+                    editorConfig: {
+                        // 1. We'll manage blocks directly with the Block Manager.
+                        blockManager: {
+                            // 'blocks' will contain the list of all blocks you want to display.
+                            blocks: [{
+                                id: 'column1',
+                                label: '1 Column',
+                                category: 'Basic',
+                                content: `<div class="gjs-row"><div class="gjs-cell"></div></div>`
+                            }, {
+                                id: 'column2',
+                                label: '2 Columns',
+                                category: 'Basic',
+                                content: `<div class="gjs-row"><div class="gjs-cell"></div><div class="gjs-cell"></div></div>`
+                            }, {
+                                id: 'column3',
+                                label: '3 Columns',
+                                category: 'Basic',
+                                content: `<div class="gjs-row"><div class="gjs-cell"></div><div class="gjs-cell"></div><div class="gjs-cell"></div></div>`
+                            }, {
+                                id: 'column3-7',
+                                label: '2 Columns 3/7',
+                                category: 'Basic',
+                                content: `<div class="gjs-row"><div class="gjs-cell" style="flex: 3;"></div><div class="gjs-cell" style="flex: 7;"></div></div>`
+                            }, {
+                                id: 'text',
+                                label: 'Text',
+                                category: 'Basic',
+                                content: '<div data-gjs-type="text">Insert your text here</div>'
+                            }, {
+                                id: 'link',
+                                label: 'Link',
+                                category: 'Basic',
+                                content: '<a href="#" data-gjs-type="link">Link</a>'
+                            }, {
+                                id: 'image',
+                                label: 'Image',
+                                category: 'Basic',
+                                content: {
+                                    type: 'image'
+                                }
+                            }, {
+                                id: 'video',
+                                label: 'Video',
+                                category: 'Basic',
+                                content: {
+                                    type: 'video'
+                                }
+                            }, {
+                                id: 'map',
+                                label: 'Map',
+                                category: 'Basic',
+                                content: {
+                                    type: 'map'
+                                }
+                            },]
+                        },
+                        // 2. Load the preset but disable its default blocks.
+                        plugins: [
+                            'gjs-preset-webpage'
+                        ],
+                        pluginsOpts: {
+                            'gjs-preset-webpage': {
+                                // By setting `blocks` to an empty array, you prevent the preset
+                                // from loading its default blocks (including forms and extra).
+                                blocks: [],
+                            }
+                        }
+                    }
+                });
+
+                console.log('[Website Builder] Editor initialized successfully');
+
+            } catch (error) {
+                console.error('[Website Builder] Initialization error:', error);
+            }
+        }
+
+        // Initialize editor when page loads
+        window.addEventListener('load', initializeEditor);
+    </script>
+</body>
+
+</html>
