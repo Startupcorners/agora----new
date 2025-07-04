@@ -3,19 +3,56 @@
 
 <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Program Page Preview</title>
     <style>
         html,
         body {
             margin: 0;
             padding: 0;
-            font-family: Inter, sans-serif;
+            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            min-height: 100vh;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-size: 1.2rem;
+            color: #666;
+        }
+
+        .error {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            text-align: center;
+            padding: 2rem;
+            color: #e74c3c;
+        }
+
+        .error h2 {
+            margin-bottom: 1rem;
+        }
+
+        .error p {
+            color: #666;
+            max-width: 500px;
+        }
+
+        /* Hide the editor UI, we only want the preview */
+        #hidden-editor {
+            display: none;
         }
     </style>
 </head>
 
 <body>
-    <div id="program-content">Loading...</div>
+    <div id="program-content" class="loading">Loading preview...</div>
+    <div id="hidden-editor"></div>
 
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
@@ -25,31 +62,121 @@
         const userId = params.get('user_id');
 
         if (!projectId || !userId) {
-            document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
+            document.body.innerHTML = `
+                <div class="error">
+                    <h2>Error: Missing Parameters</h2>
+                    <p>Please provide both project_id and user_id in the URL parameters.</p>
+                    <p>Example: preview.html?project_id=YOUR_PROJECT&user_id=YOUR_USER</p>
+                </div>
+            `;
         } else {
-            // Correctly create the Cloud client from the GrapesJsStudioSDK object
-            const cloud = new window.GrapesJsStudioSDK.Cloud({
-                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b', // Your license key
-                identity: { id: userId },
+            console.log('[Preview] Loading project:', { projectId, userId });
+
+            // Create a hidden editor instance to load the project
+            GrapesJsStudioSDK.createStudioEditor({
+                root: '#hidden-editor',
+                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
+                project: {
+                    type: 'email',
+                    id: projectId
+                },
+                identity: {
+                    id: userId
+                },
+                storage: {
+                    type: 'cloud'
+                },
+                // Disable editing capabilities
+                editorConfig: {
+                    dragMode: 'absolute',
+                    showToolbar: false,
+                    showDevices: false,
+                    allowScripts: true,
+                    canvas: {
+                        scripts: [],
+                        styles: []
+                    }
+                },
+                // Once loaded, extract and display the content
+                onReady: (editor) => {
+                    console.log('[Preview] Editor ready, extracting content...');
+
+                    // Wait a moment for the project to fully load
+                    setTimeout(() => {
+                        try {
+                            // Get the HTML and CSS from the editor
+                            const html = editor.getHtml();
+                            const css = editor.getCss();
+
+                            console.log('[Preview] Content extracted successfully');
+
+                            // Clear existing content
+                            const container = document.getElementById('program-content');
+                            container.className = '';
+                            container.innerHTML = '';
+
+                            // Create an iframe for isolated preview
+                            const iframe = document.createElement('iframe');
+                            iframe.style.width = '100%';
+                            iframe.style.height = '100vh';
+                            iframe.style.border = 'none';
+                            container.appendChild(iframe);
+
+                            // Write content to iframe
+                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                            iframeDoc.open();
+                            iframeDoc.write(`
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                    <meta charset="UTF-8">
+                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                                    <style>
+                                        body { margin: 0; padding: 0; }
+                                        ${css}
+                                    </style>
+                                </head>
+                                <body>
+                                    ${html}
+                                </body>
+                                </html>
+                            `);
+                            iframeDoc.close();
+
+                            // Clean up - destroy the hidden editor
+                            editor.destroy();
+                            document.getElementById('hidden-editor').remove();
+
+                        } catch (err) {
+                            console.error('[Preview] Error extracting content:', err);
+                            container.innerHTML = `
+                                <div class="error">
+                                    <h2>Error loading preview</h2>
+                                    <p>${err.message}</p>
+                                </div>
+                            `;
+                        }
+                    }, 2000); // Give it 2 seconds to load the project
+                },
+                onError: (err) => {
+                    console.error('[Preview] Editor error:', err);
+                    document.getElementById('program-content').innerHTML = `
+                        <div class="error">
+                            <h2>Failed to load the program page</h2>
+                            <p>${err.message || 'An unknown error occurred'}</p>
+                            <p>Check the console for more details.</p>
+                        </div>
+                    `;
+                }
+            }).catch(err => {
+                console.error('[Preview] Failed to create editor:', err);
+                document.getElementById('program-content').innerHTML = `
+                    <div class="error">
+                        <h2>Failed to initialize preview</h2>
+                        <p>${err.message || 'Could not create editor instance'}</p>
+                    </div>
+                `;
             });
-
-            // Use the client's project loader to get the data
-            cloud.getProjectLoader().load(projectId)
-                .then(res => {
-                    const html = res.html || '<h2>No content found</h2>';
-                    const css = res.css || '';
-
-                    const style = document.createElement('style');
-                    style.innerHTML = css;
-                    document.head.appendChild(style);
-
-                    const container = document.getElementById('program-content');
-                    container.innerHTML = html;
-                })
-                .catch(err => {
-                    console.error('[Preview] Error loading project:', err);
-                    document.body.innerHTML = '<h2>Failed to load the program page</h2><p>Check the console for more details.</p>';
-                });
         }
     </script>
 </body>
