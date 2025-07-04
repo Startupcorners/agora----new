@@ -31,57 +31,43 @@
                 StudioSdkPlugins_canvasFullSize.init({}),
                 StudioSdkPlugins_layoutSidebarButtons.init({})
             ],
-
-            // --- CUSTOMIZATION START ---
             onEditorReady: (editor) => {
-                // Step 1: Define the "Publish" command
+                // Define the "Publish" command
                 editor.Commands.add('publish-command', {
-                    run: async (editor, sender) => {
-                        sender.set('active', true); // Show loading state on button
+                    run: (editor, sender) => {
+                        sender.set('active', true); // Show loading feedback
+
+                        // --- MODIFIED LOGIC START ---
                         const html = editor.getHtml();
                         const css = editor.getCss();
+                        const fullHtml = `<style>${css}</style>${html}`;
 
-                        try {
-                            // Use fetch to send the data to your server
-                            const response = await fetch('https://your-server.com/api/publish', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
-                                    projectId: projectId,
-                                    html: html,
-                                    css: css,
-                                }),
-                            });
-
-                            if (!response.ok) {
-                                throw new Error('Failed to publish');
-                            }
-
-                            const result = await response.json();
-                            alert('Successfully published!');
-                            console.log('Server response:', result);
-
-                        } catch (error) {
-                            console.error('Publishing error:', error);
-                            alert('Error: Could not publish.');
-                        } finally {
-                            sender.set('active', false); // Reset button state
+                        // Check if the Bubble function exists on the page
+                        if (typeof bubble_fn_programDetail === 'function') {
+                            // Call your Bubble function with the combined HTML
+                            bubble_fn_programDetail(fullHtml);
+                            alert('Data sent to Bubble!');
+                        } else {
+                            alert('Error: bubble_fn_programDetail() function not found.');
+                            console.error('bubble_fn_programDetail is not defined. Make sure it is available on the window object.');
                         }
+                        // --- MODIFIED LOGIC END ---
+
+                        sender.set('active', false); // Reset button state
                     },
                 });
 
-                // Step 2: Add the button to the top panel
+                // Add the button to the top panel
                 editor.Panels.addPanel({
                     id: 'top-panel',
                     buttons: [{
                         id: 'publish-button',
-                        label: 'Publish', // Or use an icon class
-                        command: 'publish-command', // Link to our command
+                        label: 'Publish',
+                        command: 'publish-command',
                         active: false,
                     }],
                 });
             },
-            // --- CUSTOMIZATION END ---
         });
     </script>
 </body>
