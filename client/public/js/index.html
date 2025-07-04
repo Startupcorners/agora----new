@@ -479,100 +479,72 @@
                     },
                     assets: {
                         storageType: 'cloud'
+                    },
+                    editorConfig: {
+                        plugins: [
+                            'gjs-preset-webpage'
+                        ],
+                        pluginsOpts: {
+                            'gjs-preset-webpage': {
+                                blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
+                                modalImportTitle: 'Import Template',
+                                modalImportButton: 'Import',
+                                importViewerOptions: {},
+                                textCleanCanvas: 'Are you sure you want to clear the canvas?',
+                                showStylesOnChange: true,
+                                textGeneral: 'General',
+                                textLayout: 'Layout',
+                                textTypography: 'Typography',
+                                textDecorations: 'Decorations',
+                                textExtra: 'Extra',
+                                customStyleManager: [],
+                                // Disable forms blocks
+                                blocksBasicOpts: {
+                                    blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
+                                    flexGrid: false,
+                                    stylePrefix: 'gjs-',
+                                    category: 'Basic',
+                                    // Explicitly exclude form blocks
+                                    addBasicStyle: true,
+                                    labelColumn1: '1 Column',
+                                    labelColumn2: '2 Columns',
+                                    labelColumn3: '3 Columns',
+                                    labelColumn37: '2 Columns 3/7',
+                                    labelText: 'Text',
+                                    labelLink: 'Link',
+                                    labelImage: 'Image',
+                                    labelVideo: 'Video',
+                                    labelMap: 'Map'
+                                },
+                                // Disable forms category entirely
+                                blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
+                                block: () => ({}),
+                                // Disable navbarOpts to remove navbar from Extra
+                                navbarOpts: false,
+                                // Disable countdownOpts to remove countdown from Extra  
+                                countdownOpts: false,
+                                // Disable forms
+                                formsOpts: false,
+                                // Remove export option if you don't need it
+                                exportOpts: false,
+                                // Keep only basic style options
+                                aviaryOpts: false,
+                                filestackOpts: false
+                            }
+                        },
+                        // Additional configuration to ensure no forms
+                        blockManager: {
+                            appendTo: '.gjs-blocks-cs',
+                            blocks: []
+                        },
+                        storageManager: {
+                            type: 'remote',
+                            autosave: true,
+                            autoload: true,
+                            stepsBeforeSave: 1
+                        }
                     }
                 });
-
-                // After editor is created, inject CSS to hide forms and extra sections
-                setTimeout(() => {
-                    const style = document.createElement('style');
-                    style.innerHTML = `
-                        /* Hide Forms category and all its contents */
-                        .gjs-block-category:has(.gjs-title:contains("Forms")) {
-                            display: none !important;
-                        }
-                        
-                        /* Hide Extra category and all its contents */
-                        .gjs-block-category:has(.gjs-title:contains("Extra")) {
-                            display: none !important;
-                        }
-                        
-                        /* Alternative selectors for Forms */
-                        .gjs-category-title:contains("Forms"),
-                        .gjs-block-category[data-title="Forms"],
-                        .gjs-block-category:has([title="Forms"]) {
-                            display: none !important;
-                        }
-                        
-                        /* Alternative selectors for Extra */
-                        .gjs-category-title:contains("Extra"),
-                        .gjs-block-category[data-title="Extra"],
-                        .gjs-block-category:has([title="Extra"]) {
-                            display: none !important;
-                        }
-                        
-                        /* Hide by checking the title text */
-                        .gjs-block-categories .gjs-block-category {
-                            display: block;
-                        }
-                        
-                        .gjs-block-categories .gjs-block-category .gjs-title {
-                            display: inline-block;
-                        }
-                        
-                        /* Target the entire category by its title content */
-                        .gjs-block-category:has(.gjs-title) {
-                            display: var(--category-display, block);
-                        }
-                    `;
-                    document.head.appendChild(style);
-
-                    // Use JavaScript to find and hide categories
-                    const hideCategories = () => {
-                        const categories = document.querySelectorAll('.gjs-block-category');
-                        categories.forEach(category => {
-                            const titleElement = category.querySelector('.gjs-title');
-                            if (titleElement) {
-                                const title = titleElement.textContent.trim();
-                                if (title === 'Forms' || title === 'Extra' || title.toLowerCase() === 'forms' || title.toLowerCase() === 'extra') {
-                                    category.style.display = 'none';
-                                    category.style.visibility = 'hidden';
-                                    category.style.height = '0';
-                                    category.style.overflow = 'hidden';
-                                    category.style.opacity = '0';
-                                    category.style.pointerEvents = 'none';
-                                    category.style.position = 'absolute';
-                                    category.style.left = '-9999px';
-                                }
-                            }
-                        });
-                    };
-
-                    // Run multiple times to catch dynamic loading
-                    hideCategories();
-                    setTimeout(hideCategories, 500);
-                    setTimeout(hideCategories, 1000);
-                    setTimeout(hideCategories, 2000);
-
-                    // Also monitor for changes
-                    const observer = new MutationObserver(() => {
-                        hideCategories();
-                    });
-
-                    // Start observing when block panel is available
-                    const startObserving = () => {
-                        const blockPanel = document.querySelector('.gjs-blocks-cs');
-                        if (blockPanel) {
-                            observer.observe(blockPanel, {
-                                childList: true,
-                                subtree: true
-                            });
-                        } else {
-                            setTimeout(startObserving, 500);
-                        }
-                    };
-                    startObserving();
-
-                }, 100);
 
                 console.log('[Website Builder] Editor initialized successfully');
 
