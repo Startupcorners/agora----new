@@ -11,17 +11,19 @@
 <body>
     <div id="studio-editor" style="height: 100dvh"></div>
     <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const projectId = urlParams.get('project_id') || 'demo-project';
+        const userId = urlParams.get('user_id') || 'anonymous';
+
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
             project: {
                 type: 'web',
-                // TODO: replace with a unique id for your projects. e.g. an uuid
-                id: 'UNIQUE_PROJECT_ID'
+                id: projectId
             },
             identity: {
-                // TODO: replace with a unique id for your end users. e.g. an uuid
-                id: 'UNIQUE_END_USER_ID'
+                id: userId
             },
             assets: {
                 storageType: 'cloud'
@@ -33,5 +35,6 @@
             }
         });
     </script>
+      
 </body>
 <html>
