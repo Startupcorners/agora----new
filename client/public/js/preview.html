@@ -20,6 +20,8 @@
     <!-- Load GrapesJS Studio SDK -->
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
+    <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
+    
     <script>
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get('project_id');
@@ -28,7 +30,8 @@
         if (!projectId || !userId) {
             document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
         } else {
-            GrapesJsStudioSDK.loadCloudProject({
+            // Wait for SDK to load properly
+            window.GrapesJsStudioSDK.default.loadCloudProject({
                 licenseKey: 'YOUR_LICENSE_KEY_HERE',
                 identity: { id: userId },
                 project: { id: projectId }
@@ -50,6 +53,7 @@
                 });
         }
     </script>
+
 </body>
 
 </html>
