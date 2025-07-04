@@ -7,6 +7,9 @@
     <title>Newsletter Builder</title>
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
+
+    <script src="https://unpkg.com/grapesjs-mjml"></script>
+
     <script
         src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/canvasFullSize/index.umd.js"></script>
     <script
@@ -22,52 +25,18 @@
 
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
-            licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
+            licenseKey: 'YOUR_LICENSE_KEY_HERE',
             project: { id: projectId },
             identity: { id: userId },
             storage: { type: 'cloud' },
             assets: { storageType: 'cloud' },
             plugins: [
+                // 2. Add the 'grapesjs-mjml' ID to the plugins array
+                'grapesjs-mjml',
                 StudioSdkPlugins_canvasFullSize.init({}),
                 StudioSdkPlugins_layoutSidebarButtons.init({})
             ],
-            onEditorReady: (editor) => {
-                // Define the "Publish" command
-                editor.Commands.add('publish-command', {
-                    run: (editor, sender) => {
-                        sender.set('active', true); // Show loading feedback
-
-                        // --- MODIFIED LOGIC START ---
-                        const html = editor.getHtml();
-                        const css = editor.getCss();
-                        const fullHtml = `<style>${css}</style>${html}`;
-
-                        // Check if the Bubble function exists on the page
-                        if (typeof bubble_fn_programDetail === 'function') {
-                            // Call your Bubble function with the combined HTML
-                            bubble_fn_programDetail(fullHtml);
-                            alert('Data sent to Bubble!');
-                        } else {
-                            alert('Error: bubble_fn_programDetail() function not found.');
-                            console.error('bubble_fn_programDetail is not defined. Make sure it is available on the window object.');
-                        }
-                        // --- MODIFIED LOGIC END ---
-
-                        sender.set('active', false); // Reset button state
-                    },
-                });
-
-                // Add the button to the top panel
-                editor.Panels.addPanel({
-                    id: 'top-panel',
-                    buttons: [{
-                        id: 'publish-button',
-                        label: 'Publish',
-                        command: 'publish-command',
-                        active: false,
-                    }],
-                });
-            },
+            // Your custom onEditorReady code...
         });
     </script>
 </body>
