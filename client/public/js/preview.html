@@ -1,40 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const projectId = params.get('project_id');
+    const userId = params.get('user_id');
 
-<head>
-    <meta charset="UTF-8" />
-    <title>Program Page Preview</title>
-    <style>
-        html,
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Inter, sans-serif;
-        }
-    </style>
-</head>
+    if (!projectId || !userId) {
+        document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
+    } else {
+        // 1. Create a headless editor instance. This runs in the background.
+        window.GrapesJsStudioSDK.createStudioHeadlessEditor({
+            licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b', // Your license key
+            identity: { id: userId },
+            project: { id: projectId },
+            storage: { type: 'cloud' }, // Specify cloud storage
+        })
+            .then(headlessEditor => {
+                // 2. Once the headless editor is ready, get the project data.
+                return headlessEditor.getProjectData();
+            })
+            .then(data => {
+                // 3. Use the data to build the page.
+                const html = data.html || '<h2>No content found</h2>';
+                const css = data.css || '';
 
-<body>
-    <div id="program-content">Loading...</div>
+                const style = document.createElement('style');
+                style.innerHTML = css;
+                document.head.appendChild(style);
 
-    <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
-
-    <script>
-        // Log the SDK object to the console to inspect its contents
-        console.log('Inspecting GrapesJsStudioSDK object:', window.GrapesJsStudioSDK);
-        debugger; // This will pause the browser if DevTools is open
-
-        const params = new URLSearchParams(window.location.search);
-        const projectId = params.get('project_id');
-        const userId = params.get('user_id');
-
-        if (!projectId || !userId) {
-            document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
-        } else {
-            // The rest of your code will go here once we find the correct function
-            console.log('Attempting to load project...');
-        }
-    </script>
-</body>
-
-</html>
+                const container = document.getElementById('program-content');
+                container.innerHTML = html;
+            })
+            .catch(err => {
+                console.error('[Preview] Error loading project:', err);
+                document.body.innerHTML = '<h2>Failed to load the program page</h2><p>Check the console for more details.</p>';
+            });
+    }
+</script>
