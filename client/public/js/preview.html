@@ -43,15 +43,21 @@
             max-width: 500px;
         }
 
-        /* Hide the editor UI, we only want the preview */
+        /* Hide the editor interface - we only want the rendered content */
         #hidden-editor {
-            display: none;
+            position: absolute;
+            left: -9999px;
+            top: -9999px;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
         }
     </style>
 </head>
 
 <body>
-    <div id="program-content" class="loading">Loading preview...</div>
+    <div id="loading" class="loading">Loading preview...</div>
+    <div id="preview-content" style="display: none;"></div>
     <div id="hidden-editor"></div>
 
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
@@ -62,7 +68,7 @@
         const userId = params.get('user_id');
 
         if (!projectId || !userId) {
-            document.body.innerHTML = `
+            document.getElementById('loading').innerHTML = `
                 <div class="error">
                     <h2>Error: Missing Parameters</h2>
                     <p>Please provide both project_id and user_id in the URL parameters.</p>
@@ -72,8 +78,8 @@
         } else {
             console.log('[Preview] Loading project:', { projectId, userId });
 
-            // Create a hidden editor instance to load the project
-            GrapesJsStudioSDK.createStudioEditor({
+            // Create a hidden editor instance to load the project from cloud
+            const editorInstance = GrapesJsStudioSDK.createStudioEditor({
                 root: '#hidden-editor',
                 licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
                 project: {
@@ -84,43 +90,56 @@
                     id: userId
                 },
                 storage: {
-                    type: 'cloud'
+                    type: 'cloud',
+                    autosave: false,  // Don't autosave in preview mode
+                    autoload: true    // Autoload the project
                 },
-                // Disable editing capabilities
                 editorConfig: {
+                    // Disable all editing features for preview
                     dragMode: 'absolute',
                     showToolbar: false,
                     showDevices: false,
                     allowScripts: true,
-                    canvas: {
-                        scripts: [],
-                        styles: []
+                    panels: { defaults: [] },
+                    storageManager: {
+                        autoload: true
                     }
-                },
-                // Once loaded, extract and display the content
-                onReady: (editor) => {
-                    console.log('[Preview] Editor ready, extracting content...');
+                }
+            });
 
-                    // Wait a moment for the project to fully load
+            // Wait for the promise to resolve
+            editorInstance.then(({ editor }) => {
+                console.log('[Preview] Editor instance created');
+
+                // Listen for when the project is loaded
+                editor.on('load', () => {
+                    console.log('[Preview] Editor loaded event fired');
+
+                    // Give it a moment to ensure everything is rendered
                     setTimeout(() => {
                         try {
-                            // Get the HTML and CSS from the editor
+                            // Get the HTML and CSS
                             const html = editor.getHtml();
                             const css = editor.getCss();
 
-                            console.log('[Preview] Content extracted successfully');
+                            console.log('[Preview] Content extracted:', {
+                                htmlLength: html.length,
+                                cssLength: css.length
+                            });
 
-                            // Clear existing content
-                            const container = document.getElementById('program-content');
-                            container.className = '';
-                            container.innerHTML = '';
+                            // Hide loading
+                            document.getElementById('loading').style.display = 'none';
+
+                            // Show preview container
+                            const previewContainer = document.getElementById('preview-content');
+                            previewContainer.style.display = 'block';
 
                             // Create an iframe for isolated preview
                             const iframe = document.createElement('iframe');
                             iframe.style.width = '100%';
                             iframe.style.height = '100vh';
                             iframe.style.border = 'none';
-                            container.appendChild(iframe);
+                            previewContainer.appendChild(iframe);
 
                             // Write content to iframe
                             const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
@@ -132,45 +151,65 @@
                                     <meta charset="UTF-8">
                                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                                     <style>
-                                        body { margin: 0; padding: 0; }
+                                        /* Reset styles */
+                                        * {
+                                            margin: 0;
+                                            padding: 0;
+                                            box-sizing: border-box;
+                                        }
+                                        body {
+                                            margin: 0;
+                                            padding: 0;
+                                            font-family: Arial, sans-serif;
+                                        }
+                                        /* Project styles */
                                         ${css}
                                     </style>
                                 </head>
                                 <body>
-                                    ${html}
+                                    ${html || '<div style="text-align: center; padding: 50px;">No content found in this project.</div>'}
                                 </body>
                                 </html>
                             `);
                             iframeDoc.close();
 
-                            // Clean up - destroy the hidden editor
-                            editor.destroy();
-                            document.getElementById('hidden-editor').remove();
+                            // Clean up - destroy the editor
+                            setTimeout(() => {
+                                editor.destroy();
+                                document.getElementById('hidden-editor').remove();
+                            }, 100);
 
                         } catch (err) {
                             console.error('[Preview] Error extracting content:', err);
-                            container.innerHTML = `
+                            document.getElementById('loading').innerHTML = `
                                 <div class="error">
                                     <h2>Error loading preview</h2>
                                     <p>${err.message}</p>
                                 </div>
                             `;
                         }
-                    }, 2000); // Give it 2 seconds to load the project
-                },
-                onError: (err) => {
-                    console.error('[Preview] Editor error:', err);
-                    document.getElementById('program-content').innerHTML = `
+                    }, 1000);
+                });
+
+                // Also listen for project:load event as a backup
+                editor.on('project:load', () => {
+                    console.log('[Preview] Project loaded from cloud');
+                });
+
+                // Handle storage errors
+                editor.on('storage:error', (err) => {
+                    console.error('[Preview] Storage error:', err);
+                    document.getElementById('loading').innerHTML = `
                         <div class="error">
-                            <h2>Failed to load the program page</h2>
-                            <p>${err.message || 'An unknown error occurred'}</p>
-                            <p>Check the console for more details.</p>
+                            <h2>Error loading project from cloud</h2>
+                            <p>Could not load the project. Please check if the project exists.</p>
                         </div>
                     `;
-                }
+                });
+
             }).catch(err => {
                 console.error('[Preview] Failed to create editor:', err);
-                document.getElementById('program-content').innerHTML = `
+                document.getElementById('loading').innerHTML = `
                     <div class="error">
                         <h2>Failed to initialize preview</h2>
                         <p>${err.message || 'Could not create editor instance'}</p>
