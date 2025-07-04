@@ -5,18 +5,17 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Newsletter Builder</title>
+    <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
     <script
         src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/canvasFullSize/index.umd.js"></script>
     <script
         src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/layoutSidebarButtons/index.umd.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
 </head>
 
 <body>
     <div id="studio-editor" style="height: 100dvh"></div>
     <script>
-        // Generate or get project and user IDs from URL params
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get('project_id') || 'project-' + Date.now();
         const userId = params.get('user_id') || 'user-' + Date.now();
@@ -24,26 +23,65 @@
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
-            theme: 'light',
-            project: {
-                type: 'email',
-                id: projectId
-            },
-            identity: {
-                id: userId
-            },
-            assets: {
-                storageType: 'cloud'
-            },
-            storage: {
-                type: 'cloud',
-                autosaveChanges: 100,
-                autosaveIntervalMs: 10000
-            },
+            project: { id: projectId },
+            identity: { id: userId },
+            storage: { type: 'cloud' },
+            assets: { storageType: 'cloud' },
             plugins: [
                 StudioSdkPlugins_canvasFullSize.init({}),
                 StudioSdkPlugins_layoutSidebarButtons.init({})
-            ]
+            ],
+
+            // --- CUSTOMIZATION START ---
+            onEditorReady: (editor) => {
+                // Step 1: Define the "Publish" command
+                editor.Commands.add('publish-command', {
+                    run: async (editor, sender) => {
+                        sender.set('active', true); // Show loading state on button
+                        const html = editor.getHtml();
+                        const css = editor.getCss();
+
+                        try {
+                            // Use fetch to send the data to your server
+                            const response = await fetch('https://your-server.com/api/publish', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    projectId: projectId,
+                                    html: html,
+                                    css: css,
+                                }),
+                            });
+
+                            if (!response.ok) {
+                                throw new Error('Failed to publish');
+                            }
+
+                            const result = await response.json();
+                            alert('Successfully published!');
+                            console.log('Server response:', result);
+
+                        } catch (error) {
+                            console.error('Publishing error:', error);
+                            alert('Error: Could not publish.');
+                        } finally {
+                            sender.set('active', false); // Reset button state
+                        }
+                    },
+                });
+
+                // Step 2: Add the button to the top panel
+                editor.Panels.addPanel({
+                    id: 'top-panel',
+                    buttons: [{
+                        id: 'publish-button',
+                        label: 'Publish', // Or use an icon class
+                        command: 'publish-command', // Link to our command
+                        active: false,
+                    }],
+                });
+            },
+            // --- CUSTOMIZATION END ---
         });
     </script>
 </body>
