@@ -2,18 +2,32 @@
 <html lang="en">
 
 <head>
-    <!-- ... -->
+    <meta charset="UTF-8" />
+    <title>GrapesJS Studio</title>
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
-
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
+    <style>
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+        }
+
+        #studio-editor {
+            height: 100vh;
+        }
+    </style>
 </head>
 
 <body>
-    <div id="studio-editor" style="height: 100dvh"></div>
+    <div id="studio-editor"></div>
+
     <script>
-        const urlParams = new URLSearchParams(window.location.search);
-        const projectId = urlParams.get('project_id') || 'demo-project';
-        const userId = urlParams.get('user_id') || 'anonymous';
+        const params = new URLSearchParams(window.location.search);
+        const projectId = params.get('project_id') || 'demo-proj-' + crypto.randomUUID();
+        const userId = params.get('user_id') || 'anon-' + crypto.randomUUID();
+
+        console.log('[GrapesJS Init]', { projectId, userId });
 
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
@@ -25,16 +39,20 @@
             identity: {
                 id: userId
             },
-            assets: {
-                storageType: 'cloud'
-            },
             storage: {
                 type: 'cloud',
                 autosaveChanges: 100,
                 autosaveIntervalMs: 10000
+            },
+            assets: {
+                storageType: 'cloud'
             }
+        }).then(() => {
+            console.log('[GrapesJS] Editor loaded');
+        }).catch((err) => {
+            console.error('[GrapesJS] Init error', err);
         });
     </script>
-      
 </body>
-<html>
+
+</html>
