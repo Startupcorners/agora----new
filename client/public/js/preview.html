@@ -6,9 +6,15 @@
     <title>Program Page Preview</title>
 
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
     <script src="https://unpkg.com/grapesjs"></script>
 
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/canvasFullSize/index.umd.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/layoutSidebarButtons/index.umd.js"></script>
 
     <style>
         html,
@@ -23,6 +29,8 @@
 <body>
     <div id="program-content">Loading...</div>
 
+    <div id="hidden-editor" style="display: none;"></div>
+
     <script>
         const runPreview = () => {
             const params = new URLSearchParams(window.location.search);
@@ -34,22 +42,31 @@
                 return;
             }
 
-            window.GrapesJsStudioSDK.createStudioHeadlessEditor({
+            // 1. Create the full editor in the hidden div
+            window.GrapesJsStudioSDK.createStudioEditor({
+                root: '#hidden-editor', // Target the hidden div
                 gjsScript: window.grapesjs,
                 licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
                 identity: { id: userId },
                 project: { id: projectId },
                 storage: { type: 'cloud' },
                 assets: { storageType: 'cloud' },
-
-                // Initialize the built-in plugins from the main SDK object
                 plugins: [
-                    GrapesJsStudioSDK.StorageCloud.init({}),
-                    GrapesJsStudioSDK.AssetsCloud.init({}),
+                    StudioSdkPlugins_canvasFullSize.init({}),
+                    StudioSdkPlugins_layoutSidebarButtons.init({})
                 ]
             })
-                .then(headlessEditor => headlessEditor.getProjectData())
+                .then(editor => {
+                    // 2. Get the project data from the editor instance
+                    return editor.getProjectData()
+                        .then(data => {
+                            // 4. IMPORTANT: Destroy the editor to free up memory
+                            editor.destroy();
+                            return data;
+                        });
+                })
                 .then(data => {
+                    // 3. Display the data in your visible container
                     const html = data.html || '<h2>No content found</h2>';
                     const css = data.css || '';
 
@@ -61,8 +78,8 @@
                     container.innerHTML = html;
                 })
                 .catch(err => {
-                    console.error('[Preview] Error loading project:', err);
-                    document.body.innerHTML = '<h2>Failed to load the program page</h2><p>Check the console for more details.</p>';
+                    console.error('[Preview] Error loading project with full editor:', err);
+                    document.body.innerHTML = '<h2>Failed to load the program page</h2>';
                 });
         };
 
