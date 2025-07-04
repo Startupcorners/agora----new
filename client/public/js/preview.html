@@ -3,62 +3,19 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Program Page Preview</title>
     <style>
         html,
         body {
             margin: 0;
             padding: 0;
-            font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
-            min-height: 100vh;
-        }
-
-        .loading {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            font-size: 1.2rem;
-            color: #666;
-        }
-
-        .error {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            text-align: center;
-            padding: 2rem;
-            color: #e74c3c;
-        }
-
-        .error h2 {
-            margin-bottom: 1rem;
-        }
-
-        .error p {
-            color: #666;
-            max-width: 500px;
-        }
-
-        /* Hide the editor interface - we only want the rendered content */
-        #hidden-editor {
-            position: absolute;
-            left: -9999px;
-            top: -9999px;
-            width: 1px;
-            height: 1px;
-            overflow: hidden;
+            font-family: Inter, sans-serif;
         }
     </style>
 </head>
 
 <body>
-    <div id="loading" class="loading">Loading preview...</div>
-    <div id="preview-content" style="display: none;"></div>
-    <div id="hidden-editor"></div>
+    <div id="program-content">Loading...</div>
 
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
@@ -68,154 +25,31 @@
         const userId = params.get('user_id');
 
         if (!projectId || !userId) {
-            document.getElementById('loading').innerHTML = `
-                <div class="error">
-                    <h2>Error: Missing Parameters</h2>
-                    <p>Please provide both project_id and user_id in the URL parameters.</p>
-                    <p>Example: preview.html?project_id=YOUR_PROJECT&user_id=YOUR_USER</p>
-                </div>
-            `;
+            document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
         } else {
-            console.log('[Preview] Loading project:', { projectId, userId });
-
-            // Create a hidden editor instance to load the project from cloud
-            const editorInstance = GrapesJsStudioSDK.createStudioEditor({
-                root: '#hidden-editor',
-                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
-                project: {
-                    type: 'email',
-                    id: projectId
-                },
-                identity: {
-                    id: userId
-                },
-                storage: {
-                    type: 'cloud',
-                    autosave: false,  // Don't autosave in preview mode
-                    autoload: true    // Autoload the project
-                },
-                editorConfig: {
-                    // Disable all editing features for preview
-                    dragMode: 'absolute',
-                    showToolbar: false,
-                    showDevices: false,
-                    allowScripts: true,
-                    panels: { defaults: [] },
-                    storageManager: {
-                        autoload: true
-                    }
-                }
+            // Correctly create the Cloud client from the GrapesJsStudioSDK object
+            const cloud = new window.GrapesJsStudioSDK.Cloud({
+                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b', // Your license key
+                identity: { id: userId },
             });
 
-            // Wait for the promise to resolve
-            editorInstance.then(({ editor }) => {
-                console.log('[Preview] Editor instance created');
+            // Use the client's project loader to get the data
+            cloud.getProjectLoader().load(projectId)
+                .then(res => {
+                    const html = res.html || '<h2>No content found</h2>';
+                    const css = res.css || '';
 
-                // Listen for when the project is loaded
-                editor.on('load', () => {
-                    console.log('[Preview] Editor loaded event fired');
+                    const style = document.createElement('style');
+                    style.innerHTML = css;
+                    document.head.appendChild(style);
 
-                    // Give it a moment to ensure everything is rendered
-                    setTimeout(() => {
-                        try {
-                            // Get the HTML and CSS
-                            const html = editor.getHtml();
-                            const css = editor.getCss();
-
-                            console.log('[Preview] Content extracted:', {
-                                htmlLength: html.length,
-                                cssLength: css.length
-                            });
-
-                            // Hide loading
-                            document.getElementById('loading').style.display = 'none';
-
-                            // Show preview container
-                            const previewContainer = document.getElementById('preview-content');
-                            previewContainer.style.display = 'block';
-
-                            // Create an iframe for isolated preview
-                            const iframe = document.createElement('iframe');
-                            iframe.style.width = '100%';
-                            iframe.style.height = '100vh';
-                            iframe.style.border = 'none';
-                            previewContainer.appendChild(iframe);
-
-                            // Write content to iframe
-                            const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                            iframeDoc.open();
-                            iframeDoc.write(`
-                                <!DOCTYPE html>
-                                <html>
-                                <head>
-                                    <meta charset="UTF-8">
-                                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                                    <style>
-                                        /* Reset styles */
-                                        * {
-                                            margin: 0;
-                                            padding: 0;
-                                            box-sizing: border-box;
-                                        }
-                                        body {
-                                            margin: 0;
-                                            padding: 0;
-                                            font-family: Arial, sans-serif;
-                                        }
-                                        /* Project styles */
-                                        ${css}
-                                    </style>
-                                </head>
-                                <body>
-                                    ${html || '<div style="text-align: center; padding: 50px;">No content found in this project.</div>'}
-                                </body>
-                                </html>
-                            `);
-                            iframeDoc.close();
-
-                            // Clean up - destroy the editor
-                            setTimeout(() => {
-                                editor.destroy();
-                                document.getElementById('hidden-editor').remove();
-                            }, 100);
-
-                        } catch (err) {
-                            console.error('[Preview] Error extracting content:', err);
-                            document.getElementById('loading').innerHTML = `
-                                <div class="error">
-                                    <h2>Error loading preview</h2>
-                                    <p>${err.message}</p>
-                                </div>
-                            `;
-                        }
-                    }, 1000);
+                    const container = document.getElementById('program-content');
+                    container.innerHTML = html;
+                })
+                .catch(err => {
+                    console.error('[Preview] Error loading project:', err);
+                    document.body.innerHTML = '<h2>Failed to load the program page</h2><p>Check the console for more details.</p>';
                 });
-
-                // Also listen for project:load event as a backup
-                editor.on('project:load', () => {
-                    console.log('[Preview] Project loaded from cloud');
-                });
-
-                // Handle storage errors
-                editor.on('storage:error', (err) => {
-                    console.error('[Preview] Storage error:', err);
-                    document.getElementById('loading').innerHTML = `
-                        <div class="error">
-                            <h2>Error loading project from cloud</h2>
-                            <p>Could not load the project. Please check if the project exists.</p>
-                        </div>
-                    `;
-                });
-
-            }).catch(err => {
-                console.error('[Preview] Failed to create editor:', err);
-                document.getElementById('loading').innerHTML = `
-                    <div class="error">
-                        <h2>Failed to initialize preview</h2>
-                        <p>${err.message || 'Could not create editor instance'}</p>
-                    </div>
-                `;
-            });
         }
     </script>
 </body>
