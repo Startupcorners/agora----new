@@ -47,10 +47,10 @@
                 storage: { type: 'cloud' },
                 assets: { storageType: 'cloud' },
 
-                // 2. Initialize and pass the plugins to the configuration
+                // Use the correct plugin variable names
                 plugins: [
-                    StudioSdkPlugins_storageCloud.init({}),
-                    StudioSdkPlugins_assetsCloud.init({}),
+                    storageCloud.init({}),
+                    assetsCloud.init({}),
                 ]
             })
                 .then(headlessEditor => headlessEditor.getProjectData())
