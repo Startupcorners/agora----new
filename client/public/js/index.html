@@ -5,11 +5,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Newsletter Builder</title>
-
-    <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
-    <script src="https://unpkg.com/grapesjs"></script>
-    <script src="https://unpkg.com/grapesjs-mjml"></script>
-
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
     <script
@@ -29,22 +24,36 @@
             root: '#studio-editor',
             licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
             theme: 'light',
-            project: { type: 'email', id: projectId },
-            identity: { id: userId },
-            assets: { storageType: 'cloud' },
-            storage: { type: 'cloud' },
-            plugins: ['grapesjs-mjml', StudioSdkPlugins_canvasFullSize.init({}), StudioSdkPlugins_layoutSidebarButtons.init({})]
+            project: {
+                type: 'email', // Setting type to 'email' might still load MJML components
+                id: projectId
+            },
+            identity: {
+                id: userId
+            },
+            assets: {
+                storageType: 'cloud'
+            },
+            storage: {
+                type: 'cloud',
+                autosaveChanges: 100,
+                autosaveIntervalMs: 10000
+            },
+            plugins: [
+                StudioSdkPlugins_canvasFullSize.init({}),
+                StudioSdkPlugins_layoutSidebarButtons.init({})
+            ]
         })
             .then(editor => {
                 console.log('Editor is ready.');
-                // Attach the editor instance directly to the window object
+                // Attach the editor instance to the window to ensure it can be found
                 window.editorInstance = editor;
             });
 
+        // This function gets the data and sends it to your Bubble function
         function sendDataToBubble() {
-            // Check for the editor instance on the window object
             if (!window.editorInstance) {
-                alert('Editor is not ready yet.');
+                alert('Editor is not ready yet. Please wait for the "Editor is ready" message in the console.');
                 return;
             }
 
@@ -59,6 +68,7 @@
             }
         }
 
+        // This listens for the trigger from your Bubble page
         window.addEventListener("message", (event) => {
             if (event.data === "run_getDataFromGrapes") {
                 sendDataToBubble();
