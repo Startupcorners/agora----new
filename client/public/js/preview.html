@@ -27,15 +27,19 @@
         if (!projectId || !userId) {
             document.body.innerHTML = '<h2>Error: Missing project_id or user_id in URL</h2>';
         } else {
-            // Correctly call loadCloudProject directly from the SDK object
-            window.GrapesJsStudioSDK.loadCloudProject({
-                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b', // Replace with your actual license key
+            // 1. Create an API client to interact with GrapesJS Studio services
+            const apiClient = window.GrapesJsStudioSDK.createApiClient({
+                licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b', // Use your license key
                 identity: { id: userId },
-                project: { id: projectId }
-            })
+            });
+
+            // 2. Use the client to get the specific project's data
+            apiClient.Projects.get(projectId)
                 .then(res => {
-                    const html = res.data?.html || '<h2>No content found</h2>';
-                    const css = res.data?.css || '';
+                    // The project data contains the html and css
+                    const projectData = res.project?.data || {};
+                    const html = projectData.html || '<h2>No content found</h2>';
+                    const css = projectData.css || '';
 
                     const style = document.createElement('style');
                     style.innerHTML = css;
@@ -46,10 +50,11 @@
                 })
                 .catch(err => {
                     console.error('[Preview] Error loading project:', err);
-                    document.body.innerHTML = '<h2>Failed to load the program page</h2>';
+                    document.body.innerHTML = '<h2>Failed to load the program page</h2><p>Check the console for more details.</p>';
                 });
         }
     </script>
+
 </body>
 
 </html>
