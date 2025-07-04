@@ -58,6 +58,7 @@
         })
             .then(editor => {
                 console.log('Editor is ready.');
+                // Attach the editor instance directly to the window object to make it globally accessible.
                 window.editorInstance = editor;
 
                 const publishButton = document.getElementById('floating-publish-btn');
@@ -68,10 +69,12 @@
             });
 
         function sendDataToBubble() {
+            // Check for the editor instance on the window object.
             if (!window.editorInstance) {
                 alert('Editor is not ready yet.');
                 return;
             }
+
             const html = window.editorInstance.getHtml();
             const css = window.editorInstance.getCss();
             const fullHtmlWithCss = `<style>${css}</style>${html}`;
@@ -82,8 +85,6 @@
                 console.error('bubble_fn_programDetail() function not found.');
             }
         }
-
-        // The window.addEventListener for Bubble has been removed.
     </script>
 </body>
 
