@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- ... -->
+    <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
+</head>
+
+<body>
+    <div id="studio-editor" style="height: 100dvh"></div>
+    <script>
+        GrapesJsStudioSDK.createStudioEditor({
+            root: '#studio-editor',
+            licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
+            project: {
+                type: 'web',
+                // TODO: replace with a unique id for your projects. e.g. an uuid
+                id: 'UNIQUE_PROJECT_ID'
+            },
+            identity: {
+                // TODO: replace with a unique id for your end users. e.g. an uuid
+                id: 'UNIQUE_END_USER_ID'
+            },
+            assets: {
+                storageType: 'cloud'
+            },
+            storage: {
+                type: 'cloud',
+                autosaveChanges: 100,
+                autosaveIntervalMs: 10000
+            }
+        });
+    </script>
+</body>
+<html>
