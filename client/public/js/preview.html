@@ -8,6 +8,13 @@
     <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css" />
     <script src="https://unpkg.com/grapesjs"></script>
 
+    <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/storageCloud/index.umd.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/assetsCloud/index.umd.js"></script>
+
     <style>
         html,
         body {
@@ -21,8 +28,6 @@
 <body>
     <div id="program-content">Loading...</div>
 
-    <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
-
     <script>
         const runPreview = () => {
             const params = new URLSearchParams(window.location.search);
@@ -34,23 +39,20 @@
                 return;
             }
 
-            // Create the configuration object separately to inspect it.
-            const editorConfig = {
+            window.GrapesJsStudioSDK.createStudioHeadlessEditor({
                 gjsScript: window.grapesjs,
                 licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
                 identity: { id: userId },
                 project: { id: projectId },
                 storage: { type: 'cloud' },
                 assets: { storageType: 'cloud' },
-            };
 
-            // Log the config object to the console
-            console.log('Verifying config before editor creation:', editorConfig);
-            // Pause the script to allow inspection
-            debugger;
-
-            // Pass the config object to the function
-            window.GrapesJsStudioSDK.createStudioHeadlessEditor(editorConfig)
+                // 2. Initialize and pass the plugins to the configuration
+                plugins: [
+                    StudioSdkPlugins_storageCloud.init({}),
+                    StudioSdkPlugins_assetsCloud.init({}),
+                ]
+            })
                 .then(headlessEditor => headlessEditor.getProjectData())
                 .then(data => {
                     const html = data.html || '<h2>No content found</h2>';
