@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Website Builder - Create Beautiful Websites</title>
+    <title>Website Builder - Basic Blocks</title>
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
     <style>
@@ -23,430 +23,14 @@
             overflow: hidden;
         }
 
-        /* Loading Screen */
-        .loading-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 10000;
-            transition: opacity 0.5s ease, visibility 0.5s ease;
-        }
-
-        .loading-container.hidden {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-        }
-
-        .loading-content {
-            text-align: center;
-            animation: fadeInUp 0.8s ease;
-        }
-
-        .loading-logo {
-            width: 80px;
-            height: 80px;
-            margin-bottom: 30px;
-            position: relative;
-        }
-
-        .loading-logo::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, #6366f1, #8b5cf6, #ec4899);
-            border-radius: 20px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .loading-logo::after {
-            content: '✨';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 40px;
-            animation: float 3s ease-in-out infinite;
-        }
-
-        .loading-title {
-            font-size: 28px;
-            font-weight: 700;
-            margin-bottom: 10px;
-            background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .loading-subtitle {
-            font-size: 16px;
-            color: #666;
-            margin-bottom: 40px;
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            border-top-color: #6366f1;
-            animation: spin 1s linear infinite;
-        }
-
-        .loading-tip {
-            margin-top: 40px;
-            font-size: 14px;
-            color: #555;
-            max-width: 300px;
-            animation: fadeIn 2s ease 1s both;
-        }
-
-        /* Welcome Modal */
-        .welcome-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-
-        .welcome-modal.active {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        .welcome-content {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
-            border-radius: 20px;
-            padding: 50px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            animation: modalSlideIn 0.5s ease;
-        }
-
-        .welcome-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-            animation: bounce 2s ease infinite;
-        }
-
-        .welcome-title {
-            font-size: 32px;
-            font-weight: 700;
-            margin-bottom: 15px;
-            background: linear-gradient(135deg, #6366f1 0%, #ec4899 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
-        .welcome-text {
-            font-size: 16px;
-            color: #999;
-            line-height: 1.6;
-            margin-bottom: 30px;
-        }
-
-        .welcome-features {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 40px;
-        }
-
-        .feature-item {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            transition: all 0.3s ease;
-        }
-
-        .feature-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-2px);
-            border-color: rgba(99, 102, 241, 0.5);
-        }
-
-        .feature-icon {
-            font-size: 24px;
-            margin-bottom: 8px;
-        }
-
-        .feature-text {
-            font-size: 14px;
-            color: #ccc;
-        }
-
-        .welcome-button {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
-        }
-
-        .welcome-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4);
-        }
-
-        /* Editor Container */
         #studio-editor {
             height: 100vh;
-            opacity: 0;
-            transition: opacity 0.5s ease;
-        }
-
-        #studio-editor.loaded {
-            opacity: 1;
-        }
-
-        /* Custom Editor Styling */
-        .gjs-editor {
-            background: #0a0a0a !important;
-        }
-
-        /* Animations */
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        @keyframes pulse {
-
-            0%,
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-
-            50% {
-                transform: scale(1.05);
-                opacity: 0.8;
-            }
-        }
-
-        @keyframes float {
-
-            0%,
-            100% {
-                transform: translate(-50%, -50%) translateY(0);
-            }
-
-            50% {
-                transform: translate(-50%, -50%) translateY(-10px);
-            }
-        }
-
-        @keyframes bounce {
-
-            0%,
-            100% {
-                transform: translateY(0);
-            }
-
-            25% {
-                transform: translateY(-10px);
-            }
-
-            75% {
-                transform: translateY(5px);
-            }
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: scale(0.9) translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: scale(1) translateY(0);
-            }
-        }
-
-        /* Helper Tooltips */
-        .help-tooltip {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 50px;
-            font-size: 14px;
-            box-shadow: 0 10px 30px rgba(99, 102, 241, 0.3);
-            cursor: pointer;
-            z-index: 1000;
-            animation: slideInRight 0.5s ease 2s both;
-            transition: all 0.3s ease;
-        }
-
-        .help-tooltip:hover {
-            transform: translateX(-5px);
-            box-shadow: 0 15px 40px rgba(99, 102, 241, 0.4);
-        }
-
-        .help-tooltip::before {
-            content: '💡 ';
-        }
-
-        @keyframes slideInRight {
-            from {
-                opacity: 0;
-                transform: translateX(50px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateX(0);
-            }
-        }
-
-        /* Form Disabled Modal */
-        .form-disabled-modal {
-            background: rgba(0, 0, 0, 0.9) !important;
-        }
-
-        .form-disabled-modal .gjs-mdl-dialog {
-            background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            border-radius: 15px !important;
-        }
-
-        .form-disabled-modal .gjs-mdl-header {
-            background: transparent !important;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
-        }
-
-        .form-disabled-modal .gjs-mdl-title {
-            color: #ff6b6b !important;
-            font-weight: 600 !important;
-        }
-
-        @media (max-width: 768px) {
-            .welcome-content {
-                padding: 30px;
-            }
-
-            .welcome-features {
-                grid-template-columns: 1fr;
-            }
-
-            .loading-title {
-                font-size: 24px;
-            }
-
-            .welcome-title {
-                font-size: 28px;
-            }
         }
     </style>
 </head>
 
 <body>
-    <!-- Loading Screen -->
-    <div class="loading-container" id="loadingScreen">
-        <div class="loading-content">
-            <div class="loading-logo"></div>
-            <h1 class="loading-title">Website Builder</h1>
-            <p class="loading-subtitle">Setting up your creative workspace...</p>
-            <div class="loading-spinner"></div>
-            <p class="loading-tip">💡 Tip: Drag and drop elements to build your perfect website</p>
-        </div>
-    </div>
-
-    <!-- Welcome Modal -->
-    <div class="welcome-modal" id="welcomeModal">
-        <div class="welcome-content">
-            <div class="welcome-icon">🎨</div>
-            <h2 class="welcome-title">Welcome to Website Builder!</h2>
-            <p class="welcome-text">Create stunning websites with our intuitive drag-and-drop editor. No coding
-                required!</p>
-
-            <div class="welcome-features">
-                <div class="feature-item">
-                    <div class="feature-icon">🎯</div>
-                    <div class="feature-text">Drag & Drop</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">📱</div>
-                    <div class="feature-text">Mobile Responsive</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">🎨</div>
-                    <div class="feature-text">Custom Styling</div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">💾</div>
-                    <div class="feature-text">Auto-Save</div>
-                </div>
-            </div>
-
-            <button class="welcome-button" onclick="startBuilding()">Start Building</button>
-        </div>
-    </div>
-
-    <!-- Editor Container -->
     <div id="studio-editor"></div>
-
-    <!-- Help Tooltip -->
-    <div class="help-tooltip" id="helpTooltip" style="display: none;">
-        Need help? Press F1 for shortcuts
-    </div>
 
     <script>
         // Generate or get project and user IDs
@@ -454,15 +38,15 @@
         const projectId = params.get('project_id') || 'project-' + Date.now();
         const userId = params.get('user_id') || 'user-' + Date.now();
 
-        let editorInstance = null;
-        let hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
-
-        console.log('[Website Builder] Initializing...', { projectId, userId });
+        console.log('[Website Builder] Initializing...', {
+            projectId,
+            userId
+        });
 
         // Initialize editor
         async function initializeEditor() {
             try {
-                editorInstance = await GrapesJsStudioSDK.createStudioEditor({
+                const editorInstance = await GrapesJsStudioSDK.createStudioEditor({
                     root: '#studio-editor',
                     licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
                     project: {
@@ -480,139 +64,84 @@
                     assets: {
                         storageType: 'cloud'
                     },
+                    // --- CORRECTED EDITOR CONFIGURATION ---
                     editorConfig: {
+                        // 1. We'll manage blocks directly with the Block Manager.
+                        blockManager: {
+                            // 'blocks' will contain the list of all blocks you want to display.
+                            blocks: [{
+                                id: 'column1',
+                                label: '1 Column',
+                                category: 'Basic',
+                                content: `<div class="gjs-row"><div class="gjs-cell"></div></div>`
+                            }, {
+                                id: 'column2',
+                                label: '2 Columns',
+                                category: 'Basic',
+                                content: `<div class="gjs-row"><div class="gjs-cell"></div><div class="gjs-cell"></div></div>`
+                            }, {
+                                id: 'column3',
+                                label: '3 Columns',
+                                category: 'Basic',
+                                content: `<div class="gjs-row"><div class="gjs-cell"></div><div class="gjs-cell"></div><div class="gjs-cell"></div></div>`
+                            }, {
+                                id: 'column3-7',
+                                label: '2 Columns 3/7',
+                                category: 'Basic',
+                                content: `<div class="gjs-row"><div class="gjs-cell" style="flex: 3;"></div><div class="gjs-cell" style="flex: 7;"></div></div>`
+                            }, {
+                                id: 'text',
+                                label: 'Text',
+                                category: 'Basic',
+                                content: '<div data-gjs-type="text">Insert your text here</div>'
+                            }, {
+                                id: 'link',
+                                label: 'Link',
+                                category: 'Basic',
+                                content: '<a href="#" data-gjs-type="link">Link</a>'
+                            }, {
+                                id: 'image',
+                                label: 'Image',
+                                category: 'Basic',
+                                content: {
+                                    type: 'image'
+                                }
+                            }, {
+                                id: 'video',
+                                label: 'Video',
+                                category: 'Basic',
+                                content: {
+                                    type: 'video'
+                                }
+                            }, {
+                                id: 'map',
+                                label: 'Map',
+                                category: 'Basic',
+                                content: {
+                                    type: 'map'
+                                }
+                            },]
+                        },
+                        // 2. Load the preset but disable its default blocks.
                         plugins: [
                             'gjs-preset-webpage'
                         ],
                         pluginsOpts: {
                             'gjs-preset-webpage': {
-                                blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
-                                modalImportTitle: 'Import Template',
-                                modalImportButton: 'Import',
-                                importViewerOptions: {},
-                                textCleanCanvas: 'Are you sure you want to clear the canvas?',
-                                showStylesOnChange: true,
-                                textGeneral: 'General',
-                                textLayout: 'Layout',
-                                textTypography: 'Typography',
-                                textDecorations: 'Decorations',
-                                textExtra: 'Extra',
-                                customStyleManager: [],
-                                // Disable forms blocks
-                                blocksBasicOpts: {
-                                    blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
-                                    flexGrid: false,
-                                    stylePrefix: 'gjs-',
-                                    category: 'Basic',
-                                    // Explicitly exclude form blocks
-                                    addBasicStyle: true,
-                                    labelColumn1: '1 Column',
-                                    labelColumn2: '2 Columns',
-                                    labelColumn3: '3 Columns',
-                                    labelColumn37: '2 Columns 3/7',
-                                    labelText: 'Text',
-                                    labelLink: 'Link',
-                                    labelImage: 'Image',
-                                    labelVideo: 'Video',
-                                    labelMap: 'Map'
-                                },
-                                // Disable forms category entirely
-                                blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
-                                block: () => ({}),
-                                // Disable navbarOpts to remove navbar from Extra
-                                navbarOpts: false,
-                                // Disable countdownOpts to remove countdown from Extra  
-                                countdownOpts: false,
-                                // Disable forms
-                                formsOpts: false,
-                                // Remove export option if you don't need it
-                                exportOpts: false,
-                                // Keep only basic style options
-                                aviaryOpts: false,
-                                filestackOpts: false
+                                // By setting `blocks` to an empty array, you prevent the preset
+                                // from loading its default blocks (including forms and extra).
+                                blocks: [],
                             }
-                        },
-                        // Additional configuration to ensure no forms
-                        blockManager: {
-                            appendTo: '.gjs-blocks-cs',
-                            blocks: []
-                        },
-                        storageManager: {
-                            type: 'remote',
-                            autosave: true,
-                            autoload: true,
-                            stepsBeforeSave: 1
                         }
                     }
                 });
 
                 console.log('[Website Builder] Editor initialized successfully');
 
-                // Hide loading screen
-                setTimeout(() => {
-                    document.getElementById('loadingScreen').classList.add('hidden');
-                    document.getElementById('studio-editor').classList.add('loaded');
-
-                    // Show welcome modal if first time
-                    if (!hasSeenWelcome) {
-                        setTimeout(() => {
-                            document.getElementById('welcomeModal').classList.add('active');
-                        }, 500);
-                    } else {
-                        // Show help tooltip after a delay
-                        setTimeout(() => {
-                            document.getElementById('helpTooltip').style.display = 'block';
-                            // Hide tooltip after 5 seconds
-                            setTimeout(() => {
-                                document.getElementById('helpTooltip').style.display = 'none';
-                            }, 5000);
-                        }, 2000);
-                    }
-                }, 1000);
-
             } catch (error) {
                 console.error('[Website Builder] Initialization error:', error);
-                document.getElementById('loadingScreen').innerHTML = `
-                    <div class="loading-content">
-                        <div style="font-size: 60px; margin-bottom: 20px;">😕</div>
-                        <h2 style="color: #ff6b6b; margin-bottom: 10px;">Oops! Something went wrong</h2>
-                        <p style="color: #666; margin-bottom: 20px;">We couldn't load the editor. Please refresh the page.</p>
-                        <button onclick="location.reload()" style="background: #ff6b6b; color: white; border: none; padding: 10px 30px; border-radius: 25px; cursor: pointer;">Refresh Page</button>
-                    </div>
-                `;
             }
         }
-
-        // Start building function
-        function startBuilding() {
-            localStorage.setItem('hasSeenWelcome', 'true');
-            document.getElementById('welcomeModal').classList.remove('active');
-
-            // Show help tooltip after modal closes
-            setTimeout(() => {
-                document.getElementById('helpTooltip').style.display = 'block';
-                // Hide tooltip after 5 seconds
-                setTimeout(() => {
-                    document.getElementById('helpTooltip').style.display = 'none';
-                }, 5000);
-            }, 1000);
-        }
-
-        // Add keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            // F1 for help
-            if (e.key === 'F1') {
-                e.preventDefault();
-                alert('Keyboard Shortcuts:\n\n' +
-                    '• Ctrl/Cmd + S: Save your work\n' +
-                    '• Ctrl/Cmd + Z: Undo\n' +
-                    '• Ctrl/Cmd + Y: Redo\n' +
-                    '• Delete: Remove selected element\n' +
-                    '• Ctrl/Cmd + D: Duplicate element\n' +
-                    '• Ctrl/Cmd + C/V: Copy/Paste\n' +
-                    '• Hold Alt: Clone while dragging');
-            }
-        });
 
         // Initialize editor when page loads
         window.addEventListener('load', initializeEditor);
