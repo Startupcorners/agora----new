@@ -5,6 +5,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Newsletter Builder</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/grapesjs/dist/css/grapes.min.css">
+    <script src="https://unpkg.com/grapesjs"></script>
+    <script src="https://unpkg.com/grapesjs-mjml"></script>
+
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
     <script
@@ -16,63 +21,44 @@
 <body>
     <div id="studio-editor" style="height: 100dvh"></div>
     <script>
-        // This variable will hold the editor instance once it's ready.
-        let editorInstance;
-
         const params = new URLSearchParams(window.location.search);
         const projectId = params.get('project_id') || 'project-' + Date.now();
         const userId = params.get('user_id') || 'user-' + Date.now();
 
-        // Initialize the editor
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
             theme: 'light',
-            project: {
-                type: 'email',
-                id: projectId
-            },
-            identity: {
-                id: userId
-            },
-            assets: {
-                storageType: 'cloud'
-            },
-            storage: {
-                type: 'cloud',
-                autosaveChanges: 100,
-                autosaveIntervalMs: 10000
-            },
-            plugins: [
-                StudioSdkPlugins_canvasFullSize.init({}),
-                StudioSdkPlugins_layoutSidebarButtons.init({})
-            ]
+            project: { type: 'email', id: projectId },
+            identity: { id: userId },
+            assets: { storageType: 'cloud' },
+            storage: { type: 'cloud' },
+            plugins: ['grapesjs-mjml', StudioSdkPlugins_canvasFullSize.init({}), StudioSdkPlugins_layoutSidebarButtons.init({})]
         })
             .then(editor => {
-                // Store the editor instance in our variable.
                 console.log('Editor is ready.');
-                editorInstance = editor;
+                // Attach the editor instance directly to the window object
+                window.editorInstance = editor;
             });
 
-        // This function gets the data and sends it to your Bubble function.
         function sendDataToBubble() {
+            // Check for the editor instance on the window object
+            if (!window.editorInstance) {
+                alert('Editor is not ready yet.');
+                return;
+            }
 
-            // NOTE: If your project uses MJML, editor.getHtml() will return standard HTML.
-            // If you need the raw MJML, you would use `editor.getProjectData()`.
-            const html = editorInstance.getHtml();
-            const css = editorInstance.getCss();
+            const html = window.editorInstance.getHtml();
+            const css = window.editorInstance.getCss();
             const fullHtmlWithCss = `<style>${css}</style>${html}`;
 
             if (typeof bubble_fn_programDetail === 'function') {
                 bubble_fn_programDetail(fullHtmlWithCss);
-                console.log('Data sent to Bubble.');
             } else {
                 console.error('bubble_fn_programDetail() function not found.');
-                alert('Error: Could not send data to Bubble.');
             }
         }
 
-        // This listens for the trigger from your Bubble page.
         window.addEventListener("message", (event) => {
             if (event.data === "run_getDataFromGrapes") {
                 sendDataToBubble();
