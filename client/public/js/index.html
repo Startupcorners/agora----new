@@ -6,6 +6,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Website Builder - Create Beautiful Websites</title>
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/listPagesComponent/index.umd.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/iconifyComponent/index.umd.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/accordionComponent/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/flexComponent/index.umd.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/canvasFullSize/index.umd.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/layoutSidebarButtons/index.umd.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/youtubeAssetProvider/index.umd.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
     <style>
         * {
@@ -513,90 +526,99 @@
                                 }
                             ]
                         },
-                        plugins: [
-                            // Add plugin to remove form components
-                            function (editor) {
-                                // Remove form-related blocks on editor load
-                                editor.on('load', () => {
-                                    const blockManager = editor.BlockManager;
-                                    const blocks = blockManager.getAll();
-
-                                    // List of form-related block IDs to remove
-                                    const formBlockIds = [
-                                        'form', 'input', 'textarea', 'select',
-                                        'button', 'label', 'checkbox', 'radio',
-                                        'form-basic', 'form-group', 'form-submit',
-                                        'input-group', 'input-text', 'input-email',
-                                        'input-password', 'input-number', 'input-submit',
-                                        'select-basic', 'checkbox-basic', 'radio-basic'
-                                    ];
-
-                                    // Remove each form block
-                                    formBlockIds.forEach(blockId => {
-                                        if (blockManager.get(blockId)) {
-                                            blockManager.remove(blockId);
-                                        }
-                                    });
-
-                                    // Remove form category if it exists
-                                    const categories = blockManager.getCategories();
-                                    categories.forEach(category => {
-                                        if (category.get('id') === 'forms' ||
-                                            category.get('label') === 'Forms' ||
-                                            category.get('id') === 'form' ||
-                                            category.get('label') === 'Form') {
-                                            blockManager.removeCategory(category.get('id'));
-                                        }
-                                    });
-
-                                    // Disable form-related components
-                                    const domComponents = editor.DomComponents;
-                                    const componentTypes = domComponents.getTypes();
-
-                                    // List of form component types to disable
-                                    const formComponentTypes = [
-                                        'form', 'input', 'textarea', 'select',
-                                        'button', 'label', 'checkbox', 'radio',
-                                        'option', 'form-group', 'fieldset'
-                                    ];
-
-                                    formComponentTypes.forEach(type => {
-                                        if (componentTypes.includes(type)) {
-                                            domComponents.removeType(type);
-                                        }
-                                    });
-                                });
-
-                                // Prevent form elements from being dropped
-                                editor.on('component:add', (component) => {
-                                    const tagName = component.get('tagName');
-                                    const type = component.get('type');
-
-                                    const formTags = ['form', 'input', 'textarea', 'select',
-                                        'button', 'label', 'fieldset', 'option'];
-                                    const formTypes = ['form', 'input', 'textarea', 'select',
-                                        'button', 'submit', 'checkbox', 'radio'];
-
-                                    if (formTags.includes(tagName) || formTypes.includes(type)) {
-                                        component.remove();
-                                        // Optional: Show a notification
-                                        editor.Modal.open({
-                                            title: 'Form Elements Disabled',
-                                            content: '<div style="padding: 20px; text-align: center;">' +
-                                                '<p style="font-size: 16px; margin-bottom: 10px;">Form components are not available in this editor.</p>' +
-                                                '<p style="color: #666;">Please use other components to build your website.</p>' +
-                                                '</div>',
-                                            attributes: { class: 'form-disabled-modal' }
-                                        });
-                                        setTimeout(() => editor.Modal.close(), 3000);
-                                    }
-                                });
+                        // Disable form plugin entirely
+                        pluginsOpts: {
+                            'gjs-blocks-basic': {
+                                blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
+                                flexGrid: true,
+                                category: 'Basic'
+                            },
+                            'grapesjs-blocks-basic': {
+                                blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map']
+                            },
+                            'gjs-plugin-forms': false,
+                            'grapesjs-plugin-forms': false,
+                            'gjs-blocks-flexbox': {
+                                flexboxBlock: true
                             }
+                        },
+                        // Exclude form-related plugins
+                        plugins: [
+                            'gjs-blocks-basic',
+                            'grapesjs-plugin-export',
+                            'gjs-blocks-flexbox'
+                            // Explicitly NOT including form plugins
                         ],
-                        blocksBasicOpts: {
-                            blocks: ['column1', 'column2', 'column3', 'column3-7', 'text', 'link', 'image', 'video', 'map'],
-                            flexGrid: 1,
-                            category: 'Basic'
+                        // Block manager configuration
+                        blockManager: {
+                            blocks: [
+                                {
+                                    id: 'section',
+                                    label: 'Section',
+                                    category: 'Basic',
+                                    content: '<section class="section"><div class="container">Content here</div></section>',
+                                    attributes: { class: 'gjs-block-section' }
+                                },
+                                {
+                                    id: 'text',
+                                    label: 'Text',
+                                    category: 'Basic',
+                                    content: '<div class="text-block">Insert your text here</div>',
+                                    attributes: { class: 'gjs-block-text' }
+                                },
+                                {
+                                    id: 'image',
+                                    label: 'Image',
+                                    category: 'Basic',
+                                    content: '<img src="https://via.placeholder.com/350x250" alt="Placeholder"/>',
+                                    attributes: { class: 'gjs-block-image' }
+                                },
+                                {
+                                    id: 'video',
+                                    label: 'Video',
+                                    category: 'Basic',
+                                    content: '<video></video>',
+                                    attributes: { class: 'gjs-block-video' }
+                                },
+                                {
+                                    id: 'link',
+                                    label: 'Link',
+                                    category: 'Basic',
+                                    content: '<a href="#">Link</a>',
+                                    attributes: { class: 'gjs-block-link' }
+                                },
+                                {
+                                    id: 'columns',
+                                    label: 'Columns',
+                                    category: 'Layout',
+                                    content: '<div class="row" data-gjs-droppable=".column"><div class="column">Column 1</div><div class="column">Column 2</div></div>',
+                                    attributes: { class: 'gjs-block-columns' }
+                                }
+                            ]
+                        },
+                        // Additional safety: CSS to hide any form elements that might appear
+                        canvas: {
+                            styles: [
+                                `
+                                /* Hide form-related categories */
+                                [title*="Form"], [title*="form"],
+                                [data-category="Forms"], [data-category="forms"],
+                                .gjs-block-category:has(.gjs-caret-icon ~ .gjs-title:contains("Form")) {
+                                    display: none !important;
+                                }
+                                
+                                /* Hide form blocks */
+                                .gjs-block[title*="Input"], .gjs-block[title*="input"],
+                                .gjs-block[title*="Textarea"], .gjs-block[title*="textarea"],
+                                .gjs-block[title*="Select"], .gjs-block[title*="select"],
+                                .gjs-block[title*="Button"], .gjs-block[title*="button"],
+                                .gjs-block[title*="Label"], .gjs-block[title*="label"],
+                                .gjs-block[title*="Checkbox"], .gjs-block[title*="checkbox"],
+                                .gjs-block[title*="Radio"], .gjs-block[title*="radio"] {
+                                    display: none !important;
+                                }
+                                `
+                            ]
                         }
                     }
                 });
