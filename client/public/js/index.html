@@ -1,57 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Newsletter Builder</title>
-    <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
-
-    <script src="https://unpkg.com/grapesjs-mjml"></script>
-
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/canvasFullSize/index.umd.js"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/layoutSidebarButtons/index.umd.js"></script>
-</head>
-
-<body>
+    <script src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/canvasFullSize/index.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@grapesjs/studio-sdk-plugins@latest/dist/layoutSidebarButtons/index.umd.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css"/>
+  </head>
+  <body>
     <div id="studio-editor" style="height: 100dvh"></div>
     <script>
-        // 2. Create a variable to hold the editor instance
-        let editorInstance;
+      // Generate or get project and user IDs from URL params
+      const params = new URLSearchParams(window.location.search);
+      const projectId = params.get('project_id') || 'project-' + Date.now();
+      const userId = params.get('user_id') || 'user-' + Date.now();
 
-        const params = new URLSearchParams(window.location.search);
-        const projectId = params.get('project_id') || 'project-' + Date.now();
-        const userId = params.get('user_id') || 'user-' + Date.now();
+      GrapesJsStudioSDK.createStudioEditor({
+        root: '#studio-editor',
+        licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
+        theme: 'light',
+        project: {
+          type: 'email',
+          id: projectId
+        },
+        identity: {
+          id: userId
+        },
+        assets: {
+          storageType: 'cloud'
+        },
+        storage: {
+          type: 'cloud',
+          autosaveChanges: 100,
+          autosaveIntervalMs: 10000
+        },
+        plugins: [
+          StudioSdkPlugins_canvasFullSize.init({}),
+          StudioSdkPlugins_layoutSidebarButtons.init({})
+        ]
+      });
 
-        GrapesJsStudioSDK.createStudioEditor({
-            root: '#studio-editor',
-            licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
-            theme: 'light',
-            project: { type: 'email', id: projectId },
-            identity: { id: userId },
-            assets: { storageType: 'cloud' },
-            storage: {
-                type: 'cloud',
-                autosaveChanges: 100,
-                autosaveIntervalMs: 10000
-            },
-            plugins: [
-                'grapesjs-mjml', // Activate the MJML plugin
-                StudioSdkPlugins_canvasFullSize.init({}),
-                StudioSdkPlugins_layoutSidebarButtons.init({})
-            ]
-        })
-            .then(editor => {
-                // Store the editor instance when it's ready
-                console.log('Editor is ready.');
-                editorInstance = editor;
-            });
-
-        // 3. This is the function you will call from your Bubble button
-        function sendDataToBubble() {
+      function sendDataToBubble() {
             if (!editorInstance) {
                 alert('Editor is not ready yet.');
                 return;
@@ -61,7 +52,6 @@
             const css = editorInstance.getCss();
             const fullHtmlWithCss = `<style>${css}</style>${html}`;
 
-            // Check if your Bubble function exists, then call it
             if (typeof bubble_fn_programDetail === 'function') {
                 bubble_fn_programDetail(fullHtmlWithCss);
                 console.log('Data sent to Bubble.');
@@ -71,6 +61,5 @@
             }
         }
     </script>
-</body>
-
+  </body>
 </html>
