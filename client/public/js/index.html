@@ -121,36 +121,30 @@
         });
 
         function compileAndSend() {
-                if (!window.editorInstance) {
-                    parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
-                    return;
-                }
-
-                const mjml = editorInstance.getHtml();
-                const css = editorInstance.getCss() || '';
-
-                console.log('[compileAndSend] MJML:\n', mjml);
-                console.log('[compileAndSend] CSS:\n', css);
-
-                const { html: compiledHtml, errors } = mjmlCompiler(mjml);
-                if (errors?.length) console.warn('MJML warnings:', errors);
-
-                // Extract only <body> content
-                const bodyMatch = compiledHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
-                const bodyOnly = bodyMatch ? bodyMatch[1] : compiledHtml;
-
-                // Also extract <style> if needed
-                const styleMatch = compiledHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
-                const styleOnly = styleMatch ? `<style>${styleMatch[1]}</style>` : '';
-
-                // ✨ Keep the original max-width declarations
-                const finalHtml = `${styleOnly}\n${bodyOnly}`;
-
-                log('➜ posting newsletter-html (len:', finalHtml.length, ')');
-                parent.postMessage({ type: 'newsletter-html', html: finalHtml }, PARENT_ORIGIN);
+            if (!window.editorInstance) {
+                parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
+                return;
             }
 
+            const mjml = editorInstance.getHtml();
+            const css = editorInstance.getCss() || '';
 
+            console.log('[compileAndSend] MJML:\n', mjml);
+            console.log('[compileAndSend] CSS:\n', css);
+
+            const { html: compiledHtml, errors } = mjmlCompiler(mjml);
+            if (errors?.length) console.warn('MJML warnings:', errors);
+
+            let html = compiledHtml.replace(/max-width:\s*600px;?/gi, '');
+
+            if (css && css.trim()) {
+                const cleanedCss = css.replace(/max-width:\s*600px;?/gi, '');
+                html = `<style>${cleanedCss}</style>\n${html}`;
+            }
+
+            log('➜ posting newsletter-html (len:', html.length, ')');
+            parent.postMessage({ type: 'newsletter-html', html }, PARENT_ORIGIN);
+        }
     </script>
 </body>
 
