@@ -6,12 +6,9 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Newsletter Builder</title>
 
-    <!-- GrapesJS Studio SDK (core only) -->
+    <!-- GrapesJS Studio SDK -->
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
-
-    <!-- Lightweight MJML → HTML compiler that runs in the browser -->
-    <script src="https://unpkg.com/mjml-browser/dist/mjml-browser.min.js"></script>
 
     <style>
         html,
@@ -30,17 +27,17 @@
     <div id="studio-editor"></div>
 
     <script>
-        /* ——— CONFIG ——— */
+        /* ─── CONFIG ─── */
         const PARENT_ORIGIN = 'https://startupcorners.com';          // Bubble page
         const LICENSE_KEY = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b';
 
-        /* ——— UTILS ——— */
+        /* ─── HELPERS ─── */
         const log = (...a) => console.log('[iframe]', ...a);
         const qs = new URLSearchParams(location.search);
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
-        /* ——— INIT STUDIO ——— */
+        /* ─── INIT STUDIO ─── */
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: LICENSE_KEY,
@@ -53,7 +50,7 @@
 
             onReady(editor) {
                 log('Studio ready');
-                window.editorInstance = editor;          // save reference
+                window.editorInstance = editor;            // keep reference
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
             }
         })
@@ -61,33 +58,35 @@
                 parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
             });
 
-        /* ——— MESSAGE BRIDGE ——— */
+        /* ─── MESSAGE BRIDGE ─── */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
             if (e.data?.type === 'request-html') compileAndSend();
         });
 
         function compileAndSend() {
-            /* guard */
             if (!window.editorInstance) {
                 parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
                 return;
             }
 
-            /* 1. Get MJML + extra CSS */
-            const mjml = editorInstance.getHtml();   // MJML markup
-            const css = editorInstance.getCss();    // any extra styles
+            /* 1. Ask Studio to compile MJML → HTML */
+            const { html, errors } = window.editorInstance.runCommand('mjml-export-html', {
+                mjml: window.editorInstance.getHtml(),
+                // optional mjml options: beautify / minify etc.
+                mjmlOptions: { minify: true }
+            }) || {};
 
-            /* 2. Compile in-browser */
-            const { html, errors } = mjml2html(mjml, { minify: true });
-            if (errors.length) console.warn('MJML compile errors', errors);
+            if (errors && errors.length) console.warn('MJML errors', errors);
 
-            /* 3. Optionally prepend the CSS block for preview */
+            /* 2. Keep extra CSS block for preview (optional) */
+            const css = window.editorInstance.getCss();
             const finalHtml = css.trim()
                 ? `<style>${css}</style>\n${html}`
                 : html;
 
-            /* 4. Post back the compiled HTML */
+            /* 3. Send back to Bubble */
+            log('➜ posting compiled HTML (len:', finalHtml.length, ')');
             parent.postMessage(
                 { type: 'newsletter-html', html: finalHtml },
                 PARENT_ORIGIN
