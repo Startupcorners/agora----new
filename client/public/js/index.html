@@ -10,8 +10,8 @@
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
-    <!-- MJML browser build (cdnjs version exposes window.mjml2html) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mjml-browser/4.17.3/mjml-browser.min.js"></script>
+    <!-- MJML browser build -->
+    <script src="https://unpkg.com/mjml-browser@4.15.3/lib/index.js"></script>
 
     <style>
         html,
@@ -39,15 +39,6 @@
         const qs = new URLSearchParams(location.search);
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
-
-        /* Try every known global in case a CDN renames it */
-        function getMjmlCompiler() {
-            return (
-                window.mjml2html ||           // cdnjs / unpkg UMD
-                (window.mjml && window.mjml.mjml2html) ||           // ESM fallback
-                (window.mjmlBrowser && window.mjmlBrowser.mjml2html) // some bundles
-            );
-        }
 
         /* ─── INIT STUDIO ─── */
         GrapesJsStudioSDK.createStudioEditor({
@@ -82,33 +73,45 @@
                 return;
             }
 
-            /* 1. Locate compiler */
-            const mjml2html = getMjmlCompiler();
-            if (!mjml2html) {
+            try {
+                /* 1. Get MJML content */
+                const mjmlContent = editorInstance.getHtml();
+                const css = editorInstance.getCss();
+
+                /* 2. Compile MJML to HTML */
+                // The MJML browser library exposes mjml2html globally when loaded
+                if (typeof mjml2html !== 'function') {
+                    throw new Error('mjml2html function not found');
+                }
+
+                const result = mjml2html(mjmlContent, {
+                    minify: true,
+                    validationLevel: 'soft'
+                });
+
+                if (result.errors && result.errors.length > 0) {
+                    console.warn('MJML compilation warnings:', result.errors);
+                }
+
+                /* 3. Combine CSS if any */
+                const finalHtml = css.trim()
+                    ? `<style>${css}</style>\n${result.html}`
+                    : result.html;
+
+                /* 4. Send to parent */
+                log('➜ posting newsletter-html (len:', finalHtml.length, ')');
+                parent.postMessage(
+                    { type: 'newsletter-html', html: finalHtml },
+                    PARENT_ORIGIN
+                );
+
+            } catch (error) {
+                console.error('MJML compilation error:', error);
                 parent.postMessage({
                     type: 'newsletter-error',
-                    reason: 'mjml2html not found'
+                    reason: error.message || 'mjml-compile-failed'
                 }, PARENT_ORIGIN);
-                console.error('MJML compiler not found - check <script> path');
-                return;
             }
-
-            /* 2. Compile */
-            const mjml = editorInstance.getHtml();
-            const css = editorInstance.getCss();
-            const { html, errors } = mjml2html(mjml, { minify: true });
-            if (errors.length) console.warn('MJML compile errors', errors);
-
-            const finalHtml = css.trim()
-                ? `<style>${css}</style>\n${html}`
-                : html;
-
-            /* 3. Ship to Bubble */
-            log('➜ posting newsletter-html (len:', finalHtml.length, ')');
-            parent.postMessage(
-                { type: 'newsletter-html', html: finalHtml },
-                PARENT_ORIGIN
-            );
         }
     </script>
 </body>
