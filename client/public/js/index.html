@@ -67,6 +67,26 @@
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
                 log('Studio ready');
 
+                // Log storage manager info
+                const storageManager = editor.StorageManager;
+                if (storageManager) {
+                    log('Storage type:', storageManager.getType());
+                    log('Storage config:', storageManager.getConfig());
+                }
+
+                // Listen for storage events
+                editor.on('storage:start', (data) => {
+                    log('Storage operation started:', data);
+                });
+
+                editor.on('storage:end', (data) => {
+                    log('Storage operation ended:', data);
+                });
+
+                editor.on('storage:error', (err) => {
+                    log('Storage error:', err);
+                });
+
                 // Step 1: Check if the project is empty
                 const components = editor.getComponents();
                 if (components.length === 0) {
@@ -143,7 +163,20 @@
             // Save the project before compiling
             try {
                 log('Saving project before publish...');
-                await window.editorInstance.store();
+
+                // Force save with explicit store call
+                const stored = await window.editorInstance.store();
+                log('Store response:', stored);
+
+                // Also try to trigger auto-save if available
+                if (window.editorInstance.Commands) {
+                    const commands = window.editorInstance.Commands;
+                    if (commands.has('core:canvas-save')) {
+                        log('Triggering canvas-save command...');
+                        commands.run('core:canvas-save');
+                    }
+                }
+
                 log('Project saved');
             } catch (saveErr) {
                 log('Warning: Could not save project:', saveErr);
