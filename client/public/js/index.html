@@ -6,12 +6,12 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Newsletter Builder</title>
 
-    <!-- GrapesJS Studio SDK (core only) -->
+    <!-- GrapesJS Studio SDK -->
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
-    <!-- MJML → HTML compiler (UMD build exposes window.mjml2html) -->
-    <script src="https://cdn.jsdelivr.net/npm/mjml-browser@4.17.3/dist/mjml-browser.min.js"></script>
+    <!-- MJML browser build (cdnjs version exposes window.mjml2html) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mjml-browser/4.17.3/mjml-browser.min.js"></script>
 
     <style>
         html,
@@ -31,7 +31,7 @@
 
     <script>
         /* ─── CONFIG ─── */
-        const PARENT_ORIGIN = 'https://startupcorners.com';          // Bubble page
+        const PARENT_ORIGIN = 'https://startupcorners.com';
         const LICENSE_KEY = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b';
 
         /* ─── HELPERS ─── */
@@ -39,6 +39,15 @@
         const qs = new URLSearchParams(location.search);
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
+
+        /* Try every known global in case a CDN renames it */
+        function getMjmlCompiler() {
+            return (
+                window.mjml2html ||           // cdnjs / unpkg UMD
+                (window.mjml && window.mjml.mjml2html) ||           // ESM fallback
+                (window.mjmlBrowser && window.mjmlBrowser.mjml2html) // some bundles
+            );
+        }
 
         /* ─── INIT STUDIO ─── */
         GrapesJsStudioSDK.createStudioEditor({
@@ -73,31 +82,28 @@
                 return;
             }
 
-            /* 1. Locate the compiler */
-            const mjml2htmlFn =
-                window.mjml2html                 // normal global
-                || (window.mjml && window.mjml.mjml2html); // fallback build
-
-            if (!mjml2htmlFn) {
-                parent.postMessage(
-                    { type: 'newsletter-error', reason: 'mjml2html not loaded' },
-                    PARENT_ORIGIN
-                );
-                console.error('MJML compiler not found – check <script> path');
+            /* 1. Locate compiler */
+            const mjml2html = getMjmlCompiler();
+            if (!mjml2html) {
+                parent.postMessage({
+                    type: 'newsletter-error',
+                    reason: 'mjml2html not found'
+                }, PARENT_ORIGIN);
+                console.error('MJML compiler not found - check <script> path');
                 return;
             }
 
-            /* 2. Compile MJML → HTML */
+            /* 2. Compile */
             const mjml = editorInstance.getHtml();
             const css = editorInstance.getCss();
-            const { html, errors } = mjml2htmlFn(mjml, { minify: true });
+            const { html, errors } = mjml2html(mjml, { minify: true });
             if (errors.length) console.warn('MJML compile errors', errors);
 
             const finalHtml = css.trim()
                 ? `<style>${css}</style>\n${html}`
                 : html;
 
-            /* 3. Send to Bubble */
+            /* 3. Ship to Bubble */
             log('➜ posting newsletter-html (len:', finalHtml.length, ')');
             parent.postMessage(
                 { type: 'newsletter-html', html: finalHtml },
