@@ -10,9 +10,6 @@
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
-    <!-- MJML-browser compiler (jsDelivr build exposes window.mjml2html) -->
-    <script src="https://cdn.jsdelivr.net/npm/mjml-browser@4.17.3/dist/mjml-browser.min.js"></script>
-
     <style>
         html,
         body {
@@ -30,16 +27,17 @@
     <div id="studio-editor"></div>
 
     <script>
-        /* ─── CONFIG ───────────────────────────────────────────────────────── */
-        const PARENT_ORIGIN = 'https://startupcorners.com';  // Bubble page
+        /* ─── CONFIG ─────────────────────────────────────────────────────── */
+        const PARENT_ORIGIN = 'https://startupcorners.com';        // Bubble page
         const LICENSE_KEY = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b';
 
-        /* ─── HELPERS ──────────────────────────────────────────────────────── */
+        /* ─── HELPERS ────────────────────────────────────────────────────── */
         const log = (...a) => console.log('[iframe]', ...a);
         const qs = new URLSearchParams(location.search);
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
+        /* Try every known global */
         function resolveCompiler() {
             return (
                 window.mjml2html ||
@@ -48,17 +46,37 @@
             );
         }
 
-        /* ─── ON LOAD ──────────────────────────────────────────────────────── */
-        document.addEventListener('DOMContentLoaded', () => {
-            const mjmlCompiler = resolveCompiler();
-            if (typeof mjmlCompiler !== 'function') {
-                console.error('MJML failed to load');
-                parent.postMessage({ type: 'studio-error', message: 'MJML failed to load' },
-                    PARENT_ORIGIN);
-                return;
-            }
+        /* Load MJML script from the first CDN that works */
+        function loadMjmlCompiler(cdns, onReady, onFail) {
+            const url = cdns.shift();
+            if (!url) { onFail(); return; }
 
-            /* Mount Studio */
+            const s = document.createElement('script');
+            s.src = url;
+            s.defer = false;
+            s.onload = () => {
+                if (resolveCompiler()) { onReady(); }
+                else { log('Compiler not on window after', url); loadMjmlCompiler(cdns, onReady, onFail); }
+            };
+            s.onerror = () => { log('Failed to load', url); loadMjmlCompiler(cdns, onReady, onFail); };
+            document.head.appendChild(s);
+        }
+
+        /* ─── BOOTSTRAP ───────────────────────────────────────────────────── */
+        loadMjmlCompiler([
+            'https://cdn.jsdelivr.net/npm/mjml-browser@4.17.3/dist/mjml-browser.min.js',
+            'https://unpkg.com/mjml-browser@4.17.3/dist/mjml-browser.min.js',
+            'https://cdnjs.cloudflare.com/ajax/libs/mjml-browser/4.17.3/mjml-browser.min.js'
+        ], initStudio, () => {
+            console.error('All MJML CDN sources failed');
+            parent.postMessage({ type: 'studio-error', message: 'MJML failed to load' },
+                PARENT_ORIGIN);
+        });
+
+        /* ─── INIT STUDIO AFTER COMPILER IS READY ────────────────────────── */
+        function initStudio() {
+            log('MJML compiler ready');
+
             GrapesJsStudioSDK.createStudioEditor({
                 root: '#studio-editor',
                 licenseKey: LICENSE_KEY,
@@ -71,17 +89,17 @@
 
                 onReady(editor) {
                     window.editorInstance = editor;
-                    window.mjmlCompiler = mjmlCompiler;
+                    window.mjmlCompiler = resolveCompiler();
                     parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
-                    log('Studio ready + MJML ready');
+                    log('Studio ready');
                 }
             })
                 .catch(err => {
                     parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
                 });
-        });
+        }
 
-        /* ─── MESSAGE BRIDGE ──────────────────────────────────────────────── */
+        /* ─── MESSAGE BRIDGE ─────────────────────────────────────────────── */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
             if (e.data?.type === 'request-html') compileAndSend();
@@ -101,7 +119,7 @@
             const css = editorInstance.getCss() || '';
 
             const { html, errors } = window.mjmlCompiler(mjml, { minify: true });
-            if (errors.length) console.warn('MJML compile warnings:', errors);
+            if (errors.length) console.warn('MJML warnings:', errors);
 
             const finalHtml = css.trim() ? `<style>${css}</style>\n${html}` : html;
 
