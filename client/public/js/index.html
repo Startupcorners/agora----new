@@ -10,8 +10,8 @@
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
-    <!-- Client-side MJML → HTML compiler (≈50 KB) -->
-    <script src="https://unpkg.com/mjml-browser/dist/mjml-browser.min.js"></script>
+    <!-- MJML → HTML compiler (UMD build exposes window.mjml2html) -->
+    <script src="https://cdn.jsdelivr.net/npm/mjml-browser@4.17.3/dist/mjml-browser.min.js"></script>
 
     <style>
         html,
@@ -49,7 +49,7 @@
             identity: { id: userId },
             assets: { storageType: 'cloud' },
             storage: { type: 'cloud' },
-            experimental: { disablePremiumPlugins: true },   // Free-plan OK
+            experimental: { disablePremiumPlugins: true },
 
             onReady(editor) {
                 log('Studio ready');
@@ -61,7 +61,7 @@
                 parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
             });
 
-        /* ─── BRIDGE ─── */
+        /* ─── MESSAGE BRIDGE ─── */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
             if (e.data?.type === 'request-html') compileAndSend();
@@ -73,20 +73,31 @@
                 return;
             }
 
-            /* 1. Grab MJML + optional CSS */
-            const mjml = editorInstance.getHtml();      // MJML markup
-            const css = editorInstance.getCss();       // Studio’s extra <style>
+            /* 1. Locate the compiler */
+            const mjml2htmlFn =
+                window.mjml2html                 // normal global
+                || (window.mjml && window.mjml.mjml2html); // fallback build
 
-            /* 2. Compile MJML → table-based HTML in the browser */
-            const { html, errors } = mjml2html(mjml, { minify: true });
+            if (!mjml2htmlFn) {
+                parent.postMessage(
+                    { type: 'newsletter-error', reason: 'mjml2html not loaded' },
+                    PARENT_ORIGIN
+                );
+                console.error('MJML compiler not found – check <script> path');
+                return;
+            }
+
+            /* 2. Compile MJML → HTML */
+            const mjml = editorInstance.getHtml();
+            const css = editorInstance.getCss();
+            const { html, errors } = mjml2htmlFn(mjml, { minify: true });
             if (errors.length) console.warn('MJML compile errors', errors);
 
-            /* 3. (optional) prepend the CSS block for on-screen preview */
             const finalHtml = css.trim()
                 ? `<style>${css}</style>\n${html}`
                 : html;
 
-            /* 4. Send the compiled HTML back to Bubble */
+            /* 3. Send to Bubble */
             log('➜ posting newsletter-html (len:', finalHtml.length, ')');
             parent.postMessage(
                 { type: 'newsletter-html', html: finalHtml },
