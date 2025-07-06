@@ -10,8 +10,8 @@
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
-    <!-- MJML-browser compiler (cdnjs build gives window.mjml2html) -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mjml-browser/4.17.3/mjml-browser.min.js"></script>
+    <!-- MJML-browser compiler (jsDelivr build exposes window.mjml2html) -->
+    <script src="https://cdn.jsdelivr.net/npm/mjml-browser@4.17.3/dist/mjml-browser.min.js"></script>
 
     <style>
         html,
@@ -30,26 +30,25 @@
     <div id="studio-editor"></div>
 
     <script>
-        /* ───── CONFIG ────────────────────────────────────────────────────── */
+        /* ─── CONFIG ───────────────────────────────────────────────────────── */
         const PARENT_ORIGIN = 'https://startupcorners.com';  // Bubble page
         const LICENSE_KEY = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b';
 
-        /* ───── HELPERS ───────────────────────────────────────────────────── */
+        /* ─── HELPERS ──────────────────────────────────────────────────────── */
         const log = (...a) => console.log('[iframe]', ...a);
         const qs = new URLSearchParams(location.search);
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
-        /* Resolve whichever global the compiler attached */
         function resolveCompiler() {
             return (
-                window.mjml2html || // cdnjs/unpkg UMD
+                window.mjml2html ||
                 (window.mjmlBrowser && window.mjmlBrowser.mjml2html) ||
-                (window.mjml && window.mjml.mjml2html)             // ESM fallback
+                (window.mjml && window.mjml.mjml2html)
             );
         }
 
-        /* ───── WAIT FOR MJML, THEN INIT STUDIO ──────────────────────────── */
+        /* ─── ON LOAD ──────────────────────────────────────────────────────── */
         document.addEventListener('DOMContentLoaded', () => {
             const mjmlCompiler = resolveCompiler();
             if (typeof mjmlCompiler !== 'function') {
@@ -59,7 +58,7 @@
                 return;
             }
 
-            /* ── Mount Studio ── */
+            /* Mount Studio */
             GrapesJsStudioSDK.createStudioEditor({
                 root: '#studio-editor',
                 licenseKey: LICENSE_KEY,
@@ -68,13 +67,13 @@
                 identity: { id: userId },
                 assets: { storageType: 'cloud' },
                 storage: { type: 'cloud' },
-                experimental: { disablePremiumPlugins: true },   // stay on free plan
+                experimental: { disablePremiumPlugins: true },
 
                 onReady(editor) {
-                    log('Studio ready');
                     window.editorInstance = editor;
-                    window.mjmlCompiler = mjmlCompiler;   // save for later use
+                    window.mjmlCompiler = mjmlCompiler;
                     parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
+                    log('Studio ready + MJML ready');
                 }
             })
                 .catch(err => {
@@ -82,7 +81,7 @@
                 });
         });
 
-        /* ───── MESSAGE BRIDGE ───────────────────────────────────────────── */
+        /* ─── MESSAGE BRIDGE ──────────────────────────────────────────────── */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
             if (e.data?.type === 'request-html') compileAndSend();
@@ -98,20 +97,14 @@
                 return;
             }
 
-            /* 1. Grab MJML + optional CSS */
             const mjml = editorInstance.getHtml();
             const css = editorInstance.getCss() || '';
 
-            /* 2. Compile in browser */
             const { html, errors } = window.mjmlCompiler(mjml, { minify: true });
             if (errors.length) console.warn('MJML compile warnings:', errors);
 
-            /* 3. Prepend CSS for preview (optional) */
-            const finalHtml = css.trim()
-                ? `<style>${css}</style>\n${html}`
-                : html;
+            const finalHtml = css.trim() ? `<style>${css}</style>\n${html}` : html;
 
-            /* 4. Send back to Bubble */
             log('➜ posting newsletter-html (len:', finalHtml.length, ')');
             parent.postMessage({ type: 'newsletter-html', html: finalHtml }, PARENT_ORIGIN);
         }
