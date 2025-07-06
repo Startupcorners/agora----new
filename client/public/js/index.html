@@ -26,199 +26,51 @@
     <div id="studio-editor"></div>
 
     <script>
-        const PARENT_ORIGIN = 'https://startupcorners.com';         // Bubble page
+        const PARENT_ORIGIN = 'https://startupcorners.com';
         const LICENSE_KEY = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b';
-        const log = (...a) => console.log('[iframe]', ...a);
 
-        /* ---------- INIT ---------------------------------------------------- */
-        const qs = new URLSearchParams(location.search);
-        const projectId = qs.get('project_id') || `project-${Date.now()}`;
-        const userId = qs.get('user_id') || `user-${Date.now()}`;
-
-        // Check SDK structure
-        log('Checking GrapesJsStudioSDK structure...');
-        log('GrapesJsStudioSDK properties:', Object.keys(GrapesJsStudioSDK));
-
-        // Store reference to the studio before initialization
-        let studioInstance = null;
-
-        log('Starting editor initialization...');
-
-        // Try to capture the studio instance
-        const initResult = GrapesJsStudioSDK.createStudioEditor({
+        GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: LICENSE_KEY,
             theme: 'light',
-            project: { type: 'email', id: projectId },
-            identity: { id: userId },
+            project: { type: 'email', id: new URLSearchParams(location.search).get('project_id') },
+            identity: { id: new URLSearchParams(location.search).get('user_id') },
             assets: { storageType: 'cloud' },
             storage: { type: 'cloud' },
-            experimental: { disablePremiumPlugins: true }
-        });
+            experimental: { disablePremiumPlugins: true },
 
-        log('Init result type:', typeof initResult);
-        log('Init result:', initResult);
-
-        // Check if initResult has methods or properties
-        if (initResult && typeof initResult === 'object') {
-            log('Init result properties:', Object.keys(initResult));
-            studioInstance = initResult;
-        }
-
-        initResult
-            .then(ed => {
-                log('Promise resolved');
-
-                // Since ed is undefined, let's look for the editor elsewhere
-                // Check if the SDK has a way to get the current instance
-                log('Checking for SDK getInstance method...');
-                if (typeof GrapesJsStudioSDK.getInstance === 'function') {
-                    const instance = GrapesJsStudioSDK.getInstance();
-                    log('getInstance result:', instance);
-                    window.editorInstance = instance;
-                }
-
-                // Check if there's a global editor variable
-                log('Checking window for editor variables...');
-                for (let key in window) {
-                    if (key.includes('editor') || key.includes('grapes') || key.includes('studio')) {
-                        log('Found window property:', key, typeof window[key]);
-                    }
-                }
-
-                // Check the studio element for attached data
-                const studioEl = document.getElementById('studio-editor');
-                log('Studio element:', studioEl);
-                log('Studio element properties:', Object.keys(studioEl));
-
-                // Check if the studio instance has methods
-                if (studioInstance) {
-                    log('Studio instance methods:');
-                    for (let key in studioInstance) {
-                        if (typeof studioInstance[key] === 'function') {
-                            log('  -', key);
-                        }
-                    }
-
-                    // Try common method names
-                    const possibleMethods = ['getEditor', 'getGrapesJS', 'getProject', 'getHtml', 'editor', 'gjs'];
-                    possibleMethods.forEach(method => {
-                        if (studioInstance[method]) {
-                            log(`studioInstance.${method} exists:`, typeof studioInstance[method]);
-                            if (typeof studioInstance[method] === 'function') {
-                                try {
-                                    const result = studioInstance[method]();
-                                    log(`studioInstance.${method}() result:`, result);
-                                } catch (e) {
-                                    log(`studioInstance.${method}() error:`, e.message);
-                                }
-                            }
-                        }
-                    });
-                }
-
-                // Set a timeout to check for the editor after the UI has loaded
-                setTimeout(() => {
-                    log('Checking for editor after timeout...');
-
-                    // Try to find the editor through the iframe
-                    const iframes = studioEl.getElementsByTagName('iframe');
-                    log('Found iframes:', iframes.length);
-
-                    for (let i = 0; i < iframes.length; i++) {
-                        try {
-                            log(`Iframe ${i} contentWindow:`, !!iframes[i].contentWindow);
-                            if (iframes[i].contentWindow && iframes[i].contentWindow.gjs) {
-                                log('Found gjs in iframe!');
-                                window.editorInstance = iframes[i].contentWindow.gjs;
-                            }
-                        } catch (e) {
-                            log(`Cannot access iframe ${i}:`, e.message);
-                        }
-                    }
-
-                    parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
-                }, 2000);
-
-            })
+            /* 👇 THIS is the only reliable place to grab the editor */
+            onReady(editor) {
+                console.log('[iframe] onReady → editor OK:', editor);
+                window.editorInstance = editor;                 // <-- now valid
+                parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
+            },
+        })
             .catch(err => {
-                log('Editor initialization error:', err);
-                parent.postMessage({ type: 'newsletter-error', reason: 'init-failed: ' + err.message }, PARENT_ORIGIN);
+                console.error('[iframe] init failed', err);
+                parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
             });
 
-        /* ---------- MESSAGE BRIDGE ----------------------------------------- */
+        /* ---------- bridge -------------------------------------------------- */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
-            log('Received message:', e.data);
             if (e.data?.type === 'request-html') sendHtml();
         });
 
         function sendHtml() {
-            log('sendHtml called');
-
-            // Try multiple approaches to get the HTML
-            let html = null;
-            let css = null;
-
-            // Approach 1: window.editorInstance
-            if (window.editorInstance) {
-                log('Trying window.editorInstance...');
-                try {
-                    if (typeof window.editorInstance.getHtml === 'function') {
-                        html = window.editorInstance.getHtml();
-                        css = window.editorInstance.getCss();
-                    }
-                } catch (e) {
-                    log('Error with window.editorInstance:', e.message);
-                }
+            if (!window.editorInstance) {
+                parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
+                return;
             }
-
-            // Approach 2: Check if studioInstance has evolved
-            if (!html && studioInstance) {
-                log('Trying studioInstance...');
-                try {
-                    // The studio instance might have a method to get the editor
-                    const editor = studioInstance.getEditor?.() || studioInstance.editor || studioInstance.gjs;
-                    if (editor && typeof editor.getHtml === 'function') {
-                        html = editor.getHtml();
-                        css = editor.getCss();
-                    }
-                } catch (e) {
-                    log('Error with studioInstance:', e.message);
-                }
-            }
-
-            // Approach 3: Try to extract from the iframe
-            if (!html) {
-                log('Trying iframe approach...');
-                const studioEl = document.getElementById('studio-editor');
-                const iframes = studioEl.getElementsByTagName('iframe');
-
-                for (let iframe of iframes) {
-                    try {
-                        if (iframe.contentWindow?.gjs) {
-                            html = iframe.contentWindow.gjs.getHtml();
-                            css = iframe.contentWindow.gjs.getCss();
-                            break;
-                        }
-                    } catch (e) {
-                        log('Cannot access iframe:', e.message);
-                    }
-                }
-            }
-
-            if (html !== null) {
-                log('Got HTML length:', html?.length, 'CSS length:', css?.length);
-                parent.postMessage(
-                    { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
-                    PARENT_ORIGIN
-                );
-            } else {
-                log('Could not find a way to get HTML');
-                parent.postMessage({ type: 'newsletter-error', reason: 'Cannot access editor methods' }, PARENT_ORIGIN);
-            }
+            const html = window.editorInstance.getHtml();
+            const css = window.editorInstance.getCss();
+            parent.postMessage(
+                { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
+                PARENT_ORIGIN
+            );
         }
     </script>
+        
 </body>
 
 </html>
