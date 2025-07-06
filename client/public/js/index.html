@@ -6,9 +6,12 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Newsletter Builder</title>
 
-    <!-- GrapesJS Studio SDK -->
+    <!-- GrapesJS Studio SDK (core only) -->
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
+
+    <!-- Client-side MJML → HTML compiler (≈50 KB) -->
+    <script src="https://unpkg.com/mjml-browser/dist/mjml-browser.min.js"></script>
 
     <style>
         html,
@@ -46,11 +49,11 @@
             identity: { id: userId },
             assets: { storageType: 'cloud' },
             storage: { type: 'cloud' },
-            experimental: { disablePremiumPlugins: true },
+            experimental: { disablePremiumPlugins: true },   // Free-plan OK
 
             onReady(editor) {
                 log('Studio ready');
-                window.editorInstance = editor;            // keep reference
+                window.editorInstance = editor;
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
             }
         })
@@ -58,7 +61,7 @@
                 parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
             });
 
-        /* ─── MESSAGE BRIDGE ─── */
+        /* ─── BRIDGE ─── */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
             if (e.data?.type === 'request-html') compileAndSend();
@@ -70,23 +73,21 @@
                 return;
             }
 
-            /* 1. Ask Studio to compile MJML → HTML */
-            const { html, errors } = window.editorInstance.runCommand('mjml-export-html', {
-                mjml: window.editorInstance.getHtml(),
-                // optional mjml options: beautify / minify etc.
-                mjmlOptions: { minify: true }
-            }) || {};
+            /* 1. Grab MJML + optional CSS */
+            const mjml = editorInstance.getHtml();      // MJML markup
+            const css = editorInstance.getCss();       // Studio’s extra <style>
 
-            if (errors && errors.length) console.warn('MJML errors', errors);
+            /* 2. Compile MJML → table-based HTML in the browser */
+            const { html, errors } = mjml2html(mjml, { minify: true });
+            if (errors.length) console.warn('MJML compile errors', errors);
 
-            /* 2. Keep extra CSS block for preview (optional) */
-            const css = window.editorInstance.getCss();
+            /* 3. (optional) prepend the CSS block for on-screen preview */
             const finalHtml = css.trim()
                 ? `<style>${css}</style>\n${html}`
                 : html;
 
-            /* 3. Send back to Bubble */
-            log('➜ posting compiled HTML (len:', finalHtml.length, ')');
+            /* 4. Send the compiled HTML back to Bubble */
+            log('➜ posting newsletter-html (len:', finalHtml.length, ')');
             parent.postMessage(
                 { type: 'newsletter-html', html: finalHtml },
                 PARENT_ORIGIN
