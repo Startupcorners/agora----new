@@ -32,70 +32,61 @@
 
     <script>
         /* ---------- CONSTANTS -------------------------------------------------- */
-        const PARENT_ORIGIN = 'https://startupcorners.com';  // adjust if needed
+        const PARENT_ORIGIN = 'https://startupcorners.com';    // your Bubble page
+        const LICENSE = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b';
+        const log = (...a) => console.log('[iframe]', ...a);
 
-        /* ---------- HELPERS ---------------------------------------------------- */
-        const log = (...args) => console.log('[iframe]', ...args);
-
-        /* ---------- INIT EDITOR ------------------------------------------------ */
+        /* ---------- INIT ------------------------------------------------------- */
         const qs = new URLSearchParams(location.search);
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
-        log('Booting editor → project:', projectId, 'user:', userId);
+        log('Booting editor → project', projectId, 'user', userId);
 
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
-            licenseKey: '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b',
+            licenseKey: LICENSE,
             theme: 'light',
             project: { type: 'email', id: projectId },
             identity: { id: userId },
             assets: { storageType: 'cloud' },
             storage: { type: 'cloud' },
             plugins: [
-                StudioSdkPlugins_canvasFullSize.init({}),
-                StudioSdkPlugins_layoutSidebarButtons.init({})
+                StudioSdkPlugins_canvasFullSize.init({ licenseKey: LICENSE }),
+                StudioSdkPlugins_layoutSidebarButtons.init({ licenseKey: LICENSE })
             ]
         })
-            .then(editor => {
+            .then(ed => {
                 log('Editor ready ✔︎');
-                window.editorInstance = editor;
-
-                // notify parent
-                window.parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
+                window.editorInstance = ed;
+                // Tell parent we’re good to go
+                parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
             })
             .catch(err => {
-                console.error('[iframe] Editor init failed ✖︎ →', err);
-                window.parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
+                console.error('[iframe] init failed', err);
+                parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
             });
 
-        /* ---------- MESSAGE BRIDGE -------------------------------------------- */
-        window.addEventListener('message', event => {
-            if (event.origin !== PARENT_ORIGIN) return;
-            log('Message from parent:', event.data);
-
-            if (event.data?.type === 'request-html') {
-                transmitHtmlToParent();
-            }
+        /* ---------- MESSAGE HANDLER ------------------------------------------- */
+        window.addEventListener('message', e => {
+            if (e.origin !== PARENT_ORIGIN) return;
+            log('Message from parent:', e.data);
+            if (e.data?.type === 'request-html') sendHtml();
         });
 
-        function transmitHtmlToParent() {
+        function sendHtml() {
             if (!window.editorInstance) {
-                log('Editor not ready when asked for HTML → sending error');
-                window.parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
+                log('Asked for HTML but editor not ready → notifying parent');
+                parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
                 return;
             }
-
-            log('Collecting HTML/CSS for parent...');
             const html = editorInstance.getHtml();
             const css = editorInstance.getCss();
-            const payload = {
+            parent.postMessage({
                 type: 'newsletter-html',
                 html: `<style>${css}</style>${html}`
-            };
-
-            window.parent.postMessage(payload, PARENT_ORIGIN);
-            log('HTML sent to parent ✔︎ (length', payload.html.length, 'chars)');
+            }, PARENT_ORIGIN);
+            log('HTML sent to parent ✔︎');
         }
     </script>
 </body>
