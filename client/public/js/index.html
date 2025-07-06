@@ -120,31 +120,69 @@
             if (e.data?.type === 'request-html') compileAndSend();
         });
 
-        function compileAndSend() {
-            if (!window.editorInstance) {
-                parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
-                return;
+        /* ────────────────────────────────────────────────────────────── */
+            /* 1. Helper: prefix every selector with #newsletter-wrapper     */
+            /* ────────────────────────────────────────────────────────────── */
+            function scopeCss(html, scopeId = '#newsletter-wrapper') {
+                return html.replace(
+                    /<style[^>]*>([\s\S]*?)<\/style>/,
+                    (_, cssRules) => {
+                        // Add the scopeId to each *top-level* selector
+                        const scopedRules = cssRules.replace(
+                            /(^|})\s*([^{}@]+?)(?=\s*{)/g,          // skip @media / @keyframes blocks
+                            (m, sep, selector) => {
+                                const clean = selector.trim();
+                                if (!clean || clean.startsWith('@')) return m;   // leave @-rules untouched
+                                return `${sep} ${scopeId} ${clean}`;
+                            }
+                        );
+                        return `<style>${scopedRules}</style>`;
+                    }
+                );
             }
 
-            const mjml = editorInstance.getHtml();
-            const css = editorInstance.getCss() || '';
+            /* ────────────────────────────────────────────────────────────── */
+            /* 2. Helper: strip “max-width: 600px” (unchanged)               */
+            /* ────────────────────────────────────────────────────────────── */
+            const stripMaxWidth = str => str.replace(/max-width:\s*600px;?/gi, '');
 
-            console.log('[compileAndSend] MJML:\n', mjml);
-            console.log('[compileAndSend] CSS:\n', css);
+            /* ────────────────────────────────────────────────────────────── */
+            /* 3. Compile → scope → send                                     */
+            /* ────────────────────────────────────────────────────────────── */
+            function compileAndSend() {
+                if (!window.editorInstance) {
+                    parent.postMessage(
+                        { type: 'newsletter-error', reason: 'not-ready' },
+                        PARENT_ORIGIN
+                    );
+                    return;
+                }
 
-            const { html: compiledHtml, errors } = mjmlCompiler(mjml);
-            if (errors?.length) console.warn('MJML warnings:', errors);
+                /* ---- Compile MJML ---- */
+                const mjml = editorInstance.getHtml();
+                const css = editorInstance.getCss() || '';
+                const { html: compiledHtml, errors } = mjmlCompiler(mjml);
+                if (errors?.length) console.warn('[MJML] warnings:', errors);
 
-            let html = compiledHtml.replace(/max-width:\s*600px;?/gi, '');
+                /* ---- Merge + clean ---- */
+                let html = stripMaxWidth(compiledHtml);
+                const cleanedCss = stripMaxWidth(css);
+                if (cleanedCss.trim()) {
+                    html = `<style>${cleanedCss}</style>\n${html}`;
+                }
 
-            if (css && css.trim()) {
-                const cleanedCss = css.replace(/max-width:\s*600px;?/gi, '');
-                html = `<style>${cleanedCss}</style>\n${html}`;
+                /* ---- Scope everything ---- */
+                html = scopeCss(html);                                 // prefix selectors
+                html = `<div id="newsletter-wrapper">\n${html}\n</div>`; // isolate markup
+
+                /* ---- Ship it back to Bubble ---- */
+                log('➜ posting newsletter-html (len:', html.length, ')');
+                parent.postMessage(
+                    { type: 'newsletter-html', html },
+                    PARENT_ORIGIN
+                );
             }
 
-            log('➜ posting newsletter-html (len:', html.length, ')');
-            parent.postMessage({ type: 'newsletter-html', html }, PARENT_ORIGIN);
-        }
     </script>
 </body>
 
