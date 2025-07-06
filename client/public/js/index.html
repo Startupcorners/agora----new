@@ -121,33 +121,38 @@
         });
 
         /* ────────────────────────────────────────────────────────────── */
-            /* 1. Helper: prefix every selector with #newsletter-wrapper     */
+            /* 1. Helper: prefix ALL style rules with #newsletter-wrapper     */
             /* ────────────────────────────────────────────────────────────── */
-            function scopeCss(html, scopeId = '#newsletter-wrapper') {
-                return html.replace(
-                    /<style[^>]*>([\s\S]*?)<\/style>/,
-                    (_, cssRules) => {
-                        // Add the scopeId to each *top-level* selector
-                        const scopedRules = cssRules.replace(
-                            /(^|})\s*([^{}@]+?)(?=\s*{)/g,          // skip @media / @keyframes blocks
-                            (m, sep, selector) => {
-                                const clean = selector.trim();
-                                if (!clean || clean.startsWith('@')) return m;   // leave @-rules untouched
-                                return `${sep} ${scopeId} ${clean}`;
-                            }
-                        );
-                        return `<style>${scopedRules}</style>`;
-                    }
-                );
+            function scopeAllStyles(html, scope = '#newsletter-wrapper') {
+                return html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css) => {
+                    const scoped = css.replace(
+                        /(^|})\s*([^{}@]+?)(?=\s*{)/g,          // ignore @media/@keyframes
+                        (m, sep, sel) => {
+                            const clean = sel.trim();
+                            if (!clean || clean.startsWith('@')) return m;     // keep @-rules
+                            return `${sep} ${scope} ${clean}`;
+                        }
+                    );
+                    return `<style>${scoped}</style>`;
+                });
             }
 
             /* ────────────────────────────────────────────────────────────── */
-            /* 2. Helper: strip “max-width: 600px” (unchanged)               */
+            /* 2. Helper: drop max-width 600 px (unchanged)                   */
             /* ────────────────────────────────────────────────────────────── */
-            const stripMaxWidth = str => str.replace(/max-width:\s*600px;?/gi, '');
+            const stripMaxWidth = s => s.replace(/max-width:\s*600px;?/gi, '');
 
             /* ────────────────────────────────────────────────────────────── */
-            /* 3. Compile → scope → send                                     */
+            /* 3. Helper: remove outer html/head/body/doctype tags            */
+            /* ────────────────────────────────────────────────────────────── */
+            function stripOuterTags(html) {
+                return html
+                    .replace(/<!doctype[^>]*>/i, '')
+                    .replace(/<\/?(html|head|body)[^>]*>/gi, '');
+            }
+
+            /* ────────────────────────────────────────────────────────────── */
+            /* 4. Compile → clean → scope → send                              */
             /* ────────────────────────────────────────────────────────────── */
             function compileAndSend() {
                 if (!window.editorInstance) {
@@ -158,24 +163,23 @@
                     return;
                 }
 
-                /* ---- Compile MJML ---- */
+                /* --- compile MJML --- */
                 const mjml = editorInstance.getHtml();
                 const css = editorInstance.getCss() || '';
-                const { html: compiledHtml, errors } = mjmlCompiler(mjml);
+                const { html: rawHtml, errors } = mjmlCompiler(mjml);
                 if (errors?.length) console.warn('[MJML] warnings:', errors);
 
-                /* ---- Merge + clean ---- */
-                let html = stripMaxWidth(compiledHtml);
+                /* --- merge + clean --- */
+                let html = stripMaxWidth(rawHtml);
                 const cleanedCss = stripMaxWidth(css);
-                if (cleanedCss.trim()) {
-                    html = `<style>${cleanedCss}</style>\n${html}`;
-                }
+                if (cleanedCss.trim()) html = `<style>${cleanedCss}</style>\n${html}`;
 
-                /* ---- Scope everything ---- */
-                html = scopeCss(html);                                 // prefix selectors
-                html = `<div id="newsletter-wrapper">\n${html}\n</div>`; // isolate markup
+                /* --- isolate --- */
+                html = stripOuterTags(html);        // remove <html>, <head>, <body>, doctype
+                html = scopeAllStyles(html);        // prefix EVERY style block
+                html = `<div id="newsletter-wrapper">\n${html}\n</div>`; // wrap markup
 
-                /* ---- Ship it back to Bubble ---- */
+                /* --- ship it back to Bubble --- */
                 log('➜ posting newsletter-html (len:', html.length, ')');
                 parent.postMessage(
                     { type: 'newsletter-html', html },
