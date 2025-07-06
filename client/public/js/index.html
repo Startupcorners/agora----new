@@ -121,6 +121,9 @@
                 const mjml = editorInstance.getHtml();
                 const css = editorInstance.getCss() || '';
 
+                console.log('[compileAndSend] MJML:\n', mjml);
+            console.log('[compileAndSend] CSS:\n', css);
+
                 // Compile MJML
                 const { html: compiledHtml, errors } = mjmlCompiler(mjml);
                 if (errors?.length) console.warn('MJML warnings:', errors);
