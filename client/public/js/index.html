@@ -35,15 +35,17 @@
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
-        // Check SDK availability
-        log('GrapesJsStudioSDK available?', typeof GrapesJsStudioSDK);
-        log('createStudioEditor method exists?', typeof GrapesJsStudioSDK?.createStudioEditor);
+        // Check SDK structure
+        log('Checking GrapesJsStudioSDK structure...');
+        log('GrapesJsStudioSDK properties:', Object.keys(GrapesJsStudioSDK));
+
+        // Store reference to the studio before initialization
+        let studioInstance = null;
 
         log('Starting editor initialization...');
-        log('Project ID:', projectId);
-        log('User ID:', userId);
 
-        GrapesJsStudioSDK.createStudioEditor({
+        // Try to capture the studio instance
+        const initResult = GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: LICENSE_KEY,
             theme: 'light',
@@ -52,39 +54,92 @@
             assets: { storageType: 'cloud' },
             storage: { type: 'cloud' },
             experimental: { disablePremiumPlugins: true }
-        })
-            .then(ed => {
-                log('Promise resolved with:', ed);
-                log('Type of ed:', typeof ed);
-                log('Is ed null?', ed === null);
-                log('Is ed undefined?', ed === undefined);
+        });
 
-                if (ed && typeof ed === 'object') {
-                    log('Editor object exists');
-                    try {
-                        log('Editor constructor:', ed.constructor?.name);
-                        // Try to find available methods
-                        for (let key in ed) {
-                            if (typeof ed[key] === 'function') {
-                                log('Found method:', key);
-                            }
-                        }
-                        // Check for common GrapesJS methods
-                        log('Has getHtml?', typeof ed.getHtml);
-                        log('Has getCss?', typeof ed.getCss);
-                        log('Has getComponents?', typeof ed.getComponents);
-                        log('Has editor property?', !!ed.editor);
-                        log('Has instance property?', !!ed.instance);
-                    } catch (e) {
-                        log('Error inspecting editor:', e);
+        log('Init result type:', typeof initResult);
+        log('Init result:', initResult);
+
+        // Check if initResult has methods or properties
+        if (initResult && typeof initResult === 'object') {
+            log('Init result properties:', Object.keys(initResult));
+            studioInstance = initResult;
+        }
+
+        initResult
+            .then(ed => {
+                log('Promise resolved');
+
+                // Since ed is undefined, let's look for the editor elsewhere
+                // Check if the SDK has a way to get the current instance
+                log('Checking for SDK getInstance method...');
+                if (typeof GrapesJsStudioSDK.getInstance === 'function') {
+                    const instance = GrapesJsStudioSDK.getInstance();
+                    log('getInstance result:', instance);
+                    window.editorInstance = instance;
+                }
+
+                // Check if there's a global editor variable
+                log('Checking window for editor variables...');
+                for (let key in window) {
+                    if (key.includes('editor') || key.includes('grapes') || key.includes('studio')) {
+                        log('Found window property:', key, typeof window[key]);
                     }
                 }
 
-                window.editorInstance = ed;
-                log('Stored to window.editorInstance');
-                log('Verification - window.editorInstance exists?', !!window.editorInstance);
+                // Check the studio element for attached data
+                const studioEl = document.getElementById('studio-editor');
+                log('Studio element:', studioEl);
+                log('Studio element properties:', Object.keys(studioEl));
 
-                parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
+                // Check if the studio instance has methods
+                if (studioInstance) {
+                    log('Studio instance methods:');
+                    for (let key in studioInstance) {
+                        if (typeof studioInstance[key] === 'function') {
+                            log('  -', key);
+                        }
+                    }
+
+                    // Try common method names
+                    const possibleMethods = ['getEditor', 'getGrapesJS', 'getProject', 'getHtml', 'editor', 'gjs'];
+                    possibleMethods.forEach(method => {
+                        if (studioInstance[method]) {
+                            log(`studioInstance.${method} exists:`, typeof studioInstance[method]);
+                            if (typeof studioInstance[method] === 'function') {
+                                try {
+                                    const result = studioInstance[method]();
+                                    log(`studioInstance.${method}() result:`, result);
+                                } catch (e) {
+                                    log(`studioInstance.${method}() error:`, e.message);
+                                }
+                            }
+                        }
+                    });
+                }
+
+                // Set a timeout to check for the editor after the UI has loaded
+                setTimeout(() => {
+                    log('Checking for editor after timeout...');
+
+                    // Try to find the editor through the iframe
+                    const iframes = studioEl.getElementsByTagName('iframe');
+                    log('Found iframes:', iframes.length);
+
+                    for (let i = 0; i < iframes.length; i++) {
+                        try {
+                            log(`Iframe ${i} contentWindow:`, !!iframes[i].contentWindow);
+                            if (iframes[i].contentWindow && iframes[i].contentWindow.gjs) {
+                                log('Found gjs in iframe!');
+                                window.editorInstance = iframes[i].contentWindow.gjs;
+                            }
+                        } catch (e) {
+                            log(`Cannot access iframe ${i}:`, e.message);
+                        }
+                    }
+
+                    parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
+                }, 2000);
+
             })
             .catch(err => {
                 log('Editor initialization error:', err);
@@ -100,55 +155,69 @@
 
         function sendHtml() {
             log('sendHtml called');
-            log('window.editorInstance exists?', !!window.editorInstance);
-            log('window.editorInstance type:', typeof window.editorInstance);
 
-            if (!window.editorInstance) {
-                log('Editor instance not found!');
-                parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
-                return;
+            // Try multiple approaches to get the HTML
+            let html = null;
+            let css = null;
+
+            // Approach 1: window.editorInstance
+            if (window.editorInstance) {
+                log('Trying window.editorInstance...');
+                try {
+                    if (typeof window.editorInstance.getHtml === 'function') {
+                        html = window.editorInstance.getHtml();
+                        css = window.editorInstance.getCss();
+                    }
+                } catch (e) {
+                    log('Error with window.editorInstance:', e.message);
+                }
             }
 
-            try {
-                log('Attempting to get HTML/CSS...');
-                log('Editor instance:', window.editorInstance);
-
-                // Try different possible ways to access the methods
-                let html, css;
-
-                if (typeof window.editorInstance.getHtml === 'function') {
-                    html = window.editorInstance.getHtml();
-                    css = window.editorInstance.getCss();
-                } else if (window.editorInstance.editor && typeof window.editorInstance.editor.getHtml === 'function') {
-                    log('Trying through .editor property');
-                    html = window.editorInstance.editor.getHtml();
-                    css = window.editorInstance.editor.getCss();
-                } else if (window.editorInstance.instance && typeof window.editorInstance.instance.getHtml === 'function') {
-                    log('Trying through .instance property');
-                    html = window.editorInstance.instance.getHtml();
-                    css = window.editorInstance.instance.getCss();
-                } else {
-                    log('No getHtml method found on any expected path');
-                    parent.postMessage({ type: 'newsletter-error', reason: 'getHtml method not found' }, PARENT_ORIGIN);
-                    return;
+            // Approach 2: Check if studioInstance has evolved
+            if (!html && studioInstance) {
+                log('Trying studioInstance...');
+                try {
+                    // The studio instance might have a method to get the editor
+                    const editor = studioInstance.getEditor?.() || studioInstance.editor || studioInstance.gjs;
+                    if (editor && typeof editor.getHtml === 'function') {
+                        html = editor.getHtml();
+                        css = editor.getCss();
+                    }
+                } catch (e) {
+                    log('Error with studioInstance:', e.message);
                 }
+            }
 
+            // Approach 3: Try to extract from the iframe
+            if (!html) {
+                log('Trying iframe approach...');
+                const studioEl = document.getElementById('studio-editor');
+                const iframes = studioEl.getElementsByTagName('iframe');
+
+                for (let iframe of iframes) {
+                    try {
+                        if (iframe.contentWindow?.gjs) {
+                            html = iframe.contentWindow.gjs.getHtml();
+                            css = iframe.contentWindow.gjs.getCss();
+                            break;
+                        }
+                    } catch (e) {
+                        log('Cannot access iframe:', e.message);
+                    }
+                }
+            }
+
+            if (html !== null) {
                 log('Got HTML length:', html?.length, 'CSS length:', css?.length);
-                log('➜ posting newsletter-html to parent');
                 parent.postMessage(
                     { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
                     PARENT_ORIGIN
                 );
-            } catch (err) {
-                log('Error getting HTML/CSS:', err);
-                parent.postMessage({ type: 'newsletter-error', reason: err.message }, PARENT_ORIGIN);
+            } else {
+                log('Could not find a way to get HTML');
+                parent.postMessage({ type: 'newsletter-error', reason: 'Cannot access editor methods' }, PARENT_ORIGIN);
             }
         }
-
-        // Global error handler to catch any uncaught errors
-        window.addEventListener('error', (e) => {
-            log('Global error:', e.message, e.filename, e.lineno, e.colno);
-        });
     </script>
 </body>
 
