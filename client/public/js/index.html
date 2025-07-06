@@ -26,9 +26,10 @@
 <body>
     <div id="studio-editor"></div>
 
-    <script>
+    <!-- MAIN SCRIPT: type=module so we can use dynamic import() -->
+    <script type="module">
         /* ─── CONFIG ─────────────────────────────────────────────────────── */
-        const PARENT_ORIGIN = 'https://startupcorners.com';   // Bubble page
+        const PARENT_ORIGIN = 'https://startupcorners.com';            // Bubble page
         const LICENSE_KEY = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b';
 
         /* ─── HELPERS ────────────────────────────────────────────────────── */
@@ -37,64 +38,45 @@
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
-        function resolveCompiler() {
-            return (
-                window.mjml2html ||
-                (window.mjmlBrowser && window.mjmlBrowser.mjml2html) ||
-                (window.mjml && window.mjml.mjml2html)
+        /* ─── STEP 1: dynamically import mjml-browser ES module ─────────── */
+        try {
+            const mod = await import(
+                'https://cdn.jsdelivr.net/npm/mjml-browser@4.15.3/lib/index.js'
             );
-        }
-
-        function loadMjmlCompiler(cdns, onReady, onFail) {
-            const url = cdns.shift();
-            if (!url) { onFail(); return; }
-
-            const s = document.createElement('script');
-            s.src = url;
-            s.defer = false;
-            s.onload = () => {
-                if (resolveCompiler()) onReady();
-                else { log('Compiler not on window after', url); loadMjmlCompiler(cdns, onReady, onFail); }
-            };
-            s.onerror = () => { log('Failed to load', url); loadMjmlCompiler(cdns, onReady, onFail); };
-            document.head.appendChild(s);
-        }
-
-        /* ─── BOOTSTRAP ──────────────────────────────────────────────────── */
-        loadMjmlCompiler([
-            'https://cdn.jsdelivr.net/npm/mjml-browser@4.15.3/lib/index.js'
-        ], initStudio, () => {
-            console.error('MJML compiler failed to load');
-            parent.postMessage({ type: 'studio-error', message: 'MJML failed to load' }, PARENT_ORIGIN);
-        });
-
-        /* ─── INIT STUDIO AFTER COMPILER IS READY ───────────────────────── */
-        function initStudio() {
+            window.mjmlCompiler = mod.default || mod.mjml2html;
+            if (typeof window.mjmlCompiler !== 'function')
+                throw new Error('mjml2html not found in module');
             log('MJML compiler ready');
-
-            GrapesJsStudioSDK.createStudioEditor({
-                root: '#studio-editor',
-                licenseKey: LICENSE_KEY,
-                theme: 'light',
-                project: { type: 'email', id: projectId },
-                identity: { id: userId },
-                assets: { storageType: 'cloud' },
-                storage: { type: 'cloud' },
-                experimental: { disablePremiumPlugins: true },
-
-                onReady(editor) {
-                    window.editorInstance = editor;
-                    window.mjmlCompiler = resolveCompiler();
-                    parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
-                    log('Studio ready');
-                }
-            })
-                .catch(err => {
-                    parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
-                });
+        } catch (err) {
+            console.error('MJML failed to load:', err);
+            parent.postMessage({ type: 'studio-error', message: 'MJML failed to load' },
+                PARENT_ORIGIN);
+            throw err;
         }
 
-        /* ─── MESSAGE BRIDGE ─────────────────────────────────────────────── */
+        /* ─── STEP 2: mount Grapes Studio ───────────────────────────────── */
+        GrapesJsStudioSDK.createStudioEditor({
+            root: '#studio-editor',
+            licenseKey: LICENSE_KEY,
+            theme: 'light',
+            project: { type: 'email', id: projectId },
+            identity: { id: userId },
+            assets: { storageType: 'cloud' },
+            storage: { type: 'cloud' },
+            experimental: { disablePremiumPlugins: true },   // free plan
+
+            onReady(editor) {
+                window.editorInstance = editor;
+                parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
+                log('Studio ready');
+            }
+        })
+            .catch(err => {
+                parent.postMessage({ type: 'studio-error', message: String(err) },
+                    PARENT_ORIGIN);
+            });
+
+        /* ─── STEP 3: message bridge ────────────────────────────────────── */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
             if (e.data?.type === 'request-html') compileAndSend();
@@ -103,10 +85,6 @@
         function compileAndSend() {
             if (!window.editorInstance) {
                 parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
-                return;
-            }
-            if (!window.mjmlCompiler) {
-                parent.postMessage({ type: 'newsletter-error', reason: 'mjml-not-loaded' }, PARENT_ORIGIN);
                 return;
             }
 
