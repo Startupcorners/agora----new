@@ -7,7 +7,7 @@
     <title>Newsletter Builder</title>
 
     <!-- GrapesJS Studio SDK (core only) -->
-    <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css" />
+    <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
     <style>
@@ -27,60 +27,49 @@
     <div id="studio-editor"></div>
 
     <script>
-        /* ---------- CONSTANTS ------------------------------------------------- */
+        /**********************************************************************
+         * CHANGE THESE TWO LINES TO MATCH YOUR PROD / TEST DOMAINS
+         *********************************************************************/
         const PARENT_ORIGIN = 'https://startupcorners.com';        // Bubble page
-        const LICENSE_KEY = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b'; // free plan OK
+        const IFRAME_ORIGIN = 'https://startupcorners-df3e7.web.app';
+
         const log = (...a) => console.log('[iframe]', ...a);
 
-        /* ---------- INIT STUDIO ---------------------------------------------- */
-        const qs = new URLSearchParams(location.search);
-        const projectId = qs.get('project_id') || `project-${Date.now()}`;
-        const userId = qs.get('user_id') || `user-${Date.now()}`;
-
-        log('Booting editor → project', projectId, 'user', userId);
-
+        /* ---------- INIT STUDIO (no paid plugins) -------------------------- */
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
-            licenseKey: LICENSE_KEY,   // still needed for Cloud storage
+            licenseKey: 'free',          // anything non-empty works for Free plan
             theme: 'light',
-            project: { type: 'email', id: projectId },
-            identity: { id: userId },
-            assets: { storageType: 'cloud' },
-            storage: { type: 'cloud' },
-            experimental: { disablePremiumPlugins: true }
-            // ⬑ no plugins array ⇒ no premium UI ⇒ no licence-plan cleanup
+            experimental: { disablePremiumPlugins: true }   // ← kills cleanup loop
         })
             .then(ed => {
                 log('Editor ready ✔︎');
                 window.editorInstance = ed;
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
-            })
-            .catch(err => {
-                console.error('[iframe] init failed', err);
-                parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
             });
 
-        /* ---------- MESSAGE BRIDGE ------------------------------------------- */
-        window.addEventListener('message', e => {
+        /* ---------- LISTEN FOR PARENT REQUEST ------------------------------ */
+        addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
-            log('Message from parent:', e.data);
             if (e.data?.type === 'request-html') sendHtml();
         });
 
         function sendHtml() {
-                if (!window.editorInstance) {
-                    parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
-                    return;
-                }
-                + console.log('[iframe] ➜ posting newsletter-html to parent');   // NEW
-                const html = editorInstance.getHtml();
-                const css = editorInstance.getCss();
+            if (!window.editorInstance) {
                 parent.postMessage(
-                    { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
+                    { type: 'newsletter-error', reason: 'not-ready' },
                     PARENT_ORIGIN
                 );
+                return;
             }
-
+            const html = editorInstance.getHtml();
+            const css = editorInstance.getCss();
+            log('➜ posting newsletter-html to parent');        // <-- see this
+            parent.postMessage(
+                { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
+                PARENT_ORIGIN
+            );
+        }
     </script>
 </body>
 
