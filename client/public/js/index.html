@@ -143,12 +143,13 @@
                 const styleMatch = compiledHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
                 const styleOnly = styleMatch ? `<style>${styleMatch[1]}</style>` : '';
 
-                // Final embeddable HTML (safe to inject into innerHTML)
-                const finalHtml = `${styleOnly}\n${bodyOnly}`.replace(/max-width:\s*600px;?/gi, '');
+                // ✨ Keep the original max-width declarations
+                const finalHtml = `${styleOnly}\n${bodyOnly}`;
 
                 log('➜ posting newsletter-html (len:', finalHtml.length, ')');
                 parent.postMessage({ type: 'newsletter-html', html: finalHtml }, PARENT_ORIGIN);
             }
+
 
     </script>
 </body>
