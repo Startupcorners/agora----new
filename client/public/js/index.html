@@ -24,42 +24,25 @@
         #studio-editor {
             height: 100dvh
         }
-
-        .floating-btn {
-            position: fixed;
-            bottom: 25px;
-            right: 25px;
-            padding: 12px 24px;
-            border: none;
-            border-radius: 30px;
-            background: #007bff;
-            color: #fff;
-            font: 16px/1.2 sans-serif;
-            font-weight: 700;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, .2);
-            cursor: pointer;
-            display: none;
-            z-index: 1000;
-        }
     </style>
 </head>
 
 <body>
-
     <div id="studio-editor"></div>
-    <button id="floating-publish-btn" class="floating-btn">Publish</button>
 
     <script>
-        /* ---------- CONFIG ----------------------------------------------------- */
+        /* ---------- CONSTANTS -------------------------------------------------- */
+        const PARENT_ORIGIN = 'https://startupcorners.com';  // adjust if needed
 
-        // Change this to the exact origin of the Bubble page for extra safety.
-        const PARENT_ORIGIN = 'https://startupcorners.com';
+        /* ---------- HELPERS ---------------------------------------------------- */
+        const log = (...args) => console.log('[iframe]', ...args);
 
         /* ---------- INIT EDITOR ------------------------------------------------ */
-
         const qs = new URLSearchParams(location.search);
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
+
+        log('Booting editor → project:', projectId, 'user:', userId);
 
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
@@ -75,39 +58,44 @@
             ]
         })
             .then(editor => {
-                console.log('[Studio] ready');
-                window.editorInstance = editor;           // keep a reference
+                log('Editor ready ✔︎');
+                window.editorInstance = editor;
 
-                // Let parent know the editor is ready (optional but handy)
+                // notify parent
                 window.parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
-
-                // Reveal floating “Publish” button inside the iframe (optional)
-                const publishBtn = document.getElementById('floating-publish-btn');
-                publishBtn.style.display = 'block';
-                publishBtn.addEventListener('click', transmitHtmlToParent);
             })
-            .catch(err => console.error('[Studio] init failed →', err));
+            .catch(err => {
+                console.error('[iframe] Editor init failed ✖︎ →', err);
+                window.parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
+            });
 
-        /* ---------- MESSAGING -------------------------------------------------- */
-
-        // ① Parent → iframe : listen for “request-html” message
+        /* ---------- MESSAGE BRIDGE -------------------------------------------- */
         window.addEventListener('message', event => {
-            if (event.origin !== PARENT_ORIGIN) return;            // guard
-            if (event.data?.type === 'request-html') transmitHtmlToParent();
+            if (event.origin !== PARENT_ORIGIN) return;
+            log('Message from parent:', event.data);
+
+            if (event.data?.type === 'request-html') {
+                transmitHtmlToParent();
+            }
         });
 
-        // ② iframe → Parent : package HTML+CSS and send it upstairs
         function transmitHtmlToParent() {
             if (!window.editorInstance) {
-                alert('Editor is not ready yet.');                   // rare edge case
+                log('Editor not ready when asked for HTML → sending error');
+                window.parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
                 return;
             }
+
+            log('Collecting HTML/CSS for parent...');
             const html = editorInstance.getHtml();
             const css = editorInstance.getCss();
-            window.parent.postMessage({
+            const payload = {
                 type: 'newsletter-html',
                 html: `<style>${css}</style>${html}`
-            }, PARENT_ORIGIN);
+            };
+
+            window.parent.postMessage(payload, PARENT_ORIGIN);
+            log('HTML sent to parent ✔︎ (length', payload.html.length, 'chars)');
         }
     </script>
 </body>
