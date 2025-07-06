@@ -59,7 +59,11 @@
             project: { type: 'email', id: projectId },
             identity: { id: userId },
             assets: { storageType: 'cloud' },
-            storage: { type: 'cloud' },
+            storage: {
+                type: 'cloud',
+                autosaveChanges: 100,
+                autosaveIntervalMs: 10000
+            },
             experimental: { disablePremiumPlugins: true },
 
             onReady(editor) {
@@ -77,19 +81,19 @@
 <mj-section background-color="#ffffff" padding="40px 20px">
   <mj-column>
     <mj-text align="center" font-size="22px" font-weight="bold" color="#333333" padding-bottom="10px">
-      ✏️ Program Descriptionzfg
+      ✏️ Program Description
     </mj-text>
     <mj-divider border-color="#dddddd" border-width="1px" padding-bottom="15px" />
     <mj-text font-size="16px" color="#777777" line-height="1.6">
       This is a placeholder description for your program. You can edit this section to describe what your program is about — who it's for, what they'll learn or experience, and why it's special.
     </mj-text>
     <mj-text font-size="16px" color="#999999" font-style="italic" padding-top="10px">
-      ✨ Example: "Our 8-week bootcamp helps early-stage startups validate their idea, build MVPs, and pitch to investors."
+      ✨ Example: “Our 8-week bootcamp helps early-stage startups validate their idea, build MVPs, and pitch to investors.”
     </mj-text>
   </mj-column>
 </mj-section>
 `.trim();
-                    editor.setComponents(defaultHtml);
+                  editor.setComponents(defaultHtml);
                     editor.setStyle(''); // or your custom default CSS
 
                     // Optional: Trigger an autosave
@@ -105,70 +109,34 @@
         /* ─── 3. Bridge to Bubble ────────────────────────────────── */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
-
-            if (e.data?.type === 'request-html') {
-                compileAndSend();
-            } else if (e.data?.type === 'save-project') {
-                saveProject();
-            }
+            if (e.data?.type === 'request-html') compileAndSend();
         });
 
-        function saveProject() {
-            if (!window.editorInstance) {
-                log('Editor not ready, cannot save');
-                parent.postMessage({ type: 'save-error', reason: 'not-ready' }, PARENT_ORIGIN);
-                return;
+        function compileAndSend() {
+                if (!window.editorInstance) {
+                    parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
+                    return;
+                }
+
+                const mjml = editorInstance.getHtml();
+                const css = editorInstance.getCss() || '';
+
+                // Compile MJML
+                const { html: compiledHtml, errors } = mjmlCompiler(mjml);
+                if (errors?.length) console.warn('MJML warnings:', errors);
+
+                // OPTIONAL: Remove all instances of "max-width:600px"
+                let html = compiledHtml.replace(/max-width:\s*600px;?/gi, '');
+
+                // OPTIONAL: Clean up inline CSS that might still limit width
+                if (css && css.trim()) {
+                    const cleanedCss = css.replace(/max-width:\s*600px;?/gi, '');
+                    html = `<style>${cleanedCss}</style>\n${html}`;
+                }
+
+                log('➜ posting newsletter-html (len:', html.length, ')');
+                parent.postMessage({ type: 'newsletter-html', html }, PARENT_ORIGIN);
             }
-
-            log('Saving project...');
-
-            // Trigger the store/save operation
-            window.editorInstance.store()
-                .then(() => {
-                    log('Project saved successfully');
-                    parent.postMessage({ type: 'save-success' }, PARENT_ORIGIN);
-                })
-                .catch(err => {
-                    log('Save failed:', err);
-                    parent.postMessage({ type: 'save-error', reason: String(err) }, PARENT_ORIGIN);
-                });
-        }
-
-        async function compileAndSend() {
-            if (!window.editorInstance) {
-                parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
-                return;
-            }
-
-            // Save the project before compiling
-            try {
-                log('Saving project before publish...');
-                await window.editorInstance.store();
-                log('Project saved');
-            } catch (saveErr) {
-                log('Warning: Could not save project:', saveErr);
-                // Continue with publishing even if save fails
-            }
-
-            const mjml = editorInstance.getHtml();
-            const css = editorInstance.getCss() || '';
-
-            // Compile MJML
-            const { html: compiledHtml, errors } = mjmlCompiler(mjml);
-            if (errors?.length) console.warn('MJML warnings:', errors);
-
-            // OPTIONAL: Remove all instances of "max-width:600px"
-            let html = compiledHtml.replace(/max-width:\s*600px;?/gi, '');
-
-            // OPTIONAL: Clean up inline CSS that might still limit width
-            if (css && css.trim()) {
-                const cleanedCss = css.replace(/max-width:\s*600px;?/gi, '');
-                html = `<style>${cleanedCss}</style>\n${html}`;
-            }
-
-            log('➜ posting newsletter-html (len:', html.length, ')');
-            parent.postMessage({ type: 'newsletter-html', html }, PARENT_ORIGIN);
-        }
 
     </script>
 </body>
