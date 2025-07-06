@@ -6,22 +6,20 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Newsletter Builder</title>
 
-    <!-- GrapesJS Studio SDK (core only) -->
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
-    <!-- MJML browser bundle (UMD) — attaches mjml2html to window -->
     <script src="https://cdn.jsdelivr.net/npm/mjml-browser@4.15.3/lib/index.js"></script>
 
     <style>
         html,
         body {
             height: 100%;
-            margin: 0
+            margin: 0;
         }
 
         #studio-editor {
-            height: 100dvh
+            height: 100dvh;
         }
     </style>
 </head>
@@ -29,10 +27,9 @@
 <body>
     <div id="studio-editor"></div>
 
-    <!-- MAIN SCRIPT (runs after both libraries above) -->
-    <script>
+    <script type="module">
         /* ─── CONFIG ─────────────────────────────────────────────── */
-        const PARENT_ORIGIN = 'https://startupcorners.com';   // Bubble page
+        const PARENT_ORIGIN = 'https://startupcorners.com';
         const LICENSE_KEY = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b';
 
         /* ─── HELPERS ────────────────────────────────────────────── */
@@ -41,27 +38,20 @@
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
-        /* Robust resolver: returns the first valid function it finds */
-        function resolveCompiler() {
-            const candidates = [
-                window.mjml2html,
-                window.mjmlBrowser && window.mjmlBrowser.mjml2html,
-                window.mjml && window.mjml.mjml2html
-            ];
-            return candidates.find(fn => typeof fn === 'function');
+        /* ─── 1. Check for MJML compiler ─────────────────────────── */
+        // It's already loaded via the <script> tag, we just need to find it.
+        const mjmlCompiler = window.mjml2html || (window.mjmlBrowser && window.mjmlBrowser.mjml2html);
+
+        if (typeof mjmlCompiler !== 'function') {
+            const errorMsg = 'MJML compiler failed to load.';
+            console.error(errorMsg);
+            parent.postMessage({ type: 'studio-error', message: errorMsg }, PARENT_ORIGIN);
+            throw new Error(errorMsg);
         }
 
-        /* Make sure the compiler really loaded */
-        window.mjmlCompiler = resolveCompiler();
-        if (!window.mjmlCompiler) {
-            console.error('MJML compiler failed to attach');
-            parent.postMessage({ type: 'studio-error', message: 'MJML failed to load' },
-                PARENT_ORIGIN);
-            throw new Error('MJML compiler missing');
-        }
         log('MJML compiler ready');
 
-        /* ─── Mount Grapes Studio ─────────────────────────────────── */
+        /* ─── 2. Mount Grapes Studio ─────────────────────────────── */
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: LICENSE_KEY,
@@ -70,7 +60,7 @@
             identity: { id: userId },
             assets: { storageType: 'cloud' },
             storage: { type: 'cloud' },
-            experimental: { disablePremiumPlugins: true },   // stay on free plan
+            experimental: { disablePremiumPlugins: true },
 
             onReady(editor) {
                 window.editorInstance = editor;
@@ -82,7 +72,7 @@
                 parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
             });
 
-        /* ─── Message bridge ─────────────────────────────────────── */
+        /* ─── 3. Bridge to Bubble ────────────────────────────────── */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
             if (e.data?.type === 'request-html') compileAndSend();
@@ -97,7 +87,8 @@
             const mjml = editorInstance.getHtml();
             const css = editorInstance.getCss() || '';
 
-            const { html, errors } = window.mjmlCompiler(mjml, { minify: true });
+            // Use the compiler we found earlier
+            const { html, errors } = mjmlCompiler(mjml, { minify: true });
             if (errors?.length) console.warn('MJML warnings:', errors);
 
             const finalHtml = css && css.trim()
