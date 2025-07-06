@@ -21,6 +21,7 @@
     "agora-rtc-sdk-ng": "4.20.2",
     "agora-rtm-sdk": "^2.2.0",
     "axios": "^1.7.9",
-    "mjml": "^4.15.3"
+    "mjml": "^4.15.3",
+    "mjml-browser": "^4.15.3"
   }
 }
