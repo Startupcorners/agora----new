@@ -6,8 +6,6 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Newsletter Builder</title>
 
-    <!-- ✅ Include Roboto -->
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
@@ -41,6 +39,7 @@
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
         /* ─── 1. Check for MJML compiler ─────────────────────────── */
+        // MJML browser version exports as window.mjml
         const mjmlCompiler = window.mjml;
 
         if (typeof mjmlCompiler !== 'function') {
@@ -72,16 +71,6 @@
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
                 log('Studio ready');
 
-                // ✅ Force Roboto globally
-                editor.setStyle(`
-          * {
-            font-family: 'Roboto', sans-serif !important;
-          }
-        `);
-
-                // ✅ Remove font-family from style manager
-                editor.StyleManager.removeProperty('typography', 'font-family');
-
                 // Step 1: Check if the project is empty
                 const components = editor.getComponents();
                 if (components.length === 0) {
@@ -104,15 +93,18 @@
   </mj-column>
 </mj-section>
 `.trim();
+                  editor.setComponents(defaultHtml);
+                    editor.setStyle(''); // or your custom default CSS
 
-                    editor.setComponents(defaultHtml);
+                    // Optional: Trigger an autosave
                     editor.store();
                 }
             }
 
-        }).catch(err => {
-            parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
-        });
+        })
+            .catch(err => {
+                parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
+            });
 
         /* ─── 3. Bridge to Bubble ────────────────────────────────── */
         addEventListener('message', e => {
@@ -120,45 +112,33 @@
             if (e.data?.type === 'request-html') compileAndSend();
         });
 
-        /* ───────── helpers ───────── */
-            const stripMaxWidth = s => s.replace(/max-width:\s*600px;?/gi, '');
-            const esc = s => s               // escape for srcdoc
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-
-            /* ───────── main ───────── */
-            function compileAndSend() {
+        function compileAndSend() {
                 if (!window.editorInstance) {
-                    parent.postMessage(
-                        { type: 'newsletter-error', reason: 'not-ready' },
-                        PARENT_ORIGIN
-                    );
+                    parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
                     return;
                 }
 
-                /* 1. Compile MJML → HTML  */
                 const mjml = editorInstance.getHtml();
-                const extraCss = stripMaxWidth(editorInstance.getCss() || '');
-                const { html } = mjmlCompiler(mjml);   // (warnings are fine)
-                let emailHtml = stripMaxWidth(html);
-                if (extraCss.trim()) emailHtml = `<style>${extraCss}</style>\n${emailHtml}`;
+                const css = editorInstance.getCss() || '';
 
-                /* 2. Build the iframe block */
-                const iframe = `
-    <iframe
-      id="newsletter-preview"
-      style="width:100%;height:100%;border:0"
-      sandbox="allow-same-origin"
-      srcdoc="${esc(emailHtml)}"
-    ></iframe>`.trim();
+                console.log('[compileAndSend] MJML:\n', mjml);
+            console.log('[compileAndSend] CSS:\n', css);
 
-                /* 3. Post ONLY the iframe */
-                parent.postMessage(
-                    { type: 'newsletter-iframe', iframe },
-                    PARENT_ORIGIN
-                );
+                // Compile MJML
+                const { html: compiledHtml, errors } = mjmlCompiler(mjml);
+                if (errors?.length) console.warn('MJML warnings:', errors);
+
+                // OPTIONAL: Remove all instances of "max-width:600px"
+                let html = compiledHtml.replace(/max-width:\s*600px;?/gi, '');
+
+                // OPTIONAL: Clean up inline CSS that might still limit width
+                if (css && css.trim()) {
+                    const cleanedCss = css.replace(/max-width:\s*600px;?/gi, '');
+                    html = `<style>${cleanedCss}</style>\n${html}`;
+                }
+
+                log('➜ posting newsletter-html (len:', html.length, ')');
+                parent.postMessage({ type: 'newsletter-html', html }, PARENT_ORIGIN);
             }
 
     </script>
