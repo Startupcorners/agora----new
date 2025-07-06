@@ -120,53 +120,43 @@
             if (e.data?.type === 'request-html') compileAndSend();
         });
 
-        /* ────────────────────────────────────────────────────────────── */
-            /* Helpers                                                       */
-            /* ────────────────────────────────────────────────────────────── */
-
-            /* 1. Remove MJML’s max-width:600px rules (keeps e-mail responsive) */
+        /* ───────── helpers ───────── */
             const stripMaxWidth = s => s.replace(/max-width:\s*600px;?/gi, '');
+            const esc = s => s               // escape for srcdoc
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
 
-            /* 2. Escape HTML so it’s safe for srcdoc="" */
-            function htmlToSrcdoc(str) {
-                return str
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;');
-            }
-
-            /* ────────────────────────────────────────────────────────────── */
-            /* Compile → build iframe → post back to Bubble                   */
-            /* ────────────────────────────────────────────────────────────── */
+            /* ───────── main ───────── */
             function compileAndSend() {
                 if (!window.editorInstance) {
-                    parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
+                    parent.postMessage(
+                        { type: 'newsletter-error', reason: 'not-ready' },
+                        PARENT_ORIGIN
+                    );
                     return;
                 }
 
-                /* 1. Compile MJML to raw HTML */
+                /* 1. Compile MJML → HTML  */
                 const mjml = editorInstance.getHtml();
                 const extraCss = stripMaxWidth(editorInstance.getCss() || '');
-                const { html: compiledHtml, errors } = mjmlCompiler(mjml);
-                if (errors?.length) console.warn('[MJML] warnings:', errors);
-
-                /* 2. Merge extra CSS and strip 600 px limits */
-                let emailHtml = stripMaxWidth(compiledHtml);
+                const { html } = mjmlCompiler(mjml);   // (warnings are fine)
+                let emailHtml = stripMaxWidth(html);
                 if (extraCss.trim()) emailHtml = `<style>${extraCss}</style>\n${emailHtml}`;
 
-                /* 3. Build sandboxed iframe for safe preview */
-                const iframePreview = `
+                /* 2. Build the iframe block */
+                const iframe = `
     <iframe
       id="newsletter-preview"
       style="width:100%;height:100%;border:0"
       sandbox="allow-same-origin"
-      srcdoc="${htmlToSrcdoc(emailHtml)}"
+      srcdoc="${esc(emailHtml)}"
     ></iframe>`.trim();
 
-                /* 4. Post both raw HTML (for saving/sending) and iframe (for preview) */
+                /* 3. Post ONLY the iframe */
                 parent.postMessage(
-                    { type: 'newsletter-html', html: emailHtml, preview: iframePreview },
+                    { type: 'newsletter-iframe', iframe },
                     PARENT_ORIGIN
                 );
             }
