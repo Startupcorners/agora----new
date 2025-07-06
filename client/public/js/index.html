@@ -38,93 +38,20 @@
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
-        log('Script starting...');
-        log('Project ID:', projectId);
-        log('User ID:', userId);
-
         /* ─── 1. Check for MJML compiler ─────────────────────────── */
-        log('Checking for MJML compiler...');
+        // MJML browser version exports as window.mjml
+        const mjmlCompiler = window.mjml;
 
-        // Log all window properties that might contain MJML
-        log('window.mjml2html:', typeof window.mjml2html);
-        log('window.mjmlBrowser:', typeof window.mjmlBrowser);
-        log('window.mjml:', typeof window.mjml);
-
-        // Log all properties of window that contain 'mjml' (case insensitive)
-        const mjmlKeys = Object.keys(window).filter(key => key.toLowerCase().includes('mjml'));
-        log('Window keys containing "mjml":', mjmlKeys);
-
-        // Check if mjmlBrowser loaded and what it contains
-        if (window.mjmlBrowser) {
-            log('mjmlBrowser object keys:', Object.keys(window.mjmlBrowser));
-            log('mjmlBrowser.mjml2html type:', typeof window.mjmlBrowser.mjml2html);
-
-            // Check for default export
-            if (window.mjmlBrowser.default) {
-                log('mjmlBrowser.default type:', typeof window.mjmlBrowser.default);
-                log('mjmlBrowser.default keys:', Object.keys(window.mjmlBrowser.default || {}));
-            }
-        }
-
-        // Try multiple ways to find the compiler
-        let mjmlCompiler = null;
-
-        // Method 1: Direct window.mjml2html
-        if (typeof window.mjml2html === 'function') {
-            mjmlCompiler = window.mjml2html;
-            log('Found compiler at window.mjml2html');
-        }
-        // Method 2: window.mjmlBrowser.mjml2html
-        else if (window.mjmlBrowser && typeof window.mjmlBrowser.mjml2html === 'function') {
-            mjmlCompiler = window.mjmlBrowser.mjml2html;
-            log('Found compiler at window.mjmlBrowser.mjml2html');
-        }
-        // Method 3: window.mjmlBrowser.default
-        else if (window.mjmlBrowser && window.mjmlBrowser.default && typeof window.mjmlBrowser.default === 'function') {
-            mjmlCompiler = window.mjmlBrowser.default;
-            log('Found compiler at window.mjmlBrowser.default');
-        }
-        // Method 4: window.mjml
-        else if (window.mjml && typeof window.mjml === 'function') {
-            mjmlCompiler = window.mjml;
-            log('Found compiler at window.mjml');
-        }
-        // Method 5: Check if mjmlBrowser itself is the function
-        else if (typeof window.mjmlBrowser === 'function') {
-            mjmlCompiler = window.mjmlBrowser;
-            log('Found compiler as window.mjmlBrowser itself');
-        }
-
-        if (!mjmlCompiler) {
-            const errorMsg = 'MJML compiler failed to load. Could not find mjml2html function.';
+        if (typeof mjmlCompiler !== 'function') {
+            const errorMsg = 'MJML compiler failed to load.';
             console.error(errorMsg);
-
-            // Log more debugging info
-            log('Debugging info:');
-            log('Script tag exists:', !!document.querySelector('script[src*="mjml-browser"]'));
-            log('Window object sample keys:', Object.keys(window).slice(0, 20));
-
             parent.postMessage({ type: 'studio-error', message: errorMsg }, PARENT_ORIGIN);
             throw new Error(errorMsg);
         }
 
-        log('MJML compiler ready, type:', typeof mjmlCompiler);
-
-        /* ─── Test MJML compiler ─────────────────────────────────── */
-        try {
-            log('Testing MJML compiler with simple template...');
-            const testResult = mjmlCompiler('<mjml><mj-body><mj-section><mj-column><mj-text>Test</mj-text></mj-column></mj-section></mj-body></mjml>');
-            log('Test compilation result:', testResult ? 'Success' : 'Failed');
-            if (testResult && testResult.html) {
-                log('Test HTML length:', testResult.html.length);
-            }
-        } catch (testErr) {
-            log('MJML test compilation error:', testErr);
-        }
+        log('MJML compiler ready');
 
         /* ─── 2. Mount Grapes Studio ─────────────────────────────── */
-        log('Mounting GrapesJS Studio...');
-
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: LICENSE_KEY,
@@ -136,102 +63,41 @@
             experimental: { disablePremiumPlugins: true },
 
             onReady(editor) {
-                log('Studio ready callback fired');
                 window.editorInstance = editor;
-                log('Editor instance saved to window');
-
-                // Log editor methods
-                log('Editor methods:', Object.keys(editor).filter(k => typeof editor[k] === 'function').slice(0, 10));
-
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
-                log('Posted studio-ready message to parent');
+                log('Studio ready');
             }
         })
-            .then(() => {
-                log('Studio creation promise resolved');
-            })
             .catch(err => {
-                log('Studio creation error:', err);
                 parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
             });
 
         /* ─── 3. Bridge to Bubble ────────────────────────────────── */
-        log('Setting up message listener...');
-
         addEventListener('message', e => {
-            log('Received message from:', e.origin);
-            log('Message data:', e.data);
-
-            if (e.origin !== PARENT_ORIGIN) {
-                log('Ignoring message from unauthorized origin');
-                return;
-            }
-
-            if (e.data?.type === 'request-html') {
-                log('Received request-html message');
-                compileAndSend();
-            }
+            if (e.origin !== PARENT_ORIGIN) return;
+            if (e.data?.type === 'request-html') compileAndSend();
         });
 
         function compileAndSend() {
-            log('compileAndSend called');
-
             if (!window.editorInstance) {
-                log('Editor instance not ready');
                 parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
                 return;
             }
 
-            log('Getting MJML from editor...');
             const mjml = editorInstance.getHtml();
-            log('MJML length:', mjml?.length || 0);
-            log('MJML preview:', mjml?.substring(0, 100) + '...');
-
             const css = editorInstance.getCss() || '';
-            log('CSS length:', css.length);
 
-            try {
-                log('Compiling MJML...');
-                const result = mjmlCompiler(mjml, { minify: true });
-                log('Compilation result:', result);
+            // Compile MJML without the deprecated minify option
+            const { html, errors } = mjmlCompiler(mjml);
+            if (errors?.length) console.warn('MJML warnings:', errors);
 
-                const { html, errors } = result || {};
+            const finalHtml = css && css.trim()
+                ? `<style>${css}</style>\n${html}`
+                : html;
 
-                if (errors?.length) {
-                    console.warn('MJML warnings:', errors);
-                    log('MJML compilation warnings count:', errors.length);
-                }
-
-                if (!html) {
-                    log('No HTML generated from MJML compilation');
-                    parent.postMessage({ type: 'newsletter-error', reason: 'compilation-failed' }, PARENT_ORIGIN);
-                    return;
-                }
-
-                const finalHtml = css && css.trim()
-                    ? `<style>${css}</style>\n${html}`
-                    : html;
-
-                log('Final HTML length:', finalHtml.length);
-                log('➜ posting newsletter-html to parent');
-                parent.postMessage({ type: 'newsletter-html', html: finalHtml }, PARENT_ORIGIN);
-                log('Message posted successfully');
-            } catch (compileErr) {
-                log('MJML compilation error:', compileErr);
-                parent.postMessage({
-                    type: 'newsletter-error',
-                    reason: 'compilation-error',
-                    error: String(compileErr)
-                }, PARENT_ORIGIN);
-            }
+            log('➜ posting newsletter-html (len:', finalHtml.length, ')');
+            parent.postMessage({ type: 'newsletter-html', html: finalHtml }, PARENT_ORIGIN);
         }
-
-        // Add a global error handler
-        window.addEventListener('error', (e) => {
-            log('Global error:', e.message, 'at', e.filename, ':', e.lineno);
-        });
-
-        log('Script initialization complete');
     </script>
 </body>
 
