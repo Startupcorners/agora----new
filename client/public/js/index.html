@@ -6,22 +6,20 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Newsletter Builder</title>
 
-    <!-- GrapesJS Studio SDK -->
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
 
-    <!-- MJML browser build -->
     <script src="https://unpkg.com/mjml-browser/dist/mjml-browser.min.js"></script>
 
     <style>
         html,
         body {
             height: 100%;
-            margin: 0
+            margin: 0;
         }
 
         #studio-editor {
-            height: 100dvh
+            height: 100dvh;
         }
     </style>
 </head>
@@ -40,55 +38,43 @@
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
-        /* ─── WAIT FOR MJML TO LOAD ─── */
-        let mjmlReady = false;
         let mjmlCompiler = null;
 
-        // The dist version exposes mjml as window.mjml with mjml2html as a property
-        const checkMjml = setInterval(() => {
-            if (window.mjml && window.mjml.mjml2html) {
+        /* ─── INITIALIZE WHEN READY ─── */
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.mjml && typeof window.mjml.mjml2html === 'function') {
+                log('MJML ready');
                 mjmlCompiler = window.mjml.mjml2html;
-                mjmlReady = true;
-                clearInterval(checkMjml);
-                log('MJML ready (window.mjml.mjml2html)');
+                initStudio();
+            } else {
+                console.error('MJML failed to load.');
+                parent.postMessage({ type: 'studio-error', message: 'MJML failed to load' }, PARENT_ORIGIN);
             }
-        }, 100);
-
-        // Stop checking after 5 seconds
-        setTimeout(() => {
-            clearInterval(checkMjml);
-            if (!mjmlReady) {
-                console.error('MJML failed to load after 5 seconds');
-                console.log('Available:', {
-                    'window.mjml': window.mjml,
-                    'keys': window.mjml ? Object.keys(window.mjml) : 'not loaded'
-                });
-            }
-        }, 5000);
+        });
 
         /* ─── INIT STUDIO ─── */
-        GrapesJsStudioSDK.createStudioEditor({
-            root: '#studio-editor',
-            licenseKey: LICENSE_KEY,
-            theme: 'light',
-            project: { type: 'email', id: projectId },
-            identity: { id: userId },
-            assets: { storageType: 'cloud' },
-            storage: { type: 'cloud' },
-            experimental: { disablePremiumPlugins: true },
-
-            onReady(editor) {
-                log('Studio ready');
-                window.editorInstance = editor;
-                parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
-            }
-        })
-            .catch(err => {
+        function initStudio() {
+            GrapesJsStudioSDK.createStudioEditor({
+                root: '#studio-editor',
+                licenseKey: LICENSE_KEY,
+                theme: 'light',
+                project: { type: 'email', id: projectId },
+                identity: { id: userId },
+                assets: { storageType: 'cloud' },
+                storage: { type: 'cloud' },
+                experimental: { disablePremiumPlugins: true },
+                onReady(editor) {
+                    log('Studio ready');
+                    window.editorInstance = editor;
+                    parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
+                }
+            }).catch(err => {
                 parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
             });
+        }
 
         /* ─── MESSAGE BRIDGE ─── */
-        addEventListener('message', e => {
+        window.addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
             if (e.data?.type === 'request-html') compileAndSend();
         });
@@ -99,21 +85,16 @@
                 return;
             }
 
-            if (!mjmlReady || !mjmlCompiler) {
-                parent.postMessage({
-                    type: 'newsletter-error',
-                    reason: 'mjml-not-loaded'
-                }, PARENT_ORIGIN);
+            if (!mjmlCompiler) {
+                parent.postMessage({ type: 'newsletter-error', reason: 'mjml-not-loaded' }, PARENT_ORIGIN);
                 console.error('MJML compiler not ready');
                 return;
             }
 
             try {
-                /* 1. Get MJML content */
                 const mjmlContent = editorInstance.getHtml();
                 const css = editorInstance.getCss();
 
-                /* 2. Compile MJML to HTML */
                 const result = mjmlCompiler(mjmlContent, {
                     minify: true,
                     validationLevel: 'soft',
@@ -124,18 +105,15 @@
                     console.warn('MJML compilation warnings:', result.errors);
                 }
 
-                /* 3. Combine CSS if any */
                 const finalHtml = css.trim()
                     ? `<style>${css}</style>\n${result.html}`
                     : result.html;
 
-                /* 4. Send to parent */
                 log('➜ posting newsletter-html (len:', finalHtml.length, ')');
                 parent.postMessage(
                     { type: 'newsletter-html', html: finalHtml },
                     PARENT_ORIGIN
                 );
-
             } catch (error) {
                 console.error('MJML compilation error:', error);
                 parent.postMessage({
@@ -144,15 +122,6 @@
                 }, PARENT_ORIGIN);
             }
         }
-
-        // Debug: log what's available after page load
-        window.addEventListener('load', () => {
-            console.log('Page loaded. Checking for MJML:', {
-                'window.mjml': window.mjml,
-                'window.mjml.mjml2html': window.mjml && typeof window.mjml.mjml2html,
-                'mjmlReady': mjmlReady
-            });
-        });
     </script>
 </body>
 
