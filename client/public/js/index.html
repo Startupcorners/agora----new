@@ -121,68 +121,52 @@
         });
 
         /* ────────────────────────────────────────────────────────────── */
-            /* 1. Helper: prefix ALL style rules with #newsletter-wrapper     */
+            /* Helpers                                                       */
             /* ────────────────────────────────────────────────────────────── */
-            function scopeAllStyles(html, scope = '#newsletter-wrapper') {
-                return html.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, (_, css) => {
-                    const scoped = css.replace(
-                        /(^|})\s*([^{}@]+?)(?=\s*{)/g,          // ignore @media/@keyframes
-                        (m, sep, sel) => {
-                            const clean = sel.trim();
-                            if (!clean || clean.startsWith('@')) return m;     // keep @-rules
-                            return `${sep} ${scope} ${clean}`;
-                        }
-                    );
-                    return `<style>${scoped}</style>`;
-                });
-            }
 
-            /* ────────────────────────────────────────────────────────────── */
-            /* 2. Helper: drop max-width 600 px (unchanged)                   */
-            /* ────────────────────────────────────────────────────────────── */
+            /* 1. Remove MJML’s max-width:600px rules (keeps e-mail responsive) */
             const stripMaxWidth = s => s.replace(/max-width:\s*600px;?/gi, '');
 
-            /* ────────────────────────────────────────────────────────────── */
-            /* 3. Helper: remove outer html/head/body/doctype tags            */
-            /* ────────────────────────────────────────────────────────────── */
-            function stripOuterTags(html) {
-                return html
-                    .replace(/<!doctype[^>]*>/i, '')
-                    .replace(/<\/?(html|head|body)[^>]*>/gi, '');
+            /* 2. Escape HTML so it’s safe for srcdoc="" */
+            function htmlToSrcdoc(str) {
+                return str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
             }
 
             /* ────────────────────────────────────────────────────────────── */
-            /* 4. Compile → clean → scope → send                              */
+            /* Compile → build iframe → post back to Bubble                   */
             /* ────────────────────────────────────────────────────────────── */
             function compileAndSend() {
                 if (!window.editorInstance) {
-                    parent.postMessage(
-                        { type: 'newsletter-error', reason: 'not-ready' },
-                        PARENT_ORIGIN
-                    );
+                    parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
                     return;
                 }
 
-                /* --- compile MJML --- */
+                /* 1. Compile MJML to raw HTML */
                 const mjml = editorInstance.getHtml();
-                const css = editorInstance.getCss() || '';
-                const { html: rawHtml, errors } = mjmlCompiler(mjml);
+                const extraCss = stripMaxWidth(editorInstance.getCss() || '');
+                const { html: compiledHtml, errors } = mjmlCompiler(mjml);
                 if (errors?.length) console.warn('[MJML] warnings:', errors);
 
-                /* --- merge + clean --- */
-                let html = stripMaxWidth(rawHtml);
-                const cleanedCss = stripMaxWidth(css);
-                if (cleanedCss.trim()) html = `<style>${cleanedCss}</style>\n${html}`;
+                /* 2. Merge extra CSS and strip 600 px limits */
+                let emailHtml = stripMaxWidth(compiledHtml);
+                if (extraCss.trim()) emailHtml = `<style>${extraCss}</style>\n${emailHtml}`;
 
-                /* --- isolate --- */
-                html = stripOuterTags(html);        // remove <html>, <head>, <body>, doctype
-                html = scopeAllStyles(html);        // prefix EVERY style block
-                html = `<div id="newsletter-wrapper">\n${html}\n</div>`; // wrap markup
+                /* 3. Build sandboxed iframe for safe preview */
+                const iframePreview = `
+    <iframe
+      id="newsletter-preview"
+      style="width:100%;height:100%;border:0"
+      sandbox="allow-same-origin"
+      srcdoc="${htmlToSrcdoc(emailHtml)}"
+    ></iframe>`.trim();
 
-                /* --- ship it back to Bubble --- */
-                log('➜ posting newsletter-html (len:', html.length, ')');
+                /* 4. Post both raw HTML (for saving/sending) and iframe (for preview) */
                 parent.postMessage(
-                    { type: 'newsletter-html', html },
+                    { type: 'newsletter-html', html: emailHtml, preview: iframePreview },
                     PARENT_ORIGIN
                 );
             }
