@@ -66,7 +66,37 @@
                 window.editorInstance = editor;
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
                 log('Studio ready');
+
+                // Step 1: Check if the project is empty
+                const components = editor.getComponents();
+                if (components.length === 0) {
+                    log('Project is empty. Loading default template...');
+
+                    // Step 2: Load default template
+                    const defaultHtml = `
+<mj-section background-color="#ffffff" padding="40px 20px">
+  <mj-column>
+    <mj-text align="center" font-size="22px" font-weight="bold" color="#333333" padding-bottom="10px">
+      ✏️ Program Description
+    </mj-text>
+    <mj-divider border-color="#dddddd" border-width="1px" padding-bottom="15px" />
+    <mj-text font-size="16px" color="#777777" line-height="1.6">
+      This is a placeholder description for your program. You can edit this section to describe what your program is about — who it's for, what they'll learn or experience, and why it's special.
+    </mj-text>
+    <mj-text font-size="16px" color="#999999" font-style="italic" padding-top="10px">
+      ✨ Example: “Our 8-week bootcamp helps early-stage startups validate their idea, build MVPs, and pitch to investors.”
+    </mj-text>
+  </mj-column>
+</mj-section>
+`.trim();
+                  editor.setComponents(defaultHtml);
+                    editor.setStyle(''); // or your custom default CSS
+
+                    // Optional: Trigger an autosave
+                    editor.store();
+                }
             }
+
         })
             .catch(err => {
                 parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
