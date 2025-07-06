@@ -45,9 +45,13 @@
             storage: { type: 'cloud' },
             experimental: { disablePremiumPlugins: true }    // stay on Free plan
         })
-            .then(ed => {
+        .then(ed => {
                 log('Editor ready ✔︎');
+                log('Editor instance:', ed);
+                log('Editor methods available:', Object.keys(ed));
                 window.editorInstance = ed;
+                log('Stored to window.editorInstance');
+                log('Verification - window.editorInstance exists?', !!window.editorInstance);
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
             });
 
@@ -58,18 +62,31 @@
         });
 
         function sendHtml() {
-            if (!window.editorInstance) {
-                parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
-                return;
+                log('sendHtml called');
+                log('window.editorInstance exists?', !!window.editorInstance);
+                log('window.editorInstance type:', typeof window.editorInstance);
+
+                if (!window.editorInstance) {
+                    log('Editor instance not found!');
+                    parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
+                    return;
+                }
+
+                try {
+                    log('Attempting to get HTML/CSS...');
+                    const html = window.editorInstance.getHtml();
+                    const css = window.editorInstance.getCss();
+                    log('Got HTML length:', html?.length, 'CSS length:', css?.length);
+                    log('➜ posting newsletter-html to parent');
+                    parent.postMessage(
+                        { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
+                        PARENT_ORIGIN
+                    );
+                } catch (err) {
+                    log('Error getting HTML/CSS:', err);
+                    parent.postMessage({ type: 'newsletter-error', reason: err.message }, PARENT_ORIGIN);
+                }
             }
-            const html = editorInstance.getHtml();
-            const css = editorInstance.getCss();
-            log('➜ posting newsletter-html to parent');
-            parent.postMessage(
-                { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
-                PARENT_ORIGIN
-            );
-        }
     </script>
 </body>
 
