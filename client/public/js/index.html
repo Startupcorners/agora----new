@@ -6,8 +6,12 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <title>Newsletter Builder</title>
 
+    <!-- GrapesJS Studio SDK (core only) -->
     <link rel="stylesheet" href="https://unpkg.com/@grapesjs/studio-sdk/dist/style.css">
     <script src="https://unpkg.com/@grapesjs/studio-sdk/dist/index.umd.js"></script>
+
+    <!-- MJML browser bundle (UMD) — attaches mjml2html to window -->
+    <script src="https://cdn.jsdelivr.net/npm/mjml-browser@4.15.3/lib/index.js"></script>
 
     <style>
         html,
@@ -25,10 +29,10 @@
 <body>
     <div id="studio-editor"></div>
 
-    <!-- MAIN SCRIPT -->
-    <script type="module">
+    <!-- MAIN SCRIPT (runs after both libraries above) -->
+    <script>
         /* ─── CONFIG ─────────────────────────────────────────────── */
-        const PARENT_ORIGIN = 'https://startupcorners.com';
+        const PARENT_ORIGIN = 'https://startupcorners.com';   // Bubble page
         const LICENSE_KEY = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b';
 
         /* ─── HELPERS ────────────────────────────────────────────── */
@@ -37,29 +41,27 @@
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
+        /* Robust resolver: returns the first valid function it finds */
         function resolveCompiler() {
-            return (
-                window.mjml2html ||
-                (window.mjmlBrowser && window.mjmlBrowser.mjml2html) ||
-                (window.mjml && window.mjml.mjml2html)
-            );
+            const candidates = [
+                window.mjml2html,
+                window.mjmlBrowser && window.mjmlBrowser.mjml2html,
+                window.mjml && window.mjml.mjml2html
+            ];
+            return candidates.find(fn => typeof fn === 'function');
         }
 
-        /* ─── 1. Load the MJML compiler (side-effect import) ─────── */
-        try {
-            await import('https://cdn.jsdelivr.net/npm/mjml-browser@4.15.3/lib/index.js');
-            window.mjmlCompiler = resolveCompiler();
-            if (typeof window.mjmlCompiler !== 'function')
-                throw new Error('mjml2html not found on window after import');
-            log('MJML compiler ready');
-        } catch (err) {
-            console.error('MJML failed to load:', err);
+        /* Make sure the compiler really loaded */
+        window.mjmlCompiler = resolveCompiler();
+        if (!window.mjmlCompiler) {
+            console.error('MJML compiler failed to attach');
             parent.postMessage({ type: 'studio-error', message: 'MJML failed to load' },
                 PARENT_ORIGIN);
-            throw err;
+            throw new Error('MJML compiler missing');
         }
+        log('MJML compiler ready');
 
-        /* ─── 2. Mount Grapes Studio ─────────────────────────────── */
+        /* ─── Mount Grapes Studio ─────────────────────────────────── */
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: LICENSE_KEY,
@@ -68,7 +70,7 @@
             identity: { id: userId },
             assets: { storageType: 'cloud' },
             storage: { type: 'cloud' },
-            experimental: { disablePremiumPlugins: true },
+            experimental: { disablePremiumPlugins: true },   // stay on free plan
 
             onReady(editor) {
                 window.editorInstance = editor;
@@ -80,7 +82,7 @@
                 parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
             });
 
-        /* ─── 3. Bridge to Bubble ────────────────────────────────── */
+        /* ─── Message bridge ─────────────────────────────────────── */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
             if (e.data?.type === 'request-html') compileAndSend();
