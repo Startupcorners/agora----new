@@ -46,7 +46,8 @@
             project: { type: 'email', id: projectId },
             identity: { id: userId },
             assets: { storageType: 'cloud' },
-            storage: { type: 'cloud' }
+            storage: { type: 'cloud' },
+            experimental: { disablePremiumPlugins: true }
             // ⬑ no plugins array ⇒ no premium UI ⇒ no licence-plan cleanup
         })
             .then(ed => {
@@ -67,21 +68,19 @@
         });
 
         function sendHtml() {
-            if (!window.editorInstance) {
+                if (!window.editorInstance) {
+                    parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
+                    return;
+                }
+                + console.log('[iframe] ➜ posting newsletter-html to parent');   // NEW
+                const html = editorInstance.getHtml();
+                const css = editorInstance.getCss();
                 parent.postMessage(
-                    { type: 'newsletter-error', reason: 'not-ready' },
+                    { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
                     PARENT_ORIGIN
                 );
-                return;
             }
-            const html = editorInstance.getHtml();
-            const css = editorInstance.getCss();
-            parent.postMessage(
-                { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
-                PARENT_ORIGIN
-            );
-            log('HTML sent to parent ✔︎');
-        }
+
     </script>
 </body>
 
