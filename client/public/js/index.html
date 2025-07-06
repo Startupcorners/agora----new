@@ -35,58 +35,120 @@
         const projectId = qs.get('project_id') || `project-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
+        // Check SDK availability
+        log('GrapesJsStudioSDK available?', typeof GrapesJsStudioSDK);
+        log('createStudioEditor method exists?', typeof GrapesJsStudioSDK?.createStudioEditor);
+
+        log('Starting editor initialization...');
+        log('Project ID:', projectId);
+        log('User ID:', userId);
+
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             licenseKey: LICENSE_KEY,
             theme: 'light',
-            project: { type: 'email', id: projectId },   // ← brings back *Newsletter*
+            project: { type: 'email', id: projectId },
             identity: { id: userId },
             assets: { storageType: 'cloud' },
             storage: { type: 'cloud' },
-            experimental: { disablePremiumPlugins: true }    // stay on Free plan
+            experimental: { disablePremiumPlugins: true }
         })
-        .then(ed => {
-                log('Editor ready ✔︎');
-                log('Editor instance:', ed);
-                log('Editor methods available:', Object.keys(ed));
+            .then(ed => {
+                log('Promise resolved with:', ed);
+                log('Type of ed:', typeof ed);
+                log('Is ed null?', ed === null);
+                log('Is ed undefined?', ed === undefined);
+
+                if (ed && typeof ed === 'object') {
+                    log('Editor object exists');
+                    try {
+                        log('Editor constructor:', ed.constructor?.name);
+                        // Try to find available methods
+                        for (let key in ed) {
+                            if (typeof ed[key] === 'function') {
+                                log('Found method:', key);
+                            }
+                        }
+                        // Check for common GrapesJS methods
+                        log('Has getHtml?', typeof ed.getHtml);
+                        log('Has getCss?', typeof ed.getCss);
+                        log('Has getComponents?', typeof ed.getComponents);
+                        log('Has editor property?', !!ed.editor);
+                        log('Has instance property?', !!ed.instance);
+                    } catch (e) {
+                        log('Error inspecting editor:', e);
+                    }
+                }
+
                 window.editorInstance = ed;
                 log('Stored to window.editorInstance');
                 log('Verification - window.editorInstance exists?', !!window.editorInstance);
+
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
+            })
+            .catch(err => {
+                log('Editor initialization error:', err);
+                parent.postMessage({ type: 'newsletter-error', reason: 'init-failed: ' + err.message }, PARENT_ORIGIN);
             });
 
         /* ---------- MESSAGE BRIDGE ----------------------------------------- */
         addEventListener('message', e => {
             if (e.origin !== PARENT_ORIGIN) return;
+            log('Received message:', e.data);
             if (e.data?.type === 'request-html') sendHtml();
         });
 
         function sendHtml() {
-                log('sendHtml called');
-                log('window.editorInstance exists?', !!window.editorInstance);
-                log('window.editorInstance type:', typeof window.editorInstance);
+            log('sendHtml called');
+            log('window.editorInstance exists?', !!window.editorInstance);
+            log('window.editorInstance type:', typeof window.editorInstance);
 
-                if (!window.editorInstance) {
-                    log('Editor instance not found!');
-                    parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
+            if (!window.editorInstance) {
+                log('Editor instance not found!');
+                parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
+                return;
+            }
+
+            try {
+                log('Attempting to get HTML/CSS...');
+                log('Editor instance:', window.editorInstance);
+
+                // Try different possible ways to access the methods
+                let html, css;
+
+                if (typeof window.editorInstance.getHtml === 'function') {
+                    html = window.editorInstance.getHtml();
+                    css = window.editorInstance.getCss();
+                } else if (window.editorInstance.editor && typeof window.editorInstance.editor.getHtml === 'function') {
+                    log('Trying through .editor property');
+                    html = window.editorInstance.editor.getHtml();
+                    css = window.editorInstance.editor.getCss();
+                } else if (window.editorInstance.instance && typeof window.editorInstance.instance.getHtml === 'function') {
+                    log('Trying through .instance property');
+                    html = window.editorInstance.instance.getHtml();
+                    css = window.editorInstance.instance.getCss();
+                } else {
+                    log('No getHtml method found on any expected path');
+                    parent.postMessage({ type: 'newsletter-error', reason: 'getHtml method not found' }, PARENT_ORIGIN);
                     return;
                 }
 
-                try {
-                    log('Attempting to get HTML/CSS...');
-                    const html = window.editorInstance.getHtml();
-                    const css = window.editorInstance.getCss();
-                    log('Got HTML length:', html?.length, 'CSS length:', css?.length);
-                    log('➜ posting newsletter-html to parent');
-                    parent.postMessage(
-                        { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
-                        PARENT_ORIGIN
-                    );
-                } catch (err) {
-                    log('Error getting HTML/CSS:', err);
-                    parent.postMessage({ type: 'newsletter-error', reason: err.message }, PARENT_ORIGIN);
-                }
+                log('Got HTML length:', html?.length, 'CSS length:', css?.length);
+                log('➜ posting newsletter-html to parent');
+                parent.postMessage(
+                    { type: 'newsletter-html', html: `<style>${css}</style>${html}` },
+                    PARENT_ORIGIN
+                );
+            } catch (err) {
+                log('Error getting HTML/CSS:', err);
+                parent.postMessage({ type: 'newsletter-error', reason: err.message }, PARENT_ORIGIN);
             }
+        }
+
+        // Global error handler to catch any uncaught errors
+        window.addEventListener('error', (e) => {
+            log('Global error:', e.message, e.filename, e.lineno, e.colno);
+        });
     </script>
 </body>
 
