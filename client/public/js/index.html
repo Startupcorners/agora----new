@@ -71,13 +71,7 @@
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
                 log('Studio ready');
 
-                // Wait for project data to load before checking components
-                editor.on('storage:load', () => {
-                    const components = editor.getComponents();
-                    if (components.length === 0) {
-                        log('Project is empty. Loading default template...');
-
-                        const defaultHtml = `
+                const defaultHtml = `
 <mj-section background-color="#ffffff" padding="40px 20px">
   <mj-column>
     <mj-text align="center" font-size="22px" font-weight="bold" color="#333333" padding-bottom="10px">
@@ -94,16 +88,24 @@
 </mj-section>
 `.trim();
 
+                const tryInjectDefault = () => {
+                    const components = editor.getComponents();
+                    if (components.length === 0) {
+                        log('Project is empty or missing. Injecting default template...');
                         editor.setComponents(defaultHtml);
                         editor.setStyle('');
-                        editor.store(); // Optional autosave
+                        editor.store(); // Save immediately so project is initialized in cloud
                     } else {
-                        log('Project already has content. Skipping default template.');
+                        log('Project already has content. Skipping default injection.');
                     }
-                });
+                };
+
+                // Fallback in case project does not exist (storage:load never fires)
+                setTimeout(tryInjectDefault, 800);
+
+                // Also listen for real project load if it happens
+                editor.on('storage:load', tryInjectDefault);
             }
-
-
         })
         .catch(err => {
                 console.error('[Studio Init Error]', err);
