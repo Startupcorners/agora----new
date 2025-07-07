@@ -56,7 +56,8 @@
             root: '#studio-editor',
             licenseKey: LICENSE_KEY,
             theme: 'light',
-            project: { type: 'email', id: projectId },
+            project: { type: 'email', id: projectId,          // unique for every user/project
+                templateId: 'studio-project-email'   },
             identity: { id: userId },
             assets: { storageType: 'cloud' },
             storage: {
@@ -69,51 +70,15 @@
             onReady(editor) {
                 window.editorInstance = editor;
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
-                log('Studio ready');
-
-                const defaultHtml = `
-<mj-section background-color="#ffffff" padding="40px 20px">
-  <mj-column>
-    <mj-text align="center" font-size="22px" font-weight="bold" color="#333333" padding-bottom="10px">
-      ✏️ Program Description
-    </mj-text>
-    <mj-divider border-color="#dddddd" border-width="1px" padding-bottom="15px" />
-    <mj-text font-size="16px" color="#777777" line-height="1.6">
-      This is a placeholder description for your program. You can edit this section to describe what your program is about — who it's for, what they'll learn or experience, and why it's special.
-    </mj-text>
-    <mj-text font-size="16px" color="#999999" font-style="italic" padding-top="10px">
-      ✨ Example: “Our 8-week bootcamp helps early-stage startups validate their idea, build MVPs, and pitch to investors.”
-    </mj-text>
-  </mj-column>
-</mj-section>
-`.trim();
-
-                const tryInjectDefault = () => {
-                    const components = editor.getComponents();
-                    if (components.length === 0) {
-                        log('Project is empty or missing. Injecting default template...');
-                        editor.setComponents(defaultHtml);
-                        editor.setStyle('');
-                        editor.store(); // Save immediately so project is initialized in cloud
-                    } else {
-                        log('Project already has content. Skipping default injection.');
-                    }
-                };
-
-                // Fallback in case project does not exist (storage:load never fires)
-                setTimeout(tryInjectDefault, 800);
-
-                // Also listen for real project load if it happens
-                editor.on('storage:load', tryInjectDefault);
+                // no need for tryInjectDefault() anymore
             }
         })
-        .catch(err => {
+            .catch(err => {
                 console.error('[Studio Init Error]', err);
-                parent.postMessage({
-                    type: 'studio-error',
-                    message: err?.message || String(err) || 'Unknown error during GrapesJS Studio init',
-                    stack: err?.stack || '',
-                }, PARENT_ORIGIN);
+                parent.postMessage(
+                    { type: 'studio-error', message: err?.message ?? String(err), stack: err?.stack ?? '' },
+                    PARENT_ORIGIN
+                );
             });
 
         /* ─── 3. Bridge to Bubble ────────────────────────────────── */
