@@ -40,7 +40,14 @@
             root: '#studio-editor',
             theme: 'light',
             licenseKey: LICENSE_KEY,
-
+            ui: {
+                topbar: {
+                    actions: {
+                        save: false,       // 👈 completely removes the Save button
+                        saveAs: false,     // (optional) you can hide others too
+                    },
+                },
+            },
             /* 👇 the important part */
             project: {
                 type: 'email',
