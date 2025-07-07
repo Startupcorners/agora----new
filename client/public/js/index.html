@@ -36,43 +36,45 @@
         const projectId = qs.get('project_id') || `proj-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
+        /* ─── MJML compiler guard ────────────────────────────────── */
+        const mjmlCompiler = window.mjml;
+        if (typeof mjmlCompiler !== 'function') {
+            const msg = 'MJML compiler failed to load';
+            console.error(msg);
+            parent.postMessage({ type: 'studio-error', message: msg }, PARENT_ORIGIN);
+            throw new Error(msg);
+        }
+
+        /* ─── Mount Studio ───────────────────────────────────────── */
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
             theme: 'light',
             licenseKey: LICENSE_KEY,
-            ui: {
-                topbar: {
-                    actions: {
-                        save: false,       // 👈 completely removes the Save button
-                        saveAs: false,     // (optional) you can hide others too
-                    },
-                },
+
+            ui: {                       // ← hides Save / Save-as buttons
+                topbar: { actions: { save: false, saveAs: false } },
             },
-            /* 👇 the important part */
-            project: {
+
+            project: {                  // ← your starter layout
                 type: 'email',
                 id: projectId,
-
-                /*  This is your starter layout.  */
                 default: {
                     pages: [
                         {
-                            /* NOTE the singular key:  component (not components) */
                             component: `
           <mjml>
             <mj-body>
               <mj-section background-color="#ffffff" padding="40px 20px">
                 <mj-column>
-                  <mj-text align="center" font-size="22px" font-weight="bold" color="#333333" padding-bottom="10px">
+                  <mj-text align="center" font-size="22px" font-weight="bold" color="#333" padding-bottom="10px">
                     ✏️ Program Description
                   </mj-text>
-                  <mj-divider border-color="#dddddd" border-width="1px" padding-bottom="15px" />
-                  <mj-text font-size="16px" color="#777777" line-height="1.6">
-                    This is a placeholder description for your program. You can edit this section to describe what your program is about — who it's for, what they'll learn or experience,
-                    and why it's special.
+                  <mj-divider border-color="#ddd" border-width="1px" padding-bottom="15px" />
+                  <mj-text font-size="16px" color="#777" line-height="1.6">
+                    This is a placeholder description for your program…
                   </mj-text>
-                  <mj-text font-size="16px" color="#999999" font-style="italic" padding-top="10px">
-                    ✨ Example: “Our 8-week bootcamp helps early-stage startups validate their idea, build MVPs, and pitch to investors.”
+                  <mj-text font-size="16px" color="#999" font-style="italic" padding-top="10px">
+                    ✨ Example: “Our 8-week bootcamp helps early-stage startups…”
                   </mj-text>
                 </mj-column>
               </mj-section>
@@ -92,15 +94,41 @@
                 window.editorInstance = editor;
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
             },
-        })
-            .catch(err => {
-                console.error('[Studio Init Error]', err);
-                parent.postMessage(
-                    { type: 'studio-error', message: err?.message ?? String(err), stack: err?.stack ?? '' },
-                    PARENT_ORIGIN,
-                );
-            });
+        }).catch(err => {
+            console.error('[Studio Init Error]', err);
+            parent.postMessage(
+                { type: 'studio-error', message: err?.message ?? String(err), stack: err?.stack ?? '' },
+                PARENT_ORIGIN,
+            );
+        });
+
+        /* ─── Bridge back to Bubble ──────────────────────────────── */
+        addEventListener('message', e => {
+            if (e.origin !== PARENT_ORIGIN) return;
+            if (e.data?.type === 'request-html') compileAndSend();
+        });
+
+        function compileAndSend() {
+            if (!window.editorInstance) {
+                parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
+                return;
+            }
+
+            const mjml = editorInstance.getHtml();
+            const css = editorInstance.getCss() || '';
+
+            // Compile MJML → responsive HTML
+            const { html: compiledHtml, errors } = mjmlCompiler(mjml);
+            if (errors?.length) console.warn('MJML warnings:', errors);
+
+            // Optional: strip 600 px max-width
+            let html = compiledHtml.replace(/max-width:\s*600px;?/gi, '');
+            if (css.trim()) html = `<style>${css.replace(/max-width:\s*600px;?/gi, '')}</style>\n${html}`;
+
+            parent.postMessage({ type: 'newsletter-html', html }, PARENT_ORIGIN);
+        }
     </script>
+      
       
 </body>
 
