@@ -30,93 +30,71 @@
     <script type="module">
         /* ─── CONFIG ─────────────────────────────────────────────── */
         const PARENT_ORIGIN = 'https://startupcorners.com';
-        const LICENSE_KEY = '72e811771b3c47c9b37c4b1b8a3b9e9b4dfb57da53c844ffa8b3bb4d27a3a41b';
+        const LICENSE_KEY = '72e8117…a41b';
 
-        /* ─── HELPERS ────────────────────────────────────────────── */
-        const log = (...a) => console.log('[iframe]', ...a);
         const qs = new URLSearchParams(location.search);
-        const projectId = qs.get('project_id') || `project-${Date.now()}`;
+        const projectId = qs.get('project_id') || `proj-${Date.now()}`;
         const userId = qs.get('user_id') || `user-${Date.now()}`;
 
-        /* ─── 1. Check for MJML compiler ─────────────────────────── */
-        // MJML browser version exports as window.mjml
-        const mjmlCompiler = window.mjml;
-
-        if (typeof mjmlCompiler !== 'function') {
-            const errorMsg = 'MJML compiler failed to load.';
-            console.error(errorMsg);
-            parent.postMessage({ type: 'studio-error', message: errorMsg }, PARENT_ORIGIN);
-            throw new Error(errorMsg);
-        }
-
-        log('MJML compiler ready');
-
-        /* ─── 2. Mount Grapes Studio ─────────────────────────────── */
         GrapesJsStudioSDK.createStudioEditor({
             root: '#studio-editor',
-            licenseKey: LICENSE_KEY,
             theme: 'light',
-            project: { type: 'email', id: projectId,          // unique for every user/project
-                template: 'studio-project-email'   },
-            identity: { id: userId },
-            assets: { storageType: 'cloud' },
-            storage: {
-                type: 'cloud',
-                autosaveChanges: 100,
-                autosaveIntervalMs: 10000
+            licenseKey: LICENSE_KEY,
+
+            /* 👇 the important part */
+            project: {
+                type: 'email',
+                id: projectId,
+
+                /*  This is your starter layout.  */
+                default: {
+                    pages: [
+                        {
+                            /* NOTE the singular key:  component (not components) */
+                            component: `
+          <mjml>
+            <mj-body>
+              <mj-section background-color="#ffffff" padding="40px 20px">
+                <mj-column>
+                  <mj-text align="center" font-size="22px" font-weight="bold" color="#333333" padding-bottom="10px">
+                    ✏️ Program Description
+                  </mj-text>
+                  <mj-divider border-color="#dddddd" border-width="1px" padding-bottom="15px" />
+                  <mj-text font-size="16px" color="#777777" line-height="1.6">
+                    This is a placeholder description for your program. You can edit this section to describe what your program is about — who it's for, what they'll learn or experience,
+                    and why it's special.
+                  </mj-text>
+                  <mj-text font-size="16px" color="#999999" font-style="italic" padding-top="10px">
+                    ✨ Example: “Our 8-week bootcamp helps early-stage startups validate their idea, build MVPs, and pitch to investors.”
+                  </mj-text>
+                </mj-column>
+              </mj-section>
+            </mj-body>
+          </mjml>`.trim(),
+                        },
+                    ],
+                },
             },
+
+            identity: { id: userId },
+            storage: { type: 'cloud', autosaveChanges: 100, autosaveIntervalMs: 10_000 },
+            assets: { storageType: 'cloud' },
             experimental: { disablePremiumPlugins: true },
 
             onReady(editor) {
                 window.editorInstance = editor;
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
-                // no need for tryInjectDefault() anymore
-            }
+            },
         })
             .catch(err => {
                 console.error('[Studio Init Error]', err);
                 parent.postMessage(
                     { type: 'studio-error', message: err?.message ?? String(err), stack: err?.stack ?? '' },
-                    PARENT_ORIGIN
+                    PARENT_ORIGIN,
                 );
             });
-
-        /* ─── 3. Bridge to Bubble ────────────────────────────────── */
-        addEventListener('message', e => {
-            if (e.origin !== PARENT_ORIGIN) return;
-            if (e.data?.type === 'request-html') compileAndSend();
-        });
-
-        function compileAndSend() {
-                if (!window.editorInstance) {
-                    parent.postMessage({ type: 'newsletter-error', reason: 'not-ready' }, PARENT_ORIGIN);
-                    return;
-                }
-
-                const mjml = editorInstance.getHtml();
-                const css = editorInstance.getCss() || '';
-
-                console.log('[compileAndSend] MJML:\n', mjml);
-            console.log('[compileAndSend] CSS:\n', css);
-
-                // Compile MJML
-                const { html: compiledHtml, errors } = mjmlCompiler(mjml);
-                if (errors?.length) console.warn('MJML warnings:', errors);
-
-                // OPTIONAL: Remove all instances of "max-width:600px"
-                let html = compiledHtml.replace(/max-width:\s*600px;?/gi, '');
-
-                // OPTIONAL: Clean up inline CSS that might still limit width
-                if (css && css.trim()) {
-                    const cleanedCss = css.replace(/max-width:\s*600px;?/gi, '');
-                    html = `<style>${cleanedCss}</style>\n${html}`;
-                }
-
-                log('➜ posting newsletter-html (len:', html.length, ')');
-                parent.postMessage({ type: 'newsletter-html', html }, PARENT_ORIGIN);
-            }
-
     </script>
+      
 </body>
 
 </html>
