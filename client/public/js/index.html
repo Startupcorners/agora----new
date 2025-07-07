@@ -71,13 +71,13 @@
                 parent.postMessage({ type: 'studio-ready' }, PARENT_ORIGIN);
                 log('Studio ready');
 
-                // Step 1: Check if the project is empty
-                const components = editor.getComponents();
-                if (components.length === 0) {
-                    log('Project is empty. Loading default template...');
+                // Wait for project data to load before checking components
+                editor.on('storage:load', () => {
+                    const components = editor.getComponents();
+                    if (components.length === 0) {
+                        log('Project is empty. Loading default template...');
 
-                    // Step 2: Load default template
-                    const defaultHtml = `
+                        const defaultHtml = `
 <mj-section background-color="#ffffff" padding="40px 20px">
   <mj-column>
     <mj-text align="center" font-size="22px" font-weight="bold" color="#333333" padding-bottom="10px">
@@ -93,17 +93,25 @@
   </mj-column>
 </mj-section>
 `.trim();
-                  editor.setComponents(defaultHtml);
-                    editor.setStyle(''); // or your custom default CSS
 
-                    // Optional: Trigger an autosave
-                    editor.store();
-                }
+                        editor.setComponents(defaultHtml);
+                        editor.setStyle('');
+                        editor.store(); // Optional autosave
+                    } else {
+                        log('Project already has content. Skipping default template.');
+                    }
+                });
             }
 
+
         })
-            .catch(err => {
-                parent.postMessage({ type: 'studio-error', message: String(err) }, PARENT_ORIGIN);
+        .catch(err => {
+                console.error('[Studio Init Error]', err);
+                parent.postMessage({
+                    type: 'studio-error',
+                    message: err?.message || String(err) || 'Unknown error during GrapesJS Studio init',
+                    stack: err?.stack || '',
+                }, PARENT_ORIGIN);
             });
 
         /* ─── 3. Bridge to Bubble ────────────────────────────────── */
